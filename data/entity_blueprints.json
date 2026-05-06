@@ -1,0 +1,99 @@
+{
+    "colonist": {
+        "Appearance": {
+            "R": 255, "G": 255, "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 192
+        },
+        "Description": {
+            "Name": "<ColonistName>",
+            "Faction": "colony"
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Stats": {
+            "Str": 10,
+            "Int": 10,
+            "Dex": 10,
+            "AC": 10,
+            "BasicAttackDice": "1d4"
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Worker": {},
+        "AIMemory": {},
+        "Inventory": {}
+    },
+    "storage_locker": {
+        "Appearance": {
+            "R": 255, "G": 255, "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Storage Locker",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {}
+    },
+    "research_lab": {
+        "Appearance": {
+            "R": 255, "G": 255, "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 72,
+            "SpriteY": 408
+        },
+        "Description": {
+            "Name": "Research Lab",
+            "Faction": ""
+        },
+        "Solid": {},
+        "ResearchBuilding": {
+            "Type": "research_lab"
+        }
+    },
+    "metal_ore": {
+        "Appearance": {
+            "R": 200, "G": 200, "B": 200,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 0
+        },
+        "Description": {
+            "Name": "Metal Ore",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "metal_ore"
+        }
+    },
+    "crystal": {
+        "Appearance": {
+            "R": 100, "G": 200, "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 224,
+            "SpriteY": 0
+        },
+        "Description": {
+            "Name": "Crystal",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "crystal"
+        }
+    }
+}

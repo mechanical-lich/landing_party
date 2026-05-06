@@ -1,0 +1,15 @@
+{
+    "scifi_world": "assets/tilesets/oryx_16bit_scifi_world.png",
+    "scifi_world_extra": "assets/tilesets/oryx_16bit_scifi_world_extra.png",
+    "fantasy_world": "assets/tilesets/oryx_16bit_fantasy_world.png",
+    "scifi_entities": "assets/entities/oryx_16bit_scifi_creatures.png",
+    "scifi_entities_extra": "assets/entities/oryx_16bit_scifi_creatures_extra.png",
+    "scifi_vehicles": "assets/entities/oryx_16bit_scifi_vehicles.png",
+    "fantasy_entities": "assets/entities/oryx_16bit_fantasy_creatures.png",
+    "scifi_items": "assets/items/oryx_16bit_scifi_items.png",
+    "fantasy_items": "assets/items/oryx_16bit_fantasy_items.png",
+    "scifi_interface": "assets/interface/oryx_16bit_scifi_interface.png",
+    "fx_fantasy": "assets/fx/oryx_16bit_fantasy_fx.png",
+    "fx_scifi_sm": "assets/fx/oryx_16bit_scifi_FX_sm.png",
+    "fx_scifi_lg": "assets/fx/oryx_16bit_scifi_FX_lg.png"
+}

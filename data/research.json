@@ -1,0 +1,35 @@
+{
+    "basic_metallurgy": {
+        "name": "Basic Metallurgy",
+        "description": "Foundational metal processing techniques.",
+        "duration": 100,
+        "required_building": "research_lab",
+        "required_int": 8,
+        "unlocks": ["metal_plating", "reinforced_door"]
+    },
+    "advanced_metallurgy": {
+        "name": "Advanced Metallurgy",
+        "description": "High-grade metal fabrication and alloy synthesis.",
+        "duration": 200,
+        "required_building": "research_lab",
+        "required_int": 12,
+        "requires_tech": "basic_metallurgy",
+        "unlocks": ["plasma_cutter", "armored_wall"]
+    },
+    "xenobiology": {
+        "name": "Xenobiology",
+        "description": "Study of alien flora and fauna.",
+        "duration": 150,
+        "required_building": "research_lab",
+        "required_int": 10,
+        "unlocks": ["bio_farm", "alien_medicine"]
+    },
+    "power_systems": {
+        "name": "Power Systems",
+        "description": "Efficient energy generation and distribution.",
+        "duration": 180,
+        "required_building": "research_lab",
+        "required_int": 11,
+        "unlocks": ["generator", "power_conduit"]
+    }
+}

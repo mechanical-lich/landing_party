@@ -1,0 +1,152 @@
+[
+    {
+        "name": "space",
+        "solid": false,
+        "water": false,
+        "air": false,
+        "space": true,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0, "spriteY": 768 },
+            { "variant": 1, "spriteX": 24, "spriteY": 768 },
+            { "variant": 2, "spriteX": 48, "spriteY": 768 },
+            { "variant": 3, "spriteX": 72, "spriteY": 768 }
+        ]
+    },
+    {
+        "name": "air",
+        "solid": false,
+        "water": false,
+        "air": true,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0, "spriteY": 768 }
+        ]
+    },
+    {
+        "name": "regolith",
+        "solid": false,
+        "water": false,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0,  "spriteY": 672 },
+            { "variant": 1, "spriteX": 24, "spriteY": 672 },
+            { "variant": 2, "spriteX": 48, "spriteY": 672 }
+        ]
+    },
+    {
+        "name": "rock",
+        "solid": true,
+        "water": false,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0,  "spriteY": 360 },
+            { "variant": 1, "spriteX": 24, "spriteY": 360 },
+            { "variant": 2, "spriteX": 48, "spriteY": 360 }
+        ]
+    },
+    {
+        "name": "bedrock",
+        "solid": true,
+        "water": false,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0, "spriteY": 48 }
+        ]
+    },
+    {
+        "name": "ore_deposit",
+        "solid": true,
+        "water": false,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 24, "spriteY": 648 }
+        ]
+    },
+    {
+        "name": "crystal_vein",
+        "solid": true,
+        "water": false,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 24, "spriteY": 624 }
+        ]
+    },
+    {
+        "name": "dirt",
+        "solid": false,
+        "water": false,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 672,  "spriteY": 600 },
+            { "variant": 1, "spriteX": 696, "spriteY": 600 }
+        ]
+    },
+    {
+        "name": "grass",
+        "solid": false,
+        "water": false,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 672,  "spriteY": 792 },
+            { "variant": 1, "spriteX": 696, "spriteY": 792 }
+        ]
+    },
+    {
+        "name": "water",
+        "solid": false,
+        "water": true,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 96, "spriteY": 720 },
+            { "variant": 1, "spriteX": 96, "spriteY": 744 }
+        ]
+    },
+    {
+        "name": "ice",
+        "solid": false,
+        "water": false,
+        "resource": "fantasy_world",
+        "variants": [
+            { "variant": 0, "spriteX": 672, "spriteY": 648 },
+            { "variant": 1, "spriteX": 696, "spriteY": 648 }
+        ]
+    },
+    {
+        "name": "hull_floor",
+        "solid": false,
+        "water": false,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0,  "spriteY": 168 },
+            { "variant": 1, "spriteX": 24, "spriteY": 168 }
+        ]
+    },
+    {
+        "name": "hull_wall",
+        "solid": true,
+        "water": false,
+        "autoTile": 1,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 0,  "spriteY": 192 },
+            { "variant": 1, "spriteX": 24, "spriteY": 192 }
+        ]
+    },
+    {
+        "name": "stairs_up",
+        "stairsUp": true,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 384, "spriteY": 120 }
+        ]
+    },
+    {
+        "name": "stairs_down",
+        "stairsDown": true,
+        "resource": "scifi_world",
+        "variants": [
+            { "variant": 0, "spriteX": 408, "spriteY": 120 }
+        ]
+    }
+]

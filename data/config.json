@@ -1,0 +1,20 @@
+{
+    "tileSizeW": 24,
+    "tileSizeH": 24,
+    "spriteSizeW": 24,
+    "spriteSizeH": 24,
+    "worldWidth": 1152,
+    "worldHeight": 800,
+    "worldGenSizeW": 512,
+    "worldGenSizeH": 512,
+    "worldGenSizeZ": 10,
+    "startingZ": 5,
+    "screenWidth": 1152,
+    "screenHeight": 800,
+    "title": "Scifi Settlements",
+    "blueprintPath": "data/entity_blueprints.json",
+    "dpi": 72,
+    "renderPathfindingSteps": false,
+    "profileCPU": false,
+    "profileMemory": false
+}

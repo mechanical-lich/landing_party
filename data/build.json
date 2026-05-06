@@ -1,0 +1,59 @@
+{
+    "hull_wall": {
+        "name": "Hull Wall",
+        "type": "hull_wall",
+        "description": "A reinforced metal wall panel.",
+        "build_time": 4,
+        "cost": {
+            "metal_ore": 2
+        }
+    },
+    "hull_floor": {
+        "name": "Hull Floor",
+        "type": "hull_floor",
+        "description": "A metal floor panel.",
+        "build_time": 2,
+        "cost": {
+            "metal_ore": 1
+        }
+    },
+    "storage_locker": {
+        "name": "Storage Locker",
+        "type": "storage_locker",
+        "description": "A secure locker for storing resources.",
+        "build_time": 3,
+        "is_entity": true,
+        "cost": {
+            "metal_ore": 2
+        }
+    },
+    "research_lab": {
+        "name": "Research Lab",
+        "type": "research_lab",
+        "description": "A facility for conducting research.",
+        "build_time": 8,
+        "is_entity": true,
+        "cost": {
+            "metal_ore": 5,
+            "crystal": 2
+        }
+    },
+    "stairs_up": {
+        "name": "Stairs Up",
+        "type": "stairs_up",
+        "description": "Access to the level above.",
+        "build_time": 4,
+        "cost": {
+            "metal_ore": 2
+        }
+    },
+    "stairs_down": {
+        "name": "Stairs Down",
+        "type": "stairs_down",
+        "description": "Access to the level below.",
+        "build_time": 4,
+        "cost": {
+            "metal_ore": 2
+        }
+    }
+}
