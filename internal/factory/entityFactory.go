@@ -62,3 +62,7 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 func BlueprintExists(name string) bool {
 	return jsonFactory.BlueprintExists(name)
 }
+
+func CreateComponent(name string, data map[string]interface{}) (ecs.Component, error) {
+	return jsonFactory.CreateComponent(name, data)
+}

@@ -16,12 +16,17 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/input"
+	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
+	"github.com/mechanical-lich/scifi_settlements/internal/effect"
+	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
+	"github.com/mechanical-lich/scifi_settlements/internal/game/listeners"
+	"github.com/mechanical-lich/scifi_settlements/internal/wincondition"
 	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/gui"
 	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
@@ -57,6 +62,9 @@ type MainState struct {
 	worldImage       *ebiten.Image
 	buildMode        string
 	tick             int
+	day              int
+	lastDay          int
+	winEval          *wincondition.Evaluator
 	mouseDragging    bool
 	lastDragTileX    int
 	lastDragTileY    int
@@ -123,8 +131,17 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 		return fspath.GetPossiblePath(levelInterface.(*world.Level), from.(*world.Tile), to.(*world.Tile), reuse)
 	}
 	s.systemManager.AddSystem(aiSystem)
+	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
+	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
+
+	eq := event.GetQueuedInstance()
+	eq.RegisterListener(&listeners.MessageListener{}, message.MessageEventType)
+	eq.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
+	eq.RegisterListener(&listeners.TaskListener{}, eventsystem.TaskCompleted)
+	eq.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
+	eq.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
 
 	event.GetQueuedInstance().RegisterListener(s, input.MouseClickEventType)
 	event.GetQueuedInstance().RegisterListener(s, input.MouseReleasedEventType)
@@ -133,7 +150,43 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.BuildOptionChangedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.CursorModeChangedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.MainMenuEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.SaveGameEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.LoadGameEventType)
 
+	return s, nil
+}
+
+func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState, error) {
+	s, err := newMainStateBase(cfg)
+	if err != nil {
+		return nil, err
+	}
+	s.level = level
+	s.guiManager = gui.NewGUIManager()
+	s.gm = &GameMaster{}
+	s.gm.Init(level)
+
+	gcfg := config.Global()
+	s.CameraZ = gcfg.StartingZ
+	x, y := s.gm.GetFreeSpaceAtZ(s.CameraZ)
+	if x != -1 {
+		sidebarTiles := 200/s.TileSizeW + 1
+		viewW := gcfg.WorldWidth / s.TileSizeW
+		viewH := gcfg.WorldHeight / s.TileSizeH
+		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
+		s.CameraY = y - viewH/2
+	}
+	if cfg.Name != "" {
+		if ms, ok := settlement.Settlements[cfg.Name]; ok {
+			s.MainSettlement = ms
+		}
+	}
+	if len(scenario.AllEnabled()) > 0 {
+		if cfg.ScenarioID != "" {
+			_ = scenario.SelectByID(cfg.ScenarioID)
+		}
+		s.winEval = wincondition.New(scenario.Active().WinConditions)
+	}
 	return s, nil
 }
 
@@ -198,6 +251,12 @@ func (s *MainState) newGame() {
 	} else if len(scenario.AllEnabled()) > 0 {
 		_ = scenario.SelectRandom()
 	}
+
+	if len(scenario.AllEnabled()) > 0 {
+		s.winEval = wincondition.New(scenario.Active().WinConditions)
+	}
+	s.day = 0
+	s.lastDay = 0
 }
 
 func (s *MainState) Update() state.StateInterface {
@@ -208,7 +267,7 @@ func (s *MainState) Update() state.StateInterface {
 
 	fps := ebiten.ActualFPS()
 	tps := ebiten.ActualTPS()
-	ebiten.SetWindowTitle(fmt.Sprintf("%s — Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, s.CameraZ, fps, tps))
+	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, s.day, s.CameraZ, fps, tps))
 
 	if !s.Paused {
 		s.tick++
@@ -221,10 +280,19 @@ func (s *MainState) Update() state.StateInterface {
 			s.systemManager.UpdateSystemsForEntity(s.level, entity)
 		}
 		s.cleanUpSystem.Update(s.level)
+		effect.GetEffectManager().Update()
 	}
 
 	if s.tick%30 == 0 {
 		s.refreshHUD()
+	}
+
+	if !s.Paused && s.tick%300 == 0 && s.tick > 0 {
+		s.day++
+		if s.day != s.lastDay {
+			s.lastDay = s.day
+			s.checkWinConditions()
+		}
 	}
 
 	return s.next
@@ -240,6 +308,8 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
 
 	s.drawTasks(s.worldImage)
+	cfg := config.Global()
+	effect.GetEffectManager().Draw(s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, cfg.SpriteSizeW, cfg.SpriteSizeH)
 	screen.DrawImage(s.worldImage, nil)
 	s.guiManager.Draw(screen)
 }
@@ -271,6 +341,30 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			os.Exit(0)
 		case "newgame":
 			s.next = NewTitleState()
+			s.done = true
+		}
+	case gui.SaveGameEvent:
+		name := s.settlementCfg.Name
+		if name == "" {
+			name = "colony"
+		}
+		if err := SaveSettlement(s.level, SaveMeta{
+			Name:       name,
+			ScenarioID: s.settlementCfg.ScenarioID,
+			MapSizeW:   s.level.GetWidth(),
+			MapSizeH:   s.level.GetHeight(),
+			MapSizeZ:   s.level.GetDepth(),
+		}); err != nil {
+			log.Printf("save failed: %v", err)
+		} else {
+			message.AddMessage("Game saved.")
+		}
+	case gui.LoadGameEvent:
+		loaded, err := LoadSave(ev.Name)
+		if err != nil {
+			log.Printf("load failed: %v", err)
+		} else {
+			s.next = loaded
 			s.done = true
 		}
 	}
@@ -344,14 +438,27 @@ func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
 	if s.guiManager.GetMouseFocused() {
 		return
 	}
-	if e.Y > 0.1 && s.TileSizeW < 96 {
+	zooming := (e.Y > 0.1 && s.TileSizeW < 96) || (e.Y < -0.1 && s.TileSizeW > 16)
+	if !zooming {
+		return
+	}
+
+	// World tile under the mouse before zoom
+	mX, mY := ebiten.CursorPosition()
+	worldX := mX/s.TileSizeW + s.CameraX
+	worldY := mY/s.TileSizeH + s.CameraY
+
+	if e.Y > 0.1 {
 		s.TileSizeW *= 2
 		s.TileSizeH *= 2
-	}
-	if e.Y < -0.1 && s.TileSizeW > 16 {
+	} else {
 		s.TileSizeW /= 2
 		s.TileSizeH /= 2
 	}
+
+	// Reposition camera so the same world tile stays under the mouse
+	s.CameraX = worldX - mX/s.TileSizeW
+	s.CameraY = worldY - mY/s.TileSizeH
 }
 
 func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
@@ -374,6 +481,25 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 			ent.AddComponent(&components.SelectedComponent{})
 			s.selectedEntity = ent
 			event.GetQueuedInstance().SendEvent(gui.EntitySelectedEvent{Entity: ent})
+		}
+	}
+
+	if e.Button == ebiten.MouseButtonLeft && s.CursorMode == gui.CursorModeAttack && s.MainSettlement != nil {
+		target := s.level.GetEntityAt(tX, tY, s.CameraZ)
+		if target != nil && target.HasComponent(components.FactionAI) {
+			for _, colonist := range s.level.Entities {
+				if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
+					wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+					if wc.CurrentTask == nil || wc.CurrentTask.Completed {
+						s.MainSettlement.Tasks.AddTask(&task.Task{
+							Action: task_requests.AttackAction,
+							Data:   target,
+							X:      tX, Y: tY, Z: s.CameraZ,
+						})
+						break
+					}
+				}
+			}
 		}
 	}
 
@@ -534,25 +660,89 @@ func (s *MainState) refreshHUD() {
 		s.guiManager.UpdateResource(id, count)
 	}
 	s.guiManager.RefreshPopulationTab(popEntries)
+
+	if metas, err := ListSaves(); err == nil {
+		names := make([]string, len(metas))
+		for i, m := range metas {
+			names[i] = m.Name
+		}
+		s.guiManager.SetSaveNames(names)
+	}
+
+	var goalLines []string
+	goalLines = append(goalLines, fmt.Sprintf("Day: %d", s.day))
+	if len(scenario.AllEnabled()) > 0 {
+		sc := scenario.Active()
+		goalLines = append(goalLines, sc.Name)
+		for _, rule := range sc.WinConditions.Rules {
+			goalLines = append(goalLines, fmt.Sprintf("  %s", rule.Message))
+		}
+	}
+	s.guiManager.RefreshGoalsTab(goalLines)
+}
+
+func (s *MainState) checkWinConditions() {
+	if s.winEval == nil {
+		return
+	}
+
+	colonistPop := 0
+	for _, e := range s.level.Entities {
+		if e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+			colonistPop++
+		}
+	}
+
+	ctx := wincondition.EvalContext{
+		Entities:      s.level.Entities,
+		Flags:         s.level.Flags,
+		SettlementPop: map[string]int{"colony": colonistPop},
+		Day:           s.day,
+	}
+
+	if rule, ok := s.winEval.EvalDaysSurvived(ctx); ok {
+		message.AddMessage(rule.Message)
+		s.Paused = true
+		return
+	}
+	if rule, ok := s.winEval.EvalColonistEliminated(ctx); ok {
+		message.AddMessage(rule.Message)
+		s.Paused = true
+	}
 }
 
 func (s *MainState) drawTasks(screen *ebiten.Image) {
 	if s.MainSettlement != nil {
 		viewW := config.Global().WorldWidth / s.TileSizeW
 		viewH := config.Global().WorldHeight / s.TileSizeH
+		tw := float32(s.TileSizeW)
+		th := float32(s.TileSizeH)
 		for _, t := range s.MainSettlement.Tasks.GetTasks() {
 			if t.Completed || t.Z != s.CameraZ {
 				continue
 			}
-			if t.X < s.CameraX || t.X > s.CameraX+viewW || t.Y < s.CameraY || t.Y > s.CameraY+viewH {
+			if t.X < s.CameraX || t.X >= s.CameraX+viewW || t.Y < s.CameraY || t.Y >= s.CameraY+viewH {
 				continue
 			}
 			sx := float32((t.X - s.CameraX) * s.TileSizeW)
 			sy := float32((t.Y - s.CameraY) * s.TileSizeH)
-			vector.DrawFilledRect(screen, sx, sy, float32(s.TileSizeW), float32(s.TileSizeH),
-				color.RGBA{R: 255, G: 200, B: 0, A: 40}, false)
-			vector.StrokeRect(screen, sx, sy, float32(s.TileSizeW), float32(s.TileSizeH),
-				1, color.RGBA{R: 255, G: 200, B: 0, A: 160}, false)
+			var fill, border color.RGBA
+			switch t.Action {
+			case task_requests.BuildAction:
+				fill = color.RGBA{R: 100, G: 200, B: 255, A: 40}
+				border = color.RGBA{R: 100, G: 200, B: 255, A: 200}
+			case task_requests.DigAction:
+				fill = color.RGBA{R: 220, G: 140, B: 40, A: 40}
+				border = color.RGBA{R: 220, G: 140, B: 40, A: 200}
+			case task_requests.MineAction:
+				fill = color.RGBA{R: 200, G: 200, B: 50, A: 40}
+				border = color.RGBA{R: 200, G: 200, B: 50, A: 200}
+			default:
+				fill = color.RGBA{R: 255, G: 200, B: 0, A: 40}
+				border = color.RGBA{R: 255, G: 200, B: 0, A: 200}
+			}
+			vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
+			vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
 		}
 	}
 

@@ -4,20 +4,22 @@ import (
 	"log"
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlai"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcombat"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
+	"github.com/mechanical-lich/mlge/utility"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
+	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
-	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/utility"
 )
 
 func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
@@ -78,6 +80,10 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleMineTask(level, entity, wc, aiMemory)
 	case task_requests.PickupAction:
 		handlePickupTask(level, entity, wc, aiMemory)
+	case task_requests.AttackAction:
+		handleAttackTask(level, entity, wc, aiMemory)
+	case task_requests.ResearchAction:
+		handleResearchTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -321,9 +327,64 @@ func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	}
 }
 
+func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	target, ok := wc.CurrentTask.Data.(*ecs.Entity)
+	if !ok || target == nil || target.HasComponent(rlcomponents.Dead) {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	targetPC := target.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), targetPC.GetX(), targetPC.GetY(), targetPC.GetZ(), 1, 1, 0) {
+		rlcombat.Hit(level, entity, target, true)
+		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
+		if target.HasComponent(rlcomponents.Dead) {
+			event.GetQueuedInstance().QueueEvent(eventsystem.EntityKilledEvent{
+				KillerName: rlentity.GetName(entity),
+				TargetName: rlentity.GetName(target),
+				Blueprint:  target.Blueprint,
+				X:          targetPC.GetX(), Y: targetPC.GetY(), Z: targetPC.GetZ(),
+			})
+			wc.CurrentTask.Complete()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+		}
+	} else {
+		wc.CurrentTask.X = targetPC.GetX()
+		wc.CurrentTask.Y = targetPC.GetY()
+		wc.CurrentTask.Z = targetPC.GetZ()
+		MoveTowardsTarget(level, entity, targetPC.GetX(), targetPC.GetY(), targetPC.GetZ())
+		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
+	}
+}
+
 func handleMoveTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
 		CompleteTaskWithMessage(entity, wc.CurrentTask, "Reached destination")
+		aiMemory.State = "idle"
+	}
+}
+
+func handleResearchTask(_ *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	rr, ok := wc.CurrentTask.Data.(*task_requests.ResearchRequest)
+	if !ok {
+		aiMemory.State = "idle"
+		wc.CurrentTask = nil
+		return
+	}
+
+	rr.Progress++
+	if rr.Progress >= rr.Required {
+		event.GetQueuedInstance().QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
+		if tech, ok := research.GetTech(rr.TechKey); ok {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
+		} else {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Research complete")
+		}
 		aiMemory.State = "idle"
 	}
 }

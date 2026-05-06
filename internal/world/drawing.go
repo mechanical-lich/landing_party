@@ -52,9 +52,11 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	}
 }
 
+var spaceTile = &Tile{}
+
 func drawTile(screen *ebiten.Image, tile *Tile, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	if tile == nil {
-		return
+		tile = spaceTile
 	}
 	def := TileDefinitions[tile.Type]
 	if len(def.Variants) == 0 {
@@ -99,13 +101,16 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, tileSi
 		return
 	}
 
-	spriteX := ac.SpriteX
-	// Second animation frame is one sprite-width to the right
+	spriteX, spriteY := ac.SpriteX, ac.SpriteY
 	if ac.Bounces && ac.Bounce {
-		spriteX += spriteSizeW
+		if ac.BounceAxis == "y" {
+			spriteY += spriteSizeH
+		} else {
+			spriteX += spriteSizeW
+		}
 	}
 
-	src := tex.SubImage(image.Rect(spriteX, ac.SpriteY, spriteX+spriteSizeW, ac.SpriteY+spriteSizeH)).(*ebiten.Image)
+	src := tex.SubImage(image.Rect(spriteX, spriteY, spriteX+spriteSizeW, spriteY+spriteSizeH)).(*ebiten.Image)
 	drawOp.GeoM.Reset()
 	drawOp.ColorScale.Reset()
 

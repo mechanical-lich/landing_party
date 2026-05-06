@@ -3,7 +3,9 @@ package game
 import (
 	"math/rand"
 
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/utility"
+	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
@@ -30,7 +32,9 @@ func (gm *GameMaster) Update() {
 
 	hostileCount := 0
 	for _, e := range gm.level.Entities {
-		_ = e // count hostiles once we have faction AI wired up
+		if e.HasComponent(components.FactionAI) && !e.HasComponent(rlcomponents.Dead) {
+			hostileCount++
+		}
 	}
 
 	hostileMax := sc.HostileMax

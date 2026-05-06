@@ -8,6 +8,7 @@ import (
 const (
 	Appearance       ecs.ComponentType = "Appearance"
 	Choppable        ecs.ComponentType = "Choppable"
+	Damage           ecs.ComponentType = "Damage"
 	Drops            ecs.ComponentType = "Drops"
 	FX               ecs.ComponentType = "FX"
 	Selected         ecs.ComponentType = "Selected"

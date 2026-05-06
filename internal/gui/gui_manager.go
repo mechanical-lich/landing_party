@@ -57,3 +57,4 @@ func (gm *GUIManager) SetHoveredEntity(entity *ecs.Entity)                      
 func (gm *GUIManager) SetHoveredTile(name string, solid, water, air, space bool) { gm.hud.SetHoveredTile(name, solid, water, air, space) }
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
+func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }

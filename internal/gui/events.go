@@ -27,3 +27,15 @@ func (e EntitySelectedEvent) GetType() event.EventType { return EntitySelectedEv
 type MainMenuEvent struct{ Action string }
 
 func (e MainMenuEvent) GetType() event.EventType { return MainMenuEventType }
+
+const SaveGameEventType event.EventType = "save_game_event"
+
+type SaveGameEvent struct{ Name string }
+
+func (e SaveGameEvent) GetType() event.EventType { return SaveGameEventType }
+
+const LoadGameEventType event.EventType = "load_game_event"
+
+type LoadGameEvent struct{ Name string }
+
+func (e LoadGameEvent) GetType() event.EventType { return LoadGameEventType }

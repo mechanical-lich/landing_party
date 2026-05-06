@@ -95,5 +95,138 @@
         "ResourceItem": {
             "Type": "crystal"
         }
+    },
+    "alien_grunt": {
+        "Appearance": {
+            "R": 120, "G": 220, "B": 120,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Alien Grunt",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "AIMemory": {},
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        }
+    },
+    "alien_scout": {
+        "Appearance": {
+            "R": 80, "G": 200, "B": 80,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Alien Scout",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Stats": {
+            "Str": 6,
+            "Int": 6,
+            "Dex": 16,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "AIMemory": {},
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        }
+    },
+    "alien_brute": {
+        "Appearance": {
+            "R": 160, "G": 255, "B": 160,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Alien Brute",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Stats": {
+            "Str": 16,
+            "Int": 3,
+            "Dex": 6,
+            "AC": 14,
+            "BasicAttackDice": "2d6"
+        },
+        "Initiative": {
+            "DefaultValue": 15,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "AIMemory": {},
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        }
+    },
+    "critter": {
+        "Appearance": {
+            "R": 180, "G": 140, "B": 80,
+            "Bounces": true,
+            "BounceAxis": "y",
+            "Resource": "fantasy_entities",
+            "SpriteX": 168,
+            "SpriteY": 288
+        },
+        "Description": {
+            "Name": "Critter",
+            "Faction": "wildlife"
+        },
+        "Health": {
+            "MaxHealth": 5
+        },
+        "Stats": {
+            "Str": 4,
+            "Int": 2,
+            "Dex": 14,
+            "AC": 4,
+            "BasicAttackDice": "1d3"
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "AIMemory": {},
+        "FactionAI": {
+            "BehaviorKey": "wander",
+            "Faction": "wildlife"
+        }
     }
 }

@@ -45,6 +45,12 @@ type HUDScreen struct {
 	// Main menu modal
 	mainMenuModal *minui.Modal
 
+	// Save/Load modals
+	saveModal     *minui.Modal
+	loadModal     *minui.Modal
+	loadListBox   *minui.ListBox
+	saveNames     []string
+
 	// Entity detail panel
 	detailsPanel   *minui.Panel
 	detailsVBox    *minui.VBox
@@ -279,8 +285,8 @@ func (h *HUDScreen) setupModals() {
 	h.detailsVBox.Spacing = 3
 	h.detailsPanel.AddChild(h.detailsVBox)
 
-	h.mainMenuModal = minui.NewModal("mainMenu", "Main Menu", 300, 280)
-	h.mainMenuModal.SetPosition(sw/2-150, sh/2-140)
+	h.mainMenuModal = minui.NewModal("mainMenu", "Main Menu", 300, 320)
+	h.mainMenuModal.SetPosition(sw/2-150, sh/2-160)
 	h.mainMenuModal.SetVisible(false)
 	h.mainMenuModal.Closeable = true
 
@@ -288,18 +294,83 @@ func (h *HUDScreen) setupModals() {
 	menuVBox.SetPosition(30, 50)
 	menuVBox.Spacing = 10
 	for _, entry := range []struct{ id, label string }{
+		{"save", "Save Game"},
+		{"load", "Load Game"},
 		{"newgame", "New Game"},
 		{"quit", "Quit"},
 	} {
 		action := entry.id
 		btn := minui.NewButton(entry.id, entry.label)
 		btn.OnClick = func() {
-			event.GetQueuedInstance().QueueEvent(MainMenuEvent{Action: action})
+			switch action {
+			case "save":
+				h.mainMenuModal.SetVisible(false)
+				h.saveModal.SetVisible(true)
+			case "load":
+				h.mainMenuModal.SetVisible(false)
+				h.openLoadModal()
+			default:
+				event.GetQueuedInstance().QueueEvent(MainMenuEvent{Action: action})
+			}
 		}
 		menuVBox.AddChild(btn)
 	}
 	h.mainMenuModal.AddChild(menuVBox)
 	h.uiGUI.AddModal(h.mainMenuModal)
+
+	// Save modal
+	h.saveModal = minui.NewModal("saveModal", "Save Game", 300, 160)
+	h.saveModal.SetPosition(sw/2-150, sh/2-80)
+	h.saveModal.SetVisible(false)
+	h.saveModal.Closeable = true
+
+	saveVBox := minui.NewVBox("saveButtons")
+	saveVBox.SetPosition(30, 50)
+	saveVBox.Spacing = 10
+	saveConfirm := minui.NewButton("saveConfirm", "Save")
+	saveConfirm.OnClick = func() {
+		h.saveModal.SetVisible(false)
+		event.GetQueuedInstance().QueueEvent(SaveGameEvent{})
+	}
+	saveVBox.AddChild(saveConfirm)
+	saveCancel := minui.NewButton("saveCancel", "Cancel")
+	saveCancel.OnClick = func() {
+		h.saveModal.SetVisible(false)
+	}
+	saveVBox.AddChild(saveCancel)
+	h.saveModal.AddChild(saveVBox)
+	h.uiGUI.AddModal(h.saveModal)
+
+	// Load modal
+	h.loadModal = minui.NewModal("loadModal", "Load Game", 340, 300)
+	h.loadModal.SetPosition(sw/2-170, sh/2-150)
+	h.loadModal.SetVisible(false)
+	h.loadModal.Closeable = true
+
+	h.loadListBox = minui.NewListBox("loadList", nil)
+	h.loadListBox.SetBounds(minui.Rect{X: 20, Y: 50, Width: 300, Height: 180})
+	h.loadModal.AddChild(h.loadListBox)
+
+	loadVBox := minui.NewVBox("loadButtons")
+	loadVBox.SetPosition(20, 240)
+	loadVBox.Spacing = 10
+	loadConfirm := minui.NewButton("loadConfirm", "Load")
+	loadConfirm.OnClick = func() {
+		idx := h.loadListBox.SelectedIndex
+		if idx >= 0 && idx < len(h.saveNames) {
+			name := h.saveNames[idx]
+			h.loadModal.SetVisible(false)
+			event.GetQueuedInstance().QueueEvent(LoadGameEvent{Name: name})
+		}
+	}
+	loadVBox.AddChild(loadConfirm)
+	loadCancel := minui.NewButton("loadCancel", "Cancel")
+	loadCancel.OnClick = func() {
+		h.loadModal.SetVisible(false)
+	}
+	loadVBox.AddChild(loadCancel)
+	h.loadModal.AddChild(loadVBox)
+	h.uiGUI.AddModal(h.loadModal)
 }
 
 func (h *HUDScreen) registerListeners() {
@@ -445,10 +516,26 @@ func (h *HUDScreen) GetInputFocused() bool            { return h.uiGUI.GetKeyboa
 func (h *HUDScreen) GetMouseFocused() bool            { return h.uiGUI.GetMouseFocused() }
 func (h *HUDScreen) WithinModalBounds(x, y int) bool  { return h.uiGUI.WithinModalBounds(x, y) }
 
+func (h *HUDScreen) openLoadModal() {
+	h.loadModal.SetVisible(true)
+}
+
+func (h *HUDScreen) SetSaveNames(names []string) {
+	h.saveNames = names
+	items := make([]string, len(names))
+	copy(items, names)
+	h.loadListBox.Items = items
+	h.loadListBox.SelectedIndex = -1
+}
+
 func (h *HUDScreen) OpenModal(name string) {
 	switch name {
 	case "mainMenu":
 		h.mainMenuModal.SetVisible(true)
+	case "saveModal":
+		h.saveModal.SetVisible(true)
+	case "loadModal":
+		h.openLoadModal()
 	}
 }
 
@@ -456,6 +543,10 @@ func (h *HUDScreen) CloseModal(name string) {
 	switch name {
 	case "mainMenu":
 		h.mainMenuModal.SetVisible(false)
+	case "saveModal":
+		h.saveModal.SetVisible(false)
+	case "loadModal":
+		h.loadModal.SetVisible(false)
 	}
 }
 
@@ -463,6 +554,10 @@ func (h *HUDScreen) ModalOpen(name string) bool {
 	switch name {
 	case "mainMenu":
 		return h.mainMenuModal.IsVisible()
+	case "saveModal":
+		return h.saveModal.IsVisible()
+	case "loadModal":
+		return h.loadModal.IsVisible()
 	}
 	return false
 }
