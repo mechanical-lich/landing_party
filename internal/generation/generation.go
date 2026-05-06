@@ -18,14 +18,12 @@ const (
 )
 
 // PlanetConfig controls which z-levels map to which semantic bands.
-// These are written into Level so the rest of the game can query them.
 type PlanetConfig struct {
-	SurfaceZ    int // the main ground layer
-	AtmosphereZ int // first air layer above surface
-	SpaceZ      int // first space/vacuum layer
+	SurfaceZ    int
+	AtmosphereZ int
+	SpaceZ      int
 }
 
-// DefaultPlanetConfig returns sensible defaults matching config.json startingZ=5, depth=10.
 func DefaultPlanetConfig(depth int) PlanetConfig {
 	surface := depth / 2
 	return PlanetConfig{
@@ -35,12 +33,6 @@ func DefaultPlanetConfig(depth int) PlanetConfig {
 	}
 }
 
-// NewPlanetLevel generates a layered 3-D world:
-//
-//	z < surfaceZ          — underground (bedrock at 0, rock/ore above)
-//	z == surfaceZ         — planet surface (regolith, alien flora, water, ice)
-//	surfaceZ < z < spaceZ — atmosphere (air tiles)
-//	z >= spaceZ           — space/void (space tiles)
 func NewPlanetLevel(width, height, depth int, cfg PlanetConfig) *world.Level {
 	log.Printf("Generating planet level %dx%dx%d", width, height, depth)
 
@@ -49,10 +41,11 @@ func NewPlanetLevel(width, height, depth int, cfg PlanetConfig) *world.Level {
 	level.AtmosphereZ = cfg.AtmosphereZ
 	level.SpaceZ = cfg.SpaceZ
 
+	// Two noise generators: one for terrain shape, one for caverns
 	p := perlin.NewPerlin(alpha, beta, n, time.Now().UnixNano())
+	pc := perlin.NewPerlin(alpha, beta, n, time.Now().UnixNano()+1)
 
 	const chunkSize = 64
-
 	type chunk struct {
 		z, xStart, xEnd int
 	}
@@ -64,15 +57,31 @@ func NewPlanetLevel(width, height, depth int, cfg PlanetConfig) *world.Level {
 		for c := range chunkChan {
 			for x := c.xStart; x < c.xEnd; x++ {
 				for y := 0; y < height; y++ {
-					noise := p.Noise3D(float64(x)/80, float64(y)/80, float64(c.z)/8)
-					value := int(noise * 10)
+					// Primary terrain noise
+					terrain := p.Noise3D(float64(x)/80, float64(y)/80, float64(c.z)/8)
+					value := int(terrain * 10)
+
+					// Cavern noise — different scale for organic cave shapes
+					cavern := pc.Noise3D(float64(x)/40, float64(y)/40, float64(c.z)/6)
 
 					switch {
 					case c.z >= cfg.SpaceZ:
 						level.UpdateTileAt(x, y, c.z, "space", 0)
 
 					case c.z >= cfg.AtmosphereZ:
-						level.UpdateTileAt(x, y, c.z, "air", 0)
+						// Rocky outcrops: push solid rock into the atmosphere band where
+						// terrain is high and the tile directly below is also solid.
+						// This creates cliffs and ridges that cast shadows.
+						if value >= 2 {
+							belowTile := level.GetTileAt(x, y, c.z-1)
+							if belowTile != nil && !belowTile.IsAir() {
+								level.UpdateTileAt(x, y, c.z, "rock", world.RandomTileVariant("rock"))
+							} else {
+								level.UpdateTileAt(x, y, c.z, "air", 0)
+							}
+						} else {
+							level.UpdateTileAt(x, y, c.z, "air", 0)
+						}
 
 					case c.z == cfg.SurfaceZ:
 						placeSurfaceTile(level, p, x, y, c.z, value)
@@ -81,7 +90,7 @@ func NewPlanetLevel(width, height, depth int, cfg PlanetConfig) *world.Level {
 						level.UpdateTileAt(x, y, c.z, "bedrock", 0)
 
 					default:
-						placeUndergroundTile(level, x, y, c.z, value)
+						placeUndergroundTile(level, x, y, c.z, value, cavern, cfg)
 					}
 				}
 			}
@@ -110,33 +119,27 @@ func NewPlanetLevel(width, height, depth int, cfg PlanetConfig) *world.Level {
 	wg.Wait()
 	close(chunkChan)
 
-	//placeScatter(level, width, height, cfg.SurfaceZ)
-
 	log.Println("Planet generation complete")
 	return level
 }
 
 func placeSurfaceTile(level *world.Level, p *perlin.Perlin, x, y, z, value int) {
-	// Second noise pass at larger scale for biome blending
 	biome := p.Noise3D(float64(x)/200, float64(y)/200, 0)
 
 	switch {
 	case biome > 0.3:
-		// Lush alien biome — grass/flora
 		if value >= 1 {
 			level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
 		} else {
 			level.UpdateTileAt(x, y, z, "grass", world.RandomTileVariant("grass"))
 		}
 	case biome < -0.3:
-		// Ice/frozen biome
 		if value >= 1 {
 			level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
 		} else {
 			level.UpdateTileAt(x, y, z, "ice", 0)
 		}
 	default:
-		// Arid/regolith default
 		if value >= 2 {
 			level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
 		} else {
@@ -145,13 +148,18 @@ func placeSurfaceTile(level *world.Level, p *perlin.Perlin, x, y, z, value int) 
 	}
 }
 
-func placeUndergroundTile(level *world.Level, x, y, z, value int) {
+func placeUndergroundTile(level *world.Level, x, y, z, value int, cavern float64, cfg PlanetConfig) {
+	// Carve caverns: open air pockets in mid-underground levels.
+	// Keep z==1 solid (just above bedrock) so caverns don't punch through the floor.
+	if z > 1 && z < cfg.SurfaceZ-1 && cavern > 0.35 {
+		level.UpdateTileAt(x, y, z, "air", 0)
+		return
+	}
+
 	switch {
 	case value >= 4:
-		// Rare ore pockets
 		level.UpdateTileAt(x, y, z, "ore_deposit", 0)
 	case value >= 3:
-		// Crystal veins
 		level.UpdateTileAt(x, y, z, "crystal_vein", 0)
 	default:
 		level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
@@ -160,7 +168,6 @@ func placeUndergroundTile(level *world.Level, x, y, z, value int) {
 
 // placeScatter adds sparse surface details after the main pass.
 func placeScatter(level *world.Level, width, height, surfaceZ int) {
-	// Alien flora clusters on grass tiles
 	for i := 0; i < 200; i++ {
 		x := utility.GetRandom(1, width-1)
 		y := utility.GetRandom(1, height-1)

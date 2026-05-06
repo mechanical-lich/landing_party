@@ -38,4 +38,7 @@ func registerComponents() {
 	jsonFactory.RegisterComponent("ResourceItem", func() ecs.Component { return &components.ResourceItemComponent{} })
 	jsonFactory.RegisterComponent("ResearchBuilding", func() ecs.Component { return &components.ResearchBuildingComponent{} })
 	jsonFactory.RegisterComponent("FactionAI", func() ecs.Component { return &components.FactionAIComponent{} })
+	jsonFactory.RegisterComponent("Hunger", func() ecs.Component { return &components.HungerComponent{} })
+	jsonFactory.RegisterComponent("Food", func() ecs.Component { return &rlcomponents.FoodComponent{} })
+	jsonFactory.RegisterComponent("Light", func() ecs.Component { return &rlcomponents.LightComponent{} })
 }

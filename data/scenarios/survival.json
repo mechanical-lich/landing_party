@@ -34,6 +34,9 @@
             "max_z": 6
         }
     },
+    "lighting": {
+        "mode": "day_night"
+    },
     "win_conditions": {
         "rules": [
             {

@@ -38,8 +38,10 @@ import (
 )
 
 type SettlementConfig struct {
-	Name       string
-	ScenarioID string
+	Name            string
+	ScenarioID      string
+	LightingMode    string // "" = use scenario default
+	LightingAmbient int    // only used when LightingMode == "fixed"
 }
 
 type MainState struct {
@@ -133,6 +135,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(aiSystem)
 	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
+	s.systemManager.AddSystem(&systems.LightingSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
 
@@ -186,6 +189,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 			_ = scenario.SelectByID(cfg.ScenarioID)
 		}
 		s.winEval = wincondition.New(scenario.Active().WinConditions)
+		s.applyScenarioLighting(level)
 	}
 	return s, nil
 }
@@ -254,9 +258,28 @@ func (s *MainState) newGame() {
 
 	if len(scenario.AllEnabled()) > 0 {
 		s.winEval = wincondition.New(scenario.Active().WinConditions)
+		s.applyScenarioLighting(s.level)
 	}
 	s.day = 0
 	s.lastDay = 0
+}
+
+func (s *MainState) applyScenarioLighting(level *world.Level) {
+	sc := scenario.Active()
+	// Player override takes priority over scenario default.
+	if s.settlementCfg.LightingMode != "" {
+		level.LightMode = s.settlementCfg.LightingMode
+		level.FixedAmbient = s.settlementCfg.LightingAmbient
+	} else {
+		level.LightMode = sc.Lighting.Mode
+		level.FixedAmbient = sc.Lighting.AmbientLevel
+	}
+	if level.LightMode == "" {
+		level.LightMode = world.LightModedayNight
+	}
+	if level.LightMode == world.LightModedayNight {
+		level.Hour = 8 // start at morning
+	}
 }
 
 func (s *MainState) Update() state.StateInterface {
@@ -267,7 +290,11 @@ func (s *MainState) Update() state.StateInterface {
 
 	fps := ebiten.ActualFPS()
 	tps := ebiten.ActualTPS()
-	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, s.day, s.CameraZ, fps, tps))
+	day := s.day
+	if s.level != nil {
+		day = s.level.Day
+	}
+	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Hour:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, day, s.level.Hour, s.CameraZ, fps, tps))
 
 	if !s.Paused {
 		s.tick++
@@ -287,11 +314,19 @@ func (s *MainState) Update() state.StateInterface {
 		s.refreshHUD()
 	}
 
-	if !s.Paused && s.tick%300 == 0 && s.tick > 0 {
-		s.day++
-		if s.day != s.lastDay {
-			s.lastDay = s.day
-			s.checkWinConditions()
+	if !s.Paused && s.tick%750 == 0 && s.tick > 0 {
+		if s.level != nil {
+			if s.level.LightMode == world.LightModedayNight {
+				s.level.NextHour()
+			} else {
+				// Still advance the day counter even without light changes
+				s.level.Day++
+			}
+			if s.level.Day != s.lastDay {
+				s.lastDay = s.level.Day
+				s.day = s.level.Day
+				s.checkWinConditions()
+			}
 		}
 	}
 
@@ -306,6 +341,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	viewW := config.Global().WorldWidth / s.TileSizeW
 	viewH := config.Global().WorldHeight / s.TileSizeH
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
+	world.DrawLightOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 
 	s.drawTasks(s.worldImage)
 	cfg := config.Global()
@@ -626,7 +662,7 @@ func (s *MainState) refreshHUD() {
 	}
 
 	// Count resources across all storage lockers
-	resources := map[string]int{"metal_ore": 0, "crystal": 0}
+	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0}
 	var popEntries []gui.PopulationEntry
 	for _, entity := range s.level.Entities {
 		if entity.HasComponent(components.Storage) {
@@ -634,6 +670,9 @@ func (s *MainState) refreshHUD() {
 			for _, item := range st.Items {
 				if item.Blueprint != "" {
 					resources[item.Blueprint]++
+				}
+				if item.HasComponent(rlcomponents.Food) {
+					resources["food"]++
 				}
 			}
 		}

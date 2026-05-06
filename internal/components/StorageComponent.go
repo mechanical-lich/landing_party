@@ -1,6 +1,8 @@
 package components
 
-import "github.com/mechanical-lich/mlge/ecs"
+import (
+	"github.com/mechanical-lich/mlge/ecs"
+)
 
 type StorageComponent struct {
 	Capacity int
@@ -41,4 +43,23 @@ func (s *StorageComponent) CountItem(name string) int {
 		}
 	}
 	return count
+}
+
+func (s *StorageComponent) HasItemWithComponent(compType ecs.ComponentType) bool {
+	for _, item := range s.Items {
+		if item.HasComponent(compType) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *StorageComponent) TakeOneWithComponent(compType ecs.ComponentType) *ecs.Entity {
+	for i, item := range s.Items {
+		if item.HasComponent(compType) {
+			s.Items = append(s.Items[:i], s.Items[i+1:]...)
+			return item
+		}
+	}
+	return nil
 }

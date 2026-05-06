@@ -18,10 +18,16 @@ const (
 	ResourceItem     ecs.ComponentType = "ResourceItem"
 	ResearchBuilding ecs.ComponentType = "ResearchBuilding"
 	FactionAI        ecs.ComponentType = "FactionAI"
+	Hunger           ecs.ComponentType = "Hunger"
+	Light            ecs.ComponentType = "Light"
 )
+
 
 // Shared component struct aliases from ml-rogue-lib
 type (
+	FoodComponent  = rlcomponents.FoodComponent
+	LightComponent = rlcomponents.LightComponent
+
 	AIMemoryComponent       = rlcomponents.AIMemoryComponent
 	ArmorComponent          = rlcomponents.ArmorComponent
 	DeadComponent           = rlcomponents.DeadComponent

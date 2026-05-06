@@ -52,6 +52,15 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 				aiMemory.TargetZ = storagePC.GetZ()
 				aiMemory.State = "dropoff"
 			}
+			return
+		}
+
+		// Auto-haul: pick up loose items on the ground
+		item := FindLooseItemOnGround(level, pc.GetX(), pc.GetY(), pc.GetZ())
+		if item != nil {
+			aiMemory.TargetX = -1
+			aiMemory.TargetY = -1
+			aiMemory.State = "haul"
 		}
 	}
 }
@@ -219,7 +228,26 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				}
 			} else {
 				tile.Type = world.TileNameToIndex[buildRequest.Type]
-				tile.Variant = utility.GetRandom(0, len(world.TileDefinitions[tile.Type].Variants))
+				tileDef := world.TileDefinitions[tile.Type]
+				if tileDef.AutoTile != 0 {
+					tile.Variant = 0
+				} else {
+					tile.Variant = utility.GetRandom(0, len(tileDef.Variants))
+				}
+				if tileDef.StairsUp {
+					if t2i := level.GetTileAt(buildRequest.X, buildRequest.Y, buildRequest.Z+1); t2i != nil {
+						t2 := t2i.(*world.Tile)
+						t2.Type = world.TileNameToIndex["stairs_down"]
+						t2.Variant = 0
+					}
+				}
+				if tileDef.StairsDown {
+					if t2i := level.GetTileAt(buildRequest.X, buildRequest.Y, buildRequest.Z-1); t2i != nil {
+						t2 := t2i.(*world.Tile)
+						t2.Type = world.TileNameToIndex["stairs_up"]
+						t2.Variant = 0
+					}
+				}
 				level.InvalidateSunColumn(buildRequest.X, buildRequest.Y)
 			}
 			removeMaterialsFromInventory(entity, buildable)

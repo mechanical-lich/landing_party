@@ -16,6 +16,13 @@ const (
 	ZBandSpace
 )
 
+// LightMode controls how ambient/sun light is computed.
+const (
+	LightModedayNight  = "day_night"  // hour-based sun cycle (default)
+	LightModeFixed     = "fixed"      // constant ambient level
+	LightModePitchDark = "pitch_dark" // always 0
+)
+
 // Level embeds rlworld.Level and adds rendering state and z-band metadata.
 type Level struct {
 	*rlworld.Level
@@ -27,11 +34,27 @@ type Level struct {
 	AtmosphereZ  int // first z-level of air above surface
 	SpaceZ       int // first z-level of vacuum/space
 
+	// Lighting config — set from scenario at level creation.
+	LightMode     string // "day_night", "fixed", or "pitch_dark"
+	FixedAmbient  int    // used when LightMode == "fixed"
+
 	op             *ebiten.DrawImageOptions
 	entitiesBuffer []*ecs.Entity
 	lightOverlay   *ebiten.Image
 	lightPixels    []byte
 	lightW, lightH int
+}
+
+// EffectiveSunIntensity returns the ambient light level for the current frame.
+func (l *Level) EffectiveSunIntensity() int {
+	switch l.LightMode {
+	case LightModeFixed:
+		return l.FixedAmbient
+	case LightModePitchDark:
+		return 0
+	default: // "day_night" or unset
+		return l.SunIntensity()
+	}
 }
 
 func NewLevel(width, height, depth int) *Level {

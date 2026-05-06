@@ -113,6 +113,7 @@ func (h *HUDScreen) setupHUDElements() {
 	h.resourceBar.SetBounds(minui.Rect{X: 210, Y: sh - 35, Width: 400, Height: 30})
 	h.resourceBar.AddResource("metal_ore", nil, 0)
 	h.resourceBar.AddResource("crystal", nil, 0)
+	h.resourceBar.AddResource("food", nil, 0)
 	h.uiGUI.AddElement(h.resourceBar)
 }
 
@@ -179,7 +180,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		{id: "walls", label: "Walls", types: []string{"hull_wall"}},
 		{id: "floors", label: "Floors", types: []string{"hull_floor"}},
 		{id: "stairs", label: "Stairs", types: []string{"stairs_up", "stairs_down"}},
-		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab"}},
+		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light"}},
 	}
 
 	h.buildCategoryPanel = minui.NewPanel("buildCategories")
@@ -615,6 +616,16 @@ func (h *HUDScreen) updateDetailsContent() {
 		} else {
 			add("Task: idle")
 		}
+	}
+	if entity.HasComponent(components.Hunger) {
+		hg := entity.GetComponent(components.Hunger).(*components.HungerComponent)
+		status := "fed"
+		if hg.IsStarving() {
+			status = "STARVING"
+		} else if hg.IsHungry() {
+			status = "hungry"
+		}
+		add(fmt.Sprintf("Hunger: %d/%d (%s)", hg.Energy, hg.MaxEnergy, status))
 	}
 	if entity.HasComponent(rlcomponents.Inventory) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)

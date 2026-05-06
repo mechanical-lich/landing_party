@@ -12,6 +12,7 @@ type AppearanceComponent struct {
 	SpriteX    int
 	SpriteY    int
 	BounceAxis string // "x" (default) or "y"
+	SpriteSize int    // 0 = use global sprite size; otherwise e.g. 16 for item sheets
 }
 
 func (a *AppearanceComponent) GetType() ecs.ComponentType { return Appearance }

@@ -1,152 +1,326 @@
 [
     {
         "name": "space",
-        "solid": false,
-        "water": false,
-        "air": false,
         "space": true,
-        "resource": "scifi_world",
         "variants": [
-            { "variant": 0, "spriteX": 0, "spriteY": 768 },
-            { "variant": 1, "spriteX": 24, "spriteY": 768 },
-            { "variant": 2, "spriteX": 48, "spriteY": 768 },
-            { "variant": 3, "spriteX": 72, "spriteY": 768 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 768
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 768
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 768
+            },
+            {
+                "variant": 3,
+                "spriteX": 72,
+                "spriteY": 768
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "air",
-        "solid": false,
-        "water": false,
         "air": true,
-        "resource": "scifi_world",
         "variants": [
-            { "variant": 0, "spriteX": 0, "spriteY": 768 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 768
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "regolith",
-        "solid": false,
-        "water": false,
-        "resource": "scifi_world",
         "variants": [
-            { "variant": 0, "spriteX": 0,  "spriteY": 672 },
-            { "variant": 1, "spriteX": 24, "spriteY": 672 },
-            { "variant": 2, "spriteX": 48, "spriteY": 672 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 672
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 672
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 672
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "rock",
         "solid": true,
-        "water": false,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 0,  "spriteY": 360 },
-            { "variant": 1, "spriteX": 24, "spriteY": 360 },
-            { "variant": 2, "spriteX": 48, "spriteY": 360 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 360
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 360
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 360
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "bedrock",
         "solid": true,
-        "water": false,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 0, "spriteY": 48 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 48
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "ore_deposit",
         "solid": true,
-        "water": false,
-        "resource": "scifi_world",
+        "lightLevel": 20,
+        "lightRange": 3,
         "variants": [
-            { "variant": 0, "spriteX": 24, "spriteY": 648 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 648
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "crystal_vein",
         "solid": true,
-        "water": false,
-        "resource": "scifi_world",
+        "lightLevel": 30,
+        "lightRange": 4,
         "variants": [
-            { "variant": 0, "spriteX": 24, "spriteY": 624 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 624
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "dirt",
-        "solid": false,
-        "water": false,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 672,  "spriteY": 600 },
-            { "variant": 1, "spriteX": 696, "spriteY": 600 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 672,
+                "spriteY": 600
+            },
+            {
+                "variant": 1,
+                "spriteX": 696,
+                "spriteY": 600
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "grass",
-        "solid": false,
-        "water": false,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 672,  "spriteY": 792 },
-            { "variant": 1, "spriteX": 696, "spriteY": 792 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 672,
+                "spriteY": 792
+            },
+            {
+                "variant": 1,
+                "spriteX": 696,
+                "spriteY": 792
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "water",
-        "solid": false,
         "water": true,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 96, "spriteY": 720 },
-            { "variant": 1, "spriteX": 96, "spriteY": 744 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 96,
+                "spriteY": 720
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 744
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "ice",
-        "solid": false,
-        "water": false,
-        "resource": "fantasy_world",
         "variants": [
-            { "variant": 0, "spriteX": 672, "spriteY": 648 },
-            { "variant": 1, "spriteX": 696, "spriteY": 648 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 672,
+                "spriteY": 648
+            },
+            {
+                "variant": 1,
+                "spriteX": 696,
+                "spriteY": 648
+            }
+        ],
+        "resource": "fantasy_world"
     },
     {
         "name": "hull_floor",
-        "solid": false,
-        "water": false,
-        "resource": "scifi_world",
         "variants": [
-            { "variant": 0, "spriteX": 0,  "spriteY": 168 },
-            { "variant": 1, "spriteX": 24, "spriteY": 168 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 0
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 0
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 0
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "hull_wall",
         "solid": true,
-        "water": false,
-        "autoTile": 1,
-        "resource": "scifi_world",
+        "autoTile": 2,
         "variants": [
-            { "variant": 0, "spriteX": 0,  "spriteY": 192 },
-            { "variant": 1, "spriteX": 24, "spriteY": 192 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 144,
+                "spriteY": 0
+            },
+            {
+                "variant": 1,
+                "spriteX": 288,
+                "spriteY": 0
+            },
+            {
+                "variant": 2,
+                "spriteX": 240,
+                "spriteY": 0
+            },
+            {
+                "variant": 3,
+                "spriteX": 264,
+                "spriteY": 0
+            },
+            {
+                "variant": 4,
+                "spriteX": 216,
+                "spriteY": 0
+            },
+            {
+                "variant": 5,
+                "spriteX": 384,
+                "spriteY": 0
+            },
+            {
+                "variant": 6,
+                "spriteX": 336,
+                "spriteY": 0
+            },
+            {
+                "variant": 7,
+                "spriteX": 456,
+                "spriteY": 0
+            },
+            {
+                "variant": 8,
+                "spriteX": 168,
+                "spriteY": 0
+            },
+            {
+                "variant": 9,
+                "spriteX": 360,
+                "spriteY": 0
+            },
+            {
+                "variant": 10,
+                "spriteX": 312,
+                "spriteY": 0
+            },
+            {
+                "variant": 11,
+                "spriteX": 480,
+                "spriteY": 0
+            },
+            {
+                "variant": 12,
+                "spriteX": 192,
+                "spriteY": 0
+            },
+            {
+                "variant": 13,
+                "spriteX": 504,
+                "spriteY": 0
+            },
+            {
+                "variant": 14,
+                "spriteX": 432,
+                "spriteY": 0
+            },
+            {
+                "variant": 15,
+                "spriteX": 408,
+                "spriteY": 0
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "stairs_up",
         "stairsUp": true,
-        "resource": "scifi_world",
+        "lightLevel": 15,
+        "lightRange": 2,
         "variants": [
-            { "variant": 0, "spriteX": 384, "spriteY": 120 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 384,
+                "spriteY": 120
+            }
+        ],
+        "resource": "scifi_world"
     },
     {
         "name": "stairs_down",
         "stairsDown": true,
-        "resource": "scifi_world",
+        "lightLevel": 15,
+        "lightRange": 2,
         "variants": [
-            { "variant": 0, "spriteX": 408, "spriteY": 120 }
-        ]
+            {
+                "variant": 0,
+                "spriteX": 408,
+                "spriteY": 120
+            }
+        ],
+        "resource": "scifi_world"
     }
 ]

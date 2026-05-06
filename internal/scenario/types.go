@@ -11,6 +11,14 @@ type SpawnRule struct {
 	MaxZ      int      `json:"max_z"`
 }
 
+// LightingConfig controls the ambient light behaviour for a scenario.
+// Mode values: "day_night" (default), "fixed", "pitch_dark".
+// AmbientLevel is only used when Mode == "fixed" (0–100).
+type LightingConfig struct {
+	Mode         string `json:"mode"`
+	AmbientLevel int    `json:"ambient_level"`
+}
+
 type Scenario struct {
 	ID            string                  `json:"id"`
 	Name          string                  `json:"name"`
@@ -20,4 +28,5 @@ type Scenario struct {
 	SpawnRules    map[string]SpawnRule    `json:"spawn_rules"`
 	SetupScripts  []string                `json:"setup_scripts"`
 	WinConditions wincondition.RuleSet    `json:"win_conditions"`
+	Lighting      LightingConfig          `json:"lighting"`
 }

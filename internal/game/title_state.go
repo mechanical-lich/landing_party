@@ -3,6 +3,7 @@ package game
 import (
 	"image/color"
 	"os"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -12,6 +13,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/lore"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
+	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 type titleScreen int
@@ -31,6 +33,11 @@ type TitleState struct {
 	randomNameBtn  *minui.Button
 	scenarioPicker *minui.SelectBox
 	scenarioIDs    []string
+
+	lightingPicker    *minui.SelectBox
+	lightingModes     []string // internal mode strings
+	ambientLabel      *minui.Label
+	ambientInput      *minui.TextInput
 
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
@@ -86,13 +93,35 @@ func (ts *TitleState) buildNewSettlementScreen() {
 
 	ts.buildScenarioPicker()
 
+	// Lighting override
+	ts.lightingModes = []string{"", world.LightModedayNight, world.LightModeFixed, world.LightModePitchDark}
+	ts.lightingPicker = minui.NewSelectBox("lighting_picker", []string{"Scenario Default", "Day / Night Cycle", "Fixed Ambient", "Pitch Dark"})
+	ts.lightingPicker.SetPosition(cx-150, 410)
+	ts.lightingPicker.SetSize(300, 28)
+	ts.lightingPicker.SelectByIndex(0)
+	ts.lightingPicker.OnSelect = func(idx int, _ string) {
+		isFixed := idx == 2
+		ts.ambientLabel.SetVisible(isFixed)
+		ts.ambientInput.SetVisible(isFixed)
+	}
+
+	ts.ambientLabel = minui.NewLabel("ambient_label", "Ambient Level (0-100):")
+	ts.ambientLabel.SetPosition(cx-150, 448)
+	ts.ambientLabel.SetSize(220, 18)
+	ts.ambientLabel.SetVisible(false)
+
+	ts.ambientInput = minui.NewTextInput("ambient_input", "50")
+	ts.ambientInput.SetPosition(cx-150, 468)
+	ts.ambientInput.SetSize(100, 28)
+	ts.ambientInput.SetVisible(false)
+
 	ts.generateBtn = minui.NewButton("generate", "Generate")
-	ts.generateBtn.SetPosition(cx-80, 420)
+	ts.generateBtn.SetPosition(cx-80, 510)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 466)
+	ts.cancelBtn.SetPosition(cx-80, 556)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 }
@@ -124,7 +153,21 @@ func (ts *TitleState) startNewSettlement() {
 	if idx > 0 && idx < len(ts.scenarioIDs) {
 		scenarioID = ts.scenarioIDs[idx]
 	}
-	cfg := SettlementConfig{Name: name, ScenarioID: scenarioID}
+	lightIdx := ts.lightingPicker.SelectedIndex
+	lightMode := ""
+	if lightIdx >= 0 && lightIdx < len(ts.lightingModes) {
+		lightMode = ts.lightingModes[lightIdx]
+	}
+	ambient := 0
+	if lightMode == world.LightModeFixed {
+		ambient, _ = strconv.Atoi(ts.ambientInput.Text)
+		if ambient < 0 {
+			ambient = 0
+		} else if ambient > 100 {
+			ambient = 100
+		}
+	}
+	cfg := SettlementConfig{Name: name, ScenarioID: scenarioID, LightingMode: lightMode, LightingAmbient: ambient}
 	ms, err := NewMainState(cfg)
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
@@ -154,6 +197,10 @@ func (ts *TitleState) Update() state.StateInterface {
 		ts.nameInput.Update()
 		ts.randomNameBtn.Update()
 		ts.scenarioPicker.Update()
+		ts.lightingPicker.Update()
+		if ts.ambientInput.IsVisible() {
+			ts.ambientInput.Update()
+		}
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
 	}
@@ -180,6 +227,12 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		ts.randomNameBtn.Draw(screen)
 		mlge_text.Draw(screen, "Scenario:", 14, cfg.ScreenWidth/2-150, 338, color.RGBA{180, 210, 255, 255})
 		ts.scenarioPicker.Draw(screen)
+		mlge_text.Draw(screen, "Lighting:", 14, cfg.ScreenWidth/2-150, 393, color.RGBA{180, 210, 255, 255})
+		ts.lightingPicker.Draw(screen)
+		if ts.ambientInput.IsVisible() {
+			ts.ambientLabel.Draw(screen)
+			ts.ambientInput.Draw(screen)
+		}
 		ts.generateBtn.Draw(screen)
 		ts.cancelBtn.Draw(screen)
 	}
