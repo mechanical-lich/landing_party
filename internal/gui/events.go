@@ -45,3 +45,27 @@ const CraftRequestedEventType event.EventType = "craft_requested"
 type CraftRequestedEvent struct{ RecipeID string }
 
 func (e CraftRequestedEvent) GetType() event.EventType { return CraftRequestedEventType }
+
+const ColonistSelectedEventType event.EventType = "colonist_selected"
+
+type ColonistSelectedEvent struct{ Entity *ecs.Entity }
+
+func (e ColonistSelectedEvent) GetType() event.EventType { return ColonistSelectedEventType }
+
+const EquipItemRequestedEventType event.EventType = "equip_item_requested"
+
+type EquipItemRequestedEvent struct {
+	ColonistEntity *ecs.Entity
+	ItemBlueprint  string
+}
+
+func (e EquipItemRequestedEvent) GetType() event.EventType { return EquipItemRequestedEventType }
+
+const UnequipItemRequestedEventType event.EventType = "unequip_item_requested"
+
+type UnequipItemRequestedEvent struct {
+	ColonistEntity *ecs.Entity
+	Slot           string
+}
+
+func (e UnequipItemRequestedEvent) GetType() event.EventType { return UnequipItemRequestedEventType }

@@ -1,8 +1,8 @@
 {
     "airlock": {
         "Appearance": {
-            "R": 180,
-            "G": 220,
+            "R": 255,
+            "G": 255,
             "B": 255,
             "Resource": "scifi_world",
             "SpriteX": 528,
@@ -16,7 +16,7 @@
             "ClosedSpriteX": 480,
             "ClosedSpriteY": 504,
             "OpenedSpriteX": 504,
-            "OpenedSpriteY": 504,
+            "OpenedSpriteY": 48,
             "OwnedBy": "",
             "AllowedFactions": []
         },
@@ -129,9 +129,9 @@
     },
     "blast_door": {
         "Appearance": {
-            "R": 200,
-            "G": 160,
-            "B": 100,
+            "R": 255,
+            "G": 255,
+            "B": 255,
             "Resource": "scifi_world",
             "SpriteX": 432,
             "SpriteY": 336
@@ -162,7 +162,7 @@
             "SpriteY": 192
         },
         "Description": {
-            "Name": "\u003cColonistName\u003e",
+            "Name": "<ColonistName>",
             "Faction": "colony"
         },
         "Health": {

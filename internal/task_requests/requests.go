@@ -35,12 +35,26 @@ type ResearchRequest struct {
 }
 
 type CraftRequest struct {
-	RecipeID    string
-	WorkbenchX  int
-	WorkbenchY  int
-	WorkbenchZ  int
-	Progress    int
-	Required    int
+	RecipeID   string
+	WorkbenchX int
+	WorkbenchY int
+	WorkbenchZ int
+	Progress   int
+	Required   int
+}
+
+type EquipRequest struct {
+	ItemBlueprint string // blueprint name of item to equip
+	StorageX      int
+	StorageY      int
+	StorageZ      int
+}
+
+type UnequipRequest struct {
+	Slot     string // e.g. "hand", "head", "torso"
+	StorageX int
+	StorageY int
+	StorageZ int
 }
 
 const (
@@ -52,4 +66,6 @@ const (
 	AttackAction   task.TaskAction = "attack"
 	ResearchAction task.TaskAction = "research"
 	CraftAction    task.TaskAction = "craft"
+	EquipAction    task.TaskAction = "equip"
+	UnequipAction  task.TaskAction = "unequip"
 )

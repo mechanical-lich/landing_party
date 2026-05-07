@@ -28,10 +28,15 @@ type HUDScreen struct {
 	buildSubPanel      *minui.Panel
 
 	// Population tab
-	populationVBox   *minui.VBox
-	populationPanel  *minui.Panel
-	populationLabels []*minui.Label
-	lastPopEntries   []PopulationEntry
+	populationVBox    *minui.VBox
+	populationPanel   *minui.Panel
+	populationHeader  *minui.Label
+	populationItems   []*minui.MenuItem
+	lastPopEntries    []PopulationEntry
+
+	// Colonist modal
+	colonistModal     *minui.Modal
+	colonistModalVBox *minui.VBox
 
 	// Goals tab
 	goalsVBox     *minui.VBox
@@ -486,6 +491,17 @@ func (h *HUDScreen) setupModals() {
 	loadVBox.AddChild(loadCancel)
 	h.loadModal.AddChild(loadVBox)
 	h.uiGUI.AddModal(h.loadModal)
+
+	// Colonist modal
+	h.colonistModal = minui.NewModal("colonistModal", "Colonist", 340, 480)
+	h.colonistModal.SetPosition(sw/2-170, sh/2-240)
+	h.colonistModal.SetVisible(false)
+	h.colonistModal.Closeable = true
+	h.colonistModalVBox = minui.NewVBox("colonistModalContent")
+	h.colonistModalVBox.SetPosition(10, 40)
+	h.colonistModalVBox.Spacing = 4
+	h.colonistModal.AddChild(h.colonistModalVBox)
+	h.uiGUI.AddModal(h.colonistModal)
 }
 
 func (h *HUDScreen) registerListeners() {
@@ -522,24 +538,135 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 	h.lastPopEntries = entries
 
 	fontSize := 13
-	want := len(entries) + 1
 
-	for len(h.populationLabels) < want {
-		lbl := minui.NewLabel(fmt.Sprintf("pop_%d", len(h.populationLabels)), "")
-		lbl.GetStyle().FontSize = &fontSize
-		h.populationLabels = append(h.populationLabels, lbl)
-		h.populationVBox.AddChild(lbl)
+	// Header label
+	if h.populationHeader == nil {
+		h.populationHeader = minui.NewLabel("popHeader", "")
+		h.populationHeader.GetStyle().FontSize = &fontSize
+		h.populationVBox.AddChild(h.populationHeader)
 	}
-	for len(h.populationLabels) > want {
-		last := h.populationLabels[len(h.populationLabels)-1]
+	h.populationHeader.Text = fmt.Sprintf("Colonists: %d", len(entries))
+
+	// Grow items slice
+	for len(h.populationItems) < len(entries) {
+		idx := len(h.populationItems)
+		mi := minui.NewMenuItem(fmt.Sprintf("pop_%d", idx), "")
+		h.populationItems = append(h.populationItems, mi)
+		h.populationVBox.AddChild(mi)
+	}
+	// Shrink items slice
+	for len(h.populationItems) > len(entries) {
+		last := h.populationItems[len(h.populationItems)-1]
 		h.populationVBox.RemoveChild(last)
-		h.populationLabels = h.populationLabels[:len(h.populationLabels)-1]
+		h.populationItems = h.populationItems[:len(h.populationItems)-1]
 	}
 
-	h.populationLabels[0].Text = fmt.Sprintf("Colonists: %d", len(entries))
 	for i, entry := range entries {
-		h.populationLabels[i+1].Text = fmt.Sprintf("%s  [%s/%s]", entry.Name, entry.State, entry.Task)
+		captured := entry
+		h.populationItems[i].Text = fmt.Sprintf("%s  [%s/%s]", entry.Name, entry.State, entry.Task)
+		h.populationItems[i].OnClick = func() {
+			event.GetQueuedInstance().QueueEvent(ColonistSelectedEvent{Entity: captured.Entity})
+		}
 	}
+}
+
+// StorageItemEntry represents an equippable item in settlement storage for the colonist modal.
+type StorageItemEntry struct {
+	Blueprint string
+	Name      string
+	Slot      string
+}
+
+func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
+	if h.colonistModal == nil || colonist == nil {
+		return
+	}
+
+	// Clear existing content
+	for _, child := range append([]minui.Element{}, h.colonistModalVBox.GetChildren()...) {
+		h.colonistModalVBox.RemoveChild(child)
+	}
+
+	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	dc := colonist.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+
+	fontSize := 13
+	smallSize := 11
+
+	// Name
+	nameLabel := minui.NewLabel("colonistName", dc.Name)
+	nameLabel.GetStyle().FontSize = &fontSize
+	h.colonistModalVBox.AddChild(nameLabel)
+
+	// Combat stats
+	atk := inv.GetAttackModifier()
+	def := inv.GetDefenseModifier()
+	statsLabel := minui.NewLabel("colonistStats", fmt.Sprintf("ATK: %+d   DEF: %+d", atk, def))
+	statsLabel.GetStyle().FontSize = &smallSize
+	h.colonistModalVBox.AddChild(statsLabel)
+
+	// Equipment section header
+	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
+	eqHdr.GetStyle().FontSize = &smallSize
+	h.colonistModalVBox.AddChild(eqHdr)
+
+	slotList := []struct {
+		label string
+		slot  rlcomponents.ItemSlot
+		item  *ecs.Entity
+	}{
+		{"Hand", rlcomponents.HandSlot, inv.RightHand},
+		{"Head", rlcomponents.HeadSlot, inv.Head},
+		{"Torso", rlcomponents.TorsoSlot, inv.Torso},
+		{"Legs", rlcomponents.LegsSlot, inv.Legs},
+		{"Feet", rlcomponents.FeetSlot, inv.Feet},
+	}
+
+	for _, sl := range slotList {
+		captured := sl
+		itemName := "(empty)"
+		if captured.item != nil && captured.item.HasComponent(rlcomponents.Description) {
+			itemName = captured.item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+		}
+		rowText := fmt.Sprintf("%s: %s", captured.label, itemName)
+		if captured.item != nil {
+			mi := minui.NewMenuItem(fmt.Sprintf("unequip_%s", captured.label), rowText+"  [Unequip]")
+			mi.OnClick = func() {
+				event.GetQueuedInstance().QueueEvent(UnequipItemRequestedEvent{
+					ColonistEntity: colonist,
+					Slot:           string(captured.slot),
+				})
+				h.colonistModal.SetVisible(false)
+			}
+			h.colonistModalVBox.AddChild(mi)
+		} else {
+			lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
+			lbl.GetStyle().FontSize = &smallSize
+			h.colonistModalVBox.AddChild(lbl)
+		}
+	}
+
+	// Storage items section
+	if len(storageItems) > 0 {
+		storHdr := minui.NewLabel("storHdr", "── Available in Storage ──")
+		storHdr.GetStyle().FontSize = &smallSize
+		h.colonistModalVBox.AddChild(storHdr)
+
+		for _, si := range storageItems {
+			captured := si
+			mi := minui.NewMenuItem("equip_"+captured.Blueprint, captured.Name+"  [Equip]")
+			mi.OnClick = func() {
+				event.GetQueuedInstance().QueueEvent(EquipItemRequestedEvent{
+					ColonistEntity: colonist,
+					ItemBlueprint:  captured.Blueprint,
+				})
+				h.colonistModal.SetVisible(false)
+			}
+			h.colonistModalVBox.AddChild(mi)
+		}
+	}
+
+	h.colonistModal.SetVisible(true)
 }
 
 func (h *HUDScreen) RefreshGoalsTab(lines []string) {
@@ -767,6 +894,14 @@ func (h *HUDScreen) updateDetailsContent() {
 			add("Storage: empty")
 		}
 	}
+	if entity.HasComponent(rlcomponents.Door) {
+		door := entity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
+		state := "closed"
+		if door.Open {
+			state = "open"
+		}
+		add("Door: " + state)
+	}
 
 	h.resizeDetailPanel()
 }
@@ -790,7 +925,7 @@ func popEntriesEqual(a, b []PopulationEntry) bool {
 		return false
 	}
 	for i := range a {
-		if a[i] != b[i] {
+		if a[i].Name != b[i].Name || a[i].State != b[i].State || a[i].Task != b[i].Task || a[i].Entity != b[i].Entity {
 			return false
 		}
 	}

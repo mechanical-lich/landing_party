@@ -197,14 +197,8 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 	spriteX, spriteY := ac.SpriteX, ac.SpriteY
 	if entity.HasComponent(rlcomponents.Door) {
 		door := entity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
-		if door.Open {
-			if door.OpenedSpriteX != 0 || door.OpenedSpriteY != 0 {
-				spriteX, spriteY = door.OpenedSpriteX, door.OpenedSpriteY
-			}
-		} else {
-			if door.ClosedSpriteX != 0 || door.ClosedSpriteY != 0 {
-				spriteX, spriteY = door.ClosedSpriteX, door.ClosedSpriteY
-			}
+		if door.Open && (door.OpenedSpriteX != 0 || door.OpenedSpriteY != 0) {
+			spriteX, spriteY = door.OpenedSpriteX, door.OpenedSpriteY
 		}
 	}
 	if ac.Bounces && ac.Bounce {

@@ -21,6 +21,7 @@ const (
 	Hunger           ecs.ComponentType = "Hunger"
 	Light            ecs.ComponentType = "Light"
 	Workbench        ecs.ComponentType = "Workbench"
+	Script           ecs.ComponentType = "Script"
 )
 
 

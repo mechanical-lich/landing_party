@@ -141,6 +141,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(&systems.LightingSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	s.systemManager.AddSystem(&systems.FactionDoorSystem{})
+	s.systemManager.AddSystem(&systems.ScriptSystem{})
 	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
 
 	eq := event.GetQueuedInstance()
@@ -160,6 +161,9 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.SaveGameEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.LoadGameEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.CraftRequestedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.ColonistSelectedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.EquipItemRequestedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.UnequipItemRequestedEventType)
 
 	return s, nil
 }
@@ -264,6 +268,16 @@ func (s *MainState) newGame() {
 	if len(scenario.AllEnabled()) > 0 {
 		s.winEval = wincondition.New(scenario.Active().WinConditions)
 		s.applyScenarioLighting(s.level)
+		if sc := scenario.Active(); len(sc.SetupScripts) > 0 {
+			s.level.Flags["start_x"] = float64(x)
+			s.level.Flags["start_y"] = float64(y)
+			s.level.Flags["start_z"] = float64(startingZ)
+			if s.MainSettlement != nil {
+				s.level.Flags["settlement_name"] = s.MainSettlement.Name
+			}
+			s.level.Flags["colonist_faction"] = "colony"
+			RunSetupScripts(sc.SetupScripts, s.level)
+		}
 	}
 	s.day = 0
 	s.lastDay = 0
@@ -411,6 +425,12 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		}
 	case gui.CraftRequestedEvent:
 		s.addCraftTask(ev.RecipeID)
+	case gui.ColonistSelectedEvent:
+		s.openColonistModal(ev.Entity)
+	case gui.EquipItemRequestedEvent:
+		s.addEquipTask(ev.ColonistEntity, ev.ItemBlueprint)
+	case gui.UnequipItemRequestedEvent:
+		s.addUnequipTask(ev.ColonistEntity, ev.Slot)
 	}
 	return nil
 }
@@ -470,6 +490,79 @@ func (s *MainState) findWorkbench() *ecs.Entity {
 		}
 	}
 	return nil
+}
+
+func (s *MainState) openColonistModal(colonist *ecs.Entity) {
+	if colonist == nil || s.MainSettlement == nil {
+		return
+	}
+	sc := s.MainSettlement
+	var storageItems []gui.StorageItemEntry
+	seen := map[string]bool{}
+	for _, e := range s.level.Entities {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		storage := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if storage.OwnedBy != sc.Name {
+			continue
+		}
+		for _, item := range storage.Items {
+			if !item.HasComponent(rlcomponents.Item) {
+				continue
+			}
+			ic := item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent)
+			if ic.Slot == rlcomponents.BagSlot || ic.Slot == "" {
+				continue
+			}
+			if seen[item.Blueprint] {
+				continue
+			}
+			seen[item.Blueprint] = true
+			name := item.Blueprint
+			if item.HasComponent(rlcomponents.Description) {
+				name = item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			storageItems = append(storageItems, gui.StorageItemEntry{
+				Blueprint: item.Blueprint,
+				Name:      name,
+				Slot:      string(ic.Slot),
+			})
+		}
+	}
+	s.guiManager.ShowColonistModal(colonist, storageItems)
+}
+
+func (s *MainState) addEquipTask(colonist *ecs.Entity, blueprint string) {
+	if colonist == nil || !colonist.HasComponent(components.Worker) {
+		return
+	}
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		return
+	}
+	t := &task.Task{
+		Action:    task_requests.EquipAction,
+		Escalated: true,
+		Data:      task_requests.EquipRequest{ItemBlueprint: blueprint},
+	}
+	wc.CurrentTask = t
+}
+
+func (s *MainState) addUnequipTask(colonist *ecs.Entity, slot string) {
+	if colonist == nil || !colonist.HasComponent(components.Worker) {
+		return
+	}
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		return
+	}
+	t := &task.Task{
+		Action:    task_requests.UnequipAction,
+		Escalated: true,
+		Data:      task_requests.UnequipRequest{Slot: slot},
+	}
+	wc.CurrentTask = t
 }
 
 func (s *MainState) handleInput() {
@@ -753,7 +846,7 @@ func (s *MainState) refreshHUD() {
 			if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
 				taskName = string(wc.CurrentTask.Action)
 			}
-			popEntries = append(popEntries, gui.PopulationEntry{Name: name, State: state, Task: taskName})
+			popEntries = append(popEntries, gui.PopulationEntry{Name: name, State: state, Task: taskName, Entity: entity})
 		}
 	}
 

@@ -21,12 +21,14 @@ type titleScreen int
 const (
 	screenMain          titleScreen = iota
 	screenNewSettlement
+	screenLoad
 )
 
 type TitleState struct {
 	screen titleScreen
 
 	newBtn  *minui.Button
+	loadBtn *minui.Button
 	quitBtn *minui.Button
 
 	nameInput      *minui.TextInput
@@ -42,6 +44,12 @@ type TitleState struct {
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
 
+	// Load screen
+	saveMetas    []SaveMeta
+	saveListBox  *minui.ListBox
+	loadConfirm  *minui.Button
+	loadCancel   *minui.Button
+
 	errMsg string
 	done   bool
 	next   state.StateInterface
@@ -54,6 +62,7 @@ func NewTitleState() *TitleState {
 	_ = scenario.Load("data/scenarios")
 	ts.buildMainMenu()
 	ts.buildNewSettlementScreen()
+	ts.buildLoadScreen()
 	return ts
 }
 
@@ -72,10 +81,67 @@ func (ts *TitleState) buildMainMenu() {
 		ts.screen = screenNewSettlement
 	}
 
+	ts.loadBtn = minui.NewButton("title_load", "Load Save")
+	ts.loadBtn.SetPosition(x, 320+btnH+12)
+	ts.loadBtn.SetSize(btnW, btnH)
+	ts.loadBtn.OnClick = func() {
+		ts.errMsg = ""
+		ts.openLoadScreen()
+	}
+
 	ts.quitBtn = minui.NewButton("title_quit", "Quit")
-	ts.quitBtn.SetPosition(x, 320+btnH+12)
+	ts.quitBtn.SetPosition(x, 320+(btnH+12)*2)
 	ts.quitBtn.SetSize(btnW, btnH)
 	ts.quitBtn.OnClick = func() { os.Exit(0) }
+}
+
+func (ts *TitleState) buildLoadScreen() {
+	cfg := config.Global()
+	cx := cfg.ScreenWidth / 2
+
+	ts.saveListBox = minui.NewListBox("title_save_list", nil)
+	ts.saveListBox.SetBounds(minui.Rect{X: cx - 200, Y: 300, Width: 400, Height: 220})
+
+	ts.loadConfirm = minui.NewButton("title_load_confirm", "Load")
+	ts.loadConfirm.SetPosition(cx-116, 534)
+	ts.loadConfirm.SetSize(160, 36)
+	ts.loadConfirm.OnClick = func() { ts.confirmLoad() }
+
+	ts.loadCancel = minui.NewButton("title_load_cancel", "Cancel")
+	ts.loadCancel.SetPosition(cx+52, 534)
+	ts.loadCancel.SetSize(160, 36)
+	ts.loadCancel.OnClick = func() { ts.screen = screenMain }
+}
+
+func (ts *TitleState) openLoadScreen() {
+	metas, err := ListSaves()
+	if err != nil || len(metas) == 0 {
+		ts.errMsg = "No saves found."
+		return
+	}
+	ts.saveMetas = metas
+	labels := make([]string, len(metas))
+	for i, m := range metas {
+		labels[i] = m.Name + "  (" + m.SavedAt.Format("2006-01-02 15:04") + ")"
+	}
+	ts.saveListBox.SetItems(labels)
+	ts.saveListBox.SelectedIndex = 0
+	ts.screen = screenLoad
+}
+
+func (ts *TitleState) confirmLoad() {
+	idx := ts.saveListBox.SelectedIndex
+	if idx < 0 || idx >= len(ts.saveMetas) {
+		return
+	}
+	ms, err := LoadSave(ts.saveMetas[idx].Name)
+	if err != nil {
+		ts.errMsg = "Load failed: " + err.Error()
+		ts.screen = screenMain
+		return
+	}
+	ts.next = ms
+	ts.done = true
 }
 
 func (ts *TitleState) buildNewSettlementScreen() {
@@ -184,6 +250,7 @@ func (ts *TitleState) Update() state.StateInterface {
 			os.Exit(0)
 		}
 		ts.newBtn.Update()
+		ts.loadBtn.Update()
 		ts.quitBtn.Update()
 	case screenNewSettlement:
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
@@ -203,6 +270,17 @@ func (ts *TitleState) Update() state.StateInterface {
 		}
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
+	case screenLoad:
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			ts.screen = screenMain
+			return nil
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+			ts.confirmLoad()
+		}
+		ts.saveListBox.Update()
+		ts.loadConfirm.Update()
+		ts.loadCancel.Update()
 	}
 	return ts.next
 }
@@ -220,7 +298,13 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	switch ts.screen {
 	case screenMain:
 		ts.newBtn.Draw(screen)
+		ts.loadBtn.Draw(screen)
 		ts.quitBtn.Draw(screen)
+	case screenLoad:
+		mlge_text.Draw(screen, "Load Save", 24, cfg.ScreenWidth/2-80, 260, color.RGBA{180, 210, 255, 255})
+		ts.saveListBox.Draw(screen)
+		ts.loadConfirm.Draw(screen)
+		ts.loadCancel.Draw(screen)
 	case screenNewSettlement:
 		mlge_text.Draw(screen, "Colony Name:", 14, cfg.ScreenWidth/2-150, 283, color.RGBA{180, 210, 255, 255})
 		ts.nameInput.Draw(screen)

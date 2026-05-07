@@ -3,6 +3,7 @@
     "name": "Survival",
     "description": "Survive 30 days on a hostile alien world. Fend off alien attacks and keep your colonists alive.",
     "enabled": true,
+    "setup_scripts": ["data/scripts/scenarios/survival_setup.basic"],
     "hostile_max": 20,
     "spawn_rules": {
         "alien_grunt": {

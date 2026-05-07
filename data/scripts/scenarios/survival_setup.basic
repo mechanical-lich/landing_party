@@ -1,0 +1,47 @@
+function on_setup()
+    add_message("Day 1. The colony pod has landed. Establish a perimeter.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    left   = sx - 4
+    right  = sx + 4
+    top    = sy - 5
+    bottom = sy + 1
+
+    for x = left to right
+        for y = top to bottom
+            if x = left or x = right or y = top or y = bottom then
+                set_tile(x, y, sz, "hull_wall")
+            else
+                set_tile(x, y, sz, "hull_floor")
+            endif
+        next y
+    next x
+
+    spawn_entity_owned("airlock", sx, bottom, sz, faction)
+    spawn_entity_owned("storage_locker", left + 1, sy - 2, sz, sname)
+    spawn_entity_owned("workbench", right - 1, sy - 2, sz, sname)
+
+    z = sz
+    spawned = 0
+    for attempt = 1 to 100
+        if spawned < 2 then
+            found = find_open_tile(z)
+            if found > 0 then
+                ox = get_open_x()
+                oy = get_open_y()
+                dist = (ox - sx) * (ox - sx) + (oy - sy) * (oy - sy)
+                if dist > 400 then
+                    spawn_entity("alien_grunt", ox, oy, z)
+                    spawned = spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    set_flag("survival_started", 1)
+endfunction

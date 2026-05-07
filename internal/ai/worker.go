@@ -34,6 +34,12 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 
+	// Task was assigned directly (e.g. equip/unequip from UI)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		aiMemory.State = "task"
+		return
+	}
+
 	if mySettlement, ok := settlement.Settlements[sc.Name]; ok {
 		t := mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ())
 		if t != nil {
@@ -99,6 +105,10 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleResearchTask(level, entity, wc, aiMemory)
 	case task_requests.CraftAction:
 		handleCraftTask(level, entity, wc, aiMemory)
+	case task_requests.EquipAction:
+		handleEquipTask(level, entity, wc, aiMemory)
+	case task_requests.UnequipAction:
+		handleUnequipTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -187,17 +197,12 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 
-	if !MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ()) {
-		if pc.GetX() == storagePC.GetX() && pc.GetY() == storagePC.GetY() {
-			storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-			material := storageC.TakeOne(searching)
-			if material != nil {
-				inv.AddItem(material)
-			}
-		} else {
-			wc.CurrentTask.Stop()
-			wc.CurrentTask = nil
-			aiMemory.State = "idle"
+	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
+		material := storageC.TakeOne(searching)
+		if material != nil {
+			inv.AddItem(material)
 		}
 	}
 }
@@ -594,18 +599,105 @@ func HandleGatherMaterialsCraftState(level *world.Level, entity *ecs.Entity) {
 	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 
-	if !MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ()) {
-		if pc.GetX() == storagePC.GetX() && pc.GetY() == storagePC.GetY() {
-			storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-			material := storageC.TakeOne(searching)
-			if material != nil {
-				inv.AddItem(material)
-			}
-		} else {
-			wc.CurrentTask.Stop()
+	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
+		material := storageC.TakeOne(searching)
+		if material != nil {
+			inv.AddItem(material)
+		}
+	}
+}
+
+func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	req, ok := wc.CurrentTask.Data.(task_requests.EquipRequest)
+	if !ok {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	// Check if already in bag
+	for _, item := range inv.Bag {
+		if item.Blueprint == req.ItemBlueprint {
+			inv.Equip(item)
+			wc.CurrentTask.Complete()
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
+			return
 		}
+	}
+
+	// Go to storage to pick it up
+	storageEntity := FindClosestStorageWith(level, sc.Name, req.ItemBlueprint, pc.GetX(), pc.GetY(), pc.GetZ())
+	if storageEntity == nil {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
+		item := storageC.TakeOne(req.ItemBlueprint)
+		if item != nil {
+			inv.Equip(item)
+		}
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+	}
+}
+
+func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	req, ok := wc.CurrentTask.Data.(task_requests.UnequipRequest)
+	if !ok {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	slot := rlcomponents.ItemSlot(req.Slot)
+	item := inv.Unequip(slot) // moves item to bag
+	if item == nil {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	// Walk to storage and deposit
+	storage := FindAvailableStorage(level, sc.Name)
+	if storage == nil {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "dropoff"
+		return
+	}
+
+	storagePC := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
+		for _, bagItem := range append([]*ecs.Entity{}, inv.Bag...) {
+			storageC.AddItem(bagItem)
+			inv.RemoveItem(bagItem)
+		}
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
 	}
 }
 

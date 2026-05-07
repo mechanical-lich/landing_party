@@ -6,9 +6,10 @@ import (
 )
 
 type PopulationEntry struct {
-	Name  string
-	State string
-	Task  string
+	Name   string
+	State  string
+	Task   string
+	Entity *ecs.Entity
 }
 
 // GUIManager is the stable public API used by the rest of the game.
@@ -59,3 +60,6 @@ func (gm *GUIManager) SetHoveredTile(name string, solid, water, air, space bool)
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
 func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }
+func (gm *GUIManager) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
+	gm.hud.ShowColonistModal(colonist, storageItems)
+}
