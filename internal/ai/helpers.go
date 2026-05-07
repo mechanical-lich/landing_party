@@ -2,6 +2,7 @@ package ai
 
 import (
 	"fmt"
+	"log"
 
 	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
@@ -146,7 +147,10 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 		if from == nil || to == nil {
 			return false
 		}
-		aiMemory.CurrentSteps = fspath.GetPossiblePath(level, from.(*world.Tile), to.(*world.Tile), aiMemory.CurrentSteps)
+		aiMemory.CurrentSteps = fspath.GetPossiblePathForEntity(level, entity, from.(*world.Tile), to.(*world.Tile), aiMemory.CurrentSteps)
+		if len(aiMemory.CurrentSteps) == 0 {
+			log.Printf("[PATH] %s no path from (%d,%d,%d) to (%d,%d,%d)", rlentity.GetName(entity), pc.GetX(), pc.GetY(), pc.GetZ(), targetX, targetY, targetZ)
+		}
 		aiMemory.TargetX = targetX
 		aiMemory.TargetY = targetY
 		aiMemory.TargetZ = targetZ

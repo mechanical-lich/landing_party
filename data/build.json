@@ -3,61 +3,76 @@
         "name": "Hull Wall",
         "type": "hull_wall",
         "description": "A reinforced metal wall panel.",
-        "build_time": 4,
-        "cost": {
-            "metal_ore": 0
-        }
+        "build_time": 1,
+        "cost": {}
     },
     "hull_floor": {
         "name": "Hull Floor",
         "type": "hull_floor",
         "description": "A metal floor panel.",
-        "build_time": 2,
-        "cost": {
-            "metal_ore": 0
-        }
+        "build_time": 1,
+        "cost": {}
     },
     "storage_locker": {
         "name": "Storage Locker",
         "type": "storage_locker",
         "description": "A secure locker for storing resources.",
-        "build_time": 3,
-        "is_entity": true
+        "build_time": 1,
+        "is_entity": true,
+        "cost": {}
     },
     "research_lab": {
         "name": "Research Lab",
         "type": "research_lab",
         "description": "A facility for conducting research.",
-        "build_time": 8,
+        "build_time": 1,
         "is_entity": true,
-        "cost": {
-            "metal_ore": 5,
-            "crystal": 2
-        }
+        "cost": {}
     },
     "work_light": {
         "name": "Work Light",
         "type": "work_light",
         "description": "A powered light that illuminates the surrounding area.",
-        "build_time": 2,
-        "is_entity": true
+        "build_time": 1,
+        "is_entity": true,
+        "cost": {}
     },
     "stairs_up": {
         "name": "Stairs Up",
         "type": "stairs_up",
         "description": "Access to the level above.",
-        "build_time": 4,
-        "cost": {
-            "metal_ore": 0
-        }
+        "build_time": 1,
+        "cost": {}
     },
     "stairs_down": {
         "name": "Stairs Down",
         "type": "stairs_down",
         "description": "Access to the level below.",
-        "build_time": 4,
-        "cost": {
-            "metal_ore": 0
-        }
+        "build_time": 1,
+        "cost": {}
+    },
+    "airlock": {
+        "name": "Airlock",
+        "type": "airlock",
+        "description": "Auto-opens for authorized factions. Keeps others out.",
+        "build_time": 1,
+        "is_entity": true,
+        "cost": {}
+    },
+    "blast_door": {
+        "name": "Blast Door",
+        "type": "blast_door",
+        "description": "Heavy reinforced door. Restricted access.",
+        "build_time": 1,
+        "is_entity": true,
+        "cost": {}
+    },
+    "workbench": {
+        "name": "Workbench",
+        "type": "workbench",
+        "description": "A station for crafting equipment.",
+        "build_time": 1,
+        "is_entity": true,
+        "cost": {}
     }
 }

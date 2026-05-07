@@ -39,3 +39,9 @@ const LoadGameEventType event.EventType = "load_game_event"
 type LoadGameEvent struct{ Name string }
 
 func (e LoadGameEvent) GetType() event.EventType { return LoadGameEventType }
+
+const CraftRequestedEventType event.EventType = "craft_requested"
+
+type CraftRequestedEvent struct{ RecipeID string }
+
+func (e CraftRequestedEvent) GetType() event.EventType { return CraftRequestedEventType }

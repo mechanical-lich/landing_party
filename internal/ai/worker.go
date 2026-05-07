@@ -14,6 +14,7 @@ import (
 	"github.com/mechanical-lich/mlge/utility"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
+	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
 	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	"github.com/mechanical-lich/scifi_settlements/internal/research"
@@ -39,6 +40,9 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 			aiMemory.State = "task"
 			wc.CurrentTask = t
 			return
+		}
+		if mySettlement.Tasks.Count() > 0 {
+			log.Printf("[AI] %s idle — %d tasks in queue but none assignable", rlentity.GetName(entity), mySettlement.Tasks.Count())
 		}
 
 		// Drop off inventory if we're holding anything
@@ -93,6 +97,8 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleAttackTask(level, entity, wc, aiMemory)
 	case task_requests.ResearchAction:
 		handleResearchTask(level, entity, wc, aiMemory)
+	case task_requests.CraftAction:
+		handleCraftTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -223,6 +229,17 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 					if newEntity.HasComponent(components.Storage) {
 						storageC := newEntity.GetComponent(components.Storage).(*components.StorageComponent)
 						storageC.OwnedBy = sc.Name
+					}
+					if newEntity.HasComponent(rlcomponents.Door) {
+						door := newEntity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
+						faction := sc.Name
+						if entity.HasComponent(rlcomponents.Description) {
+							dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+							if dc.Faction != "" {
+								faction = dc.Faction
+							}
+						}
+						door.OwnedBy = faction
 					}
 					level.AddEntity(newEntity)
 				}
@@ -391,10 +408,65 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 }
 
 func handleMoveTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
-	if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-		CompleteTaskWithMessage(entity, wc.CurrentTask, "Reached destination")
-		aiMemory.State = "idle"
+	tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
+	if MoveTowardsTarget(level, entity, tx, ty, tz) {
+		return
 	}
+	// Arrived — inspect target tile and auto-detect action.
+	if interactWithTile(level, entity, wc, aiMemory, tx, ty, tz) {
+		return
+	}
+	CompleteTaskWithMessage(entity, wc.CurrentTask, "Reached destination")
+	aiMemory.State = "idle"
+}
+
+// interactWithTile inspects the tile at (tx,ty,tz) and morphs wc.CurrentTask into
+// the appropriate action. Returns true if an action was started, false to fall through to scout.
+func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent, tx, ty, tz int) bool {
+	// 1. Attack: hostile entity with health on the tile
+	var candidates []*ecs.Entity
+	level.GetEntitiesAt(tx, ty, tz, &candidates)
+	for _, candidate := range candidates {
+		if candidate == entity {
+			continue
+		}
+		if candidate.HasComponent(rlcomponents.Health) && candidate.HasComponent(rlcomponents.HostileAI) {
+			wc.CurrentTask.Action = task_requests.AttackAction
+			wc.CurrentTask.Data = candidate
+			return true
+		}
+	}
+
+	// 2. Item on tile
+	for _, candidate := range candidates {
+		if candidate == entity {
+			continue
+		}
+		if candidate.HasComponent(rlcomponents.Item) {
+			wc.CurrentTask.Action = task_requests.PickupAction
+			return true
+		}
+	}
+
+	// 3. Minable or diggable tile
+	tileI := level.GetTileAt(tx, ty, tz)
+	if tileI != nil {
+		tile := tileI.(*world.Tile)
+		tileDef := world.TileDefinitions[tile.Type]
+		tileName := tileDef.Name
+		if tileName == "ore_deposit" || tileName == "crystal_vein" {
+			wc.CurrentTask.Action = task_requests.MineAction
+			wc.CurrentTask.Data = task_requests.MineRequest{X: tx, Y: ty, Z: tz, Required: 50}
+			return true
+		}
+		if tileDef.Solid {
+			wc.CurrentTask.Action = task_requests.DigAction
+			wc.CurrentTask.Data = task_requests.DigRequest{X: tx, Y: ty, Z: tz, Required: 5}
+			return true
+		}
+	}
+
+	return false
 }
 
 func handleResearchTask(_ *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
@@ -414,6 +486,151 @@ func handleResearchTask(_ *world.Level, entity *ecs.Entity, wc *components.Worke
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Research complete")
 		}
 		aiMemory.State = "idle"
+	}
+}
+
+func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	cr, ok := wc.CurrentTask.Data.(task_requests.CraftRequest)
+	if !ok {
+		log.Printf("[CRAFT] bad task data type for %s", rlentity.GetName(entity))
+		aiMemory.State = "idle"
+		return
+	}
+
+	recipe, found := crafting.GetRecipe(cr.RecipeID)
+	if !found {
+		log.Printf("[CRAFT] recipe not found: %s", cr.RecipeID)
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	if !checkInventoryForCraft(entity, recipe.Cost) {
+		aiMemory.State = "gather_materials_craft"
+		return
+	}
+
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(),
+		cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ, 1, 1, 0) {
+
+		cr.Progress++
+		wc.CurrentTask.Data = cr
+		if cr.Progress >= cr.Required {
+			removeMaterialsByCost(entity, recipe.Cost)
+			output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+			if err == nil {
+				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+				inv.AddItem(output)
+			}
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
+			aiMemory.State = "idle"
+		}
+	} else {
+		if !MoveTowardsTarget(level, entity, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ) {
+			log.Printf("[CRAFT] %s can't reach workbench at (%d,%d,%d) from (%d,%d,%d)",
+				rlentity.GetName(entity), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ,
+				pc.GetX(), pc.GetY(), pc.GetZ())
+			wc.CurrentTask.Stop()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+		}
+	}
+}
+
+func HandleGatherMaterialsCraftState(level *world.Level, entity *ecs.Entity) {
+	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	if wc.CurrentTask == nil {
+		aiMemory.State = "idle"
+		return
+	}
+
+	cr, ok := wc.CurrentTask.Data.(task_requests.CraftRequest)
+	if !ok {
+		aiMemory.State = "idle"
+		return
+	}
+
+	recipe, found := crafting.GetRecipe(cr.RecipeID)
+	if !found {
+		aiMemory.State = "idle"
+		return
+	}
+
+	// Find the first missing material
+	searching := ""
+	for name, cost := range recipe.Cost {
+		count := 0
+		for _, item := range inv.Bag {
+			if item.Blueprint == name {
+				count++
+			}
+		}
+		if count < cost {
+			searching = name
+			break
+		}
+	}
+
+	if searching == "" {
+		aiMemory.State = "task"
+		return
+	}
+
+	storageEntity := FindClosestStorageWith(level, sc.Name, searching, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+	if storageEntity == nil {
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to craft "+recipe.Name)
+		aiMemory.State = "idle"
+		return
+	}
+
+	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+	if !MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ()) {
+		if pc.GetX() == storagePC.GetX() && pc.GetY() == storagePC.GetY() {
+			storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
+			material := storageC.TakeOne(searching)
+			if material != nil {
+				inv.AddItem(material)
+			}
+		} else {
+			wc.CurrentTask.Stop()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+		}
+	}
+}
+
+func checkInventoryForCraft(entity *ecs.Entity, cost map[string]int) bool {
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	for name, required := range cost {
+		count := 0
+		for _, item := range inv.Bag {
+			if item.Blueprint == name {
+				count++
+			}
+		}
+		if count < required {
+			return false
+		}
+	}
+	return true
+}
+
+func removeMaterialsByCost(entity *ecs.Entity, cost map[string]int) {
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	for name, required := range cost {
+		for i := 0; i < required; i++ {
+			inv.RemoveItemByName(name)
+		}
 	}
 }
 

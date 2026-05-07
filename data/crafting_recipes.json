@@ -1,0 +1,44 @@
+{
+    "laser_pistol": {
+        "name": "Laser Pistol",
+        "output": "laser_pistol",
+        "build_time": 1,
+        "cost": {}
+    },
+    "plasma_cutter": {
+        "name": "Plasma Cutter",
+        "output": "plasma_cutter",
+        "build_time": 1,
+        "cost": {}
+    },
+    "stun_baton": {
+        "name": "Stun Baton",
+        "output": "stun_baton",
+        "build_time": 1,
+        "cost": {}
+    },
+    "enviro_suit": {
+        "name": "Enviro Suit",
+        "output": "enviro_suit",
+        "build_time": 1,
+        "cost": {}
+    },
+    "combat_vest": {
+        "name": "Combat Vest",
+        "output": "combat_vest",
+        "build_time": 1,
+        "cost": {}
+    },
+    "helmet": {
+        "name": "Helmet",
+        "output": "helmet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "medkit": {
+        "name": "Medkit",
+        "output": "medkit",
+        "build_time": 1,
+        "cost": {}
+    }
+}

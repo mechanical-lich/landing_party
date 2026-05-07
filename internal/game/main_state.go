@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"image"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -17,11 +18,13 @@ import (
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/input"
 	"github.com/mechanical-lich/mlge/message"
+	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
+	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
 	"github.com/mechanical-lich/scifi_settlements/internal/effect"
 	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
@@ -137,6 +140,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
 	s.systemManager.AddSystem(&systems.LightingSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
+	s.systemManager.AddSystem(&systems.FactionDoorSystem{})
 	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
 
 	eq := event.GetQueuedInstance()
@@ -155,6 +159,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.MainMenuEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.SaveGameEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.LoadGameEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.CraftRequestedEventType)
 
 	return s, nil
 }
@@ -311,6 +316,7 @@ func (s *MainState) Update() state.StateInterface {
 	}
 
 	if s.tick%30 == 0 {
+		s.purgeCompletedTasks()
 		s.refreshHUD()
 	}
 
@@ -402,6 +408,65 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		} else {
 			s.next = loaded
 			s.done = true
+		}
+	case gui.CraftRequestedEvent:
+		s.addCraftTask(ev.RecipeID)
+	}
+	return nil
+}
+
+func (s *MainState) purgeCompletedTasks() {
+	if s.MainSettlement == nil {
+		return
+	}
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Completed {
+			s.MainSettlement.Tasks.RemoveTask(t)
+		}
+	}
+}
+
+func (s *MainState) addCraftTask(recipeID string) {
+	if s.MainSettlement == nil {
+		log.Printf("[CRAFT] no main settlement")
+		return
+	}
+	recipe, found := crafting.GetRecipe(recipeID)
+	if !found {
+		log.Printf("[CRAFT] recipe not found: %s", recipeID)
+		return
+	}
+	wb := s.findWorkbench()
+	if wb == nil {
+		message.AddMessage("Need a Workbench to craft. Build one first.")
+		return
+	}
+	wbPC := wb.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	s.MainSettlement.Tasks.AddTask(&task.Task{
+		Action: task_requests.CraftAction,
+		Data: task_requests.CraftRequest{
+			RecipeID:   recipeID,
+			WorkbenchX: wbPC.GetX(),
+			WorkbenchY: wbPC.GetY(),
+			WorkbenchZ: wbPC.GetZ(),
+			Required:   recipe.BuildTime,
+		},
+		X: wbPC.GetX(), Y: wbPC.GetY(), Z: wbPC.GetZ(),
+	})
+	message.AddMessage("Queued: craft " + recipe.Name)
+}
+
+func (s *MainState) findWorkbench() *ecs.Entity {
+	if s.MainSettlement == nil {
+		return nil
+	}
+	for _, e := range append(s.level.Entities, s.level.StaticEntities...) {
+		if !e.HasComponent(components.Workbench) {
+			continue
+		}
+		wb := e.GetComponent(components.Workbench).(*components.WorkbenchComponent)
+		if wb.OwnedBy == "" || wb.OwnedBy == s.MainSettlement.Name {
+			return e
 		}
 	}
 	return nil
@@ -542,10 +607,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	if e.Button == ebiten.MouseButtonRight && s.MainSettlement != nil {
 		switch s.CursorMode {
 		case gui.CursorModeDefault:
-			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
-			if ent != nil && ent.HasComponent(rlcomponents.Item) {
-				s.MainSettlement.Tasks.AddTask(&task.Task{Action: task_requests.PickupAction, X: tX, Y: tY, Z: s.CameraZ, Escalated: true})
-			}
+			s.MainSettlement.Tasks.AddTask(&task.Task{X: tX, Y: tY, Z: s.CameraZ, Escalated: true})
 		case gui.CursorModeBuild:
 			s.mouseDragging = true
 			s.lastDragTileX = -1
@@ -718,6 +780,47 @@ func (s *MainState) refreshHUD() {
 		}
 	}
 	s.guiManager.RefreshGoalsTab(goalLines)
+	s.refreshCraftQueue()
+}
+
+func (s *MainState) refreshCraftQueue() {
+	if s.MainSettlement == nil {
+		return
+	}
+	var entries []gui.CraftQueueEntry
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Action != task_requests.CraftAction || t.Completed {
+			continue
+		}
+		cr, ok := t.Data.(task_requests.CraftRequest)
+		if !ok {
+			continue
+		}
+		recipe, found := crafting.GetRecipe(cr.RecipeID)
+		if !found {
+			continue
+		}
+		progress := 0.0
+		if cr.Required > 0 {
+			progress = float64(cr.Progress) / float64(cr.Required)
+		}
+		var sprite *ebiten.Image
+		if ac := factory.GetAppearance(recipe.Output); ac != nil {
+			if tex := resource.Textures[ac.Resource]; tex != nil {
+				size := ac.SpriteSize
+				if size <= 0 {
+					size = 24
+				}
+				sprite = tex.SubImage(image.Rect(ac.SpriteX, ac.SpriteY, ac.SpriteX+size, ac.SpriteY+size)).(*ebiten.Image)
+			}
+		}
+		entries = append(entries, gui.CraftQueueEntry{
+			Name:     recipe.Name,
+			Sprite:   sprite,
+			Progress: progress,
+		})
+	}
+	s.guiManager.RefreshCraftQueue(entries)
 }
 
 func (s *MainState) checkWinConditions() {

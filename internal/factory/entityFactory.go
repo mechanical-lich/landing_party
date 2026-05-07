@@ -5,6 +5,7 @@ import (
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/lore"
 )
 
@@ -61,6 +62,19 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 
 func BlueprintExists(name string) bool {
 	return jsonFactory.BlueprintExists(name)
+}
+
+// GetAppearance returns the AppearanceComponent for a blueprint without placing it.
+// Returns nil if the blueprint doesn't exist or has no Appearance.
+func GetAppearance(name string) *components.AppearanceComponent {
+	entity, err := jsonFactory.Create(name)
+	if err != nil {
+		return nil
+	}
+	if !entity.HasComponent(components.Appearance) {
+		return nil
+	}
+	return entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
 }
 
 func CreateComponent(name string, data map[string]interface{}) (ecs.Component, error) {

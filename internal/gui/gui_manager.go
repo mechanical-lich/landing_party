@@ -36,7 +36,8 @@ func (gm *GUIManager) Draw(screen *ebiten.Image) {
 
 func (gm *GUIManager) ActiveSidebarTab() string                       { return gm.hud.ActiveSidebarTab() }
 func (gm *GUIManager) RefreshPopulationTab(entries []PopulationEntry) { gm.hud.RefreshPopulationTab(entries) }
-func (gm *GUIManager) RefreshGoalsTab(lines []string)                 { gm.hud.RefreshGoalsTab(lines) }
+func (gm *GUIManager) RefreshGoalsTab(lines []string)                  { gm.hud.RefreshGoalsTab(lines) }
+func (gm *GUIManager) RefreshCraftQueue(entries []CraftQueueEntry)     { gm.hud.RefreshCraftQueue(entries) }
 
 func (gm *GUIManager) OpenModal(name string)      { gm.hud.OpenModal(name) }
 func (gm *GUIManager) CloseModal(name string)     { gm.hud.CloseModal(name) }

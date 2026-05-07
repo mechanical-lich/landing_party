@@ -1,4 +1,27 @@
 {
+    "airlock": {
+        "Appearance": {
+            "R": 180,
+            "G": 220,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 528,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Airlock",
+            "Faction": ""
+        },
+        "Door": {
+            "ClosedSpriteX": 480,
+            "ClosedSpriteY": 504,
+            "OpenedSpriteX": 504,
+            "OpenedSpriteY": 504,
+            "OwnedBy": "",
+            "AllowedFactions": []
+        },
+        "Solid": {}
+    },
     "alien_brute": {
         "AIMemory": {},
         "Appearance": {
@@ -104,6 +127,29 @@
             "BasicAttackDice": "1d4"
         }
     },
+    "blast_door": {
+        "Appearance": {
+            "R": 200,
+            "G": 160,
+            "B": 100,
+            "Resource": "scifi_world",
+            "SpriteX": 432,
+            "SpriteY": 336
+        },
+        "Description": {
+            "Name": "Blast Door",
+            "Faction": ""
+        },
+        "Door": {
+            "ClosedSpriteX": 480,
+            "ClosedSpriteY": 528,
+            "OpenedSpriteX": 504,
+            "OpenedSpriteY": 528,
+            "OwnedBy": "",
+            "AllowedFactions": []
+        },
+        "Solid": {}
+    },
     "colonist": {
         "AIMemory": {},
         "Appearance": {
@@ -151,6 +197,30 @@
             "BasicAttackDice": "1d4"
         },
         "Worker": {}
+    },
+    "combat_vest": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 3
+        },
+        "Description": {
+            "Name": "Combat Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 3
+        }
     },
     "critter": {
         "AIMemory": {},
@@ -213,6 +283,54 @@
             "Type": "crystal"
         }
     },
+    "enviro_suit": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 2
+        },
+        "Description": {
+            "Name": "Enviro Suit",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 4
+        }
+    },
+    "helmet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 1
+        },
+        "Description": {
+            "Name": "Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 2
+        }
+    },
     "hydration_gel": {
         "Appearance": {
             "R": 100,
@@ -232,12 +350,59 @@
         },
         "Item": {}
     },
+    "laser_pistol": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Laser Pistol",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 3
+        },
+        "Weapon": {
+            "AttackBonus": 2,
+            "AttackDice": "1d6",
+            "DamageType": "energy",
+            "Range": 8,
+            "Ranged": true
+        }
+    },
+    "medkit": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 128,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Medkit",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "bag",
+            "Effect": "heal",
+            "Value": 1
+        }
+    },
     "metal_ore": {
         "Appearance": {
-            "R": 200,
-            "G": 200,
-            "B": 200,
-            "Bounces": false,
+            "R": 255,
+            "G": 255,
+            "B": 255,
             "Resource": "scifi_items",
             "SpriteX": 0,
             "SpriteY": 0,
@@ -250,6 +415,33 @@
         "Item": {},
         "ResourceItem": {
             "Type": "metal_ore"
+        }
+    },
+    "plasma_cutter": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 112,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Plasma Cutter",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 5
+        },
+        "Weapon": {
+            "AttackBonus": 4,
+            "AttackDice": "2d4",
+            "DamageType": "energy",
+            "Range": 0,
+            "Ranged": false
         }
     },
     "protein_bar": {
@@ -273,13 +465,12 @@
     },
     "ration_pack": {
         "Appearance": {
-            "R": 220,
-            "G": 180,
-            "B": 80,
-            "Bounces": false,
+            "R": 255,
+            "G": 255,
+            "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 0,
+            "SpriteX": 176,
+            "SpriteY": 64,
             "SpriteSize": 16
         },
         "Description": {
@@ -347,6 +538,33 @@
         "Solid": {},
         "Storage": {}
     },
+    "stun_baton": {
+        "Appearance": {
+            "R": 2,
+            "G": 13,
+            "B": 4,
+            "Resource": "scifi_items",
+            "SpriteX": 128,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Stun Baton",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 2
+        },
+        "Weapon": {
+            "AttackBonus": 1,
+            "AttackDice": "1d4",
+            "DamageType": "electric",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
     "work_light": {
         "Appearance": {
             "R": 255,
@@ -373,5 +591,24 @@
             "Range": 5
         },
         "NeverSleep": {}
+    },
+    "workbench": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Workbench",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Workbench": {
+            "OwnedBy": ""
+        }
     }
 }

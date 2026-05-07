@@ -7,62 +7,55 @@
 
 ---
 
-## 1. Dynamic Lighting
+## 1. Hunger / Food `[x]` DONE
 
-Port `LightingSystem` from fantasy_settlements. Computes per-tile light levels from a sun value (based on time of day / Z level) plus point-light sources on entities.
+`HungerComponent` implemented, hunger drain, eating behavior, food blueprints, worker hunger AI state all wired.
 
-**Tasks**
-- [ ] Add `LightComponent` alias to `components/component_types.go` (already in `rlcomponents`)
-- [ ] Port `internal/systems/LightingSystem.go` — sun shadow calc, entity light sources, parallel tile update
-- [ ] Wire `LightingSystem` into `newMainStateBase` (runs each tick)
-- [ ] Darken tile/entity draw ops based on `tile.LightLevel` in `drawing.go`
-- [ ] Add `LightComponent` to relevant blueprints (colonist helmet light, research lab, etc.)
-
-**Dependencies:** none
+**Remaining**
+- [ ] Show hunger bar per colonist in Population tab (HUD)
+- [ ] Add food item drops to critter blueprints (`Drops` component)
 
 ---
 
-## 2. Hunger / Food System
+## 2. Dynamic Lighting `[x]` DONE
 
-Colonists and hostile AI have an energy/hunger stat that drains each turn. When starving, health degrades. Colonists seek food autonomously; player must ensure food supply exists.
-
-**Tasks**
-- [ ] Add `HungerComponent` to `components/` — fields: `Energy int`, `MaxEnergy int`, `HungerThreshold int`, `StarveThreshold int`
-- [ ] Register `HungerComponent` in `factory/component_registry.go`
-- [ ] Add `hunger` AI state to `WorkerSystem` / worker AI — when `Energy < HungerThreshold`, interrupt current task and seek food items
-- [ ] Add `FoodComponent` alias to `component_types.go` (already in `rlcomponents`) — marks entities as edible with nutrition value
-- [ ] Add food blueprints to `entity_blueprints.json`: `ration_pack`, `protein_bar`, `hydration_gel`
-- [ ] Add `eat` handler to worker AI: move to food item, consume it (remove from level, restore Energy)
-- [ ] Tick hunger drain in `WorkerSystem.UpdateEntity` each turn
-- [ ] When `Energy < StarveThreshold`, deal 1 HP damage per N turns
-- [ ] Show hunger state in entity detail panel (HUD)
-- [ ] Add food item drops to critter blueprint (`Drops` component)
-- [ ] Add food to colonist starting inventory (`StartingInventory` in blueprint)
-
-**Dependencies:** none
+`LightingSystem` ported and extended. Sun shadow calc, entity light sources, tile light sources (ore deposits, crystal veins, stairs), depth fog overlay, air-layer see-through rendering. Tile-source cache added to fix FPS regression.
 
 ---
 
-## 3. Interactive Objects (Doors + Interactables)
+## 3. Interactive Objects — Faction Doors `[x]` DONE
 
-`InteractComponent` marks entities that can be activated by adjacent colonists or the player. Doors already use `DoorSystem` from `rlsystems` but there's no general interact framework.
+Airlock and blast_door blueprints with full faction-aware door system:
+- `FactionDoorSystem` auto-opens/closes doors for authorized factions on approach and when occupying the tile
+- `PathCostFunctionForFaction` routes colonists through their own doors
+- `GetPossiblePathForEntity` uses colonist faction for A* cost + path validation
+- Door sprite switches between open/closed frames based on `door.Open`
+- `door.OwnedBy` set to builder's faction (not settlement name) so matching works correctly
 
-**Tasks**
-- [ ] Add `InteractComponent` to `components/` — fields: `Script string` (optional behavior key), `Label string`
-- [ ] Register in `factory/component_registry.go`
-- [ ] Add `interact` cursor mode (`CursorModeInteract`) to `gui/cursor.go`
-- [ ] Handle interact click in `main_state.go` — right-click on entity with `InteractComponent` triggers interaction
-- [ ] Add `interact` task action to `task_requests/requests.go`
-- [ ] Add `handleInteractTask` to `ai/worker.go` — worker walks to target, fires an interaction event
-- [ ] Add `InteractedEvent` to `eventsystem/`
-- [ ] Add airlock, console, and supply crate blueprints to `entity_blueprints.json`
-- [ ] Add "Interact" cursor mode button to Build > Orders submenu in HUD
-
-**Dependencies:** Scripting system (for script-driven interact behavior), but can stub without it
+**Remaining**
+- [ ] General `InteractComponent` framework for non-door interactables (consoles, supply crates)
+- [ ] `InteractedEvent` + `handleInteractTask` in worker AI
 
 ---
 
-## 4. Scripting System (Mechanical Basic)
+## 4. Terrain & World Generation `[x]` DONE
+
+Rocky outcrops, underground caverns (second Perlin pass), cliff shadows via depth fog. Camera movement up/down Z levels. Air-layer transparency shows tiles below.
+
+---
+
+## 5. Smart Default Task (Right-click) `[x]` DONE
+
+Right-click in default cursor mode queues a move task. On arrival, worker auto-detects:
+- **Attack** — hostile entity with `HealthComponent` + `HostileAI`
+- **Pick up** — item entity on tile (chains into dropoff/haul automatically)
+- **Mine** — `ore_deposit` or `crystal_vein`
+- **Dig** — any other solid tile
+- **Scout** — nothing actionable, completes normally
+
+---
+
+## 6. Scripting System (Mechanical Basic) `[ ]`
 
 Port the `.basic` scenario setup script runner from fantasy_settlements. Allows scenarios to spawn entities, set flags, and post messages at game start via a simple scripting language.
 
@@ -82,7 +75,7 @@ Port the `.basic` scenario setup script runner from fantasy_settlements. Allows 
 
 ---
 
-## 5. Crafting & Equipment
+## 7. Crafting & Equipment `[ ]`
 
 Colonists can craft items from stored resources. Crafted items go into inventory slots (weapons, armor) and improve combat effectiveness.
 
@@ -103,13 +96,13 @@ Colonists can craft items from stored resources. Crafted items go into inventory
 - [ ] Add "Craft" tab to HUD sidebar — lists available recipes, queues craft task on click
 - [ ] Show equipped items in entity detail panel (HUD)
 
-**Dependencies:** Hunger system (consumables), storage system (already done)
+**Dependencies:** Hunger system (done), storage system (done)
 
 ---
 
-## 6. Scenario Setup Scripts
+## 8. Scenario Setup Scripts `[ ]`
 
-Specific scenarios need custom initialization logic beyond spawn rules — placing named entities, setting win flags, posting lore messages.
+Specific scenarios need custom initialization logic beyond spawn rules.
 
 **Tasks**
 - [ ] Write `data/scripts/scenarios/survival_setup.basic`
@@ -117,32 +110,29 @@ Specific scenarios need custom initialization logic beyond spawn rules — placi
   - Spawn 2 `alien_grunt` patrols at map edges
   - Set flag `survival_started = 1`
 - [ ] Add `setup_scripts` field to `survival.json` pointing at the script
-- [ ] (Future scenarios can add their own scripts without code changes)
 
-**Dependencies:** Scripting system (#4)
+**Dependencies:** Scripting system (#6)
 
 ---
 
-## 7. HUD & Polish
+## 9. HUD & Polish `[~]`
 
-Small gaps that affect playability.
+**Done**
+- [x] Day/hour counter in title bar
+- [x] Doors tab in build menu (airlock, blast door)
 
-**Tasks**
-- [ ] Show day counter in sidebar Goals tab (already partially done — update to be prominent)
+**Remaining**
 - [ ] Show hunger bar per colonist in Population tab
-- [ ] Add "Craft" tab to sidebar (see #5)
-- [ ] Win/lose modal — when win condition triggers, show outcome modal with result message and New Game / Quit buttons instead of just pausing
-- [ ] Minimap widget in HUD — small corner minimap using the existing `minimap` package
+- [ ] Win/lose modal — outcome modal with New Game / Quit buttons when win condition triggers
+- [ ] Minimap widget — small corner minimap using the existing `minimap` package
 - [ ] Save button shortcut (Ctrl+S)
+- [ ] Add "Craft" tab to sidebar (see #7)
 
 ---
 
 ## Implementation Order (suggested)
 
-1. **Hunger / Food** — affects survival scenario immediately; self-contained
-2. **Dynamic Lighting** — large visual/gameplay impact; mostly a port
-3. **Interactive Objects** — doors + airlocks add exploration depth
-4. **Scripting** — unlocks richer scenarios; dependency for #5 setup scripts
-5. **Crafting & Equipment** — biggest scope; needs scripting + hunger done first
-6. **Scenario Setup Scripts** — completes the scripting work
-7. **HUD & Polish** — done incrementally alongside the above
+1. **Scripting** — unlocks richer scenarios and interactables
+2. **Scenario Setup Scripts** — completes scripting, gives survival scenario a proper start
+3. **Crafting & Equipment** — biggest scope; hunger + storage already done
+4. **HUD & Polish** — win/lose modal, minimap, hunger bar, Ctrl+S

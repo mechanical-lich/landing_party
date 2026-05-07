@@ -34,6 +34,15 @@ type ResearchRequest struct {
 	Required int
 }
 
+type CraftRequest struct {
+	RecipeID    string
+	WorkbenchX  int
+	WorkbenchY  int
+	WorkbenchZ  int
+	Progress    int
+	Required    int
+}
+
 const (
 	PickupAction   task.TaskAction = "pickup"
 	BuildAction    task.TaskAction = "build"
@@ -42,4 +51,5 @@ const (
 	ForageAction   task.TaskAction = "forage"
 	AttackAction   task.TaskAction = "attack"
 	ResearchAction task.TaskAction = "research"
+	CraftAction    task.TaskAction = "craft"
 )

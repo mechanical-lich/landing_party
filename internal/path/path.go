@@ -2,6 +2,8 @@ package path
 
 import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/path"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
@@ -16,11 +18,29 @@ func ResetFrameCounter() {
 	pathRequestsThisFrame = 0
 }
 
+func GetPossiblePathForEntity(level *world.Level, entity *ecs.Entity, fromTile, toTile *world.Tile, reuse []int) []int {
+	faction := ""
+	if entity.HasComponent(rlcomponents.Description) {
+		dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+		faction = dc.Faction
+	}
+	return getPossiblePath(level, faction, fromTile, toTile, reuse)
+}
+
 func GetPossiblePath(level *world.Level, fromTile, toTile *world.Tile, reuse []int) []int {
+	return getPossiblePath(level, "", fromTile, toTile, reuse)
+}
+
+func getPossiblePath(level *world.Level, faction string, fromTile, toTile *world.Tile, reuse []int) []int {
 	if pathRequestsThisFrame >= maxPathRequestsPerFrame {
 		return nil
 	}
 	pathRequestsThisFrame++
+
+	// Use faction-aware cost function so authorized doors are treated as low-cost
+	if faction != "" {
+		level.PathCostFunc = world.PathCostFunctionForFaction(level, faction)
+	}
 
 	toX, toY, toZ := toTile.Coords()
 	fromX, fromY, _ := fromTile.Coords()
@@ -68,7 +88,8 @@ func GetPossiblePath(level *world.Level, fromTile, toTile *world.Tile, reuse []i
 			}
 			if i != 0 && i != len(steps)-1 {
 				sx, sy, sz := st.Coords()
-				if level.GetSolidEntityAt(sx, sy, sz) != nil {
+				e := level.GetSolidEntityAt(sx, sy, sz)
+				if e != nil && !world.IsDoorPassableByFaction(e, faction) {
 					blocked = true
 				}
 			}

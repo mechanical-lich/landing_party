@@ -13,6 +13,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
+	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
 )
 
 // HUDScreen is the main in-game HUD: sidebar, messages, resource bar, entity detail.
@@ -37,6 +38,10 @@ type HUDScreen struct {
 	goalsPanel    *minui.Panel
 	goalsLabels   []*minui.Label
 	lastGoalLines []string
+
+	// Craft tab
+	craftQueueVBox  *minui.VBox
+	craftQueueItems []*craftQueueRow
 
 	// HUD elements
 	messagesTextArea *minui.ScrollingTextArea
@@ -143,6 +148,10 @@ func (h *HUDScreen) setupSidebar() {
 	h.goalsPanel.AddChild(h.goalsVBox)
 	h.sidebarTabPanel.AddTab("goals", "Goals", h.goalsPanel)
 
+	craftPanel := minui.NewPanel("craftTabContent")
+	h.setupCraftTab(craftPanel)
+	h.sidebarTabPanel.AddTab("craft", "Craft", craftPanel)
+
 	h.uiGUI.AddElement(h.sidebarTabPanel)
 }
 
@@ -180,7 +189,8 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		{id: "walls", label: "Walls", types: []string{"hull_wall"}},
 		{id: "floors", label: "Floors", types: []string{"hull_floor"}},
 		{id: "stairs", label: "Stairs", types: []string{"stairs_up", "stairs_down"}},
-		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light"}},
+		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light", "workbench"}},
+		{id: "doors", label: "Doors", types: []string{"airlock", "blast_door"}},
 	}
 
 	h.buildCategoryPanel = minui.NewPanel("buildCategories")
@@ -263,6 +273,110 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 
 	panel.AddChild(h.buildCategoryPanel)
 	panel.AddChild(h.buildSubPanel)
+}
+
+type craftQueueRow struct {
+	icon     *minui.ImageWidget
+	label    *minui.Label
+	progress *minui.ProgressBar
+}
+
+// CraftQueueEntry carries the data needed to render one active craft job.
+type CraftQueueEntry struct {
+	Name     string
+	Sprite   *ebiten.Image // pre-cropped 16×16 (or nil)
+	Progress float64       // 0..1
+}
+
+func (h *HUDScreen) setupCraftTab(panel *minui.Panel) {
+	const itemH = 24
+	const panelW = 192
+
+	outerVBox := minui.NewVBox("craftOuterVBox")
+	outerVBox.SetPosition(4, 4)
+	outerVBox.Spacing = 4
+	panel.AddChild(outerVBox)
+
+	// ── Recipe buttons ──────────────────────────────────────────────
+	hdr := minui.NewMenuHeader("craft_hdr", "Queue Craft Job")
+	hdr.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: 18})
+	outerVBox.AddChild(hdr)
+
+	for _, recipe := range crafting.AllRecipes() {
+		recipeID := recipe.Output
+		label := recipe.Name
+		costStr := ""
+		for mat, qty := range recipe.Cost {
+			if costStr != "" {
+				costStr += ", "
+			}
+			costStr += fmt.Sprintf("%dx%s", qty, mat)
+		}
+		if costStr != "" {
+			label += " (" + costStr + ")"
+		}
+		mi := minui.NewMenuItem("craft_"+recipeID, label)
+		mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: itemH})
+		mi.OnClick = func() {
+			event.GetQueuedInstance().QueueEvent(CraftRequestedEvent{RecipeID: recipeID})
+		}
+		outerVBox.AddChild(mi)
+	}
+
+	// ── Active queue ─────────────────────────────────────────────────
+	queueHdr := minui.NewMenuHeader("craft_queue_hdr", "Active Queue")
+	queueHdr.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: 18})
+	outerVBox.AddChild(queueHdr)
+
+	h.craftQueueVBox = minui.NewVBox("craftQueueVBox")
+	h.craftQueueVBox.Spacing = 3
+	outerVBox.AddChild(h.craftQueueVBox)
+}
+
+// RefreshCraftQueue rebuilds the active-queue rows from the provided entries.
+func (h *HUDScreen) RefreshCraftQueue(entries []CraftQueueEntry) {
+	if h.craftQueueVBox == nil {
+		return
+	}
+	const panelW = 184
+	const iconSize = 20
+	const barH = 8
+
+	// Clear all children from the queue vbox
+	for _, child := range append([]minui.Element{}, h.craftQueueVBox.GetChildren()...) {
+		h.craftQueueVBox.RemoveChild(child)
+	}
+	h.craftQueueItems = h.craftQueueItems[:0]
+
+	for i, entry := range entries {
+		idStr := fmt.Sprintf("cq_%d", i)
+
+		row := &craftQueueRow{}
+
+		// Icon + label on the same row via a panel
+		rowPanel := minui.NewPanel(idStr + "_row")
+		rowPanel.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: iconSize})
+
+		if entry.Sprite != nil {
+			row.icon = minui.NewImageWidget(idStr+"_icon", iconSize, iconSize)
+			row.icon.Image = entry.Sprite
+			row.icon.SetPosition(0, 0)
+			rowPanel.AddChild(row.icon)
+		}
+
+		row.label = minui.NewLabel(idStr+"_lbl", entry.Name)
+		row.label.SetPosition(iconSize+4, 3)
+		row.label.SetSize(panelW-iconSize-4, iconSize)
+		rowPanel.AddChild(row.label)
+
+		row.progress = minui.NewProgressBar(idStr + "_bar")
+		row.progress.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: barH})
+		row.progress.SetValue(entry.Progress)
+
+		h.craftQueueVBox.AddChild(rowPanel)
+		h.craftQueueVBox.AddChild(row.progress)
+		h.craftQueueItems = append(h.craftQueueItems, row)
+	}
 }
 
 func (h *HUDScreen) selectBuildItem(selectedID string) {
