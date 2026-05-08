@@ -22,6 +22,7 @@ const (
 	Light            ecs.ComponentType = "Light"
 	Workbench        ecs.ComponentType = "Workbench"
 	Script           ecs.ComponentType = "Script"
+	LaserBeam        ecs.ComponentType = "LaserBeam"
 )
 
 

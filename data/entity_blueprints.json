@@ -369,6 +369,12 @@
             "Slot": "hand",
             "Value": 3
         },
+        "LaserBeam": {
+            "R": 255,
+            "G": 50,
+            "B": 50,
+            "Length": 1
+        },
         "Weapon": {
             "AttackBonus": 2,
             "AttackDice": "1d6",

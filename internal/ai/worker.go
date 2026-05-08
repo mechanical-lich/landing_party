@@ -12,6 +12,7 @@ import (
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
+	"github.com/mechanical-lich/scifi_settlements/internal/combat"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
@@ -48,7 +49,18 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 			return
 		}
 		if mySettlement.Tasks.Count() > 0 {
-			log.Printf("[AI] %s idle — %d tasks in queue but none assignable", rlentity.GetName(entity), mySettlement.Tasks.Count())
+			inProgress, completed, stopped := 0, 0, 0
+			for _, t := range mySettlement.Tasks.GetTasks() {
+				if t.Completed {
+					completed++
+				} else if t.InProgress {
+					inProgress++
+				} else if t.ManuallyStopped {
+					stopped++
+				}
+			}
+			log.Printf("[AI] %s idle — %d tasks in queue but none assignable (inProgress=%d completed=%d recentlyStopped=%d)",
+				rlentity.GetName(entity), mySettlement.Tasks.Count(), inProgress, completed, stopped)
 		}
 
 		// Drop off inventory if we're holding anything
@@ -119,6 +131,10 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 
 	if MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+		return
+	}
+
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, 1, 1, 0) {
 		return
 	}
 
@@ -389,6 +405,38 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	targetPC := target.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 
+	// Check for equipped ranged weapon
+	var rangedWeaponEntity *ecs.Entity
+	if entity.HasComponent(rlcomponents.Inventory) {
+		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+		for _, item := range []*ecs.Entity{inv.LeftHand, inv.RightHand} {
+			if item != nil && item.HasComponent(rlcomponents.Weapon) {
+				w := item.GetComponent(rlcomponents.Weapon).(*rlcomponents.WeaponComponent)
+				if w.Ranged {
+					rangedWeaponEntity = item
+					break
+				}
+			}
+		}
+	}
+
+	if rangedWeaponEntity != nil && combat.Shoot(level, entity, targetPC.GetX(), targetPC.GetY(), targetPC.GetZ(), rangedWeaponEntity) {
+		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
+		if target.HasComponent(rlcomponents.Dead) {
+			event.GetQueuedInstance().QueueEvent(eventsystem.EntityKilledEvent{
+				KillerName: rlentity.GetName(entity),
+				TargetName: rlentity.GetName(target),
+				Blueprint:  target.Blueprint,
+				X:          targetPC.GetX(), Y: targetPC.GetY(), Z: targetPC.GetZ(),
+			})
+			wc.CurrentTask.Complete()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+		}
+		return
+	}
+
+	// Melee fallback
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), targetPC.GetX(), targetPC.GetY(), targetPC.GetZ(), 1, 1, 0) {
 		rlcombat.Hit(level, entity, target, true)
 		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())

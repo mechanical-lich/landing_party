@@ -320,6 +320,9 @@ func (s *MainState) Update() state.StateInterface {
 		s.gm.Update()
 		s.systemManager.UpdateSystems(s.level)
 		for _, entity := range s.level.Entities {
+			if entity == nil {
+				continue
+			}
 			if entity.HasComponent(rlcomponents.Inanimate) {
 				continue
 			}
