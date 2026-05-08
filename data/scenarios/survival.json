@@ -7,18 +7,15 @@
     "hostile_max": 200,
     "spawn_rules": {
         "alien_grunt": {
-            "spawn_rate": 40,
+            "spawn_rate": 50,
             "light_min": 0,
             "tiles": ["regolith", "dirt"],
             "min_z": 5,
-            "max_z": 5
-        },
-        "alien_scout": {
-            "spawn_rate": 30,
-            "light_min": 0,
-            "tiles": ["regolith", "dirt"],
-            "min_z": 5,
-            "max_z": 5
+            "max_z": 5,
+            "starting_equipment": {
+                "knife": 0.5,
+                "laser_pistol": 0.5
+            }
         },
         "alien_brute": {
             "spawn_rate": 10,

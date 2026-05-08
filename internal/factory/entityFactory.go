@@ -44,6 +44,7 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 					}
 					ic.AddItem(itemEntity)
 				}
+				ic.EquipAllBest()
 			}
 		}
 		return nil

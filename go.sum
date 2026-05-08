@@ -27,8 +27,10 @@ github.com/jfreymuth/oggvorbis v1.0.5 h1:u+Ck+R0eLSRhgq8WTmffYnrVtSztJcYrl588DM4
 github.com/jfreymuth/oggvorbis v1.0.5/go.mod h1:1U4pqWmghcoVsCJJ4fRBKv9peUJMBHixthRlBeD6uII=
 github.com/jfreymuth/vorbis v1.0.2 h1:m1xH6+ZI4thH927pgKD8JOH4eaGRm18rEE9/0WKjvNE=
 github.com/jfreymuth/vorbis v1.0.2/go.mod h1:DoftRo4AznKnShRl1GxiTFCseHr4zR9BN3TWXyuzrqQ=
-github.com/mechanical-lich/ml-rogue-lib v1.11.2 h1:3/O2rMik1hajykVhgBe62uNmRi2/EU+uTX62GtqAHw0=
-github.com/mechanical-lich/ml-rogue-lib v1.11.2/go.mod h1:UPOB+FMPGH4tSCrCBdMtjhsdKxfDa9NNcgIEeq28jdQ=
+github.com/mechanical-lich/mechanical-basic v1.0.0 h1:AKFd6WdpqwJw5hN8oVBuJZanzXjvES3ST+pMHPwoxVw=
+github.com/mechanical-lich/mechanical-basic v1.0.0/go.mod h1:W6AUQYju/VDAtDtYs5vU3SJI9GIO9swi1BeB/qZp5Z8=
+github.com/mechanical-lich/ml-rogue-lib v1.13.0 h1:RJ8DMiU/D2+IEMZhbA3osAkL7vFYTMZi9TccRXybvHU=
+github.com/mechanical-lich/ml-rogue-lib v1.13.0/go.mod h1:UPOB+FMPGH4tSCrCBdMtjhsdKxfDa9NNcgIEeq28jdQ=
 github.com/mechanical-lich/mlge v1.6.1 h1:scLNLCQBZfA0pdT2CmRY+BTHt6p2bS4QprsOgwxvpMk=
 github.com/mechanical-lich/mlge v1.6.1/go.mod h1:01gKi6utmjTe+yuQia0LV7CNu/cLAuQS+19Ee2rze4g=
 github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=

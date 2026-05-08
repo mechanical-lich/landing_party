@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	Appearance       ecs.ComponentType = "Appearance"
+	Appearance            ecs.ComponentType = "Appearance"
+	EquipmentAppearance   ecs.ComponentType = "EquipmentAppearance"
 	Choppable        ecs.ComponentType = "Choppable"
 	Damage           ecs.ComponentType = "Damage"
 	Drops            ecs.ComponentType = "Drops"

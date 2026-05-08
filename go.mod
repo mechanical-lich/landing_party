@@ -4,15 +4,15 @@ go 1.25.5
 
 // replace github.com/mechanical-lich/mlge => ../mlge
 
-// replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
+//replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
 
-replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
+//replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
 
 require (
 	github.com/aquilax/go-perlin v1.1.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.9
-	github.com/mechanical-lich/mechanical-basic v0.0.0-00010101000000-000000000000
-	github.com/mechanical-lich/ml-rogue-lib v1.11.2
+	github.com/mechanical-lich/mechanical-basic v1.0.0
+	github.com/mechanical-lich/ml-rogue-lib v1.13.0
 	github.com/mechanical-lich/mlge v1.6.1
 )
 

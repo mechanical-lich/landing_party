@@ -179,42 +179,61 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 }
 
 func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
-	if !entity.HasComponent(components.Appearance) {
+	var resourceName string
+	var spriteX, spriteY, srcW, srcH int
+
+	var colorR, colorG, colorB uint8 = 255, 255, 255
+
+	switch {
+	case entity.HasComponent(components.EquipmentAppearance):
+		eac := entity.GetComponent(components.EquipmentAppearance).(*components.EquipmentAppearanceComponent)
+		size := eac.SpriteSize
+		if size <= 0 {
+			size = spriteSizeW
+		}
+		srcW, srcH = size, size
+		resourceName = eac.Resource
+		spriteX, spriteY = eac.ResolveSprite(entity, false)
+
+	case entity.HasComponent(components.Appearance):
+		ac := entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
+		srcW, srcH = spriteSizeW, spriteSizeH
+		if ac.SpriteSize > 0 {
+			srcW = ac.SpriteSize
+			srcH = ac.SpriteSize
+		}
+		resourceName = ac.Resource
+		colorR, colorG, colorB = ac.R, ac.G, ac.B
+		spriteX, spriteY = ac.SpriteX, ac.SpriteY
+		if entity.HasComponent(rlcomponents.Door) {
+			door := entity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
+			if door.Open && (door.OpenedSpriteX != 0 || door.OpenedSpriteY != 0) {
+				spriteX, spriteY = door.OpenedSpriteX, door.OpenedSpriteY
+			}
+		}
+		if ac.Bounces && ac.Bounce {
+			if ac.BounceAxis == "y" {
+				spriteY += srcH
+			} else {
+				spriteX += srcW
+			}
+		}
+
+	default:
 		return
 	}
-	ac := entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
-	tex := resource.Textures[ac.Resource]
+
+	tex := resource.Textures[resourceName]
 	if tex == nil {
 		return
-	}
-
-	srcW, srcH := spriteSizeW, spriteSizeH
-	if ac.SpriteSize > 0 {
-		srcW = ac.SpriteSize
-		srcH = ac.SpriteSize
-	}
-
-	spriteX, spriteY := ac.SpriteX, ac.SpriteY
-	if entity.HasComponent(rlcomponents.Door) {
-		door := entity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
-		if door.Open && (door.OpenedSpriteX != 0 || door.OpenedSpriteY != 0) {
-			spriteX, spriteY = door.OpenedSpriteX, door.OpenedSpriteY
-		}
-	}
-	if ac.Bounces && ac.Bounce {
-		if ac.BounceAxis == "y" {
-			spriteY += srcH
-		} else {
-			spriteX += srcW
-		}
 	}
 
 	src := tex.SubImage(image.Rect(spriteX, spriteY, spriteX+srcW, spriteY+srcH)).(*ebiten.Image)
 	drawOp.GeoM.Reset()
 	drawOp.ColorScale.Reset()
-	r := float32(ac.R) / 255.0
-	g := float32(ac.G) / 255.0
-	b := float32(ac.B) / 255.0
+	r := float32(colorR) / 255.0
+	g := float32(colorG) / 255.0
+	b := float32(colorB) / 255.0
 
 	// Darken entities on lower z-levels
 	if entity.HasComponent(rlcomponents.Position) {

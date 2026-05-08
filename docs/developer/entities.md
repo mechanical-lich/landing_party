@@ -111,6 +111,81 @@ Controls turn order and action rate.
 |-------|------|-------------|
 | `StartingInventory` | []string | List of blueprint IDs the entity starts with in its inventory |
 
+Equipped slots: `RightHand`, `LeftHand`, `Head`, `Torso`, `Legs`, `Feet`. Two-handed weapons (see `Weapon.TwoHanded`) occupy both hand slots; equipping one bumps anything in the off-hand to the bag, and a second weapon cannot be added until the two-hander is unequipped.
+
+### Weapon
+
+Added to item blueprints that deal damage in combat.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `AttackBonus` | int | Flat bonus added to attack rolls |
+| `AttackDice` | string | Damage dice expression (e.g. `"2d6"`) |
+| `DamageType` | string | Damage type (`"ballistic"`, `"energy"`, `"fire"`, etc.) |
+| `Range` | int | Attack range in tiles (0 = melee) |
+| `Ranged` | bool | Whether the weapon fires a projectile |
+| `Display` | string | Sprite lookup key for `EquipmentAppearance.WeaponColumns`; defaults to the blueprint ID if empty |
+| `TwoHanded` | bool | If true, equipping this weapon clears the off-hand slot and prevents dual-wielding |
+
+### Armor
+
+Added to item blueprints that provide defense.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `DefenseBonus` | int | Flat bonus added to defense rolls |
+| `StoppingPower` | int | Damage absorbed per hit before the remainder is applied |
+| `Resistances` | []string | Damage types this armor resists |
+| `Tags` | []string | Labels used by `EquipmentAppearance` row scoring (e.g. `"light_helm"`, `"heavy_chest"`) |
+
+### EquipmentAppearance
+
+An alternative to `Appearance` for entities whose sprite changes based on equipped weapons and armor (i.e. colonists). `ResolveSprite` selects a column and row from a single sprite block at runtime.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Resource` | string | Sprite sheet asset key |
+| `SpriteSize` | int | Pixel size of one sprite cell |
+| `BlockOriginX`, `BlockOriginY` | int | Pixel offset of the sprite block's top-left corner in the sheet |
+| `AnimationFrames` | int | Frames per animation cycle (columns consumed per weapon column) |
+| `DefaultWeaponColumn` | int | Column index used when no weapon is equipped |
+| `DefaultArmorRow` | int | Row index used when no armor tags match |
+| `WeaponColumns` | map[string]int | Maps weapon `Display` key → column index within the block |
+| `ArmorRows` | []ArmorRowConfig | Ordered list of `{ Row, Tags }` entries; the row whose tags overlap most with equipped armor tags is selected |
+
+**Column** is determined by the `Display` field of the equipped weapon (right hand first, then left hand). If `Display` is empty the weapon's blueprint ID is used as the key. Column lookup priority:
+
+1. Exact key match in `WeaponColumns`
+2. `"*"` wildcard entry in `WeaponColumns` — catches any weapon not explicitly listed
+3. `DefaultWeaponColumn` — used when no weapon is equipped at all
+
+**Row** is determined by a best-fit score across all armor tags on equipped head, torso, leg, and foot slots. The row whose `Tags` have the most overlap with the entity's equipped armor tags wins. Ties go to the first matching row. `DefaultArmorRow` is used when no rows are configured or all scores are zero.
+
+```json
+"EquipmentAppearance": {
+    "Resource": "scifi_entities",
+    "SpriteSize": 24,
+    "BlockOriginX": 0,
+    "BlockOriginY": 192,
+    "AnimationFrames": 2,
+    "DefaultWeaponColumn": 0,
+    "DefaultArmorRow": 0,
+    "WeaponColumns": {
+        "pistol": 3,
+        "rifle": 1,
+        "shotgun": 2,
+        "*": 1
+    },
+    "ArmorRows": [
+        { "Row": 0, "Tags": [] },
+        { "Row": 1, "Tags": ["light_helm"] },
+        { "Row": 2, "Tags": ["heavy_helm", "heavy_chest"] }
+    ]
+}
+```
+
+Only one of `Appearance` or `EquipmentAppearance` should be present on an entity. The renderer checks `EquipmentAppearance` first.
+
 ### Light
 
 | Field | Type | Description |
@@ -142,7 +217,7 @@ Empty marker component. Makes the entity impassable — other entities cannot mo
 2. Add a new top-level key (the blueprint ID).
 3. Add the required components for your entity type:
    - **Hostile NPC**: `Description`, `Appearance`, `Health`, `Stats`, `FactionAI`, `Initiative`, `AIMemory`, `Solid`
-   - **Colonist**: `Description`, `Appearance`, `Health`, `Stats`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
+   - **Colonist**: `Description`, `EquipmentAppearance`, `Health`, `Stats`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
    - **Item**: `Description`, `Appearance` (no `Solid` — items are walkable)
    - **Structure/Building**: typically defined via `build.json` type; add an entity blueprint only if it has interactive components
 4. Reference the blueprint ID in `data/build.json` if it should be player-buildable, or in `data/scenarios/` spawn rules if it should appear during gameplay.
@@ -157,7 +232,8 @@ Empty marker component. Makes the entity impassable — other entities cannot mo
 | Ambient creatures | `critter` |
 | Colonists | `colonist` |
 | Structures (entities) | `airlock`, `blast_door`, `storage_locker`, `research_lab`, `workbench`, `work_light` |
-| Items — weapons | `laser_pistol`, `stun_baton`, `plasma_cutter` |
+| Items — weapons (one-handed) | `laser_pistol`, `stun_baton`, `plasma_cutter`, `knife`, `pistol_shield`, `energy_sword`, `laser_sword`, `flag_rifle_red`, `flag_rifle_blue` |
+| Items — weapons (two-handed) | `rifle`, `shotgun`, `autorifle`, `rocket_launcher`, `flamethrower` |
 | Items — armor | `combat_vest`, `enviro_suit`, `helmet` |
 | Items — consumables | `ration_pack`, `protein_bar`, `medkit`, `hydration_gel` |
 | Resources | `metal_ore`, `crystal`, `stone` |

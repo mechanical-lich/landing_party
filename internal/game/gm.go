@@ -4,6 +4,7 @@ import (
 	"math/rand"
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/utility"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
@@ -11,6 +12,23 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
+
+func giveStartingEquipment(entity *ecs.Entity, equipment map[string]float64) {
+	if len(equipment) == 0 || !entity.HasComponent(rlcomponents.Inventory) {
+		return
+	}
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	for bp, chance := range equipment {
+		if rand.Float64() < chance {
+			item, err := factory.Create(bp, 0, 0, 0)
+			if err != nil {
+				continue
+			}
+			inv.AddItem(item)
+		}
+	}
+	inv.EquipAllBest()
+}
 
 const maxLocationAttempts = 100
 
@@ -61,6 +79,7 @@ func (gm *GameMaster) Update() {
 		}
 		entity, err := factory.Create(bp, x, y, z)
 		if err == nil {
+			giveStartingEquipment(entity, sc.SpawnRules[bp].StartingEquipment)
 			gm.level.AddEntity(entity)
 		}
 	}

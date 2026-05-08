@@ -3,12 +3,13 @@ package scenario
 import "github.com/mechanical-lich/scifi_settlements/internal/wincondition"
 
 type SpawnRule struct {
-	SpawnRate int      `json:"spawn_rate"`
-	LightMin  int      `json:"light_min"`
-	LightMax  int      `json:"light_max"`
-	Tiles     []string `json:"tiles"`
-	MinZ      int      `json:"min_z"`
-	MaxZ      int      `json:"max_z"`
+	SpawnRate        int                `json:"spawn_rate"`
+	LightMin         int                `json:"light_min"`
+	LightMax         int                `json:"light_max"`
+	Tiles            []string           `json:"tiles"`
+	MinZ             int                `json:"min_z"`
+	MaxZ             int                `json:"max_z"`
+	StartingEquipment map[string]float64 `json:"starting_equipment,omitempty"`
 }
 
 // LightingConfig controls the ambient light behaviour for a scenario.

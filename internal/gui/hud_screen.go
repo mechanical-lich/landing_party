@@ -615,7 +615,8 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		slot  rlcomponents.ItemSlot
 		item  *ecs.Entity
 	}{
-		{"Hand", rlcomponents.HandSlot, inv.RightHand},
+		{"Right Hand", rlcomponents.HandSlot, inv.RightHand},
+		{"Left Hand", rlcomponents.OffHandSlot, inv.LeftHand},
 		{"Head", rlcomponents.HeadSlot, inv.Head},
 		{"Torso", rlcomponents.TorsoSlot, inv.Torso},
 		{"Legs", rlcomponents.LegsSlot, inv.Legs},
@@ -870,6 +871,39 @@ func (h *HUDScreen) updateDetailsContent() {
 	}
 	if entity.HasComponent(rlcomponents.Inventory) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+		equippedSlots := []struct {
+			label string
+			item  *ecs.Entity
+		}{
+			{"RH", inv.RightHand},
+			{"LH", inv.LeftHand},
+			{"Head", inv.Head},
+			{"Torso", inv.Torso},
+			{"Legs", inv.Legs},
+			{"Feet", inv.Feet},
+		}
+		hasEquipment := false
+		for _, sl := range equippedSlots {
+			if sl.item != nil {
+				hasEquipment = true
+				break
+			}
+		}
+		if hasEquipment {
+			add("── Equipment ──")
+			for _, sl := range equippedSlots {
+				if sl.item == nil {
+					continue
+				}
+				name := sl.item.Blueprint
+				if d := sl.item.GetComponent(rlcomponents.Description); d != nil {
+					name = d.(*rlcomponents.DescriptionComponent).Name
+				}
+				add(fmt.Sprintf("  %s: %s", sl.label, name))
+			}
+		}
+
 		if len(inv.Bag) > 0 {
 			add(fmt.Sprintf("Bag (%d):", len(inv.Bag)))
 			for _, item := range inv.Bag {

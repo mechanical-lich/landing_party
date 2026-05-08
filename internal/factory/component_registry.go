@@ -10,6 +10,7 @@ func registerComponents() {
 	jsonFactory.RegisterComponent("Description", func() ecs.Component { return &rlcomponents.DescriptionComponent{} })
 	jsonFactory.RegisterComponent("Health", func() ecs.Component { return &rlcomponents.HealthComponent{} })
 	jsonFactory.RegisterComponent("Appearance", func() ecs.Component { return &components.AppearanceComponent{} })
+	jsonFactory.RegisterComponent("EquipmentAppearance", func() ecs.Component { return &components.EquipmentAppearanceComponent{} })
 	jsonFactory.RegisterComponent("Solid", func() ecs.Component { return &rlcomponents.SolidComponent{} })
 	jsonFactory.RegisterComponent("Initiative", func() ecs.Component { return &rlcomponents.InitiativeComponent{} })
 	jsonFactory.RegisterComponent("Inventory", func() ecs.Component { return &rlcomponents.InventoryComponent{} })
