@@ -1,0 +1,140 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.compare.outputs.skip }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Compute tag name
+        id: tag
+        run: echo "tag=nightly-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Check for new commits since last nightly
+        id: compare
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT_SHA=$(git rev-parse HEAD)
+          LAST_SHA=$(gh release view nightly-latest --json targetCommitish -q .targetCommitish 2>/dev/null || echo "")
+          if [ "$CURRENT_SHA" = "$LAST_SHA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.skip != 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            suffix: ""
+            name: ubuntu
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            suffix: ".exe"
+            name: windows
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            suffix: ""
+            name: macos
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            suffix: ""
+            name: macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux system libs (required by Ebiten)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev libasound2-dev
+
+      - name: Build graphical
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+        run: go build -ldflags="-s -w" -o dist/scifi-settlements${{ matrix.suffix }} ./cmd/game
+
+      - name: Stage release archive
+        shell: bash
+        run: |
+          ARCHIVE=scifi-settlements-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          mkdir -p staging/$ARCHIVE
+          cp dist/scifi-settlements${{ matrix.suffix }} staging/$ARCHIVE/
+          cp -r data staging/$ARCHIVE/
+          cp -r assets staging/$ARCHIVE/
+
+      - name: Zip (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          ARCHIVE=scifi-settlements-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          cd staging && zip -r ../$ARCHIVE.zip $ARCHIVE/
+
+      - name: Zip (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $archive = "scifi-settlements-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}"
+          Compress-Archive -Path "staging/$archive" -DestinationPath "$archive.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scifi-settlements-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          path: scifi-settlements-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}.zip
+
+  release:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Create or update nightly-latest tag
+        run: |
+          git tag -f nightly-latest
+          git push origin nightly-latest --force
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.check.outputs.tag }}
+          name: ${{ needs.check.outputs.tag }}
+          files: dist/*.zip
+          prerelease: true
+          generate_release_notes: true

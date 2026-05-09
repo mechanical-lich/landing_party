@@ -1,0 +1,114 @@
+name: Dev Snapshot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Compute tag name
+        id: tag
+        run: echo "tag=dev-snapshot-$(date -u '+%Y-%m-%d-%H%M')" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            suffix: ""
+            name: ubuntu
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            suffix: ".exe"
+            name: windows
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            suffix: ""
+            name: macos
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            suffix: ""
+            name: macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux system libs (required by Ebiten)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev libasound2-dev
+
+      - name: Build graphical
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+        run: go build -ldflags="-s -w" -o dist/scifi-settlements${{ matrix.suffix }} ./cmd/game
+
+      - name: Stage release archive
+        shell: bash
+        run: |
+          ARCHIVE=scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          mkdir -p staging/$ARCHIVE
+          cp dist/scifi-settlements${{ matrix.suffix }} staging/$ARCHIVE/
+          cp -r data staging/$ARCHIVE/
+          cp -r assets staging/$ARCHIVE/
+
+      - name: Zip (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          ARCHIVE=scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          cd staging && zip -r ../$ARCHIVE.zip $ARCHIVE/
+
+      - name: Zip (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $archive = "scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}"
+          Compress-Archive -Path "staging/$archive" -DestinationPath "$archive.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          path: scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}.zip
+
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          files: dist/*.zip
+          prerelease: true
+          generate_release_notes: true
