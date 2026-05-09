@@ -1,0 +1,48 @@
+{
+    "airlock": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 528,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Airlock",
+            "Faction": ""
+        },
+        "Door": {
+            "ClosedSpriteX": 480,
+            "ClosedSpriteY": 504,
+            "OpenedSpriteX": 504,
+            "OpenedSpriteY": 48,
+            "OwnedBy": "",
+            "AllowedFactions": []
+        },
+        "Solid": {}
+    },
+    "blast_door": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 432,
+            "SpriteY": 336
+        },
+        "Description": {
+            "Name": "Blast Door",
+            "Faction": ""
+        },
+        "Door": {
+            "ClosedSpriteX": 480,
+            "ClosedSpriteY": 528,
+            "OpenedSpriteX": 504,
+            "OpenedSpriteY": 528,
+            "OwnedBy": "",
+            "AllowedFactions": []
+        },
+        "Solid": {}
+    }
+}

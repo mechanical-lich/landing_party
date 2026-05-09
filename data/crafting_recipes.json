@@ -23,18 +23,6 @@
         "build_time": 1,
         "cost": {}
     },
-    "combat_vest": {
-        "name": "Combat Vest",
-        "output": "combat_vest",
-        "build_time": 1,
-        "cost": {}
-    },
-    "helmet": {
-        "name": "Helmet",
-        "output": "helmet",
-        "build_time": 1,
-        "cost": {}
-    },
     "medkit": {
         "name": "Medkit",
         "output": "medkit",
@@ -104,6 +92,234 @@
     "laser_sword": {
         "name": "Laser Sword",
         "output": "laser_sword",
+        "build_time": 1,
+        "cost": {}
+    },
+    "scout_head": {
+        "name": "Scout Helmet",
+        "output": "scout_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "scout_torso": {
+        "name": "Scout Vest",
+        "output": "scout_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "scout_legs": {
+        "name": "Scout Pants",
+        "output": "scout_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "scout_feet": {
+        "name": "Scout Boots",
+        "output": "scout_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "marine_head": {
+        "name": "Marine Helmet",
+        "output": "marine_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "marine_torso": {
+        "name": "Marine Vest",
+        "output": "marine_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "marine_legs": {
+        "name": "Marine Pants",
+        "output": "marine_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "marine_feet": {
+        "name": "Marine Boots",
+        "output": "marine_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "tactical_head": {
+        "name": "Tactical Helmet",
+        "output": "tactical_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "tactical_torso": {
+        "name": "Tactical Vest",
+        "output": "tactical_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "tactical_legs": {
+        "name": "Tactical Pants",
+        "output": "tactical_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "tactical_feet": {
+        "name": "Tactical Boots",
+        "output": "tactical_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "stealth_head": {
+        "name": "Stealth Helmet",
+        "output": "stealth_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "stealth_torso": {
+        "name": "Stealth Vest",
+        "output": "stealth_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "stealth_legs": {
+        "name": "Stealth Pants",
+        "output": "stealth_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "stealth_feet": {
+        "name": "Stealth Boots",
+        "output": "stealth_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heat_resistant_head": {
+        "name": "Heat Resistant Helmet",
+        "output": "heat_resistant_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heat_resistant_torso": {
+        "name": "Heat Resistant Vest",
+        "output": "heat_resistant_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heat_resistant_legs": {
+        "name": "Heat Resistant Pants",
+        "output": "heat_resistant_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heat_resistant_feet": {
+        "name": "Heat Resistant Boots",
+        "output": "heat_resistant_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heavy_head": {
+        "name": "Heavy Helmet",
+        "output": "heavy_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heavy_torso": {
+        "name": "Heavy Vest",
+        "output": "heavy_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heavy_legs": {
+        "name": "Heavy Pants",
+        "output": "heavy_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "heavy_feet": {
+        "name": "Heavy Boots",
+        "output": "heavy_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_heavy_head": {
+        "name": "Super Heavy Helmet",
+        "output": "super_heavy_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_heavy_torso": {
+        "name": "Super Heavy Vest",
+        "output": "super_heavy_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_heavy_legs": {
+        "name": "Super Heavy Pants",
+        "output": "super_heavy_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_heavy_feet": {
+        "name": "Super Heavy Boots",
+        "output": "super_heavy_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "radiation_head": {
+        "name": "Radiation Helmet",
+        "output": "radiation_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "radiation_torso": {
+        "name": "Radiation Vest",
+        "output": "radiation_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "radiation_legs": {
+        "name": "Radiation Pants",
+        "output": "radiation_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "radiation_feet": {
+        "name": "Radiation Boots",
+        "output": "radiation_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_radiation_head": {
+        "name": "Super Radiation Helmet",
+        "output": "super_radiation_head",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_radiation_torso": {
+        "name": "Super Radiation Vest",
+        "output": "super_radiation_torso",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_radiation_legs": {
+        "name": "Super Radiation Pants",
+        "output": "super_radiation_legs",
+        "build_time": 1,
+        "cost": {}
+    },
+    "super_radiation_feet": {
+        "name": "Super Radiation Boots",
+        "output": "super_radiation_feet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "enviro_helmet": {
+        "name": "Enviro Helmet",
+        "output": "enviro_helmet",
+        "build_time": 1,
+        "cost": {}
+    },
+    "enviro_boots": {
+        "name": "Enviro Boots",
+        "output": "enviro_boots",
         "build_time": 1,
         "cost": {}
     }

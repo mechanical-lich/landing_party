@@ -1,0 +1,80 @@
+{
+    "ration_pack": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 176,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Ration Pack",
+            "Faction": ""
+        },
+        "Food": {
+            "Amount": 40
+        },
+        "Item": {}
+    },
+    "protein_bar": {
+        "Appearance": {
+            "R": 200,
+            "G": 150,
+            "B": 60,
+            "Resource": "scifi_items",
+            "SpriteX": 208,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Protein Bar",
+            "Faction": ""
+        },
+        "Food": {
+            "Amount": 20
+        },
+        "Item": {}
+    },
+    "medkit": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 128,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Medkit",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "bag",
+            "Effect": "heal",
+            "Value": 1
+        }
+    },
+    "hydration_gel": {
+        "Appearance": {
+            "R": 100,
+            "G": 200,
+            "B": 240,
+            "Resource": "scifi_items",
+            "SpriteX": 176,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Hydration Gel",
+            "Faction": ""
+        },
+        "Food": {
+            "Amount": 15
+        },
+        "Item": {}
+    }
+}

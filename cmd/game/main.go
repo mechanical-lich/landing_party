@@ -13,7 +13,9 @@ func main() {
 	if err := world.LoadTileDefinitions("data/tile_definitions.json"); err != nil {
 		log.Fatalf("Failed to load tile definitions: %v", err)
 	}
-	factory.FactoryLoad(config.Global().BlueprintPath)
+	if err := factory.FactoryLoadDir(config.Global().BlueprintPath); err != nil {
+		log.Fatalf("Failed to load blueprints: %v", err)
+	}
 
 	g, err := game.NewGame(config.Global().Title)
 	if err != nil {

@@ -1,0 +1,114 @@
+{
+    "alien_grunt": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "Alien Grunt",
+            "Faction": "alien"
+        },
+        "Inventory": {},
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 48,
+            "BlockOriginY": 360,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 2,
+                "energy_sword": 3,
+                "knife": 3,
+                "laser_sword": 3
+            }
+        },
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "alien_scout": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 80,
+            "G": 200,
+            "B": 80,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Alien Scout",
+            "Faction": "alien"
+        },
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 6,
+            "Dex": 16,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "alien_brute": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 160,
+            "G": 255,
+            "B": 160,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Alien Brute",
+            "Faction": "alien"
+        },
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "alien"
+        },
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Initiative": {
+            "DefaultValue": 15,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 16,
+            "Int": 3,
+            "Dex": 6,
+            "AC": 14,
+            "BasicAttackDice": "2d6"
+        }
+    }
+}

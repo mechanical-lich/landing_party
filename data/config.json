@@ -12,7 +12,7 @@
     "screenWidth": 1152,
     "screenHeight": 800,
     "title": "Scifi Settlements",
-    "blueprintPath": "data/entity_blueprints.json",
+    "blueprintPath": "data/blueprints",
     "dpi": 72,
     "renderPathfindingSteps": false,
     "profileCPU": false,

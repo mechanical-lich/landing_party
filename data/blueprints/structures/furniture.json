@@ -1,0 +1,84 @@
+{
+    "storage_locker": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Storage Locker",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {}
+    },
+    "research_lab": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 72,
+            "SpriteY": 408
+        },
+        "Description": {
+            "Name": "Research Lab",
+            "Faction": ""
+        },
+        "ResearchBuilding": {
+            "Type": "research_lab"
+        },
+        "Solid": {}
+    },
+    "workbench": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Workbench",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Workbench": {
+            "OwnedBy": ""
+        }
+    },
+    "work_light": {
+        "Appearance": {
+            "R": 255,
+            "G": 240,
+            "B": 180,
+            "Bounces": true,
+            "Resource": "fantasy_world",
+            "SpriteX": 960,
+            "SpriteY": 24
+        },
+        "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Work Light",
+            "Faction": ""
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Light": {
+            "Level": 100,
+            "Range": 5
+        },
+        "NeverSleep": {}
+    }
+}

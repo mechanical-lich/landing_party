@@ -19,6 +19,10 @@ func FactoryLoad(filename string) error {
 	return jsonFactory.LoadBlueprintsFromFile(filename)
 }
 
+func FactoryLoadDir(dir string) error {
+	return jsonFactory.LoadBlueprintsFromDir(dir)
+}
+
 func Create(name string, x, y, z int) (*ecs.Entity, error) {
 	if !jsonFactory.BlueprintExists(name) {
 		return nil, fmt.Errorf("no blueprint found: %s", name)

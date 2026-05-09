@@ -1,0 +1,43 @@
+{
+    "critter": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "BounceAxis": "y",
+            "Resource": "fantasy_entities",
+            "SpriteX": 168,
+            "SpriteY": 288
+        },
+        "Description": {
+            "Name": "Critter",
+            "Faction": "wildlife"
+        },
+        "Drops": {
+            "Items": [
+                "protein_bar"
+            ]
+        },
+        "FactionAI": {
+            "BehaviorKey": "wander",
+            "Faction": "wildlife"
+        },
+        "Health": {
+            "MaxHealth": 5
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 4,
+            "Int": 2,
+            "Dex": 14,
+            "AC": 4,
+            "BasicAttackDice": "1d3"
+        }
+    }
+}

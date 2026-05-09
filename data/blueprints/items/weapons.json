@@ -1,0 +1,403 @@
+{
+    "laser_pistol": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Laser Pistol",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 3
+        },
+        "LaserBeam": {
+            "R": 255,
+            "G": 50,
+            "B": 50,
+            "Length": 1
+        },
+        "Weapon": {
+            "Display": "pistol",
+            "AttackBonus": 2,
+            "AttackDice": "1d6",
+            "DamageType": "energy",
+            "Range": 8,
+            "Ranged": true
+        }
+    },
+    "stun_baton": {
+        "Appearance": {
+            "R": 2,
+            "G": 13,
+            "B": 4,
+            "Resource": "scifi_items",
+            "SpriteX": 128,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Stun Baton",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 2
+        },
+        "Weapon": {
+            "AttackBonus": 1,
+            "AttackDice": "1d4",
+            "DamageType": "electric",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
+    "plasma_cutter": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 112,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Plasma Cutter",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 5
+        },
+        "Weapon": {
+            "AttackBonus": 4,
+            "AttackDice": "2d4",
+            "DamageType": "energy",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
+    "knife": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Knife",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 2
+        },
+        "Weapon": {
+            "Display": "knife",
+            "AttackBonus": 1,
+            "AttackDice": "1d6",
+            "DamageType": "physical",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
+    "pistol_shield": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Pistol Shield",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 4
+        },
+        "Weapon": {
+            "Display": "pistol_shield",
+            "AttackBonus": 1,
+            "AttackDice": "1d4",
+            "DamageType": "physical",
+            "Range": 4,
+            "Ranged": true
+        }
+    },
+    "energy_sword": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 112,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Energy Sword",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 6
+        },
+        "Weapon": {
+            "Display": "energy_sword",
+            "AttackBonus": 3,
+            "AttackDice": "2d6",
+            "DamageType": "energy",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
+    "laser_sword": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Laser Sword",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 8
+        },
+        "Weapon": {
+            "Display": "laser_sword",
+            "AttackBonus": 4,
+            "AttackDice": "2d8",
+            "DamageType": "energy",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
+    "flag_rifle_red": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 304,
+            "SpriteY": 48,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Flag Rifle (Red)",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 3
+        },
+        "Weapon": {
+            "Display": "pistol_flag_red",
+            "AttackBonus": 2,
+            "AttackDice": "1d6",
+            "DamageType": "ballistic",
+            "Range": 6,
+            "Ranged": true
+        }
+    },
+    "flag_rifle_blue": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 48,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Flag Rifle (Blue)",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 3
+        },
+        "Weapon": {
+            "Display": "pistol_flag_blue",
+            "AttackBonus": 2,
+            "AttackDice": "1d6",
+            "DamageType": "ballistic",
+            "Range": 6,
+            "Ranged": true
+        }
+    },
+    "rifle": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Rifle",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 4
+        },
+        "Weapon": {
+            "Display": "rifle",
+            "AttackBonus": 3,
+            "AttackDice": "1d8",
+            "DamageType": "ballistic",
+            "Range": 10,
+            "Ranged": true,
+            "TwoHanded": true
+        }
+    },
+    "shotgun": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Shotgun",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 4
+        },
+        "Weapon": {
+            "Display": "shotgun",
+            "AttackBonus": 2,
+            "AttackDice": "2d4",
+            "DamageType": "ballistic",
+            "Range": 4,
+            "Ranged": true,
+            "TwoHanded": true
+        }
+    },
+    "autorifle": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 96,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Auto Rifle",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 5
+        },
+        "Weapon": {
+            "Display": "autorifle",
+            "AttackBonus": 4,
+            "AttackDice": "1d6",
+            "DamageType": "ballistic",
+            "Range": 8,
+            "Ranged": true,
+            "TwoHanded": true
+        }
+    },
+    "rocket_launcher": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 64,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Rocket Launcher",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 8
+        },
+        "Weapon": {
+            "Display": "rocket_launcher",
+            "AttackBonus": 3,
+            "AttackDice": "3d6",
+            "DamageType": "explosive",
+            "Range": 12,
+            "Ranged": true,
+            "TwoHanded": true
+        }
+    },
+    "flamethrower": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 80,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Flamethrower",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 6
+        },
+        "Weapon": {
+            "Display": "flamethrower",
+            "AttackBonus": 2,
+            "AttackDice": "2d6",
+            "DamageType": "fire",
+            "Range": 3,
+            "Ranged": true,
+            "TwoHanded": true
+        }
+    }
+}
