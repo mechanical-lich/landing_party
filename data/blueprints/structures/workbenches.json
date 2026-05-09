@@ -1,0 +1,79 @@
+{
+    "basic_workbench": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Workbench",
+            "Faction": ""
+        },
+        "CraftingStation": {
+            "StationID": "basic_workbench"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "gun_bench": {
+        "Appearance": {
+            "R": 255,
+            "G": 220,
+            "B": 180,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Gun Bench",
+            "Faction": ""
+        },
+        "CraftingStation": {
+            "StationID": "gun_bench"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "basic_armor_bench": {
+        "Appearance": {
+            "R": 180,
+            "G": 220,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Armor Bench",
+            "Faction": ""
+        },
+        "CraftingStation": {
+            "StationID": "basic_armor_bench"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "advanced_armor_bench": {
+        "Appearance": {
+            "R": 180,
+            "G": 180,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Advanced Armor Bench",
+            "Faction": ""
+        },
+        "CraftingStation": {
+            "StationID": "advanced_armor_bench",
+            "RequiresTech": "advanced_metallurgy"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    }
+}

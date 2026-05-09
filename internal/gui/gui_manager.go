@@ -3,6 +3,8 @@ package gui
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
+	"github.com/mechanical-lich/scifi_settlements/internal/research"
 )
 
 type PopulationEntry struct {
@@ -60,6 +62,19 @@ func (gm *GUIManager) SetHoveredTile(name string, solid, water, air, space bool)
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
 func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }
+func (gm *GUIManager) SetKnownTechs(techs []string)                                { gm.hud.SetKnownTechs(techs) }
 func (gm *GUIManager) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
 	gm.hud.ShowColonistModal(colonist, storageItems)
+}
+
+func (gm *GUIManager) OpenCraftingModal(title string, recipes []crafting.Recipe, station *ecs.Entity) {
+	gm.hud.OpenCraftingModal(title, recipes, station)
+}
+
+func (gm *GUIManager) OpenResearchModal(station *ecs.Entity, available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	gm.hud.OpenResearchModal(station, available, completed, inProgress, queue)
+}
+
+func (gm *GUIManager) RefreshResearchModal(available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	gm.hud.RefreshResearchModal(available, completed, inProgress, queue)
 }

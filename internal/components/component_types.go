@@ -21,7 +21,7 @@ const (
 	FactionAI        ecs.ComponentType = "FactionAI"
 	Hunger           ecs.ComponentType = "Hunger"
 	Light            ecs.ComponentType = "Light"
-	Workbench        ecs.ComponentType = "Workbench"
+	CraftingStation  ecs.ComponentType = "CraftingStation"
 	Script           ecs.ComponentType = "Script"
 	LaserBeam        ecs.ComponentType = "LaserBeam"
 )

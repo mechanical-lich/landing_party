@@ -133,9 +133,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		if e.HasComponent(components.Storage) {
 			e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy = owner
 		}
-		if e.HasComponent(components.Workbench) {
-			e.GetComponent(components.Workbench).(*components.WorkbenchComponent).OwnedBy = owner
-		}
+
 		level.AddEntity(e)
 		return nil, nil
 	})

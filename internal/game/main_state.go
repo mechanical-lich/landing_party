@@ -25,6 +25,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
+	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/effect"
 	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
@@ -161,7 +162,11 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.SaveGameEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.LoadGameEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.CraftRequestedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.StationClickedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.ResearchStationClickedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.ResearchRequestedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.ColonistSelectedEventType)
+	event.GetQueuedInstance().RegisterListener(s, eventsystem.ResearchDone)
 	event.GetQueuedInstance().RegisterListener(s, gui.EquipItemRequestedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.UnequipItemRequestedEventType)
 
@@ -304,6 +309,9 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
 	s.handleInput()
+	if s.MainSettlement != nil {
+		s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
+	}
 	s.guiManager.Update()
 	s.updateHovered()
 
@@ -427,7 +435,29 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.done = true
 		}
 	case gui.CraftRequestedEvent:
-		s.addCraftTask(ev.RecipeID)
+		s.addCraftTask(ev.RecipeID, ev.Station)
+	case gui.StationClickedEvent:
+		if s.MainSettlement != nil {
+			cs := ev.Station.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
+			recipes := crafting.RecipesByStation(cs.StationID)
+			title := cs.StationID
+			if ev.Station.HasComponent(rlcomponents.Description) {
+				title = ev.Station.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.OpenCraftingModal(title, recipes, ev.Station)
+		}
+	case gui.ResearchStationClickedEvent:
+		if s.MainSettlement != nil {
+			available, completed, inProgress, queue := s.researchSnapshot()
+			s.guiManager.OpenResearchModal(ev.Station, available, completed, inProgress, queue)
+		}
+	case gui.ResearchRequestedEvent:
+		s.addResearchTask(ev.TechKey, ev.Station)
+	case eventsystem.ResearchDoneEvent:
+		if s.MainSettlement != nil {
+			s.MainSettlement.UnlockTech(ev.TechKey)
+			s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
+		}
 	case gui.ColonistSelectedEvent:
 		s.openColonistModal(ev.Entity)
 	case gui.EquipItemRequestedEvent:
@@ -449,9 +479,91 @@ func (s *MainState) purgeCompletedTasks() {
 	}
 }
 
-func (s *MainState) addCraftTask(recipeID string) {
+// researchSnapshot collects the lists the research modal needs: techs that
+// can be started, those already known, those currently being researched, and
+// the live progress queue.
+func (s *MainState) researchSnapshot() (available, completed, inProgress []research.Tech, queue []gui.ResearchQueueEntry) {
 	if s.MainSettlement == nil {
-		log.Printf("[CRAFT] no main settlement")
+		return
+	}
+
+	for _, k := range s.MainSettlement.KnownTechs {
+		if t, ok := research.GetTech(k); ok {
+			completed = append(completed, t)
+		}
+	}
+
+	inProgressSet := map[string]bool{}
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Completed || t.Action != task_requests.ResearchAction {
+			continue
+		}
+		rr, ok := t.Data.(*task_requests.ResearchRequest)
+		if !ok {
+			continue
+		}
+		inProgressSet[rr.TechKey] = true
+		techDef, found := research.GetTech(rr.TechKey)
+		if found {
+			inProgress = append(inProgress, techDef)
+		}
+		name := rr.TechKey
+		if found {
+			name = techDef.Name
+		}
+		progress := 0.0
+		if rr.Required > 0 {
+			progress = float64(rr.Progress) / float64(rr.Required)
+		}
+		queue = append(queue, gui.ResearchQueueEntry{Name: name, Progress: progress})
+	}
+
+	for _, t := range research.AvailableTechs(s.MainSettlement.KnownTechs) {
+		if inProgressSet[t.Key] {
+			continue
+		}
+		available = append(available, t)
+	}
+	return
+}
+
+func (s *MainState) addResearchTask(techKey string, station *ecs.Entity) {
+	if s.MainSettlement == nil {
+		return
+	}
+	tech, found := research.GetTech(techKey)
+	if !found {
+		log.Printf("[RESEARCH] tech not found: %s", techKey)
+		return
+	}
+	if s.MainSettlement.HasTech(techKey) {
+		message.AddMessage(tech.Name + " already researched.")
+		return
+	}
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Completed || t.Action != task_requests.ResearchAction {
+			continue
+		}
+		if rr, ok := t.Data.(*task_requests.ResearchRequest); ok && rr.TechKey == techKey {
+			message.AddMessage(tech.Name + " is already being researched.")
+			return
+		}
+	}
+	pc := station.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	s.MainSettlement.Tasks.AddTask(&task.Task{
+		Action: task_requests.ResearchAction,
+		Data: &task_requests.ResearchRequest{
+			TechKey:  techKey,
+			Building: tech.RequiredBuilding,
+			Required: tech.Duration,
+		},
+		X: pc.GetX(), Y: pc.GetY(), Z: pc.GetZ(),
+	})
+	message.AddMessage("Queued research: " + tech.Name)
+}
+
+func (s *MainState) addCraftTask(recipeID string, station *ecs.Entity) {
+	if s.MainSettlement == nil {
 		return
 	}
 	recipe, found := crafting.GetRecipe(recipeID)
@@ -459,12 +571,7 @@ func (s *MainState) addCraftTask(recipeID string) {
 		log.Printf("[CRAFT] recipe not found: %s", recipeID)
 		return
 	}
-	wb := s.findWorkbench()
-	if wb == nil {
-		message.AddMessage("Need a Workbench to craft. Build one first.")
-		return
-	}
-	wbPC := wb.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	wbPC := station.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.CraftAction,
 		Data: task_requests.CraftRequest{
@@ -479,16 +586,13 @@ func (s *MainState) addCraftTask(recipeID string) {
 	message.AddMessage("Queued: craft " + recipe.Name)
 }
 
-func (s *MainState) findWorkbench() *ecs.Entity {
-	if s.MainSettlement == nil {
-		return nil
-	}
+func (s *MainState) findCraftingStation(stationID string) *ecs.Entity {
 	for _, e := range append(s.level.Entities, s.level.StaticEntities...) {
-		if !e.HasComponent(components.Workbench) {
+		if !e.HasComponent(components.CraftingStation) {
 			continue
 		}
-		wb := e.GetComponent(components.Workbench).(*components.WorkbenchComponent)
-		if wb.OwnedBy == "" || wb.OwnedBy == s.MainSettlement.Name {
+		cs := e.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
+		if cs.StationID == stationID {
 			return e
 		}
 	}
@@ -674,10 +778,26 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		}
 		s.selectedEntity = nil
 		ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
+		if ent == nil {
+			for _, se := range s.level.StaticEntities {
+				pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.CameraZ {
+					ent = se
+					break
+				}
+			}
+		}
 		if ent != nil {
 			ent.AddComponent(&components.SelectedComponent{})
 			s.selectedEntity = ent
 			event.GetQueuedInstance().SendEvent(gui.EntitySelectedEvent{Entity: ent})
+			if ent.HasComponent(components.CraftingStation) {
+				event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
+			} else if ent.HasComponent(components.ResearchBuilding) {
+				event.GetQueuedInstance().QueueEvent(gui.ResearchStationClickedEvent{Station: ent})
+			} else if ent.HasComponent(components.Worker) {
+				event.GetQueuedInstance().QueueEvent(gui.ColonistSelectedEvent{Entity: ent})
+			}
 		}
 	}
 
@@ -877,6 +997,10 @@ func (s *MainState) refreshHUD() {
 	}
 	s.guiManager.RefreshGoalsTab(goalLines)
 	s.refreshCraftQueue()
+	if s.MainSettlement != nil {
+		available, completed, inProgress, queue := s.researchSnapshot()
+		s.guiManager.RefreshResearchModal(available, completed, inProgress, queue)
+	}
 }
 
 func (s *MainState) refreshCraftQueue() {

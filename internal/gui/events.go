@@ -42,9 +42,35 @@ func (e LoadGameEvent) GetType() event.EventType { return LoadGameEventType }
 
 const CraftRequestedEventType event.EventType = "craft_requested"
 
-type CraftRequestedEvent struct{ RecipeID string }
+type CraftRequestedEvent struct {
+	RecipeID string
+	Station  *ecs.Entity
+}
 
 func (e CraftRequestedEvent) GetType() event.EventType { return CraftRequestedEventType }
+
+const StationClickedEventType event.EventType = "station_clicked"
+
+type StationClickedEvent struct{ Station *ecs.Entity }
+
+func (e StationClickedEvent) GetType() event.EventType { return StationClickedEventType }
+
+const ResearchStationClickedEventType event.EventType = "research_station_clicked"
+
+type ResearchStationClickedEvent struct{ Station *ecs.Entity }
+
+func (e ResearchStationClickedEvent) GetType() event.EventType {
+	return ResearchStationClickedEventType
+}
+
+const ResearchRequestedEventType event.EventType = "research_requested"
+
+type ResearchRequestedEvent struct {
+	TechKey string
+	Station *ecs.Entity
+}
+
+func (e ResearchRequestedEvent) GetType() event.EventType { return ResearchRequestedEventType }
 
 const ColonistSelectedEventType event.EventType = "colonist_selected"
 

@@ -8,6 +8,7 @@ import (
 )
 
 type Tech struct {
+	Key              string   `json:"-"` // populated post-load from the map key
 	Name             string   `json:"name"`
 	Description      string   `json:"description"`
 	Duration         int      `json:"duration"`
@@ -35,6 +36,11 @@ func init() {
 	if err := json.Unmarshal(data, &techs); err != nil {
 		log.Print("Failed to unmarshal research.json:", err)
 	}
+	// Stamp each tech with its map key so callers can round-trip.
+	for k, t := range techs {
+		t.Key = k
+		techs[k] = t
+	}
 }
 
 func GetTech(key string) (Tech, bool) {
@@ -46,7 +52,9 @@ func AllTechs() map[string]Tech {
 	return techs
 }
 
-// AvailableTechs returns techs that can be researched given the current known techs.
+// AvailableTechs returns techs that can be researched given the current known
+// tech keys. A tech is available when it isn't already known and any
+// prerequisite tech is.
 func AvailableTechs(knownTechs []string) []Tech {
 	known := make(map[string]bool, len(knownTechs))
 	for _, k := range knownTechs {
@@ -54,7 +62,7 @@ func AvailableTechs(knownTechs []string) []Tech {
 	}
 	var result []Tech
 	for _, t := range techs {
-		if known[t.Name] {
+		if known[t.Key] {
 			continue
 		}
 		if t.RequiresTech != "" && !known[t.RequiresTech] {

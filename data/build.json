@@ -67,12 +67,40 @@
         "is_entity": true,
         "cost": {}
     },
-    "workbench": {
+    "basic_workbench": {
         "name": "Workbench",
-        "type": "workbench",
-        "description": "A station for crafting equipment.",
-        "build_time": 1,
+        "description": "A general-purpose crafting station.",
+        "build_time": 20,
         "is_entity": true,
-        "cost": {}
+        "cost": {
+            
+        }
+    },
+    "gun_bench": {
+        "name": "Gun Bench",
+        "description": "Fabricates weapons and firearms.",
+        "build_time": 30,
+        "is_entity": true,
+        "cost": {
+           
+        }
+    },
+    "basic_armor_bench": {
+        "name": "Armor Bench",
+        "description": "Crafts standard armor sets.",
+        "build_time": 30,
+        "is_entity": true,
+        "cost": {
+        }
+    },
+    "advanced_armor_bench": {
+        "name": "Advanced Armor Bench",
+        "description": "Crafts high-tech armor. Requires Advanced Metallurgy.",
+        "build_time": 50,
+        "is_entity": true,
+        "required_tech": "advanced_metallurgy",
+        "cost": {
+  
+        }
     }
 }

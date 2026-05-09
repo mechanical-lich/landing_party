@@ -3,324 +3,378 @@
         "name": "Laser Pistol",
         "output": "laser_pistol",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "plasma_cutter": {
         "name": "Plasma Cutter",
         "output": "plasma_cutter",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "stun_baton": {
         "name": "Stun Baton",
         "output": "stun_baton",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "enviro_suit": {
         "name": "Enviro Suit",
         "output": "enviro_suit",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "medkit": {
         "name": "Medkit",
         "output": "medkit",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_workbench"
     },
     "rifle": {
         "name": "Rifle",
         "output": "rifle",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "shotgun": {
         "name": "Shotgun",
         "output": "shotgun",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "knife": {
         "name": "Knife",
         "output": "knife",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "rocket_launcher": {
         "name": "Rocket Launcher",
         "output": "rocket_launcher",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "flamethrower": {
         "name": "Flamethrower",
         "output": "flamethrower",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "autorifle": {
         "name": "Auto Rifle",
         "output": "autorifle",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "pistol_shield": {
         "name": "Pistol Shield",
         "output": "pistol_shield",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "flag_rifle_red": {
         "name": "Flag Rifle (Red)",
         "output": "flag_rifle_red",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "flag_rifle_blue": {
         "name": "Flag Rifle (Blue)",
         "output": "flag_rifle_blue",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "energy_sword": {
         "name": "Energy Sword",
         "output": "energy_sword",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "laser_sword": {
         "name": "Laser Sword",
         "output": "laser_sword",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "gun_bench"
     },
     "scout_head": {
         "name": "Scout Helmet",
         "output": "scout_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "scout_torso": {
         "name": "Scout Vest",
         "output": "scout_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "scout_legs": {
         "name": "Scout Pants",
         "output": "scout_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "scout_feet": {
         "name": "Scout Boots",
         "output": "scout_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "marine_head": {
         "name": "Marine Helmet",
         "output": "marine_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "marine_torso": {
         "name": "Marine Vest",
         "output": "marine_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "marine_legs": {
         "name": "Marine Pants",
         "output": "marine_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "marine_feet": {
         "name": "Marine Boots",
         "output": "marine_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "tactical_head": {
         "name": "Tactical Helmet",
         "output": "tactical_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "tactical_torso": {
         "name": "Tactical Vest",
         "output": "tactical_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "tactical_legs": {
         "name": "Tactical Pants",
         "output": "tactical_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "tactical_feet": {
         "name": "Tactical Boots",
         "output": "tactical_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "stealth_head": {
         "name": "Stealth Helmet",
         "output": "stealth_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "stealth_torso": {
         "name": "Stealth Vest",
         "output": "stealth_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "stealth_legs": {
         "name": "Stealth Pants",
         "output": "stealth_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "stealth_feet": {
         "name": "Stealth Boots",
         "output": "stealth_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "heat_resistant_head": {
         "name": "Heat Resistant Helmet",
         "output": "heat_resistant_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "heat_resistant_torso": {
         "name": "Heat Resistant Vest",
         "output": "heat_resistant_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "heat_resistant_legs": {
         "name": "Heat Resistant Pants",
         "output": "heat_resistant_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "heat_resistant_feet": {
         "name": "Heat Resistant Boots",
         "output": "heat_resistant_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "heavy_head": {
         "name": "Heavy Helmet",
         "output": "heavy_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "heavy_torso": {
         "name": "Heavy Vest",
         "output": "heavy_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "heavy_legs": {
         "name": "Heavy Pants",
         "output": "heavy_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "heavy_feet": {
         "name": "Heavy Boots",
         "output": "heavy_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "super_heavy_head": {
         "name": "Super Heavy Helmet",
         "output": "super_heavy_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_heavy_torso": {
         "name": "Super Heavy Vest",
         "output": "super_heavy_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_heavy_legs": {
         "name": "Super Heavy Pants",
         "output": "super_heavy_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_heavy_feet": {
         "name": "Super Heavy Boots",
         "output": "super_heavy_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "radiation_head": {
         "name": "Radiation Helmet",
         "output": "radiation_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "radiation_torso": {
         "name": "Radiation Vest",
         "output": "radiation_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "radiation_legs": {
         "name": "Radiation Pants",
         "output": "radiation_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "radiation_feet": {
         "name": "Radiation Boots",
         "output": "radiation_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_radiation_head": {
         "name": "Super Radiation Helmet",
         "output": "super_radiation_head",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_radiation_torso": {
         "name": "Super Radiation Vest",
         "output": "super_radiation_torso",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_radiation_legs": {
         "name": "Super Radiation Pants",
         "output": "super_radiation_legs",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "super_radiation_feet": {
         "name": "Super Radiation Boots",
         "output": "super_radiation_feet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "advanced_armor_bench"
     },
     "enviro_helmet": {
         "name": "Enviro Helmet",
         "output": "enviro_helmet",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     },
     "enviro_boots": {
         "name": "Enviro Boots",
         "output": "enviro_boots",
         "build_time": 1,
-        "cost": {}
+        "cost": {},
+        "station": "basic_armor_bench"
     }
 }

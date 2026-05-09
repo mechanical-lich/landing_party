@@ -129,13 +129,29 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	var wc *components.WorkerComponent
+	if entity.HasComponent(components.Worker) {
+		wc = entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	}
 
 	if MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+		if wc != nil {
+			wc.InteractTicks = 0
+		}
 		return
 	}
 
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, 1, 1, 0) {
 		return
+	}
+
+	const dropoffHoldTicks = 6
+	if wc != nil {
+		wc.InteractTicks++
+		if wc.InteractTicks < dropoffHoldTicks {
+			return
+		}
+		wc.InteractTicks = 0
 	}
 
 	storageEntity := level.GetEntityAt(aiMemory.TargetX, aiMemory.TargetY, pc.GetZ())
@@ -381,16 +397,25 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 
 func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-		if pc.GetX() == wc.CurrentTask.X && pc.GetY() == wc.CurrentTask.Y {
-			PickupItemFromTile(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, pc.GetZ())
-			CompleteTaskWithMessage(entity, wc.CurrentTask, "Fetched item")
-			aiMemory.State = "idle"
-		} else {
-			wc.CurrentTask.Stop()
-			wc.CurrentTask = nil
-		}
+	if MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
+		wc.InteractTicks = 0
+		return
 	}
+	if pc.GetX() != wc.CurrentTask.X || pc.GetY() != wc.CurrentTask.Y {
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+		wc.InteractTicks = 0
+		return
+	}
+	const pickupHoldTicks = 6
+	wc.InteractTicks++
+	if wc.InteractTicks < pickupHoldTicks {
+		return
+	}
+	PickupItemFromTile(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, pc.GetZ())
+	CompleteTaskWithMessage(entity, wc.CurrentTask, "Fetched item")
+	wc.InteractTicks = 0
+	aiMemory.State = "idle"
 }
 
 func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {

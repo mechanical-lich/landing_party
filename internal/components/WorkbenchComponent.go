@@ -2,10 +2,11 @@ package components
 
 import "github.com/mechanical-lich/mlge/ecs"
 
-type WorkbenchComponent struct {
-	OwnedBy string
+type CraftingStationComponent struct {
+	StationID    string `json:"StationID"`
+	RequiresTech string `json:"RequiresTech,omitempty"`
 }
 
-func (w *WorkbenchComponent) GetType() ecs.ComponentType {
-	return Workbench
+func (c *CraftingStationComponent) GetType() ecs.ComponentType {
+	return CraftingStation
 }

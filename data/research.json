@@ -15,21 +15,5 @@
         "required_int": 12,
         "requires_tech": "basic_metallurgy",
         "unlocks": ["plasma_cutter", "armored_wall"]
-    },
-    "xenobiology": {
-        "name": "Xenobiology",
-        "description": "Study of alien flora and fauna.",
-        "duration": 150,
-        "required_building": "research_lab",
-        "required_int": 10,
-        "unlocks": ["bio_farm", "alien_medicine"]
-    },
-    "power_systems": {
-        "name": "Power Systems",
-        "description": "Efficient energy generation and distribution.",
-        "duration": 180,
-        "required_building": "research_lab",
-        "required_int": 11,
-        "unlocks": ["generator", "power_conduit"]
     }
 }

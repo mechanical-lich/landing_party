@@ -324,6 +324,9 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	if ts.errMsg != "" {
 		mlge_text.Draw(screen, ts.errMsg, 13, cfg.ScreenWidth/2-200, cfg.ScreenHeight-60, color.RGBA{220, 80, 80, 255})
 	}
+
+	// Flush any overlays queued by widgets (e.g. open SelectBox dropdowns).
+	minui.FlushOverlays(screen)
 }
 
 func (ts *TitleState) Done() bool { return ts.done }

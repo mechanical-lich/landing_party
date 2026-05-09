@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
+	"math"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -15,7 +17,15 @@ import (
 
 var drawOp = &ebiten.DrawImageOptions{}
 
+type pendingEntityDraw struct {
+	entity *ecs.Entity
+	tX, tY float64
+}
+
+var pendingEntities []pendingEntityDraw
+
 func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int, viewW, viewH int) {
+	pendingEntities = pendingEntities[:0]
 	screenX := 0
 	for x := cameraX; x < cameraX+viewW; x++ {
 		screenY := 0
@@ -63,12 +73,18 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			}
 
 			for _, entity := range level.entitiesBuffer {
-				drawEntity(screen, entity, tX, tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+				pendingEntities = append(pendingEntities, pendingEntityDraw{entity: entity, tX: tX, tY: tY})
 			}
 
 			screenY++
 		}
 		screenX++
+	}
+
+	// Second pass: draw all entities on top of every tile so an entity with a
+	// movement offset never gets clipped by tiles drawn after it.
+	for _, p := range pendingEntities {
+		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 }
 
@@ -193,7 +209,11 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 		}
 		srcW, srcH = size, size
 		resourceName = eac.Resource
-		spriteX, spriteY = eac.ResolveSprite(entity, false)
+		bounce := false
+		if entity.HasComponent(components.Appearance) {
+			bounce = entity.GetComponent(components.Appearance).(*components.AppearanceComponent).Bounce
+		}
+		spriteX, spriteY = eac.ResolveSprite(entity, bounce)
 
 	case entity.HasComponent(components.Appearance):
 		ac := entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
@@ -272,7 +292,49 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 	drawH := float64(srcH) * scale
 	offsetX := (float64(tileSizeW) - drawW) / 2
 	offsetY := (float64(tileSizeH) - drawH) / 2
+	wx, wy := workingOffset(entity, float64(tileSizeW), float64(tileSizeH))
 	drawOp.GeoM.Scale(scale, scale)
-	drawOp.GeoM.Translate(tX+offsetX, tY+offsetY)
+	drawOp.GeoM.Translate(tX+offsetX+wx, tY+offsetY+wy)
 	screen.DrawImage(src, drawOp)
+}
+
+// workingOffset returns a small in-place sway toward whatever the entity is
+// currently interacting with — a task target (research/craft/pickup/etc) or
+// the AI memory target during a dropoff. Returns (0, 0) when the worker isn't
+// actively engaged.
+func workingOffset(entity *ecs.Entity, tileW, tileH float64) (float64, float64) {
+	if !entity.HasComponent(components.Worker) || !entity.HasComponent(rlcomponents.Position) {
+		return 0, 0
+	}
+	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+	tx, ty, tz, ok := interactionTarget(entity, wc)
+	if !ok {
+		return 0, 0
+	}
+	dx := tx - pc.GetX()
+	dy := ty - pc.GetY()
+	dz := tz - pc.GetZ()
+	if dz != 0 || dx < -1 || dx > 1 || dy < -1 || dy > 1 || (dx == 0 && dy == 0) {
+		return 0, 0
+	}
+	phase := 0.5 + 0.5*math.Sin(float64(time.Now().UnixMilli())*math.Pi/500.0)
+	const maxNudge = 0.25
+	return float64(dx) * tileW * maxNudge * phase, float64(dy) * tileH * maxNudge * phase
+}
+
+func interactionTarget(entity *ecs.Entity, wc *components.WorkerComponent) (x, y, z int, ok bool) {
+	// Active task with target coordinates (research, craft, pickup, build, ...).
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		return wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, true
+	}
+	// Dropoff is AI-state driven, not task driven.
+	if entity.HasComponent(rlcomponents.AIMemory) {
+		mem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+		if mem.State == "dropoff" {
+			return mem.TargetX, mem.TargetY, mem.TargetZ, true
+		}
+	}
+	return 0, 0, 0, false
 }

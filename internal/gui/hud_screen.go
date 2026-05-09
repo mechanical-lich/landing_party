@@ -14,6 +14,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
+	"github.com/mechanical-lich/scifi_settlements/internal/research"
 )
 
 // HUDScreen is the main in-game HUD: sidebar, messages, resource bar, entity detail.
@@ -26,6 +27,11 @@ type HUDScreen struct {
 	buildMenuItems     map[string]*minui.MenuItem
 	buildCategoryPanel *minui.Panel
 	buildSubPanel      *minui.Panel
+	knownTechs         map[string]bool
+	showSubMenuFn      func(title string, items []hudBuildOrderItem, types []string)
+	currentSubTitle    string
+	currentSubItems    []hudBuildOrderItem
+	currentSubTypes    []string
 
 	// Population tab
 	populationVBox    *minui.VBox
@@ -35,8 +41,11 @@ type HUDScreen struct {
 	lastPopEntries    []PopulationEntry
 
 	// Colonist modal
-	colonistModal     *minui.Modal
-	colonistModalVBox *minui.VBox
+	colonistModal         *minui.Modal
+	colonistEquipVBox     *minui.VBox
+	colonistStorageList   *minui.ListBox
+	colonistStorageBPs    []string
+	colonistStorageEntity *ecs.Entity
 
 	// Goals tab
 	goalsVBox     *minui.VBox
@@ -44,9 +53,19 @@ type HUDScreen struct {
 	goalsLabels   []*minui.Label
 	lastGoalLines []string
 
-	// Craft tab
-	craftQueueVBox  *minui.VBox
-	craftQueueItems []*craftQueueRow
+	// Crafting station modal
+	craftingModal       *minui.Modal
+	craftingRecipeList  *minui.ListBox
+	craftingQueueList   *minui.ListBox
+	craftingRecipeIDs   []string
+	craftingStationEnt  *ecs.Entity
+
+	// Research station modal
+	researchModal      *minui.Modal
+	researchTechList   *minui.ListBox
+	researchQueueList  *minui.ListBox
+	researchTechKeys   []string
+	researchStationEnt *ecs.Entity
 
 	// HUD elements
 	messagesTextArea *minui.ScrollingTextArea
@@ -74,8 +93,9 @@ type HUDScreen struct {
 func NewHUDScreen() *HUDScreen {
 	theme := minui.NewDarkTheme()
 	h := &HUDScreen{
-		uiGUI: minui.NewGUIWithTheme(theme),
-		op:    &ebiten.DrawImageOptions{},
+		uiGUI:      minui.NewGUIWithTheme(theme),
+		op:         &ebiten.DrawImageOptions{},
+		knownTechs: map[string]bool{},
 	}
 	h.setupHUDElements()
 	h.setupSidebar()
@@ -153,10 +173,6 @@ func (h *HUDScreen) setupSidebar() {
 	h.goalsPanel.AddChild(h.goalsVBox)
 	h.sidebarTabPanel.AddTab("goals", "Goals", h.goalsPanel)
 
-	craftPanel := minui.NewPanel("craftTabContent")
-	h.setupCraftTab(craftPanel)
-	h.sidebarTabPanel.AddTab("craft", "Craft", craftPanel)
-
 	h.uiGUI.AddElement(h.sidebarTabPanel)
 }
 
@@ -194,7 +210,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		{id: "walls", label: "Walls", types: []string{"hull_wall"}},
 		{id: "floors", label: "Floors", types: []string{"hull_floor"}},
 		{id: "stairs", label: "Stairs", types: []string{"stairs_up", "stairs_down"}},
-		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light", "workbench"}},
+		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light", "basic_workbench", "gun_bench", "basic_armor_bench", "advanced_armor_bench"}},
 		{id: "doors", label: "Doors", types: []string{"airlock", "blast_door"}},
 	}
 
@@ -206,6 +222,10 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	h.buildSubPanel.SetVisible(false)
 
 	showSubMenu := func(title string, items []hudBuildOrderItem, types []string) {
+		h.currentSubTitle = title
+		h.currentSubItems = items
+		h.currentSubTypes = types
+
 		snapshot := make([]minui.Element, len(h.buildSubPanel.GetChildren()))
 		copy(snapshot, h.buildSubPanel.GetChildren())
 		for _, child := range snapshot {
@@ -248,12 +268,21 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 				continue
 			}
 			btID := buildType
-			mi := minui.NewMenuItem("build_"+buildType, buildable.Name)
+			locked := buildable.RequiredTech != "" && !h.knownTechs[buildable.RequiredTech]
+			label := buildable.Name
+			if locked {
+				label = fmt.Sprintf("%s  (requires %s)", buildable.Name, buildable.RequiredTech)
+			}
+			mi := minui.NewMenuItem("build_"+buildType, label)
 			mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
-			mi.OnClick = func() {
-				h.selectBuildItem("build_" + btID)
-				event.GetQueuedInstance().QueueEvent(BuildOptionChangedEvent{Option: btID})
-				event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: CursorModeBuild})
+			if locked {
+				mi.SetEnabled(false)
+			} else {
+				mi.OnClick = func() {
+					h.selectBuildItem("build_" + btID)
+					event.GetQueuedInstance().QueueEvent(BuildOptionChangedEvent{Option: btID})
+					event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: CursorModeBuild})
+				}
 			}
 			h.buildMenuItems["build_"+buildType] = mi
 			h.buildSubPanel.AddChild(mi)
@@ -263,6 +292,8 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		h.buildCategoryPanel.SetVisible(false)
 		h.buildSubPanel.SetVisible(true)
 	}
+
+	h.showSubMenuFn = showSubMenu
 
 	y := 4
 	for _, cat := range categories {
@@ -280,107 +311,25 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	panel.AddChild(h.buildSubPanel)
 }
 
-type craftQueueRow struct {
-	icon     *minui.ImageWidget
-	label    *minui.Label
-	progress *minui.ProgressBar
-}
-
 // CraftQueueEntry carries the data needed to render one active craft job.
 type CraftQueueEntry struct {
 	Name     string
-	Sprite   *ebiten.Image // pre-cropped 16×16 (or nil)
+	Sprite   *ebiten.Image // unused; retained for callsite compatibility
 	Progress float64       // 0..1
 }
 
-func (h *HUDScreen) setupCraftTab(panel *minui.Panel) {
-	const itemH = 24
-	const panelW = 192
-
-	outerVBox := minui.NewVBox("craftOuterVBox")
-	outerVBox.SetPosition(4, 4)
-	outerVBox.Spacing = 4
-	panel.AddChild(outerVBox)
-
-	// ── Recipe buttons ──────────────────────────────────────────────
-	hdr := minui.NewMenuHeader("craft_hdr", "Queue Craft Job")
-	hdr.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: 18})
-	outerVBox.AddChild(hdr)
-
-	for _, recipe := range crafting.AllRecipes() {
-		recipeID := recipe.Output
-		label := recipe.Name
-		costStr := ""
-		for mat, qty := range recipe.Cost {
-			if costStr != "" {
-				costStr += ", "
-			}
-			costStr += fmt.Sprintf("%dx%s", qty, mat)
-		}
-		if costStr != "" {
-			label += " (" + costStr + ")"
-		}
-		mi := minui.NewMenuItem("craft_"+recipeID, label)
-		mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: itemH})
-		mi.OnClick = func() {
-			event.GetQueuedInstance().QueueEvent(CraftRequestedEvent{RecipeID: recipeID})
-		}
-		outerVBox.AddChild(mi)
-	}
-
-	// ── Active queue ─────────────────────────────────────────────────
-	queueHdr := minui.NewMenuHeader("craft_queue_hdr", "Active Queue")
-	queueHdr.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW - 8, Height: 18})
-	outerVBox.AddChild(queueHdr)
-
-	h.craftQueueVBox = minui.NewVBox("craftQueueVBox")
-	h.craftQueueVBox.Spacing = 3
-	outerVBox.AddChild(h.craftQueueVBox)
-}
-
-// RefreshCraftQueue rebuilds the active-queue rows from the provided entries.
+// RefreshCraftQueue updates the queue ListBox in the crafting modal.
 func (h *HUDScreen) RefreshCraftQueue(entries []CraftQueueEntry) {
-	if h.craftQueueVBox == nil {
+	if h.craftingQueueList == nil {
 		return
 	}
-	const panelW = 184
-	const iconSize = 20
-	const barH = 8
-
-	// Clear all children from the queue vbox
-	for _, child := range append([]minui.Element{}, h.craftQueueVBox.GetChildren()...) {
-		h.craftQueueVBox.RemoveChild(child)
+	items := make([]string, 0, len(entries))
+	for _, e := range entries {
+		items = append(items, fmt.Sprintf("%s  %d%%", e.Name, int(e.Progress*100)))
 	}
-	h.craftQueueItems = h.craftQueueItems[:0]
-
-	for i, entry := range entries {
-		idStr := fmt.Sprintf("cq_%d", i)
-
-		row := &craftQueueRow{}
-
-		// Icon + label on the same row via a panel
-		rowPanel := minui.NewPanel(idStr + "_row")
-		rowPanel.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: iconSize})
-
-		if entry.Sprite != nil {
-			row.icon = minui.NewImageWidget(idStr+"_icon", iconSize, iconSize)
-			row.icon.Image = entry.Sprite
-			row.icon.SetPosition(0, 0)
-			rowPanel.AddChild(row.icon)
-		}
-
-		row.label = minui.NewLabel(idStr+"_lbl", entry.Name)
-		row.label.SetPosition(iconSize+4, 3)
-		row.label.SetSize(panelW-iconSize-4, iconSize)
-		rowPanel.AddChild(row.label)
-
-		row.progress = minui.NewProgressBar(idStr + "_bar")
-		row.progress.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: barH})
-		row.progress.SetValue(entry.Progress)
-
-		h.craftQueueVBox.AddChild(rowPanel)
-		h.craftQueueVBox.AddChild(row.progress)
-		h.craftQueueItems = append(h.craftQueueItems, row)
+	h.craftingQueueList.Items = items
+	if h.craftingQueueList.SelectedIndex >= len(items) {
+		h.craftingQueueList.SelectedIndex = -1
 	}
 }
 
@@ -492,15 +441,115 @@ func (h *HUDScreen) setupModals() {
 	h.loadModal.AddChild(loadVBox)
 	h.uiGUI.AddModal(h.loadModal)
 
-	// Colonist modal
-	h.colonistModal = minui.NewModal("colonistModal", "Colonist", 340, 480)
-	h.colonistModal.SetPosition(sw/2-170, sh/2-240)
+	// Crafting station modal — two-column layout: recipes (left) | queue (right)
+	const craftModalW, craftModalH = 640, 500
+	const colW, colH = 300, 420
+	h.craftingModal = minui.NewModal("craftingModal", "", craftModalW, craftModalH)
+	h.craftingModal.SetPosition(sw/2-craftModalW/2, sh/2-craftModalH/2)
+	h.craftingModal.SetVisible(false)
+	h.craftingModal.Closeable = true
+
+	recipeHdr := minui.NewLabel("craftRecipeHdr", "Recipes")
+	recipeHdr.SetPosition(14, 40)
+	h.craftingModal.AddChild(recipeHdr)
+
+	queueHdr := minui.NewLabel("craftQueueHdr", "Active Queue")
+	queueHdr.SetPosition(14+colW+16, 40)
+	h.craftingModal.AddChild(queueHdr)
+
+	h.craftingRecipeList = minui.NewListBox("craftRecipeList", nil)
+	h.craftingRecipeList.SetBounds(minui.Rect{X: 14, Y: 60, Width: colW, Height: colH})
+	h.craftingRecipeList.OnSelect = func(idx int, _ string) {
+		if idx < 0 || idx >= len(h.craftingRecipeIDs) {
+			return
+		}
+		recipeID := h.craftingRecipeIDs[idx]
+		event.GetQueuedInstance().QueueEvent(CraftRequestedEvent{
+			RecipeID: recipeID,
+			Station:  h.craftingStationEnt,
+		})
+		h.craftingRecipeList.SelectedIndex = -1
+	}
+	h.craftingModal.AddChild(h.craftingRecipeList)
+
+	h.craftingQueueList = minui.NewListBox("craftQueueList", nil)
+	h.craftingQueueList.SetBounds(minui.Rect{X: 14 + colW + 16, Y: 60, Width: colW, Height: colH})
+	h.craftingModal.AddChild(h.craftingQueueList)
+
+	h.uiGUI.AddModal(h.craftingModal)
+
+	// Research station modal — tech list (left) | active queue (right)
+	const rModalW, rModalH = 640, 500
+	const rColW, rColH = 300, 420
+	h.researchModal = minui.NewModal("researchModal", "Research", rModalW, rModalH)
+	h.researchModal.SetPosition(sw/2-rModalW/2, sh/2-rModalH/2)
+	h.researchModal.SetVisible(false)
+	h.researchModal.Closeable = true
+
+	techHdr := minui.NewLabel("researchTechHdr", "Tech")
+	techHdr.SetPosition(14, 40)
+	h.researchModal.AddChild(techHdr)
+
+	rQueueHdr := minui.NewLabel("researchQueueHdr", "Completed / Active")
+	rQueueHdr.SetPosition(14+rColW+16, 40)
+	h.researchModal.AddChild(rQueueHdr)
+
+	h.researchTechList = minui.NewListBox("researchTechList", nil)
+	h.researchTechList.SetBounds(minui.Rect{X: 14, Y: 60, Width: rColW, Height: rColH})
+	h.researchTechList.OnSelect = func(idx int, _ string) {
+		if idx < 0 || idx >= len(h.researchTechKeys) {
+			return
+		}
+		techKey := h.researchTechKeys[idx]
+		h.researchTechList.SelectedIndex = -1
+		if techKey == "" {
+			return // completed/in-progress rows are not actionable
+		}
+		event.GetQueuedInstance().QueueEvent(ResearchRequestedEvent{
+			TechKey: techKey,
+			Station: h.researchStationEnt,
+		})
+	}
+	h.researchModal.AddChild(h.researchTechList)
+
+	h.researchQueueList = minui.NewListBox("researchQueueList", nil)
+	h.researchQueueList.SetBounds(minui.Rect{X: 14 + rColW + 16, Y: 60, Width: rColW, Height: rColH})
+	h.researchModal.AddChild(h.researchQueueList)
+
+	h.uiGUI.AddModal(h.researchModal)
+
+	// Colonist modal — equipment (left) | storage (right, scrollable)
+	const colModalW, colModalH = 640, 500
+	const cColW, cColH = 300, 420
+	h.colonistModal = minui.NewModal("colonistModal", "Colonist", colModalW, colModalH)
+	h.colonistModal.SetPosition(sw/2-colModalW/2, sh/2-colModalH/2)
 	h.colonistModal.SetVisible(false)
 	h.colonistModal.Closeable = true
-	h.colonistModalVBox = minui.NewVBox("colonistModalContent")
-	h.colonistModalVBox.SetPosition(10, 40)
-	h.colonistModalVBox.Spacing = 4
-	h.colonistModal.AddChild(h.colonistModalVBox)
+
+	h.colonistEquipVBox = minui.NewVBox("colonistEquip")
+	h.colonistEquipVBox.SetPosition(14, 40)
+	h.colonistEquipVBox.Spacing = 4
+	h.colonistModal.AddChild(h.colonistEquipVBox)
+
+	storageHdr := minui.NewLabel("colonistStorageHdr", "Available in Storage")
+	storageHdr.SetPosition(14+cColW+16, 40)
+	h.colonistModal.AddChild(storageHdr)
+
+	h.colonistStorageList = minui.NewListBox("colonistStorageList", nil)
+	h.colonistStorageList.SetBounds(minui.Rect{X: 14 + cColW + 16, Y: 60, Width: cColW, Height: cColH})
+	h.colonistStorageList.OnSelect = func(idx int, _ string) {
+		if idx < 0 || idx >= len(h.colonistStorageBPs) || h.colonistStorageEntity == nil {
+			return
+		}
+		event.GetQueuedInstance().QueueEvent(EquipItemRequestedEvent{
+			ColonistEntity: h.colonistStorageEntity,
+			ItemBlueprint:  h.colonistStorageBPs[idx],
+		})
+		h.colonistStorageList.SelectedIndex = -1
+		h.colonistModal.SetVisible(false)
+	}
+	h.colonistModal.AddChild(h.colonistStorageList)
+
 	h.uiGUI.AddModal(h.colonistModal)
 }
 
@@ -582,9 +631,8 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		return
 	}
 
-	// Clear existing content
-	for _, child := range append([]minui.Element{}, h.colonistModalVBox.GetChildren()...) {
-		h.colonistModalVBox.RemoveChild(child)
+	for _, child := range append([]minui.Element{}, h.colonistEquipVBox.GetChildren()...) {
+		h.colonistEquipVBox.RemoveChild(child)
 	}
 
 	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
@@ -593,22 +641,19 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	fontSize := 13
 	smallSize := 11
 
-	// Name
 	nameLabel := minui.NewLabel("colonistName", dc.Name)
 	nameLabel.GetStyle().FontSize = &fontSize
-	h.colonistModalVBox.AddChild(nameLabel)
+	h.colonistEquipVBox.AddChild(nameLabel)
 
-	// Combat stats
 	atk := inv.GetAttackModifier()
 	def := inv.GetDefenseModifier()
 	statsLabel := minui.NewLabel("colonistStats", fmt.Sprintf("ATK: %+d   DEF: %+d", atk, def))
 	statsLabel.GetStyle().FontSize = &smallSize
-	h.colonistModalVBox.AddChild(statsLabel)
+	h.colonistEquipVBox.AddChild(statsLabel)
 
-	// Equipment section header
 	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
 	eqHdr.GetStyle().FontSize = &smallSize
-	h.colonistModalVBox.AddChild(eqHdr)
+	h.colonistEquipVBox.AddChild(eqHdr)
 
 	slotList := []struct {
 		label string
@@ -623,6 +668,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		{"Feet", rlcomponents.FeetSlot, inv.Feet},
 	}
 
+	const rowW, rowH = 300, 22
 	for _, sl := range slotList {
 		captured := sl
 		itemName := "(empty)"
@@ -632,6 +678,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		rowText := fmt.Sprintf("%s: %s", captured.label, itemName)
 		if captured.item != nil {
 			mi := minui.NewMenuItem(fmt.Sprintf("unequip_%s", captured.label), rowText+"  [Unequip]")
+			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: rowW, Height: rowH})
 			mi.OnClick = func() {
 				event.GetQueuedInstance().QueueEvent(UnequipItemRequestedEvent{
 					ColonistEntity: colonist,
@@ -639,35 +686,108 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				})
 				h.colonistModal.SetVisible(false)
 			}
-			h.colonistModalVBox.AddChild(mi)
+			h.colonistEquipVBox.AddChild(mi)
 		} else {
 			lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
 			lbl.GetStyle().FontSize = &smallSize
-			h.colonistModalVBox.AddChild(lbl)
+			lbl.SetSize(rowW, rowH)
+			h.colonistEquipVBox.AddChild(lbl)
 		}
 	}
 
-	// Storage items section
-	if len(storageItems) > 0 {
-		storHdr := minui.NewLabel("storHdr", "── Available in Storage ──")
-		storHdr.GetStyle().FontSize = &smallSize
-		h.colonistModalVBox.AddChild(storHdr)
-
-		for _, si := range storageItems {
-			captured := si
-			mi := minui.NewMenuItem("equip_"+captured.Blueprint, captured.Name+"  [Equip]")
-			mi.OnClick = func() {
-				event.GetQueuedInstance().QueueEvent(EquipItemRequestedEvent{
-					ColonistEntity: colonist,
-					ItemBlueprint:  captured.Blueprint,
-				})
-				h.colonistModal.SetVisible(false)
-			}
-			h.colonistModalVBox.AddChild(mi)
-		}
+	h.colonistStorageEntity = colonist
+	items := make([]string, 0, len(storageItems))
+	h.colonistStorageBPs = h.colonistStorageBPs[:0]
+	for _, si := range storageItems {
+		items = append(items, si.Name)
+		h.colonistStorageBPs = append(h.colonistStorageBPs, si.Blueprint)
 	}
+	h.colonistStorageList.SetItems(items)
 
 	h.colonistModal.SetVisible(true)
+}
+
+func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, station *ecs.Entity) {
+	h.craftingStationEnt = station
+	h.craftingModal.Title = title
+
+	items := make([]string, 0, len(recipes))
+	h.craftingRecipeIDs = h.craftingRecipeIDs[:0]
+	for _, r := range recipes {
+		costStr := ""
+		for mat, qty := range r.Cost {
+			if costStr != "" {
+				costStr += ", "
+			}
+			costStr += fmt.Sprintf("%s×%d", mat, qty)
+		}
+		label := r.Name
+		if costStr != "" {
+			label = fmt.Sprintf("%s  [%s]", r.Name, costStr)
+		}
+		items = append(items, label)
+		h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Output)
+	}
+	h.craftingRecipeList.SetItems(items)
+
+	h.craftingModal.SetVisible(true)
+}
+
+// ResearchQueueEntry is one row in the active-research column.
+type ResearchQueueEntry struct {
+	Name     string
+	Progress float64 // 0..1
+}
+
+// OpenResearchModal opens the research modal for a given lab entity.
+func (h *HUDScreen) OpenResearchModal(station *ecs.Entity, available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	h.researchStationEnt = station
+	h.populateResearchTechList(available)
+	h.populateResearchQueueList(completed, queue)
+	h.researchModal.SetVisible(true)
+}
+
+// RefreshResearchModal updates the modal in place if it's currently visible.
+func (h *HUDScreen) RefreshResearchModal(available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	if h.researchModal == nil || !h.researchModal.IsVisible() {
+		return
+	}
+	h.populateResearchTechList(available)
+	h.populateResearchQueueList(completed, queue)
+}
+
+func (h *HUDScreen) populateResearchTechList(available []research.Tech) {
+	items := make([]string, 0, len(available))
+	keys := make([]string, 0, len(available))
+	for _, t := range available {
+		prereq := ""
+		if t.RequiresTech != "" {
+			prereq = fmt.Sprintf(" (requires: %s)", t.RequiresTech)
+		}
+		items = append(items, fmt.Sprintf("%s%s  [%d ticks]", t.Name, prereq, t.Duration))
+		keys = append(keys, t.Key)
+	}
+	if len(items) == 0 {
+		items = append(items, "No research available.")
+		keys = append(keys, "")
+	}
+	h.researchTechList.SetItems(items)
+	h.researchTechKeys = keys
+}
+
+// populateResearchQueueList shows active research at the top, completed below.
+func (h *HUDScreen) populateResearchQueueList(completed []research.Tech, queue []ResearchQueueEntry) {
+	items := make([]string, 0, len(queue)+len(completed))
+	for _, e := range queue {
+		items = append(items, fmt.Sprintf("%s  %d%%", e.Name, int(e.Progress*100)))
+	}
+	for _, t := range completed {
+		items = append(items, fmt.Sprintf("%s  (done)", t.Name))
+	}
+	h.researchQueueList.Items = items
+	if h.researchQueueList.SelectedIndex >= len(items) {
+		h.researchQueueList.SelectedIndex = -1
+	}
 }
 
 func (h *HUDScreen) RefreshGoalsTab(lines []string) {
@@ -761,6 +881,26 @@ func (h *HUDScreen) WithinModalBounds(x, y int) bool  { return h.uiGUI.WithinMod
 
 func (h *HUDScreen) openLoadModal() {
 	h.loadModal.SetVisible(true)
+}
+
+func (h *HUDScreen) SetKnownTechs(techs []string) {
+	newSet := make(map[string]bool, len(techs))
+	for _, t := range techs {
+		newSet[t] = true
+	}
+	changed := len(newSet) != len(h.knownTechs)
+	if !changed {
+		for k := range newSet {
+			if !h.knownTechs[k] {
+				changed = true
+				break
+			}
+		}
+	}
+	h.knownTechs = newSet
+	if changed && h.buildSubPanel != nil && h.buildSubPanel.IsVisible() && h.showSubMenuFn != nil {
+		h.showSubMenuFn(h.currentSubTitle, h.currentSubItems, h.currentSubTypes)
+	}
 }
 
 func (h *HUDScreen) SetSaveNames(names []string) {
