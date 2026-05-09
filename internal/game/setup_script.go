@@ -12,6 +12,7 @@ import (
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
+	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
@@ -335,6 +336,152 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return nil, nil
 	})
+
+	// get_biome(x, y) — returns the biome ID at column (x,y), or "".
+	interp.RegisterFunc("get_biome", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return "", nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		return level.GetBiome(x, y), nil
+	})
+
+	// get_surface_z(x, y) — returns the surface Z for the column, -1 if none.
+	interp.RegisterFunc("get_surface_z", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return float64(-1), nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		return float64(level.GetSurfaceZ(x, y)), nil
+	})
+
+	// tag_region(name, x, y, z) — record an anchor point for later lookup.
+	interp.RegisterFunc("tag_region", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return nil, nil
+		}
+		name := fmt.Sprint(args[0])
+		x := int(toSetupFloat(args[1]))
+		y := int(toSetupFloat(args[2]))
+		z := int(toSetupFloat(args[3]))
+		level.TagRegion(name, x, y, z)
+		return nil, nil
+	})
+
+	// get_region_count(name) — number of anchors for a tag.
+	interp.RegisterFunc("get_region_count", func(args ...any) (any, error) {
+		if len(args) < 1 {
+			return float64(0), nil
+		}
+		name := fmt.Sprint(args[0])
+		return float64(len(level.Regions[name])), nil
+	})
+
+	// get_region_x(name, i) / _y / _z — read the i-th anchor.
+	interp.RegisterFunc("get_region_x", func(args ...any) (any, error) {
+		return regionCoord(level, args, 0)
+	})
+	interp.RegisterFunc("get_region_y", func(args ...any) (any, error) {
+		return regionCoord(level, args, 1)
+	})
+	interp.RegisterFunc("get_region_z", func(args ...any) (any, error) {
+		return regionCoord(level, args, 2)
+	})
+
+	// carve_room(x, y, z, w, h, wall_tile, floor_tile) — bordered room.
+	interp.RegisterFunc("carve_room", func(args ...any) (any, error) {
+		if len(args) < 7 {
+			return nil, nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		w := int(toSetupFloat(args[3]))
+		h := int(toSetupFloat(args[4]))
+		wallTile := fmt.Sprint(args[5])
+		floorTile := fmt.Sprint(args[6])
+		for dy := 0; dy < h; dy++ {
+			for dx := 0; dx < w; dx++ {
+				edge := dx == 0 || dy == 0 || dx == w-1 || dy == h-1
+				if edge {
+					level.UpdateTileAt(x+dx, y+dy, z, wallTile, world.RandomTileVariant(wallTile))
+				} else {
+					level.UpdateTileAt(x+dx, y+dy, z, floorTile, world.RandomTileVariant(floorTile))
+				}
+			}
+		}
+		return nil, nil
+	})
+
+	// carve_rect(x, y, z, w, h, tile) — fill a rectangle (no border).
+	interp.RegisterFunc("carve_rect", func(args ...any) (any, error) {
+		if len(args) < 6 {
+			return nil, nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		w := int(toSetupFloat(args[3]))
+		h := int(toSetupFloat(args[4]))
+		tile := fmt.Sprint(args[5])
+		for dy := 0; dy < h; dy++ {
+			for dx := 0; dx < w; dx++ {
+				level.UpdateTileAt(x+dx, y+dy, z, tile, world.RandomTileVariant(tile))
+			}
+		}
+		return nil, nil
+	})
+
+	// carve_circle(cx, cy, z, radius, tile) — disc fill.
+	interp.RegisterFunc("carve_circle", func(args ...any) (any, error) {
+		if len(args) < 5 {
+			return nil, nil
+		}
+		cx := int(toSetupFloat(args[0]))
+		cy := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		r := int(toSetupFloat(args[3]))
+		tile := fmt.Sprint(args[4])
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if dx*dx+dy*dy <= r*r {
+					level.UpdateTileAt(cx+dx, cy+dy, z, tile, world.RandomTileVariant(tile))
+				}
+			}
+		}
+		return nil, nil
+	})
+
+	// place_feature(kind, count) — invoke a registered feature placer with
+	// no biome restriction and default params. For richer placement use the
+	// scenario JSON's features block.
+	interp.RegisterFunc("place_feature", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return nil, nil
+		}
+		kind := fmt.Sprint(args[0])
+		count := int(toSetupFloat(args[1]))
+		spec := generation.FeatureSpec{Kind: kind, Count: count}
+		if p := generation.GetFeature(kind); p != nil {
+			_ = p(level, spec)
+		}
+		return nil, nil
+	})
+}
+
+func regionCoord(level *world.Level, args []any, axis int) (any, error) {
+	if len(args) < 2 {
+		return float64(0), nil
+	}
+	name := fmt.Sprint(args[0])
+	i := int(toSetupFloat(args[1]))
+	pts := level.Regions[name]
+	if i < 0 || i >= len(pts) {
+		return float64(0), nil
+	}
+	return float64(pts[i][axis]), nil
 }
 
 func toSetupFloat(v any) float64 {

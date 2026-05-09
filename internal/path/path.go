@@ -4,8 +4,13 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/path"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/scifi_settlements/internal/skills"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
+
+// VacuumResistSkill grants the ability to traverse space tiles. Granted by
+// equipping a full enviro outfit.
+const VacuumResistSkill = "vacuum_resist"
 
 var (
 	pathRequestsThisFrame   = 0
@@ -24,23 +29,23 @@ func GetPossiblePathForEntity(level *world.Level, entity *ecs.Entity, fromTile, 
 		dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
 		faction = dc.Faction
 	}
-	return getPossiblePath(level, faction, fromTile, toTile, reuse)
+	vacuum := skills.Has(entity, VacuumResistSkill)
+	return getPossiblePath(level, faction, vacuum, fromTile, toTile, reuse)
 }
 
 func GetPossiblePath(level *world.Level, fromTile, toTile *world.Tile, reuse []int) []int {
-	return getPossiblePath(level, "", fromTile, toTile, reuse)
+	return getPossiblePath(level, "", false, fromTile, toTile, reuse)
 }
 
-func getPossiblePath(level *world.Level, faction string, fromTile, toTile *world.Tile, reuse []int) []int {
+func getPossiblePath(level *world.Level, faction string, vacuumResist bool, fromTile, toTile *world.Tile, reuse []int) []int {
 	if pathRequestsThisFrame >= maxPathRequestsPerFrame {
 		return nil
 	}
 	pathRequestsThisFrame++
 
-	// Use faction-aware cost function so authorized doors are treated as low-cost
-	if faction != "" {
-		level.PathCostFunc = world.PathCostFunctionForFaction(level, faction)
-	}
+	// Use entity-aware cost function: faction-aware doors + optional space
+	// traversal for vacuum-resistant entities (enviro suit equipped).
+	level.PathCostFunc = world.PathCostFunctionForEntity(level, faction, vacuumResist)
 
 	toX, toY, toZ := toTile.Coords()
 	fromX, fromY, _ := fromTile.Coords()
@@ -79,7 +84,7 @@ func getPossiblePath(level *world.Level, faction string, fromTile, toTile *world
 			if def.StairsUp || def.StairsDown {
 				stairCount++
 			}
-			if def.Air || def.Space {
+			if (def.Air || def.Space) && !vacuumResist {
 				sx, sy, sz := st.Coords()
 				below := level.GetTileAt(sx, sy, sz-1)
 				if below == nil || !below.IsSolid() {

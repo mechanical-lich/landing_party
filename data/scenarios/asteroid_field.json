@@ -1,0 +1,36 @@
+{
+    "id": "asteroid_field",
+    "name": "Asteroid Field",
+    "description": "Land on the largest rock in a sparse asteroid field. Build a base that spans multiple asteroids.",
+    "enabled": true,
+    "setup_scripts": ["data/scripts/scenarios/asteroid_setup.basic"],
+    "hostile_max": 20,
+    "spawn_rules": {},
+    "lighting": { "mode": "fixed", "ambient_level": 30 },
+    "world": {
+        "terrain": "asteroid_field",
+        "terrain_params": { "threshold": 0.15, "min_size": 60, "noise_scale": 22 },
+        "biome_map": {
+            "type": "uniform",
+            "single": "asteroid_rock"
+        },
+        "features": [
+            { "kind": "ore_vein", "count": 40, "params": { "tile": "ore_deposit", "radius": 2 } },
+            { "kind": "ore_vein", "count": 15, "params": { "tile": "crystal_vein", "radius": 2 } },
+            { "kind": "radiation_pocket", "count": 6, "params": { "peak": 220, "radius": 4 } }
+        ]
+    },
+    "win_conditions": {
+        "rules": [
+            {
+                "id": "all_colonists_dead",
+                "trigger": "colonist_eliminated",
+                "threshold": 0,
+                "op": "eq",
+                "result": "lose",
+                "outcome": "defeat",
+                "message": "Without colonists the asteroid field claims your machinery."
+            }
+        ]
+    }
+}

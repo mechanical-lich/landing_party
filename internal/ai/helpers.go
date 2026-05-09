@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
+	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
+	"github.com/mechanical-lich/scifi_settlements/internal/skills"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlai"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -180,7 +181,10 @@ func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {
 		return false
 	}
 	def := world.TileDefinitions[tile.Type]
-	if def.Solid || def.Water || def.Space {
+	if def.Solid || def.Water {
+		return false
+	}
+	if def.Space && !skills.Has(entity, fspath.VacuumResistSkill) {
 		return false
 	}
 	tX, tY, tZ := tile.Coords()

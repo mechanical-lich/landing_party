@@ -1,0 +1,14 @@
+{
+  "id": "desert",
+  "temp_range": [0.65, 1.0],
+  "humidity_range": [0.0, 0.35],
+  "rules": [
+    { "kind": "surface",     "tile": "regolith" },
+    { "kind": "subsurface",  "tile": "regolith" },
+    { "kind": "underground", "tile": "rock" },
+    { "kind": "cavern",      "tile": "air" },
+    { "kind": "atmosphere",  "tile": "air" },
+    { "kind": "space",       "tile": "space" },
+    { "kind": "bedrock",     "tile": "bedrock" }
+  ]
+}

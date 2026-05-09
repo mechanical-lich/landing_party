@@ -96,8 +96,6 @@
     {
         "name": "ore_deposit",
         "solid": true,
-        "lightLevel": 20,
-        "lightRange": 3,
         "variants": [
             {
                 "variant": 0,
@@ -110,8 +108,6 @@
     {
         "name": "crystal_vein",
         "solid": true,
-        "lightLevel": 30,
-        "lightRange": 4,
         "variants": [
             {
                 "variant": 0,
@@ -124,8 +120,6 @@
     {
         "name": "radioactive_ore",
         "solid": true,
-        "lightLevel": 25,
-        "lightRange": 3,
         "variants": [
             {
                 "variant": 0,
@@ -312,8 +306,6 @@
     {
         "name": "stairs_up",
         "stairsUp": true,
-        "lightLevel": 15,
-        "lightRange": 2,
         "variants": [
             {
                 "variant": 0,
@@ -326,13 +318,60 @@
     {
         "name": "stairs_down",
         "stairsDown": true,
-        "lightLevel": 15,
-        "lightRange": 2,
         "variants": [
             {
                 "variant": 0,
                 "spriteX": 408,
                 "spriteY": 120
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "alien_flora",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 0
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "crystal",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 0
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "lava",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 720
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 720
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 720
+            },
+            {
+                "variant": 3,
+                "spriteX": 72,
+                "spriteY": 720
             }
         ],
         "resource": "scifi_world"

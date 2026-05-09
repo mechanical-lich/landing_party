@@ -1,0 +1,48 @@
+{
+    "id": "abandoned_station",
+    "name": "Abandoned Station",
+    "description": "A derelict station drifting in the void. Restore power and reclaim the botany bays.",
+    "enabled": true,
+    "setup_scripts": ["data/scripts/scenarios/station_setup.basic"],
+    "hostile_max": 40,
+    "spawn_rules": {
+        "alien_grunt": {
+            "spawn_rate": 30,
+            "light_min": 0,
+            "tiles": ["hull_floor"],
+            "min_z": 0,
+            "max_z": 4
+        }
+    },
+    "lighting": { "mode": "fixed", "ambient_level": 20 },
+    "world": {
+        "terrain": "abandoned_station",
+        "terrain_params": { "floors": 5, "station_size": 50, "hub_radius": 5, "spokes": 4, "bud_attempts": 80, "min_room": 4, "max_room": 8 },
+        "features": [
+            { "kind": "botany_bay", "count": 3, "params": { "tile": "dirt", "radius": 3 } },
+            { "kind": "radiation_pocket", "count": 2, "params": { "peak": 180, "radius": 3 } }
+        ]
+    },
+    "win_conditions": {
+        "rules": [
+            {
+                "id": "survive_30_days",
+                "trigger": "days_survived",
+                "threshold": 30,
+                "op": "gte",
+                "result": "win",
+                "outcome": "victory",
+                "message": "You have reclaimed the station."
+            },
+            {
+                "id": "all_colonists_dead",
+                "trigger": "colonist_eliminated",
+                "threshold": 0,
+                "op": "eq",
+                "result": "lose",
+                "outcome": "defeat",
+                "message": "The station's lights flicker and die."
+            }
+        ]
+    }
+}

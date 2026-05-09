@@ -162,6 +162,7 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 				def := TileDefinitions[tile.Type]
 				if def.Air || def.Space {
 					// Look through transparent layers to find the lit tile below
+					found := false
 					for z := cameraZ - 1; z >= 0; z-- {
 						below := level.GetTilePtr(cameraX+sx, cameraY+sy, z)
 						if below == nil {
@@ -170,8 +171,15 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 						belowDef := TileDefinitions[below.Type]
 						if !belowDef.Air && !belowDef.Space {
 							lightLevel = below.LightLevel
+							found = true
 							break
 						}
+					}
+					if !found {
+						// Pure-space column (no solid below). Use ambient sun
+						// so entities standing in vacuum aren't covered by an
+						// opaque black overlay.
+						lightLevel = level.EffectiveSunIntensity()
 					}
 				} else {
 					lightLevel = tile.LightLevel
@@ -205,8 +213,8 @@ func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, 
 			if tile == nil || tile.Radiation == 0 {
 				continue
 			}
-			// Cap alpha at ~140 so even the most radioactive tile stays readable.
-			alpha := uint8(int(tile.Radiation) * 140 / 255)
+			// Cap alpha low so colonists/items on radioactive tiles stay readable.
+			alpha := uint8(int(tile.Radiation) * 70 / 255)
 			tint := color.RGBA{60, 220, 80, alpha}
 			vector.DrawFilledRect(screen,
 				float32(sx*tileSizeW), float32(sy*tileSizeH),

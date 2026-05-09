@@ -1,0 +1,16 @@
+function on_setup()
+    add_message("Day 1. Lunar landing successful. Pressurize the dome.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    carve_room(sx - 5, sy - 5, sz, 11, 9, "hull_wall", "hull_floor")
+    spawn_entity_owned("airlock", sx, sy + 3, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 4, sy - 3, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 4, sy - 3, sz, sname)
+
+    set_flag("moon_started", 1)
+endfunction

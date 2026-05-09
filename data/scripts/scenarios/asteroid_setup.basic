@@ -1,0 +1,25 @@
+function on_setup()
+    add_message("Day 1. Touchdown on the largest rock. Begin construction.")
+
+    # Land on the tagged starting asteroid if the primer emitted one.
+    n = get_region_count("starting_asteroid")
+    if n > 0 then
+        sx = get_region_x("starting_asteroid", 0)
+        sy = get_region_y("starting_asteroid", 0)
+        sz = get_region_z("starting_asteroid", 0)
+    else
+        sx = get_flag("start_x")
+        sy = get_flag("start_y")
+        sz = get_flag("start_z")
+    endif
+
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    carve_room(sx - 3, sy - 3, sz, 7, 7, "hull_wall", "hull_floor")
+    spawn_entity_owned("airlock", sx, sy + 2, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 2, sy - 2, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 2, sy - 2, sz, sname)
+
+    set_flag("asteroid_started", 1)
+endfunction

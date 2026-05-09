@@ -1,0 +1,61 @@
+{
+    "id": "alien_world",
+    "name": "Alien World",
+    "description": "A vivid alien planet of strange flora and crystal fields. The fauna is hostile.",
+    "enabled": true,
+    "setup_scripts": ["data/scripts/scenarios/alien_setup.basic"],
+    "hostile_max": 200,
+    "spawn_rules": {
+        "alien_grunt": {
+            "spawn_rate": 60,
+            "light_min": 0,
+            "tiles": ["grass", "regolith"],
+            "min_z": 5,
+            "max_z": 5
+        },
+        "alien_brute": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": ["grass", "regolith"],
+            "min_z": 5,
+            "max_z": 5
+        }
+    },
+    "lighting": { "mode": "day_night" },
+    "world": {
+        "terrain": "planet",
+        "biome_map": {
+            "type": "perlin_temp_humidity",
+            "scale": 60,
+            "biomes": ["alien_forest", "crystal_field"]
+        },
+        "features": [
+            { "kind": "ore_vein", "count": 25, "params": { "tile": "ore_deposit", "radius": 3 } },
+            { "kind": "crystal_grove", "count": 10, "biome": "crystal_field", "params": { "tile": "crystal_vein", "radius": 5 } },
+            { "kind": "scatter_tile", "count": 200, "biome": "alien_forest", "params": { "tile": "alien_flora", "kind": "surface" } },
+            { "kind": "radiation_pocket", "count": 4, "params": { "peak": 180, "radius": 4 } }
+        ]
+    },
+    "win_conditions": {
+        "rules": [
+            {
+                "id": "survive_30_days",
+                "trigger": "days_survived",
+                "threshold": 30,
+                "op": "gte",
+                "result": "win",
+                "outcome": "victory",
+                "message": "You have survived 30 days on the alien world."
+            },
+            {
+                "id": "all_colonists_dead",
+                "trigger": "colonist_eliminated",
+                "threshold": 0,
+                "op": "eq",
+                "result": "lose",
+                "outcome": "defeat",
+                "message": "The colony has been overrun."
+            }
+        ]
+    }
+}

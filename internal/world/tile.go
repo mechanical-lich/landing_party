@@ -17,10 +17,20 @@ func getPathCostFunction(level *Level) func(from, to *rlworld.Tile) float64 {
 // pathCostFunctionForFaction returns an A* cost function that treats doors
 // owned by faction as low-cost passable rather than high-cost blockers.
 func PathCostFunctionForFaction(level *Level, faction string) func(from, to *rlworld.Tile) float64 {
+	return PathCostFunctionForEntity(level, faction, false)
+}
+
+// PathCostFunctionForEntity returns a cost function that allows space tiles
+// when vacuumResist is true (entity has the vacuum_resist skill, e.g. enviro
+// suit equipped). Solid and water remain blocked.
+func PathCostFunctionForEntity(level *Level, faction string, vacuumResist bool) func(from, to *rlworld.Tile) float64 {
 	return func(from, to *rlworld.Tile) float64 {
 		tileDef := TileDefinitions[to.Type]
 
-		if tileDef.Solid || tileDef.Water || tileDef.Space {
+		if tileDef.Solid || tileDef.Water {
+			return 5000.0
+		}
+		if tileDef.Space && !vacuumResist {
 			return 5000.0
 		}
 

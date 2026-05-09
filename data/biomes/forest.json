@@ -1,0 +1,14 @@
+{
+  "id": "forest",
+  "temp_range": [0.35, 0.7],
+  "humidity_range": [0.45, 1.0],
+  "rules": [
+    { "kind": "surface",     "tile": "grass" },
+    { "kind": "subsurface",  "tile": "dirt" },
+    { "kind": "underground", "tile": "rock" },
+    { "kind": "cavern",      "tile": "air" },
+    { "kind": "atmosphere",  "tile": "air" },
+    { "kind": "space",       "tile": "space" },
+    { "kind": "bedrock",     "tile": "bedrock" }
+  ]
+}

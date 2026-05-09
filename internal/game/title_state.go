@@ -11,6 +11,7 @@ import (
 	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ui/minui"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
+	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/lore"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
@@ -60,6 +61,7 @@ var _ state.StateInterface = (*TitleState)(nil)
 func NewTitleState() *TitleState {
 	ts := &TitleState{screen: screenMain}
 	_ = scenario.Load("data/scenarios")
+	_ = generation.LoadBiomes("data/biomes")
 	ts.buildMainMenu()
 	ts.buildNewSettlementScreen()
 	ts.buildLoadScreen()
@@ -196,6 +198,7 @@ func (ts *TitleState) buildScenarioPicker() {
 	cfg := config.Global()
 	cx := cfg.ScreenWidth / 2
 	_ = scenario.Load("data/scenarios")
+	_ = generation.LoadBiomes("data/biomes")
 	scenarios := scenario.AllEnabled()
 	labels := []string{"Random"}
 	ts.scenarioIDs = []string{""}

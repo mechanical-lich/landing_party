@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 
 	"image"
@@ -25,19 +26,19 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
-	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/effect"
 	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	"github.com/mechanical-lich/scifi_settlements/internal/game/listeners"
-	"github.com/mechanical-lich/scifi_settlements/internal/wincondition"
 	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/gui"
 	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
+	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
 	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
 	"github.com/mechanical-lich/scifi_settlements/internal/systems"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
+	"github.com/mechanical-lich/scifi_settlements/internal/wincondition"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
@@ -258,14 +259,65 @@ func (s *MainState) newGame() {
 	mapH := cfg.WorldGenSizeH
 	mapZ := cfg.WorldGenSizeZ
 
-	planetCfg := generation.DefaultPlanetConfig(mapZ)
-	s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
+	// Select the scenario before terrain generation so its WorldConfig (if
+	// any) can drive the build. The original flow selected after terrain;
+	// the post-terrain block below is a no-op now but kept for safety.
+	if s.settlementCfg.ScenarioID != "" {
+		if err := scenario.SelectByID(s.settlementCfg.ScenarioID); err != nil {
+			log.Printf("scenario %q not found, using random", s.settlementCfg.ScenarioID)
+			_ = scenario.SelectRandom()
+		}
+	} else if len(scenario.AllEnabled()) > 0 {
+		_ = scenario.SelectRandom()
+	}
+
+	var activeScenario *scenario.Scenario
+	if len(scenario.AllEnabled()) > 0 {
+		activeScenario = scenario.Active()
+	}
+
+	if activeScenario != nil && activeScenario.World != nil {
+		sc := activeScenario
+		opts := generation.BuildWorldOptions{
+			Width:         mapW,
+			Height:        mapH,
+			Depth:         mapZ,
+			Terrain:       sc.World.Terrain,
+			TerrainParams: sc.World.TerrainParams,
+			BiomeMapType:  sc.World.BiomeMap.Type,
+			BiomeMapScale: sc.World.BiomeMap.Scale,
+			BiomeIDs:      sc.World.BiomeMap.Biomes,
+			BiomeSingle:   sc.World.BiomeMap.Single,
+		}
+		for _, fb := range sc.World.Features {
+			opts.Features = append(opts.Features, generation.FeatureSpec{
+				Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
+			})
+		}
+		level, err := generation.BuildWorld(opts)
+		if err != nil {
+			log.Printf("BuildWorld: %v (falling back to legacy planet)", err)
+			planetCfg := generation.DefaultPlanetConfig(mapZ)
+			s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
+		} else {
+			s.level = level
+		}
+	} else {
+		planetCfg := generation.DefaultPlanetConfig(mapZ)
+		s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
+	}
 	s.guiManager = gui.NewGUIManager()
 	s.gm = &GameMaster{}
 	s.gm.Init(s.level)
 
-	startingZ := cfg.StartingZ
-	x, y := s.gm.GetFreeSpaceAtZ(startingZ)
+	// Prefer the level's own surface Z (set by the primer) so station/asteroid
+	// scenarios don't try to spawn at the legacy hardcoded z=5.
+	startingZ := s.level.SurfaceZ
+	if startingZ <= 0 {
+		startingZ = cfg.StartingZ
+	}
+	x, y, startingZ := findStartingPlaza(s.level, startingZ, 5)
 	if x != -1 {
 		// Position camera so colonists (at x-2..x+2) appear centered in the
 		// visible world area (to the right of the 200px sidebar).
@@ -274,6 +326,7 @@ func (s *MainState) newGame() {
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
 		s.CameraY = y - viewH/2
+		s.CameraZ = startingZ
 		name := s.settlementCfg.Name
 		if name == "" {
 			name = "Colony Alpha"
@@ -1163,4 +1216,55 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 		vector.StrokeRect(screen, sx, sy, float32(s.TileSizeW), float32(s.TileSizeH),
 			1, color.RGBA{R: 255, G: 255, B: 255, A: 120}, false)
 	}
+}
+
+// findStartingPlaza picks a spawn anchor with `slots` adjacent standable
+// tiles in a horizontal row, preferring region anchors emitted by terrain
+// primers ("starting_floor", "starting_asteroid", "station_hub"). Falls back
+// to a random scan at preferZ. Returns (centerX, centerY, z); x = -1 if no
+// valid plaza was found.
+func findStartingPlaza(level *world.Level, preferZ, slots int) (int, int, int) {
+	for _, tag := range []string{"starting_floor", "starting_asteroid", "station_hub"} {
+		for _, p := range level.Regions[tag] {
+			if cx, cy, ok := tryPlaza(level, p[0], p[1], p[2], slots); ok {
+				return cx, cy, p[2]
+			}
+		}
+	}
+	w, h := level.GetWidth(), level.GetHeight()
+	for i := 0; i < 1000; i++ {
+		x := rand.Intn(w)
+		y := rand.Intn(h)
+		if cx, cy, ok := tryPlaza(level, x, y, preferZ, slots); ok {
+			return cx, cy, preferZ
+		}
+	}
+	return -1, -1, preferZ
+}
+
+func tryPlaza(level *world.Level, x, y, z, slots int) (int, int, bool) {
+	half := slots / 2
+	for i := -half; i < slots-half; i++ {
+		if !isStandable(level, x+i, y, z) {
+			return 0, 0, false
+		}
+	}
+	return x, y, true
+}
+
+func isStandable(level *world.Level, x, y, z int) bool {
+	t := level.GetTilePtr(x, y, z)
+	if t == nil {
+		return false
+	}
+	if t.IsSolid() || t.IsWater() {
+		return false
+	}
+	if world.IsSpaceTile(t) {
+		return false
+	}
+	if level.GetEntityAt(x, y, z) != nil {
+		return false
+	}
+	return true
 }

@@ -27,7 +27,8 @@
         },
         "Skills": {
             "Skills": [
-                "radiation_resist"
+                "radiation_resist",
+                "vacuum_resist"
             ]
         }
     },
@@ -59,7 +60,8 @@
         },
         "Skills": {
             "Skills": [
-                "radiation_resist"
+                "radiation_resist",
+                "vacuum_resist"
             ]
         }
     },
@@ -91,7 +93,8 @@
         },
         "Skills": {
             "Skills": [
-                "radiation_resist"
+                "radiation_resist",
+                "vacuum_resist"
             ]
         }
     },
