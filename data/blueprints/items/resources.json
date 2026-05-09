@@ -57,5 +57,25 @@
         "ResourceItem": {
             "Type": "stone"
         }
+    },
+    "radioactive_material": {
+        "Appearance": {
+            "R": 120,
+            "G": 230,
+            "B": 90,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Radioactive Material",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "radioactive_material"
+        }
     }
 }

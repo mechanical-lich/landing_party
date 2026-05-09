@@ -22,6 +22,7 @@ const (
 	Hunger           ecs.ComponentType = "Hunger"
 	Light            ecs.ComponentType = "Light"
 	CraftingStation  ecs.ComponentType = "CraftingStation"
+	Skills           ecs.ComponentType = "Skills"
 	Script           ecs.ComponentType = "Script"
 	LaserBeam        ecs.ComponentType = "LaserBeam"
 )

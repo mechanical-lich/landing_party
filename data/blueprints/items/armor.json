@@ -24,6 +24,11 @@
             "Tags": [
                 "enviro"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "enviro_boots": {
@@ -51,6 +56,11 @@
             "Tags": [
                 "enviro"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "enviro_suit": {
@@ -77,6 +87,11 @@
             "StoppingPower": 2,
             "Tags": [
                 "enviro"
+            ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     },
@@ -861,6 +876,11 @@
             "Tags": [
                 "radiation"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "radiation_torso": {
@@ -887,6 +907,11 @@
             "StoppingPower": 2,
             "Tags": [
                 "radiation"
+            ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     },
@@ -915,6 +940,11 @@
             "Tags": [
                 "radiation"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "radiation_feet": {
@@ -941,6 +971,11 @@
             "StoppingPower": 1,
             "Tags": [
                 "radiation"
+            ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     },
@@ -969,6 +1004,11 @@
             "Tags": [
                 "super_radiation"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "super_radiation_torso": {
@@ -995,6 +1035,11 @@
             "StoppingPower": 3,
             "Tags": [
                 "super_radiation"
+            ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     },
@@ -1023,6 +1068,11 @@
             "Tags": [
                 "super_radiation"
             ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
         }
     },
     "super_radiation_feet": {
@@ -1049,6 +1099,11 @@
             "StoppingPower": 1,
             "Tags": [
                 "super_radiation"
+            ]
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     }

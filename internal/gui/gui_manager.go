@@ -58,7 +58,7 @@ func (gm *GUIManager) GetMouseFocused() bool            { return gm.hud.GetMouse
 func (gm *GUIManager) WithinModalBounds(x, y int) bool { return gm.hud.WithinModalBounds(x, y) }
 
 func (gm *GUIManager) SetHoveredEntity(entity *ecs.Entity)                        { gm.hud.SetHoveredEntity(entity) }
-func (gm *GUIManager) SetHoveredTile(name string, solid, water, air, space bool) { gm.hud.SetHoveredTile(name, solid, water, air, space) }
+func (gm *GUIManager) SetHoveredTile(info HoveredTileInfo) { gm.hud.SetHoveredTile(info) }
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
 func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }

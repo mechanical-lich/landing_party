@@ -333,6 +333,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
+			clearTileRadiation(tile)
 			tile.Type = world.TileNameToIndex["regolith"]
 			tile.Variant = world.RandomTileVariant("regolith")
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
@@ -345,6 +346,17 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			wc.CurrentTask = nil
 		}
 	}
+}
+
+// clearTileRadiation zeros a tile's runtime radiation level. Called after a
+// tile is dug or mined since the contamination leaves with the displaced
+// material. Radioactive yield is now driven by the tile type (e.g.
+// "radioactive_ore"), not the runtime radiation field.
+func clearTileRadiation(tile *world.Tile) {
+	if tile == nil {
+		return
+	}
+	tile.Radiation = 0
 }
 
 func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
@@ -369,6 +381,8 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 				dropBlueprint = "metal_ore"
 			case "crystal_vein":
 				dropBlueprint = "crystal"
+			case "radioactive_ore":
+				dropBlueprint = "radioactive_material"
 			}
 			if dropBlueprint != "" {
 				ore, err := factory.Create(dropBlueprint, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
@@ -381,6 +395,7 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 
 		if req.Progress >= req.Required {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
+			clearTileRadiation(tile)
 			tile.Type = world.TileNameToIndex["rock"]
 			tile.Variant = world.RandomTileVariant("rock")
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)

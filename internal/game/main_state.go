@@ -122,11 +122,25 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if entity.HasComponent(components.Drops) {
 				dropsC := entity.GetComponent(components.Drops).(*components.DropsComponent)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				// If a friendly worker is adjacent (presumed killer), drops go
+				// straight into their bag and they auto-equip anything useful —
+				// equipped gear isn't subject to auto-dropoff.
+				killer := findAdjacentWorker(level, pc.GetX(), pc.GetY(), pc.GetZ())
 				for _, drop := range dropsC.Items {
 					dropEntity, err := factory.Create(drop, pc.GetX(), pc.GetY(), pc.GetZ())
-					if err == nil {
+					if err != nil {
+						continue
+					}
+					if killer != nil && killer.HasComponent(rlcomponents.Inventory) {
+						inv := killer.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+						inv.AddItem(dropEntity)
+					} else {
 						level.AddEntity(dropEntity)
 					}
+				}
+				if killer != nil && killer.HasComponent(rlcomponents.Inventory) {
+					inv := killer.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+					inv.EquipAllBest()
 				}
 			}
 		},
@@ -139,6 +153,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(aiSystem)
 	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
+	s.systemManager.AddSystem(&systems.RadiationSystem{})
 	s.systemManager.AddSystem(&systems.LightingSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	s.systemManager.AddSystem(&systems.FactionDoorSystem{})
@@ -215,6 +230,26 @@ func NewMainState(cfg SettlementConfig) (*MainState, error) {
 	}
 	s.newGame()
 	return s, nil
+}
+
+// findAdjacentWorker returns the first Worker entity within one tile of (x,y,z),
+// presumed to be the killer of a freshly-dead hostile. Returns nil if no
+// friendly worker is adjacent (drops will fall to the ground in that case).
+func findAdjacentWorker(level *world.Level, x, y, z int) *ecs.Entity {
+	for dx := -1; dx <= 1; dx++ {
+		for dy := -1; dy <= 1; dy++ {
+			for _, e := range level.Entities {
+				if !e.HasComponent(components.Worker) || e.HasComponent(rlcomponents.Dead) {
+					continue
+				}
+				pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				if pc.GetX() == x+dx && pc.GetY() == y+dy && pc.GetZ() == z {
+					return e
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (s *MainState) newGame() {
@@ -373,6 +408,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	viewH := config.Global().WorldHeight / s.TileSizeH
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
 	world.DrawLightOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
+	world.DrawRadiationOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 
 	s.drawTasks(s.worldImage)
 	cfg := config.Global()
@@ -931,7 +967,18 @@ func (s *MainState) updateHovered() {
 	}
 	t := tile.(*world.Tile)
 	def := world.TileDefinitions[t.Type]
-	s.guiManager.SetHoveredTile(def.Name, def.Solid, def.Water, def.Air, def.Space)
+	s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
+		Name:       def.Name,
+		X:          tX,
+		Y:          tY,
+		Z:          s.CameraZ,
+		LightLevel: t.LightLevel,
+		Radiation:  int(t.Radiation),
+		Solid:      def.Solid,
+		Water:      def.Water,
+		Air:        def.Air,
+		Space:      def.Space,
+	})
 }
 
 func (s *MainState) refreshHUD() {

@@ -122,6 +122,20 @@
         "resource": "scifi_world"
     },
     {
+        "name": "radioactive_ore",
+        "solid": true,
+        "lightLevel": 25,
+        "lightRange": 3,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 648
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
         "name": "dirt",
         "variants": [
             {

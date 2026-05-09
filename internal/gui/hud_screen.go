@@ -828,8 +828,17 @@ func (h *HUDScreen) SetHoveredEntity(entity *ecs.Entity) {
 	h.detailsPanel.SetVisible(true)
 }
 
+// HoveredTileInfo carries the data shown in the tile-hover detail panel.
+type HoveredTileInfo struct {
+	Name                  string
+	X, Y, Z               int
+	LightLevel            int
+	Radiation             int
+	Solid, Water, Air, Space bool
+}
+
 // SetHoveredTile shows tile info in the detail panel when no entity is under the cursor.
-func (h *HUDScreen) SetHoveredTile(name string, solid, water, air, space bool) {
+func (h *HUDScreen) SetHoveredTile(info HoveredTileInfo) {
 	h.hoveredEntity = nil
 	h.selectedEntity = nil
 
@@ -844,18 +853,23 @@ func (h *HUDScreen) SetHoveredTile(name string, solid, water, air, space bool) {
 		labelID++
 	}
 
-	add("Tile: " + name)
+	add("Tile: " + info.Name)
+	add(fmt.Sprintf("Pos: %d, %d, %d", info.X, info.Y, info.Z))
+	add(fmt.Sprintf("Light: %d", info.LightLevel))
+	if info.Radiation > 0 {
+		add(fmt.Sprintf("Radiation: %d", info.Radiation))
+	}
 	flags := ""
-	if solid {
+	if info.Solid {
 		flags += " solid"
 	}
-	if water {
+	if info.Water {
 		flags += " water"
 	}
-	if air {
+	if info.Air {
 		flags += " air"
 	}
-	if space {
+	if info.Space {
 		flags += " space"
 	}
 	if flags != "" {

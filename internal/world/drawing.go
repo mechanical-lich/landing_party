@@ -12,7 +12,9 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/resource"
+	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
+	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 )
 
 var drawOp = &ebiten.DrawImageOptions{}
@@ -194,6 +196,27 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 	screen.DrawImage(lightOverlayImg, nil)
 }
 
+// DrawRadiationOverlay paints a green tint over tiles with nonzero Radiation.
+// Intensity scales with the tile's Radiation byte (0..255).
+func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, viewW, viewH int) {
+	for sx := 0; sx < viewW; sx++ {
+		for sy := 0; sy < viewH; sy++ {
+			tile := level.GetTilePtr(cameraX+sx, cameraY+sy, cameraZ)
+			if tile == nil || tile.Radiation == 0 {
+				continue
+			}
+			// Cap alpha at ~140 so even the most radioactive tile stays readable.
+			alpha := uint8(int(tile.Radiation) * 140 / 255)
+			tint := color.RGBA{60, 220, 80, alpha}
+			vector.DrawFilledRect(screen,
+				float32(sx*tileSizeW), float32(sy*tileSizeH),
+				float32(tileSizeW), float32(tileSizeH),
+				tint, false,
+			)
+		}
+	}
+}
+
 func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	var resourceName string
 	var spriteX, spriteY, srcW, srcH int
@@ -299,17 +322,24 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 }
 
 // workingOffset returns a small in-place sway toward whatever the entity is
-// currently interacting with — a task target (research/craft/pickup/etc) or
-// the AI memory target during a dropoff. Returns (0, 0) when the worker isn't
-// actively engaged.
+// currently interacting with — a worker's task target (research/craft/pickup),
+// a dropoff destination, or a hostile AI's tracked prey. Returns (0, 0) when
+// the entity isn't engaged or isn't adjacent to its target yet.
 func workingOffset(entity *ecs.Entity, tileW, tileH float64) (float64, float64) {
-	if !entity.HasComponent(components.Worker) || !entity.HasComponent(rlcomponents.Position) {
+	// Fast-path: walls, items, doors, etc. never animate — bail before doing
+	// any of the per-target component lookups below. This runs every frame on
+	// every visible entity, so the early exit matters for FPS.
+	if !entity.HasComponent(components.Worker) &&
+		!entity.HasComponent(rlcomponents.HostileAI) &&
+		!entity.HasComponent(components.FactionAI) {
 		return 0, 0
 	}
-	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	if !entity.HasComponent(rlcomponents.Position) {
+		return 0, 0
+	}
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 
-	tx, ty, tz, ok := interactionTarget(entity, wc)
+	tx, ty, tz, ok := interactionTarget(entity)
 	if !ok {
 		return 0, 0
 	}
@@ -324,16 +354,60 @@ func workingOffset(entity *ecs.Entity, tileW, tileH float64) (float64, float64) 
 	return float64(dx) * tileW * maxNudge * phase, float64(dy) * tileH * maxNudge * phase
 }
 
-func interactionTarget(entity *ecs.Entity, wc *components.WorkerComponent) (x, y, z int, ok bool) {
-	// Active task with target coordinates (research, craft, pickup, build, ...).
-	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
-		return wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, true
+// isInteractAction returns true for tasks that animate as on-target work.
+// Plain "move to" orders have an empty action and are excluded.
+func isInteractAction(a task.TaskAction) bool {
+	switch a {
+	case task_requests.PickupAction,
+		task_requests.BuildAction,
+		task_requests.DigAction,
+		task_requests.MineAction,
+		task_requests.ForageAction,
+		task_requests.AttackAction,
+		task_requests.ResearchAction,
+		task_requests.CraftAction:
+		return true
+	}
+	return false
+}
+
+func interactionTarget(entity *ecs.Entity) (x, y, z int, ok bool) {
+	// Worker task (research, craft, pickup, build, attack, ...).
+	// Plain "go here" orders have an empty Action and should NOT animate as
+	// interactions — only known interact actions do.
+	if entity.HasComponent(components.Worker) {
+		wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+		if wc.CurrentTask != nil && !wc.CurrentTask.Completed && isInteractAction(wc.CurrentTask.Action) {
+			// If the task is targeted at an entity (e.g. attack), prefer that
+			// entity's current position so a moving target still pulls a lean.
+			if target, ok := wc.CurrentTask.Data.(*ecs.Entity); ok && target != nil &&
+				target.HasComponent(rlcomponents.Position) && !target.HasComponent(rlcomponents.Dead) {
+				tpc := target.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				return tpc.GetX(), tpc.GetY(), tpc.GetZ(), true
+			}
+			return wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, true
+		}
 	}
 	// Dropoff is AI-state driven, not task driven.
 	if entity.HasComponent(rlcomponents.AIMemory) {
 		mem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 		if mem.State == "dropoff" {
 			return mem.TargetX, mem.TargetY, mem.TargetZ, true
+		}
+	}
+	// Hostile AI mobs track their prey on HostileAIComponent.TargetX/Y.
+	if entity.HasComponent(rlcomponents.HostileAI) {
+		hc := entity.GetComponent(rlcomponents.HostileAI).(*rlcomponents.HostileAIComponent)
+		if hc.TargetX != 0 || hc.TargetY != 0 {
+			pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			return hc.TargetX, hc.TargetY, pc.GetZ(), true
+		}
+	}
+	// Faction AI mobs (aliens et al) track their prey on FactionAIComponent.
+	if entity.HasComponent(components.FactionAI) {
+		fac := entity.GetComponent(components.FactionAI).(*components.FactionAIComponent)
+		if fac.HasTarget {
+			return fac.TargetX, fac.TargetY, fac.TargetZ, true
 		}
 	}
 	return 0, 0, 0, false

@@ -70,6 +70,10 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 		)
 		if closest != nil {
 			targetPC := closest.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			fac.TargetX = targetPC.GetX()
+			fac.TargetY = targetPC.GetY()
+			fac.TargetZ = targetPC.GetZ()
+			fac.HasTarget = true
 			dx, dy := 0, 0
 			if pc.GetX() < targetPC.GetX() {
 				dx = 1
@@ -96,6 +100,7 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 			}
 			return nil
 		}
+		fac.HasTarget = false
 		fallthrough
 	default:
 		dx := utility.GetRandom(-1, 2)

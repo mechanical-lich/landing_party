@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 
@@ -212,6 +213,127 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			return float64(0), nil
 		}
 		return float64(rand.Intn(n)), nil
+	})
+
+	// set_radiation(x, y, z, level) — set a single tile's radiation (0..255).
+	interp.RegisterFunc("set_radiation", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return nil, nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		lv := int(toSetupFloat(args[3]))
+		if lv < 0 {
+			lv = 0
+		} else if lv > 255 {
+			lv = 255
+		}
+		t := level.GetTilePtr(x, y, z)
+		if t == nil {
+			return nil, nil
+		}
+		t.Radiation = uint8(lv)
+		return nil, nil
+	})
+
+	// place_radiation_blob(cx, cy, z, radius, peak) — circular blob with linear
+	// falloff from `peak` at the center to 0 at the edge. Existing radiation
+	// is preserved if higher (blobs add, never reduce).
+	interp.RegisterFunc("place_radiation_blob", func(args ...any) (any, error) {
+		if len(args) < 5 {
+			return nil, nil
+		}
+		cx := int(toSetupFloat(args[0]))
+		cy := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		r := int(toSetupFloat(args[3]))
+		peak := int(toSetupFloat(args[4]))
+		if r < 1 || peak <= 0 {
+			return nil, nil
+		}
+		if peak > 255 {
+			peak = 255
+		}
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				dist2 := dx*dx + dy*dy
+				if dist2 > r*r {
+					continue
+				}
+				t := level.GetTilePtr(cx+dx, cy+dy, z)
+				if t == nil {
+					continue
+				}
+				dist := math.Sqrt(float64(dist2))
+				falloff := 1.0 - dist/float64(r)
+				lv := int(float64(peak) * falloff)
+				if lv > int(t.Radiation) {
+					t.Radiation = uint8(lv)
+				}
+			}
+		}
+		return nil, nil
+	})
+
+	// scatter_radiation(count, max_radius, peak) — drop `count` random blobs
+	// across the current Z level. Convenience wrapper that the scenario can
+	// call once instead of looping in script. Each blob also seeds 1–3
+	// radioactive_ore tiles near its centre to represent the leak's source.
+	interp.RegisterFunc("scatter_radiation", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return nil, nil
+		}
+		count := int(toSetupFloat(args[0]))
+		maxR := int(toSetupFloat(args[1]))
+		peak := int(toSetupFloat(args[2]))
+		if count <= 0 || maxR < 1 || peak <= 0 {
+			return nil, nil
+		}
+		if peak > 255 {
+			peak = 255
+		}
+		w, h, depth := level.GetWidth(), level.GetHeight(), level.GetDepth()
+		for i := 0; i < count; i++ {
+			cx := rand.Intn(w)
+			cy := rand.Intn(h)
+			z := rand.Intn(depth)
+			r := 1 + rand.Intn(maxR)
+			for dy := -r; dy <= r; dy++ {
+				for dx := -r; dx <= r; dx++ {
+					dist2 := dx*dx + dy*dy
+					if dist2 > r*r {
+						continue
+					}
+					t := level.GetTilePtr(cx+dx, cy+dy, z)
+					if t == nil {
+						continue
+					}
+					dist := math.Sqrt(float64(dist2))
+					lv := int(float64(peak) * (1.0 - dist/float64(r)))
+					if lv > int(t.Radiation) {
+						t.Radiation = uint8(lv)
+					}
+				}
+			}
+			// Plant 1–3 radioactive_ore tiles within a 1-tile cluster at
+			// the centre, only on tiles that aren't air/space/water.
+			oreSeeds := 1 + rand.Intn(3)
+			for j := 0; j < oreSeeds; j++ {
+				ox := cx + rand.Intn(3) - 1
+				oy := cy + rand.Intn(3) - 1
+				t := level.GetTilePtr(ox, oy, z)
+				if t == nil {
+					continue
+				}
+				def := world.TileDefinitions[t.Type]
+				if def.Air || def.Space || def.Water {
+					continue
+				}
+				world.SetTileTypeAndVariant(t, "radioactive_ore", world.RandomTileVariant("radioactive_ore"))
+			}
+		}
+		return nil, nil
 	})
 }
 
