@@ -1,6 +1,9 @@
 package task_requests
 
-import "github.com/mechanical-lich/mlge/task"
+import (
+	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/task"
+)
 
 type BuildRequest struct {
 	Type     string
@@ -25,6 +28,9 @@ type MineRequest struct {
 	Z        int
 	Progress int
 	Required int
+	// Target is set when mining a Choppable entity (e.g. alien_crystal)
+	// instead of a tile. nil means "mine the tile at (X,Y,Z)".
+	Target *ecs.Entity
 }
 
 type ResearchRequest struct {

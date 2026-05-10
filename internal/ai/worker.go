@@ -371,7 +371,24 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		req.Progress++
 		wc.CurrentTask.Data = req
 
-		// Yield ore every 10 progress ticks so partial work isn't wasted
+		// Choppable entity branch — take it down and let CleanUpSystem fire
+		// drops. The Target may have been removed already if a previous
+		// worker finished it; cancel the task in that case.
+		if req.Target != nil {
+			if req.Target.HasComponent(rlcomponents.Dead) {
+				CompleteTaskWithMessage(entity, wc.CurrentTask, "Already harvested")
+				aiMemory.State = "idle"
+				return
+			}
+			if req.Progress >= req.Required {
+				req.Target.AddComponent(&rlcomponents.DeadComponent{})
+				CompleteTaskWithMessage(entity, wc.CurrentTask, "Harvested")
+				aiMemory.State = "idle"
+			}
+			return
+		}
+
+		// Tile branch — yield ore every 10 ticks so partial work isn't wasted
 		if req.Progress%10 == 0 {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			tileName := world.TileDefinitions[tile.Type].Name

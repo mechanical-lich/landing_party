@@ -18,6 +18,53 @@ func init() {
 	RegisterFeature("botany_bay", placeBotanyBay)
 	RegisterFeature("structure", placeStructure)
 	RegisterFeature("scatter_tile", placeScatterTile)
+	RegisterFeature("scatter_entity", placeScatterEntity)
+}
+
+// scatter_entity — sparse single-entity decoration on surface tiles matching
+// a kind. Spawns via the entity factory; failures (missing blueprint) skip
+// silently after a one-time warning.
+//   params: blueprint (string, required), kind (string, default "surface")
+func placeScatterEntity(level *world.Level, s FeatureSpec) error {
+	bp := featureParamString(s, "blueprint", "")
+	if bp == "" {
+		return errFeature("scatter_entity", "params.blueprint required")
+	}
+	wantKind := featureParamString(s, "kind", "surface")
+	count := s.Count
+	if count <= 0 {
+		count = 50
+	}
+	maxAttempts := count * 8
+	for i := 0; i < maxAttempts; i++ {
+		if count <= 0 {
+			break
+		}
+		x, y, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
+		if !columnMatchesBiome(level, x, y, s.Biome) {
+			continue
+		}
+		surfZ := level.GetSurfaceZ(x, y)
+		if surfZ < 0 {
+			continue
+		}
+		if kindString(level.GetTerrainKind(x, y, surfZ)) != wantKind {
+			continue
+		}
+		if level.GetEntityAt(x, y, surfZ) != nil {
+			continue
+		}
+		e, err := factory.Create(bp, x, y, surfZ)
+		if err != nil {
+			return nil
+		}
+		level.AddEntity(e)
+		count--
+	}
+	return nil
 }
 
 // scatter_tile — sparse single-tile decoration matching by terrain kind.
@@ -35,14 +82,15 @@ func placeScatterTile(level *world.Level, s FeatureSpec) error {
 	if count <= 0 {
 		count = 50
 	}
-	w, h := level.GetWidth(), level.GetHeight()
 	maxAttempts := count * 8
 	for i := 0; i < maxAttempts; i++ {
 		if count <= 0 {
 			break
 		}
-		x := rand.Intn(w)
-		y := rand.Intn(h)
+		x, y, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
 		if !columnMatchesBiome(level, x, y, s.Biome) {
 			continue
 		}
@@ -71,10 +119,17 @@ func placeOreVein(level *world.Level, s FeatureSpec) error {
 	if count <= 0 {
 		count = 20
 	}
-	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
-	for placed := 0; placed < count; placed++ {
-		cx := rand.Intn(w)
-		cy := rand.Intn(h)
+	d := level.GetDepth()
+	maxAttempts := count * 8
+	placed := 0
+	for tries := 0; placed < count && tries < maxAttempts; tries++ {
+		cx, cy, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
+		if !columnMatchesBiome(level, cx, cy, s.Biome) {
+			continue
+		}
 		minZ := s.MinZ
 		maxZ := s.MaxZ
 		if maxZ <= 0 {
@@ -86,10 +141,8 @@ func placeOreVein(level *world.Level, s FeatureSpec) error {
 		if maxZ < minZ || maxZ >= d {
 			continue
 		}
-		cz := minZ + rand.Intn(maxZ-minZ+1)
-		if !columnMatchesBiome(level, cx, cy, s.Biome) {
-			continue
-		}
+		cz := minZ + randIntn(maxZ-minZ+1)
+		anyPainted := false
 		for dy := -radius; dy <= radius; dy++ {
 			for dx := -radius; dx <= radius; dx++ {
 				if dx*dx+dy*dy > radius*radius {
@@ -101,8 +154,12 @@ func placeOreVein(level *world.Level, s FeatureSpec) error {
 				k := level.GetTerrainKind(cx+dx, cy+dy, cz)
 				if k == world.TKUnderground || k == world.TKSubsurface {
 					level.UpdateTileAt(cx+dx, cy+dy, cz, tile, world.RandomTileVariant(tile))
+					anyPainted = true
 				}
 			}
+		}
+		if anyPainted {
+			placed++
 		}
 	}
 	return nil
@@ -122,10 +179,13 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 	if count <= 0 {
 		count = 5
 	}
-	w, h := level.GetWidth(), level.GetHeight()
-	for i := 0; i < count; i++ {
-		cx := rand.Intn(w)
-		cy := rand.Intn(h)
+	maxAttempts := count * 8
+	placed := 0
+	for tries := 0; placed < count && tries < maxAttempts; tries++ {
+		cx, cy, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
 		if !columnMatchesBiome(level, cx, cy, s.Biome) {
 			continue
 		}
@@ -139,8 +199,9 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 			if hi < lo {
 				hi = lo
 			}
-			z = lo + rand.Intn(hi-lo+1)
+			z = lo + randIntn(hi-lo+1)
 		}
+		anyHit := false
 		for dy := -radius; dy <= radius; dy++ {
 			for dx := -radius; dx <= radius; dx++ {
 				dist2 := dx*dx + dy*dy
@@ -155,8 +216,12 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 				lv := int(float64(peak) * (1.0 - dist/float64(radius)))
 				if lv > int(t.Radiation) {
 					t.Radiation = uint8(lv)
+					anyHit = true
 				}
 			}
+		}
+		if anyHit {
+			placed++
 		}
 		if !oreOK {
 			continue
@@ -179,22 +244,22 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 	return nil
 }
 
-// crystal_grove — surface cluster of crystal tiles + light entities.
-//   params: tile (default "crystal"), radius (default 4)
+// crystal_grove — surface cluster of crystal entities (spawned via factory).
+//   params: blueprint (default "alien_crystal"), radius (default 4)
 func placeCrystalGrove(level *world.Level, s FeatureSpec) error {
-	tile := featureParamString(s, "tile", "crystal")
-	if !requireTile(tile) {
-		return nil
-	}
+	bp := featureParamString(s, "blueprint", "alien_crystal")
 	radius := featureParamInt(s, "radius", 4)
 	count := s.Count
 	if count <= 0 {
 		count = 8
 	}
-	w, h := level.GetWidth(), level.GetHeight()
-	for i := 0; i < count; i++ {
-		cx := rand.Intn(w)
-		cy := rand.Intn(h)
+	maxAttempts := count * 8
+	placed := 0
+	for tries := 0; placed < count && tries < maxAttempts; tries++ {
+		cx, cy, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
 		if !columnMatchesBiome(level, cx, cy, s.Biome) {
 			continue
 		}
@@ -202,6 +267,7 @@ func placeCrystalGrove(level *world.Level, s FeatureSpec) error {
 		if surfZ < 0 {
 			continue
 		}
+		anySpawned := false
 		for dy := -radius; dy <= radius; dy++ {
 			for dx := -radius; dx <= radius; dx++ {
 				if dx*dx+dy*dy > radius*radius {
@@ -210,11 +276,23 @@ func placeCrystalGrove(level *world.Level, s FeatureSpec) error {
 				if rand.Intn(4) != 0 {
 					continue
 				}
-				k := level.GetTerrainKind(cx+dx, cy+dy, surfZ)
-				if k == world.TKSurface {
-					level.UpdateTileAt(cx+dx, cy+dy, surfZ, tile, world.RandomTileVariant(tile))
+				tx, ty := cx+dx, cy+dy
+				if level.GetTerrainKind(tx, ty, surfZ) != world.TKSurface {
+					continue
 				}
+				if level.GetEntityAt(tx, ty, surfZ) != nil {
+					continue
+				}
+				e, err := factory.Create(bp, tx, ty, surfZ)
+				if err != nil {
+					return nil // blueprint missing, bail
+				}
+				level.AddEntity(e)
+				anySpawned = true
 			}
+		}
+		if anySpawned {
+			placed++
 		}
 	}
 	return nil
@@ -232,10 +310,13 @@ func placeLavaLake(level *world.Level, s FeatureSpec) error {
 	if count <= 0 {
 		count = 3
 	}
-	w, h := level.GetWidth(), level.GetHeight()
-	for i := 0; i < count; i++ {
-		cx := rand.Intn(w)
-		cy := rand.Intn(h)
+	maxAttempts := count * 8
+	placed := 0
+	for tries := 0; placed < count && tries < maxAttempts; tries++ {
+		cx, cy, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
 		if !columnMatchesBiome(level, cx, cy, s.Biome) {
 			continue
 		}
@@ -243,6 +324,7 @@ func placeLavaLake(level *world.Level, s FeatureSpec) error {
 		if surfZ < 0 {
 			continue
 		}
+		anyPainted := false
 		for dy := -radius; dy <= radius; dy++ {
 			for dx := -radius; dx <= radius; dx++ {
 				if dx*dx+dy*dy > radius*radius {
@@ -251,8 +333,12 @@ func placeLavaLake(level *world.Level, s FeatureSpec) error {
 				k := level.GetTerrainKind(cx+dx, cy+dy, surfZ)
 				if k == world.TKSurface || k == world.TKSubsurface {
 					level.UpdateTileAt(cx+dx, cy+dy, surfZ, tile, world.RandomTileVariant(tile))
+					anyPainted = true
 				}
 			}
+		}
+		if anyPainted {
+			placed++
 		}
 	}
 	return nil

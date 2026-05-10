@@ -1,21 +1,21 @@
 {
-    "metal_ore": {
+    "biomass": {
         "Appearance": {
             "R": 255,
-            "G": 255,
-            "B": 255,
+            "G": 172,
+            "B": 174,
             "Resource": "scifi_items",
             "SpriteX": 0,
             "SpriteY": 0,
             "SpriteSize": 16
         },
         "Description": {
-            "Name": "Metal Ore",
+            "Name": "Biomass",
             "Faction": ""
         },
         "Item": {},
         "ResourceItem": {
-            "Type": "metal_ore"
+            "Type": "biomass"
         }
     },
     "crystal": {
@@ -38,6 +38,44 @@
             "Type": "crystal"
         }
     },
+    "metal_ore": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 16,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Metal Ore",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "metal_ore"
+        }
+    },
+    "radioactive_material": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Radioactive Material",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "radioactive_material"
+        }
+    },
     "stone": {
         "Appearance": {
             "R": 180,
@@ -56,26 +94,6 @@
         "Item": {},
         "ResourceItem": {
             "Type": "stone"
-        }
-    },
-    "radioactive_material": {
-        "Appearance": {
-            "R": 120,
-            "G": 230,
-            "B": 90,
-            "Bounces": false,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 0,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Radioactive Material",
-            "Faction": ""
-        },
-        "Item": {},
-        "ResourceItem": {
-            "Type": "radioactive_material"
         }
     }
 }

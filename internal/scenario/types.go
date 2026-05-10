@@ -40,12 +40,14 @@ type BiomeMapBlock struct {
 
 // FeatureBlock mirrors generation.FeatureSpec.
 type FeatureBlock struct {
-	Kind   string         `json:"kind"`
-	Count  int            `json:"count"`
-	Biome  string         `json:"biome,omitempty"`
-	MinZ   int            `json:"min_z,omitempty"`
-	MaxZ   int            `json:"max_z,omitempty"`
-	Params map[string]any `json:"params,omitempty"`
+	Kind     string         `json:"kind"`
+	Count    int            `json:"count"`
+	Biome    string         `json:"biome,omitempty"`
+	InRegion string         `json:"in_region,omitempty"`
+	Jitter   int            `json:"jitter,omitempty"`
+	MinZ     int            `json:"min_z,omitempty"`
+	MaxZ     int            `json:"max_z,omitempty"`
+	Params   map[string]any `json:"params,omitempty"`
 }
 
 type Scenario struct {

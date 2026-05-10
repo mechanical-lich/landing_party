@@ -264,6 +264,8 @@ func (ts *TitleState) Update() state.StateInterface {
 			ts.startNewSettlement()
 			return ts.next
 		}
+		// Block clicks on widgets behind an expanded SelectBox dropdown.
+		minui.PrepareInputClaims(ts.scenarioPicker, ts.lightingPicker)
 		ts.nameInput.Update()
 		ts.randomNameBtn.Update()
 		ts.scenarioPicker.Update()

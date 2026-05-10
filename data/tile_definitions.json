@@ -62,6 +62,7 @@
     {
         "name": "rock",
         "solid": true,
+        "autoTile": 2,
         "variants": [
             {
                 "variant": 0,
@@ -70,12 +71,77 @@
             },
             {
                 "variant": 1,
-                "spriteX": 24,
+                "spriteX": 360,
                 "spriteY": 360
             },
             {
                 "variant": 2,
-                "spriteX": 48,
+                "spriteX": 312,
+                "spriteY": 360
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 360
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 360
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 360
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 360
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 360
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 360
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 360
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 360
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 360
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 360
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 360
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 360
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
                 "spriteY": 360
             }
         ],
@@ -326,28 +392,6 @@
             }
         ],
         "resource": "scifi_world"
-    },
-    {
-        "name": "alien_flora",
-        "variants": [
-            {
-                "variant": 0,
-                "spriteX": 0,
-                "spriteY": 0
-            }
-        ],
-        "resource": "fantasy_world"
-    },
-    {
-        "name": "crystal",
-        "variants": [
-            {
-                "variant": 0,
-                "spriteX": 0,
-                "spriteY": 0
-            }
-        ],
-        "resource": "fantasy_world"
     },
     {
         "name": "lava",

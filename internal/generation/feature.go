@@ -3,6 +3,7 @@ package generation
 import (
 	"fmt"
 	"log"
+	"math/rand"
 
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -10,12 +11,14 @@ import (
 
 // FeatureSpec is the JSON shape for a feature placement directive.
 type FeatureSpec struct {
-	Kind   string         `json:"kind"`
-	Count  int            `json:"count"`
-	Biome  string         `json:"biome,omitempty"`  // restrict to columns with this biome ("" = any)
-	MinZ   int            `json:"min_z,omitempty"`
-	MaxZ   int            `json:"max_z,omitempty"`
-	Params map[string]any `json:"params,omitempty"`
+	Kind     string         `json:"kind"`
+	Count    int            `json:"count"`
+	Biome    string         `json:"biome,omitempty"`     // restrict to columns with this biome ("" = any)
+	InRegion string         `json:"in_region,omitempty"` // pick anchors from level.Regions[name]
+	Jitter   int            `json:"jitter,omitempty"`    // random offset around region anchor (default 6)
+	MinZ     int            `json:"min_z,omitempty"`
+	MaxZ     int            `json:"max_z,omitempty"`
+	Params   map[string]any `json:"params,omitempty"`
 }
 
 // FeaturePlacer places a single instance of a feature at a chosen anchor.
@@ -55,6 +58,37 @@ func columnMatchesBiome(level *world.Level, x, y int, biome string) bool {
 		return true
 	}
 	return level.GetBiome(x, y) == biome
+}
+
+// pickFeatureCenter chooses an (x, y) for one feature instance, honouring
+// spec.InRegion (jittered around a random region anchor) when set, else
+// falling back to a uniform random column. Returns (-1, -1, false) if the
+// spec asks for a region that has no anchors.
+func pickFeatureCenter(level *world.Level, s FeatureSpec) (int, int, bool) {
+	if s.InRegion != "" {
+		anchors := level.Regions[s.InRegion]
+		if len(anchors) == 0 {
+			return -1, -1, false
+		}
+		jitter := s.Jitter
+		if jitter <= 0 {
+			jitter = 6
+		}
+		a := anchors[randIntn(len(anchors))]
+		dx := randIntn(jitter*2+1) - jitter
+		dy := randIntn(jitter*2+1) - jitter
+		return a[0] + dx, a[1] + dy, true
+	}
+	return randIntn(level.GetWidth()), randIntn(level.GetHeight()), true
+}
+
+// randIntn wraps rand.Intn but tolerates n<=0 (returns 0). Saves repetitive
+// guards in placers.
+func randIntn(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	return rand.Intn(n)
 }
 
 func featureParamInt(s FeatureSpec, key string, def int) int {

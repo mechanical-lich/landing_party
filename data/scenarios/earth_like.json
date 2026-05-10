@@ -26,7 +26,7 @@
             { "kind": "ore_vein", "count": 30, "params": { "tile": "ore_deposit", "radius": 3 } },
             { "kind": "ore_vein", "count": 15, "params": { "tile": "crystal_vein", "radius": 2 } },
             { "kind": "radiation_pocket", "count": 2, "biome": "desert", "params": { "peak": 160, "radius": 4 } },
-            { "kind": "scatter_tile", "count": 80, "biome": "forest", "params": { "tile": "alien_flora", "kind": "surface" } }
+            { "kind": "scatter_entity", "count": 80, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } }
         ]
     },
     "win_conditions": {

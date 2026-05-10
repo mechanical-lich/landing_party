@@ -292,6 +292,7 @@ func (s *MainState) newGame() {
 		for _, fb := range sc.World.Features {
 			opts.Features = append(opts.Features, generation.FeatureSpec{
 				Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+				InRegion: fb.InRegion, Jitter: fb.Jitter,
 				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
 			})
 		}
@@ -977,6 +978,24 @@ func (s *MainState) addMineTask(x, y int) {
 	if s.MainSettlement == nil {
 		return
 	}
+	// Prefer a Choppable entity at the tile (e.g. alien_crystal). Required is
+	// derived from the entity's Choppable.Health so harder things take longer.
+	var entBuf []*ecs.Entity
+	s.level.GetEntitiesAt(x, y, s.CameraZ, &entBuf)
+	for _, e := range entBuf {
+		if !e.HasComponent(components.Choppable) {
+			continue
+		}
+		ch := e.GetComponent(components.Choppable).(*components.ChoppableComponent)
+		req := task_requests.MineRequest{X: x, Y: y, Z: s.CameraZ, Required: ch.Health * 10, Target: e}
+		s.MainSettlement.Tasks.AddTask(&task.Task{
+			Action: task_requests.MineAction,
+			Data:   req,
+			X:      x, Y: y, Z: s.CameraZ,
+		})
+		return
+	}
+
 	tile := s.level.GetTileAt(x, y, s.CameraZ)
 	if tile == nil {
 		return
