@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -116,15 +117,34 @@ type HUDScreen struct {
 
 	// Cursor
 	CursorImage *ebiten.Image
+
+	// Tooltips
+	tooltipManager    *minui.TooltipManager
+	listTooltip       *minui.Tooltip
+	craftTooltipDescs []string
+	researchTooltipDescs []string
+	storageTooltipDescs  []string
 }
 
 func NewHUDScreen() *HUDScreen {
 	theme := minui.NewDarkTheme()
+	tm := minui.NewTooltipManager()
+	tm.SetTheme(theme)
+	tm.SetGlobalPosition(minui.TooltipRight)
+	tm.SetGlobalOffset(8)
 	h := &HUDScreen{
-		uiGUI:      minui.NewGUIWithTheme(theme),
-		op:         &ebiten.DrawImageOptions{},
-		knownTechs: map[string]bool{},
+		uiGUI:          minui.NewGUIWithTheme(theme),
+		op:             &ebiten.DrawImageOptions{},
+		knownTechs:     map[string]bool{},
+		tooltipManager: tm,
 	}
+
+	listTT := minui.NewTooltip("listTooltip")
+	listTT.Position = minui.TooltipMouse
+	listTT.Delay = 15
+	listTT.Offset = 40
+	listTT.SetTheme(theme)
+	h.listTooltip = listTT
 	h.setupHUDElements()
 	h.setupSidebar()
 	h.setupModals()
@@ -139,10 +159,14 @@ func (h *HUDScreen) IsOpaque() bool { return true }
 func (h *HUDScreen) Update() {
 	h.uiGUI.Update()
 	h.uiGUI.Layout()
+	h.tooltipManager.Update()
+	h.listTooltip.Update()
 }
 
 func (h *HUDScreen) Draw(screen *ebiten.Image) {
 	h.uiGUI.Draw(screen)
+	h.tooltipManager.Draw(screen)
+	h.listTooltip.Draw(screen)
 	h.drawCursor(screen)
 }
 
@@ -205,9 +229,10 @@ func (h *HUDScreen) setupSidebar() {
 }
 
 type hudBuildOrderItem struct {
-	id    string
-	label string
-	mode  CursorModeType
+	id          string
+	label       string
+	description string
+	mode        CursorModeType
 }
 
 func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
@@ -228,11 +253,11 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			id:    "orders",
 			label: "Orders",
 			items: []hudBuildOrderItem{
-				{"default", "Default", CursorModeDefault},
-				{"dig", "Dig", CursorModeDig},
-				{"mine", "Mine", CursorModeMine},
-				{"cancel", "Cancel Task", CursorModeCancel},
-				{"attack", "Attack", CursorModeAttack},
+				{id: "default", label: "Default", description: "Default cursor mode. Select and inspect entities.", mode: CursorModeDefault},
+				{id: "dig", label: "Dig", description: "Order colonists to dig through terrain.", mode: CursorModeDig},
+				{id: "mine", label: "Mine", description: "Order colonists to mine ore deposits.", mode: CursorModeMine},
+				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
+				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
 			},
 		},
 		{id: "walls", label: "Walls", types: []string{"hull_wall"}},
@@ -259,6 +284,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		for _, child := range snapshot {
 			h.buildSubPanel.RemoveChild(child)
 		}
+		h.tooltipManager.Clear()
 
 		y := 4
 
@@ -284,6 +310,9 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			mi.OnClick = func() {
 				h.selectBuildItem(oiID)
 				event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: oiMode})
+			}
+			if oi.description != "" {
+				h.tooltipManager.RegisterWithTitle(mi, oi.label, oi.description)
 			}
 			h.buildMenuItems[oiID] = mi
 			h.buildSubPanel.AddChild(mi)
@@ -311,6 +340,9 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 					event.GetQueuedInstance().QueueEvent(BuildOptionChangedEvent{Option: btID})
 					event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: CursorModeBuild})
 				}
+			}
+			if buildable.Description != "" {
+				h.tooltipManager.RegisterWithTitle(mi, buildable.Name, buildable.Description)
 			}
 			h.buildMenuItems["build_"+buildType] = mi
 			h.buildSubPanel.AddChild(mi)
@@ -678,6 +710,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	for _, child := range append([]minui.Element{}, h.colonistInvScroll.GetContent()...) {
 		h.colonistInvScroll.RemoveContent(child)
 	}
+	h.tooltipManager.Clear()
 
 	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	dc := colonist.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
@@ -703,6 +736,9 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			mi.OnClick = func() {
 				event.GetQueuedInstance().QueueEvent(DropOffRequestedEvent{Colonist: capturedColonist, Item: capturedItem})
 				h.colonistModal.SetVisible(false)
+			}
+			if ttTitle, ttDesc := itemTooltipText(item); ttTitle != "" || ttDesc != "" {
+				h.tooltipManager.RegisterWithTitle(mi, ttTitle, ttDesc)
 			}
 			h.colonistInvScroll.AddContent(mi)
 		}
@@ -756,6 +792,9 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				})
 				h.colonistModal.SetVisible(false)
 			}
+			if ttTitle, ttDesc := itemTooltipText(captured.item); ttTitle != "" || ttDesc != "" {
+				h.tooltipManager.RegisterWithTitle(mi, ttTitle, ttDesc)
+			}
 			h.colonistScroll.AddContent(mi)
 		} else {
 			lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
@@ -794,11 +833,30 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	h.colonistStorageEntity = colonist
 	items := make([]string, 0, len(storageItems))
 	h.colonistStorageBPs = h.colonistStorageBPs[:0]
+	h.storageTooltipDescs = h.storageTooltipDescs[:0]
 	for _, si := range storageItems {
 		items = append(items, si.Name)
 		h.colonistStorageBPs = append(h.colonistStorageBPs, si.Blueprint)
+		desc := si.Slot
+		if desc != "" {
+			desc = "Slot: " + desc
+		}
+		h.storageTooltipDescs = append(h.storageTooltipDescs, desc)
 	}
 	h.colonistStorageList.SetItems(items)
+	h.colonistStorageList.OnHover = func(idx int) {
+		if idx < 0 || idx >= len(h.storageTooltipDescs) {
+			h.listTooltip.Hide()
+			return
+		}
+		desc := h.storageTooltipDescs[idx]
+		if desc == "" {
+			h.listTooltip.Hide()
+			return
+		}
+		h.listTooltip.SetContent(items[idx], desc, nil)
+		h.listTooltip.Show()
+	}
 
 	h.colonistModal.SetVisible(true)
 }
@@ -824,6 +882,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, s
 
 	items := make([]string, 0, len(recipes))
 	h.craftingRecipeIDs = h.craftingRecipeIDs[:0]
+	h.craftTooltipDescs = h.craftTooltipDescs[:0]
 	for _, r := range recipes {
 		costStr := ""
 		for mat, qty := range r.Cost {
@@ -838,8 +897,22 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, s
 		}
 		items = append(items, label)
 		h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Output)
+		h.craftTooltipDescs = append(h.craftTooltipDescs, r.Description)
 	}
 	h.craftingRecipeList.SetItems(items)
+	h.craftingRecipeList.OnHover = func(idx int) {
+		if idx < 0 || idx >= len(h.craftTooltipDescs) {
+			h.listTooltip.Hide()
+			return
+		}
+		desc := h.craftTooltipDescs[idx]
+		if desc == "" {
+			h.listTooltip.Hide()
+			return
+		}
+		h.listTooltip.SetContent(items[idx], desc, nil)
+		h.listTooltip.Show()
+	}
 
 	h.craftingModal.SetVisible(true)
 }
@@ -870,6 +943,7 @@ func (h *HUDScreen) RefreshResearchModal(available, completed, inProgress []rese
 func (h *HUDScreen) populateResearchTechList(available []research.Tech) {
 	items := make([]string, 0, len(available))
 	keys := make([]string, 0, len(available))
+	h.researchTooltipDescs = h.researchTooltipDescs[:0]
 	for _, t := range available {
 		prereq := ""
 		if t.RequiresTech != "" {
@@ -877,13 +951,28 @@ func (h *HUDScreen) populateResearchTechList(available []research.Tech) {
 		}
 		items = append(items, fmt.Sprintf("%s%s  [%d ticks]", t.Name, prereq, t.Duration))
 		keys = append(keys, t.Key)
+		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
 	}
 	if len(items) == 0 {
 		items = append(items, "No research available.")
 		keys = append(keys, "")
+		h.researchTooltipDescs = append(h.researchTooltipDescs, "")
 	}
 	h.researchTechList.SetItems(items)
 	h.researchTechKeys = keys
+	h.researchTechList.OnHover = func(idx int) {
+		if idx < 0 || idx >= len(h.researchTooltipDescs) {
+			h.listTooltip.Hide()
+			return
+		}
+		desc := h.researchTooltipDescs[idx]
+		if desc == "" {
+			h.listTooltip.Hide()
+			return
+		}
+		h.listTooltip.SetContent(items[idx], desc, nil)
+		h.listTooltip.Show()
+	}
 }
 
 // populateResearchQueueList shows active research at the top, completed below.
@@ -1236,6 +1325,72 @@ func popEntriesEqual(a, b []PopulationEntry) bool {
 		}
 	}
 	return true
+}
+
+// itemTooltipText builds a (title, description) pair for a tooltip from an item entity.
+// Returns empty strings if the item has no useful info to show.
+func itemTooltipText(item *ecs.Entity) (title, desc string) {
+	if item == nil {
+		return "", ""
+	}
+
+	if item.HasComponent(rlcomponents.Description) {
+		dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+		title = dc.Name
+	}
+
+	if item.HasComponent(rlcomponents.Item) {
+		ic := item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent)
+		if ic.Description != "" {
+			desc += ic.Description + "\n"
+		}
+	}
+
+	if item.HasComponent(rlcomponents.Food) {
+		fc := item.GetComponent(rlcomponents.Food).(*rlcomponents.FoodComponent)
+		desc += fmt.Sprintf("Energy: %d\n", fc.Amount)
+	}
+
+	if item.HasComponent(rlcomponents.Weapon) {
+		wc := item.GetComponent(rlcomponents.Weapon).(*rlcomponents.WeaponComponent)
+		line := fmt.Sprintf("DMG: %s", wc.AttackDice)
+		if wc.AttackBonus != 0 {
+			line += fmt.Sprintf("  ATK: %+d", wc.AttackBonus)
+		}
+		if wc.DamageType != "" {
+			line += fmt.Sprintf("  [%s]", wc.DamageType)
+		}
+		if wc.Ranged {
+			line += fmt.Sprintf("  Range: %d", wc.Range)
+		}
+		desc += line + "\n"
+	}
+
+	if item.HasComponent(rlcomponents.Armor) {
+		ac := item.GetComponent(rlcomponents.Armor).(*rlcomponents.ArmorComponent)
+		line := fmt.Sprintf("DEF: %+d", ac.DefenseBonus)
+		if ac.StoppingPower > 0 {
+			line += fmt.Sprintf("  SP: %d", ac.StoppingPower)
+		}
+		desc += line + "\n"
+	}
+
+	if item.HasComponent(components.Skills) {
+		sc := item.GetComponent(components.Skills).(*components.SkillsComponent)
+		if len(sc.Skills) > 0 {
+			desc += "Skills: "
+			for i, s := range sc.Skills {
+				if i > 0 {
+					desc += ", "
+				}
+				desc += s
+			}
+			desc += "\n"
+		}
+	}
+
+	desc = strings.TrimRight(desc, "\n")
+	return title, desc
 }
 
 func goalLinesEqual(a, b []string) bool {

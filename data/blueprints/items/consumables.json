@@ -16,7 +16,9 @@
         "Food": {
             "Amount": 40
         },
-        "Item": {}
+        "Item": {
+            "Description": "A standard field ration. Restores 40 energy when consumed."
+        }
     },
     "protein_bar": {
         "Appearance": {
@@ -35,7 +37,9 @@
         "Food": {
             "Amount": 20
         },
-        "Item": {}
+        "Item": {
+            "Description": "A compact high-protein snack. Restores 20 energy when consumed."
+        }
     },
     "medkit": {
         "Appearance": {
@@ -55,7 +59,8 @@
         "Item": {
             "Slot": "bag",
             "Effect": "heal",
-            "Value": 1
+            "Value": 1,
+            "Description": "Emergency medical supplies. Restores health when used."
         }
     },
     "hydration_gel": {
@@ -75,6 +80,8 @@
         "Food": {
             "Amount": 15
         },
-        "Item": {}
+        "Item": {
+            "Description": "A nutrient-rich gel pack. Restores 15 energy when consumed."
+        }
     }
 }

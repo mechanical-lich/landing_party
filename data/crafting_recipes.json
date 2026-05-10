@@ -1,6 +1,7 @@
 {
     "laser_pistol": {
         "name": "Laser Pistol",
+        "description": "A compact sidearm firing concentrated light pulses. Reliable at close range.",
         "output": "laser_pistol",
         "build_time": 1,
         "cost": {},
@@ -8,6 +9,7 @@
     },
     "plasma_cutter": {
         "name": "Plasma Cutter",
+        "description": "Short-range plasma tool repurposed as a weapon. Devastating up close.",
         "output": "plasma_cutter",
         "build_time": 1,
         "cost": {},
@@ -15,6 +17,7 @@
     },
     "stun_baton": {
         "name": "Stun Baton",
+        "description": "Delivers a powerful electric shock. Non-lethal at low settings.",
         "output": "stun_baton",
         "build_time": 1,
         "cost": {},
@@ -22,6 +25,7 @@
     },
     "enviro_suit": {
         "name": "Enviro Suit",
+        "description": "Full-body suit providing environmental protection against hazardous conditions.",
         "output": "enviro_suit",
         "build_time": 1,
         "cost": {},
@@ -29,6 +33,7 @@
     },
     "medkit": {
         "name": "Medkit",
+        "description": "Emergency medical supplies. Restores health when used.",
         "output": "medkit",
         "build_time": 1,
         "cost": { "biomass": 1 },
@@ -36,6 +41,7 @@
     },
     "rifle": {
         "name": "Rifle",
+        "description": "Standard-issue ballistic rifle. Accurate at medium to long range.",
         "output": "rifle",
         "build_time": 1,
         "cost": {},
@@ -43,6 +49,7 @@
     },
     "shotgun": {
         "name": "Shotgun",
+        "description": "Scattershot firearm. High damage at close range, poor accuracy at distance.",
         "output": "shotgun",
         "build_time": 1,
         "cost": {},
@@ -50,6 +57,7 @@
     },
     "knife": {
         "name": "Knife",
+        "description": "A simple bladed weapon. Fast and silent.",
         "output": "knife",
         "build_time": 1,
         "cost": {},
@@ -57,6 +65,7 @@
     },
     "rocket_launcher": {
         "name": "Rocket Launcher",
+        "description": "Fires explosive rockets. Massive area damage, slow to reload.",
         "output": "rocket_launcher",
         "build_time": 1,
         "cost": {},
@@ -64,6 +73,7 @@
     },
     "flamethrower": {
         "name": "Flamethrower",
+        "description": "Projects a stream of burning fuel. Effective against groups.",
         "output": "flamethrower",
         "build_time": 1,
         "cost": {},
@@ -71,6 +81,7 @@
     },
     "autorifle": {
         "name": "Auto Rifle",
+        "description": "Fully automatic ballistic rifle. High rate of fire, moderate accuracy.",
         "output": "autorifle",
         "build_time": 1,
         "cost": {},
@@ -78,6 +89,7 @@
     },
     "pistol_shield": {
         "name": "Pistol Shield",
+        "description": "A sidearm with an integrated energy shield emitter.",
         "output": "pistol_shield",
         "build_time": 1,
         "cost": {},
@@ -85,6 +97,7 @@
     },
     "flag_rifle_red": {
         "name": "Flag Rifle (Red)",
+        "description": "Ceremonial rifle fitted with red faction markings.",
         "output": "flag_rifle_red",
         "build_time": 1,
         "cost": {},
@@ -92,6 +105,7 @@
     },
     "flag_rifle_blue": {
         "name": "Flag Rifle (Blue)",
+        "description": "Ceremonial rifle fitted with blue faction markings.",
         "output": "flag_rifle_blue",
         "build_time": 1,
         "cost": {},
@@ -99,6 +113,7 @@
     },
     "energy_sword": {
         "name": "Energy Sword",
+        "description": "A melee weapon with an energized blade. High damage, requires skill.",
         "output": "energy_sword",
         "build_time": 1,
         "cost": {},
@@ -106,6 +121,7 @@
     },
     "laser_sword": {
         "name": "Laser Sword",
+        "description": "A focused laser blade capable of cutting through most materials.",
         "output": "laser_sword",
         "build_time": 1,
         "cost": {},
@@ -113,6 +129,7 @@
     },
     "scout_head": {
         "name": "Scout Helmet",
+        "description": "Lightweight helmet with built-in sensors. Low armor, high mobility.",
         "output": "scout_head",
         "build_time": 1,
         "cost": {},
@@ -120,6 +137,7 @@
     },
     "scout_torso": {
         "name": "Scout Vest",
+        "description": "Lightweight vest for reconnaissance. Minimal protection, maximum agility.",
         "output": "scout_torso",
         "build_time": 1,
         "cost": {},
@@ -127,6 +145,7 @@
     },
     "scout_legs": {
         "name": "Scout Pants",
+        "description": "Lightweight leg armor for fast movement.",
         "output": "scout_legs",
         "build_time": 1,
         "cost": {},
@@ -134,6 +153,7 @@
     },
     "scout_feet": {
         "name": "Scout Boots",
+        "description": "Soft-soled boots that reduce noise while moving.",
         "output": "scout_feet",
         "build_time": 1,
         "cost": {},
@@ -141,6 +161,7 @@
     },
     "marine_head": {
         "name": "Marine Helmet",
+        "description": "Standard-issue combat helmet. Solid protection for front-line soldiers.",
         "output": "marine_head",
         "build_time": 1,
         "cost": {},
@@ -148,6 +169,7 @@
     },
     "marine_torso": {
         "name": "Marine Vest",
+        "description": "Ballistic vest standard for infantry. Balances protection and mobility.",
         "output": "marine_torso",
         "build_time": 1,
         "cost": {},
@@ -155,6 +177,7 @@
     },
     "marine_legs": {
         "name": "Marine Pants",
+        "description": "Reinforced combat trousers. Standard marine issue.",
         "output": "marine_legs",
         "build_time": 1,
         "cost": {},
@@ -162,6 +185,7 @@
     },
     "marine_feet": {
         "name": "Marine Boots",
+        "description": "Heavy-duty boots built for long patrols.",
         "output": "marine_feet",
         "build_time": 1,
         "cost": {},
@@ -169,6 +193,7 @@
     },
     "tactical_head": {
         "name": "Tactical Helmet",
+        "description": "Advanced helmet with HUD integration and improved optics.",
         "output": "tactical_head",
         "build_time": 1,
         "cost": {},
@@ -176,6 +201,7 @@
     },
     "tactical_torso": {
         "name": "Tactical Vest",
+        "description": "Modular vest with attachment points for gear and better armor coverage.",
         "output": "tactical_torso",
         "build_time": 1,
         "cost": {},
@@ -183,6 +209,7 @@
     },
     "tactical_legs": {
         "name": "Tactical Pants",
+        "description": "Multi-pocket combat trousers with knee reinforcement.",
         "output": "tactical_legs",
         "build_time": 1,
         "cost": {},
@@ -190,6 +217,7 @@
     },
     "tactical_feet": {
         "name": "Tactical Boots",
+        "description": "Ankle-support boots designed for varied terrain.",
         "output": "tactical_feet",
         "build_time": 1,
         "cost": {},
@@ -197,6 +225,7 @@
     },
     "stealth_head": {
         "name": "Stealth Helmet",
+        "description": "Signal-dampening helmet that reduces detection by electronic sensors.",
         "output": "stealth_head",
         "build_time": 1,
         "cost": {},
@@ -204,6 +233,7 @@
     },
     "stealth_torso": {
         "name": "Stealth Vest",
+        "description": "Micro-fiber vest that absorbs radar and reduces thermal signature.",
         "output": "stealth_torso",
         "build_time": 1,
         "cost": {},
@@ -211,6 +241,7 @@
     },
     "stealth_legs": {
         "name": "Stealth Pants",
+        "description": "Sound-dampening leg armor for silent infiltration.",
         "output": "stealth_legs",
         "build_time": 1,
         "cost": {},
@@ -218,6 +249,7 @@
     },
     "stealth_feet": {
         "name": "Stealth Boots",
+        "description": "Virtually silent boots engineered for covert operations.",
         "output": "stealth_feet",
         "build_time": 1,
         "cost": {},
@@ -225,6 +257,7 @@
     },
     "heat_resistant_head": {
         "name": "Heat Resistant Helmet",
+        "description": "Ceramic-lined helmet that insulates against extreme heat.",
         "output": "heat_resistant_head",
         "build_time": 1,
         "cost": {},
@@ -232,6 +265,7 @@
     },
     "heat_resistant_torso": {
         "name": "Heat Resistant Vest",
+        "description": "Ablative plating that dissipates thermal energy from fire and plasma.",
         "output": "heat_resistant_torso",
         "build_time": 1,
         "cost": {},
@@ -239,6 +273,7 @@
     },
     "heat_resistant_legs": {
         "name": "Heat Resistant Pants",
+        "description": "Insulated leg armor rated for volcanic environments.",
         "output": "heat_resistant_legs",
         "build_time": 1,
         "cost": {},
@@ -246,6 +281,7 @@
     },
     "heat_resistant_feet": {
         "name": "Heat Resistant Boots",
+        "description": "Thermally insulated boots for high-temperature zones.",
         "output": "heat_resistant_feet",
         "build_time": 1,
         "cost": {},
@@ -253,6 +289,7 @@
     },
     "heavy_head": {
         "name": "Heavy Helmet",
+        "description": "Thick plated helmet offering strong head protection at the cost of visibility.",
         "output": "heavy_head",
         "build_time": 1,
         "cost": {},
@@ -260,6 +297,7 @@
     },
     "heavy_torso": {
         "name": "Heavy Vest",
+        "description": "Bulky chest armor. High defense, reduces movement speed.",
         "output": "heavy_torso",
         "build_time": 1,
         "cost": {},
@@ -267,6 +305,7 @@
     },
     "heavy_legs": {
         "name": "Heavy Pants",
+        "description": "Reinforced leg plates for front-line combat.",
         "output": "heavy_legs",
         "build_time": 1,
         "cost": {},
@@ -274,6 +313,7 @@
     },
     "heavy_feet": {
         "name": "Heavy Boots",
+        "description": "Steel-toed boots that protect against crushing and shrapnel.",
         "output": "heavy_feet",
         "build_time": 1,
         "cost": {},
@@ -281,6 +321,7 @@
     },
     "super_heavy_head": {
         "name": "Super Heavy Helmet",
+        "description": "Maximally armored helmet. Extremely heavy but nearly impenetrable.",
         "output": "super_heavy_head",
         "build_time": 1,
         "cost": {},
@@ -288,6 +329,7 @@
     },
     "super_heavy_torso": {
         "name": "Super Heavy Vest",
+        "description": "Elite chest armor with powered exoskeleton assistance.",
         "output": "super_heavy_torso",
         "build_time": 1,
         "cost": {},
@@ -295,6 +337,7 @@
     },
     "super_heavy_legs": {
         "name": "Super Heavy Pants",
+        "description": "Full leg encasement for maximum protection in the most dangerous zones.",
         "output": "super_heavy_legs",
         "build_time": 1,
         "cost": {},
@@ -302,6 +345,7 @@
     },
     "super_heavy_feet": {
         "name": "Super Heavy Boots",
+        "description": "Powered boots with embedded armor plating.",
         "output": "super_heavy_feet",
         "build_time": 1,
         "cost": {},
@@ -309,6 +353,7 @@
     },
     "radiation_head": {
         "name": "Radiation Helmet",
+        "description": "Lead-lined helmet that shields against radiation exposure.",
         "output": "radiation_head",
         "build_time": 1,
         "cost": {},
@@ -316,6 +361,7 @@
     },
     "radiation_torso": {
         "name": "Radiation Vest",
+        "description": "Shielded torso armor for navigating irradiated zones.",
         "output": "radiation_torso",
         "build_time": 1,
         "cost": {},
@@ -323,6 +369,7 @@
     },
     "radiation_legs": {
         "name": "Radiation Pants",
+        "description": "Radiation-dampening leg armor for extended exposure zones.",
         "output": "radiation_legs",
         "build_time": 1,
         "cost": {},
@@ -330,6 +377,7 @@
     },
     "radiation_feet": {
         "name": "Radiation Boots",
+        "description": "Sealed boots that prevent radioactive material contact.",
         "output": "radiation_feet",
         "build_time": 1,
         "cost": {},
@@ -337,6 +385,7 @@
     },
     "super_radiation_head": {
         "name": "Super Radiation Helmet",
+        "description": "Maximum-grade radiation protection with filtered air supply.",
         "output": "super_radiation_head",
         "build_time": 1,
         "cost": {},
@@ -344,6 +393,7 @@
     },
     "super_radiation_torso": {
         "name": "Super Radiation Vest",
+        "description": "Full-spectrum radiation shielding for extreme reactor environments.",
         "output": "super_radiation_torso",
         "build_time": 1,
         "cost": {},
@@ -351,6 +401,7 @@
     },
     "super_radiation_legs": {
         "name": "Super Radiation Pants",
+        "description": "Heavy-duty leg shielding rated for the most hazardous radiation levels.",
         "output": "super_radiation_legs",
         "build_time": 1,
         "cost": {},
@@ -358,6 +409,7 @@
     },
     "super_radiation_feet": {
         "name": "Super Radiation Boots",
+        "description": "Impermeable boots with radiation sensor readout.",
         "output": "super_radiation_feet",
         "build_time": 1,
         "cost": {},
@@ -365,6 +417,7 @@
     },
     "enviro_helmet": {
         "name": "Enviro Helmet",
+        "description": "Sealed helmet with oxygen recycler for hostile atmospheres.",
         "output": "enviro_helmet",
         "build_time": 1,
         "cost": {},
@@ -372,6 +425,7 @@
     },
     "enviro_boots": {
         "name": "Enviro Boots",
+        "description": "Sealed boots rated for corrosive and toxic terrain.",
         "output": "enviro_boots",
         "build_time": 1,
         "cost": {},

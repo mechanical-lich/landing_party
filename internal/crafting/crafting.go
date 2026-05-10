@@ -9,11 +9,12 @@ import (
 )
 
 type Recipe struct {
-	Name      string         `json:"name"`
-	Output    string         `json:"output"`
-	BuildTime int            `json:"build_time"`
-	Cost      map[string]int `json:"cost"`
-	Station   string         `json:"station"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Output      string         `json:"output"`
+	BuildTime   int            `json:"build_time"`
+	Cost        map[string]int `json:"cost"`
+	Station     string         `json:"station"`
 }
 
 var recipes map[string]Recipe
