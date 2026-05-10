@@ -110,6 +110,9 @@ func (e SetTaskFilterEvent) GetType() event.EventType { return SetTaskFilterEven
 
 const DropOffRequestedEventType event.EventType = "drop_off_requested"
 
-type DropOffRequestedEvent struct{ Colonist *ecs.Entity }
+type DropOffRequestedEvent struct {
+	Colonist *ecs.Entity
+	Item     *ecs.Entity
+}
 
 func (e DropOffRequestedEvent) GetType() event.EventType { return DropOffRequestedEventType }

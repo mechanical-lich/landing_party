@@ -19,6 +19,9 @@ type WorkerComponent struct {
 	// SwapCooldown prevents a displaced colonist from being swapped again
 	// immediately, avoiding oscillation in tight corridors.
 	SwapCooldown int
+	// DropOffItem is the specific inventory item to deposit when entering the
+	// "dropoff" state. Cleared after deposit.
+	DropOffItem *ecs.Entity
 }
 
 func (w *WorkerComponent) GetType() ecs.ComponentType { return Worker }

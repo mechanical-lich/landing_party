@@ -577,7 +577,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case gui.SetTaskFilterEvent:
 		s.applyTaskFilter(ev.Colonist, ev.Action, ev.Enabled)
 	case gui.DropOffRequestedEvent:
-		s.requestDropOff(ev.Colonist)
+		s.requestDropOff(ev.Colonist, ev.Item)
 	}
 	return nil
 }
@@ -820,7 +820,7 @@ func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled
 	}
 }
 
-func (s *MainState) requestDropOff(colonist *ecs.Entity) {
+func (s *MainState) requestDropOff(colonist *ecs.Entity, item *ecs.Entity) {
 	if colonist == nil {
 		return
 	}
@@ -856,6 +856,7 @@ func (s *MainState) requestDropOff(colonist *ecs.Entity) {
 	aiMemory.TargetX = storagePC.GetX()
 	aiMemory.TargetY = storagePC.GetY()
 	aiMemory.TargetZ = storagePC.GetZ()
+	wc.DropOffItem = item
 	aiMemory.State = "dropoff"
 }
 

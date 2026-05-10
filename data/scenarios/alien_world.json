@@ -32,7 +32,7 @@
         "features": [
             { "kind": "ore_vein", "count": 25, "params": { "tile": "ore_deposit", "radius": 3 } },
             { "kind": "crystal_grove", "count": 10, "biome": "crystal_field", "params": { "blueprint": "alien_crystal", "radius": 5 } },
-            { "kind": "scatter_entity", "count": 200, "biome": "alien_forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
+            { "kind": "scatter_entity", "count": 1000, "biome": "alien_forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
             { "kind": "radiation_pocket", "count": 4, "params": { "peak": 180, "radius": 4 } }
         ]
     },

@@ -163,10 +163,17 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	if storageEntity != nil && storageEntity.HasComponent(components.Storage) {
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-		for _, item := range inv.Bag {
-			if item.HasComponent(rlcomponents.Item) {
-				storageC.AddItem(item)
-				inv.RemoveItem(item)
+		var toDeposit []*ecs.Entity
+		if wc != nil && wc.DropOffItem != nil {
+			toDeposit = []*ecs.Entity{wc.DropOffItem}
+			wc.DropOffItem = nil
+		} else {
+			toDeposit = append([]*ecs.Entity{}, inv.Bag...)
+		}
+		for _, item := range toDeposit {
+			storageC.AddItem(item)
+			inv.RemoveItem(item)
+			if item.HasComponent(rlcomponents.Description) {
 				dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
 				event.GetQueuedInstance().QueueEvent(eventsystem.ItemStoredEvent{
 					ItemName:   dc.Name,
@@ -202,12 +209,18 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	// Find the first missing material
+	// Find the first missing material (quantity-aware for resource stacks)
 	searching := ""
 	for name, cost := range buildable.Cost {
 		count := 0
 		for _, item := range inv.Bag {
-			if item.Blueprint == name {
+			if item.Blueprint != name {
+				continue
+			}
+			if item.HasComponent(components.ResourceItem) {
+				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+				count += rc.Quantity
+			} else {
 				count++
 			}
 		}
@@ -237,7 +250,14 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		material := storageC.TakeOne(searching)
+		// Take the whole resource stack at once; fall back to TakeOne for non-resources
+		var material *ecs.Entity
+		if storageC.HasItem(searching) {
+			material = storageC.TakeResourceStack(searching)
+			if material == nil {
+				material = storageC.TakeOne(searching)
+			}
+		}
 		if material != nil {
 			inv.AddItem(material)
 		}
@@ -623,28 +643,8 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	if !checkInventoryForCraft(entity, recipe.Cost) {
-		aiMemory.State = "gather_materials_craft"
-		return
-	}
-
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(),
-		cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ, 1, 1, 0) {
-
-		cr.Progress++
-		wc.CurrentTask.Data = cr
-		if cr.Progress >= cr.Required {
-			removeMaterialsByCost(entity, recipe.Cost)
-			output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
-			if err == nil {
-				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-				inv.AddItem(output)
-			}
-			CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
-			aiMemory.State = "idle"
-		}
-	} else {
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ, 1, 1, 0) {
 		if !MoveTowardsTarget(level, entity, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ) {
 			log.Printf("[CRAFT] %s can't reach workbench at (%d,%d,%d) from (%d,%d,%d)",
 				rlentity.GetName(entity), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ,
@@ -653,54 +653,12 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
 		}
+		return
 	}
-}
 
-func HandleGatherMaterialsCraftState(level *world.Level, entity *ecs.Entity) {
-	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
-	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	// At workbench: check storage has ingredients on first tick
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
-	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-
-	if wc.CurrentTask == nil {
-		aiMemory.State = "idle"
-		return
-	}
-
-	cr, ok := wc.CurrentTask.Data.(task_requests.CraftRequest)
-	if !ok {
-		aiMemory.State = "idle"
-		return
-	}
-
-	recipe, found := crafting.GetRecipe(cr.RecipeID)
-	if !found {
-		aiMemory.State = "idle"
-		return
-	}
-
-	// Find the first missing material
-	searching := ""
-	for name, cost := range recipe.Cost {
-		count := 0
-		for _, item := range inv.Bag {
-			if item.Blueprint == name {
-				count++
-			}
-		}
-		if count < cost {
-			searching = name
-			break
-		}
-	}
-
-	if searching == "" {
-		aiMemory.State = "task"
-		return
-	}
-
-	storageEntity := FindClosestStorageWith(level, sc.Name, searching, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
-	if storageEntity == nil {
+	if cr.Progress == 0 && !checkSettlementStorageForCraft(level, sc.Name, recipe.Cost) {
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
 		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to craft "+recipe.Name)
@@ -708,17 +666,95 @@ func HandleGatherMaterialsCraftState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	cr.Progress++
+	wc.CurrentTask.Data = cr
+	if cr.Progress >= cr.Required {
+		deductFromSettlementStorage(level, sc.Name, recipe.Cost)
+		output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+		if err == nil {
+			inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+			inv.AddItem(output)
+		}
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
+		aiMemory.State = "idle"
+	}
+}
 
-	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
-	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
-		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		material := storageC.TakeOne(searching)
-		if material != nil {
-			inv.AddItem(material)
+func checkSettlementStorageForCraft(level *world.Level, settlementName string, cost map[string]int) bool {
+	totals := make(map[string]int, len(cost))
+	for _, e := range level.Entities {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if sc.OwnedBy != settlementName {
+			continue
+		}
+		for name := range cost {
+			totals[name] += sc.CountResource(name)
 		}
 	}
+	for _, e := range level.StaticEntities {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if sc.OwnedBy != settlementName {
+			continue
+		}
+		for name := range cost {
+			totals[name] += sc.CountResource(name)
+		}
+	}
+	for name, required := range cost {
+		if totals[name] < required {
+			return false
+		}
+	}
+	return true
+}
+
+func deductFromSettlementStorage(level *world.Level, settlementName string, cost map[string]int) {
+	remaining := make(map[string]int, len(cost))
+	for k, v := range cost {
+		remaining[k] = v
+	}
+	deductFromStorageList(level.Entities, settlementName, remaining)
+	deductFromStorageList(level.StaticEntities, settlementName, remaining)
+}
+
+func deductFromStorageList(entities []*ecs.Entity, settlementName string, remaining map[string]int) {
+	for _, e := range entities {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if sc.OwnedBy != settlementName {
+			continue
+		}
+		for name, needed := range remaining {
+			if needed <= 0 {
+				continue
+			}
+			have := sc.CountResource(name)
+			if have <= 0 {
+				continue
+			}
+			deduct := needed
+			if have < deduct {
+				deduct = have
+			}
+			sc.DeductResource(name, deduct)
+			remaining[name] -= deduct
+		}
+	}
+}
+
+// HandleGatherMaterialsCraftState is no longer used — crafting deducts ingredients
+// directly from settlement storage when the worker reaches the workbench.
+func HandleGatherMaterialsCraftState(_ *world.Level, entity *ecs.Entity) {
+	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	aiMemory.State = "task"
 }
 
 func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
@@ -865,6 +901,7 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 					aiMemory.TargetX = spc.GetX()
 					aiMemory.TargetY = spc.GetY()
 					aiMemory.TargetZ = spc.GetZ()
+					wc.DropOffItem = e
 					aiMemory.State = "dropoff"
 				} else {
 					aiMemory.State = "idle"
@@ -880,37 +917,18 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 	}
 }
 
-func checkInventoryForCraft(entity *ecs.Entity, cost map[string]int) bool {
-	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-	for name, required := range cost {
-		count := 0
-		for _, item := range inv.Bag {
-			if item.Blueprint == name {
-				count++
-			}
-		}
-		if count < required {
-			return false
-		}
-	}
-	return true
-}
-
-func removeMaterialsByCost(entity *ecs.Entity, cost map[string]int) {
-	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-	for name, required := range cost {
-		for i := 0; i < required; i++ {
-			inv.RemoveItemByName(name)
-		}
-	}
-}
-
 func checkInventoryForMaterials(entity *ecs.Entity, buildable construction.Buildable) bool {
 	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	for name, cost := range buildable.Cost {
 		count := 0
 		for _, item := range inv.Bag {
-			if item.Blueprint == name {
+			if item.Blueprint != name {
+				continue
+			}
+			if item.HasComponent(components.ResourceItem) {
+				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+				count += rc.Quantity
+			} else {
 				count++
 			}
 		}
@@ -924,10 +942,28 @@ func checkInventoryForMaterials(entity *ecs.Entity, buildable construction.Build
 func removeMaterialsFromInventory(entity *ecs.Entity, buildable construction.Buildable) {
 	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	for name, cost := range buildable.Cost {
-		removed := 0
-		for removed < cost {
-			inv.RemoveItemByName(name)
-			removed++
+		remaining := cost
+		i := 0
+		for remaining > 0 && i < len(inv.Bag) {
+			item := inv.Bag[i]
+			if item.Blueprint != name {
+				i++
+				continue
+			}
+			if item.HasComponent(components.ResourceItem) {
+				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+				if rc.Quantity <= remaining {
+					remaining -= rc.Quantity
+					inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+				} else {
+					rc.Quantity -= remaining
+					remaining = 0
+					i++
+				}
+			} else {
+				remaining--
+				inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			}
 		}
 	}
 }

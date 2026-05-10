@@ -31,7 +31,7 @@
         "name": "Medkit",
         "output": "medkit",
         "build_time": 1,
-        "cost": {},
+        "cost": { "biomass": 1 },
         "station": "basic_workbench"
     },
     "rifle": {

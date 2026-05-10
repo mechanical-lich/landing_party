@@ -693,10 +693,15 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			if item.HasComponent(rlcomponents.Description) {
 				name = item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
+			if item.HasComponent(components.ResourceItem) {
+				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+				name = fmt.Sprintf("%s x%d", name, rc.Quantity)
+			}
 			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop Off]", name))
 			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
+			capturedItem := item
 			mi.OnClick = func() {
-				event.GetQueuedInstance().QueueEvent(DropOffRequestedEvent{Colonist: capturedColonist})
+				event.GetQueuedInstance().QueueEvent(DropOffRequestedEvent{Colonist: capturedColonist, Item: capturedItem})
 				h.colonistModal.SetVisible(false)
 			}
 			h.colonistInvScroll.AddContent(mi)
@@ -1180,8 +1185,15 @@ func (h *HUDScreen) updateDetailsContent() {
 		if len(st.Items) > 0 {
 			add(fmt.Sprintf("Storage (%d):", len(st.Items)))
 			for _, item := range st.Items {
+				name := item.Blueprint
 				if d := item.GetComponent(rlcomponents.Description); d != nil {
-					add("  - " + d.(*rlcomponents.DescriptionComponent).Name)
+					name = d.(*rlcomponents.DescriptionComponent).Name
+				}
+				if item.HasComponent(components.ResourceItem) {
+					rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+					add(fmt.Sprintf("  - %s x%d", name, rc.Quantity))
+				} else {
+					add("  - " + name)
 				}
 			}
 		} else {

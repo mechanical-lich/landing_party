@@ -76,7 +76,8 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 	case "gather_materials":
 		ai.HandleGatherMaterialsState(level, entity)
 	case "gather_materials_craft":
-		ai.HandleGatherMaterialsCraftState(level, entity)
+		// No longer used; redirect to task state
+		aiMemory.State = "task"
 	case "findfood":
 		ai.HandleFindFood(level, entity)
 	case "haul":
