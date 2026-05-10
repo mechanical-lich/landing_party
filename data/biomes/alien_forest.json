@@ -4,7 +4,7 @@
   "humidity_range": [0.5, 1.0],
   "rules": [
     { "kind": "surface",     "tile": "grass" },
-    { "kind": "subsurface",  "tile": "dirt" },
+    { "kind": "subsurface",  "tile": "solid_dirt" },
     { "kind": "underground", "tile": "rock" },
     { "kind": "cavern",      "tile": "air" },
     { "kind": "atmosphere",  "tile": "air" },

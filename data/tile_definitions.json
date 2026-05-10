@@ -212,6 +212,23 @@
         "resource": "fantasy_world"
     },
     {
+        "name": "solid_dirt",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 672,
+                "spriteY": 600
+            },
+            {
+                "variant": 1,
+                "spriteX": 696,
+                "spriteY": 600
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
         "name": "grass",
         "variants": [
             {

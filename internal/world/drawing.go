@@ -14,6 +14,7 @@ import (
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
+	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 )
 
@@ -139,6 +140,9 @@ var lightOverlayPixels []byte
 var lightOverlayW, lightOverlayH int
 
 func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, viewW, viewH int) {
+	if config.Global().DebugDisableLighting {
+		return
+	}
 	imgW := viewW * tileSizeW
 	imgH := viewH * tileSizeH
 

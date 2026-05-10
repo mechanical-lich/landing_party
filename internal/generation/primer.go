@@ -88,7 +88,7 @@ func defaultTileForKind(k world.TerrainKind) string {
 	case world.TKSurface:
 		return "regolith"
 	case world.TKSubsurface:
-		return "dirt"
+		return "solid_dirt"
 	case world.TKUnderground:
 		return "rock"
 	case world.TKCavern:

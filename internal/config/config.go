@@ -23,6 +23,7 @@ type Config struct {
 	DPI                    int    `json:"dpi"`
 	BlueprintPath          string `json:"blueprintPath"`
 	RenderPathfindingSteps bool   `json:"renderPathfindingSteps"`
+	DebugDisableLighting   bool   `json:"debugDisableLighting"`
 	ProfileCPU             bool   `json:"profileCPU"`
 	ProfileMemory          bool   `json:"profileMemory"`
 	OverrideGCMemoryLimit  int64  `json:"overrideGCMemoryLimit"`
