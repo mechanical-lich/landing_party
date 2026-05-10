@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"time"
 
 	"image"
 	"image/color"
@@ -123,23 +124,40 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if entity.HasComponent(components.Drops) {
 				dropsC := entity.GetComponent(components.Drops).(*components.DropsComponent)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				// If a friendly worker is adjacent (presumed killer), drops go
-				// straight into their bag and they auto-equip anything useful —
-				// equipped gear isn't subject to auto-dropoff.
 				killer := findAdjacentWorker(level, pc.GetX(), pc.GetY(), pc.GetZ())
+				isChoppable := entity.HasComponent(components.Choppable)
 				for _, drop := range dropsC.Items {
 					dropEntity, err := factory.Create(drop, pc.GetX(), pc.GetY(), pc.GetZ())
 					if err != nil {
 						continue
 					}
-					if killer != nil && killer.HasComponent(rlcomponents.Inventory) {
-						inv := killer.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-						inv.AddItem(dropEntity)
-					} else {
+					if isChoppable {
+						// Harvested resources drop to ground and get a Retrieve task
+						// so dedicated haulers can collect them.
 						level.AddEntity(dropEntity)
+						if killer != nil && killer.HasComponent(components.Settlement) {
+							sc := killer.GetComponent(components.Settlement).(*components.SettlementComponent)
+							if ms, ok := settlement.Settlements[sc.Name]; ok {
+								ms.Tasks.AddTask(&task.Task{
+									X: pc.GetX(), Y: pc.GetY(), Z: pc.GetZ(),
+									Action:  task_requests.RetrieveAction,
+									Data:    task_requests.RetrieveRequest{Item: dropEntity},
+									Created: time.Now(),
+								})
+							}
+						}
+					} else {
+						// Combat drops go straight to the adjacent killer's bag
+						// so they can auto-equip useful gear immediately.
+						if killer != nil && killer.HasComponent(rlcomponents.Inventory) {
+							inv := killer.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+							inv.AddItem(dropEntity)
+						} else {
+							level.AddEntity(dropEntity)
+						}
 					}
 				}
-				if killer != nil && killer.HasComponent(rlcomponents.Inventory) {
+				if !isChoppable && killer != nil && killer.HasComponent(rlcomponents.Inventory) {
 					inv := killer.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 					inv.EquipAllBest()
 				}
@@ -185,6 +203,8 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, eventsystem.ResearchDone)
 	event.GetQueuedInstance().RegisterListener(s, gui.EquipItemRequestedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.UnequipItemRequestedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.SetTaskFilterEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.DropOffRequestedEventType)
 
 	return s, nil
 }
@@ -554,6 +574,10 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		s.addEquipTask(ev.ColonistEntity, ev.ItemBlueprint)
 	case gui.UnequipItemRequestedEvent:
 		s.addUnequipTask(ev.ColonistEntity, ev.Slot)
+	case gui.SetTaskFilterEvent:
+		s.applyTaskFilter(ev.Colonist, ev.Action, ev.Enabled)
+	case gui.DropOffRequestedEvent:
+		s.requestDropOff(ev.Colonist)
 	}
 	return nil
 }
@@ -760,6 +784,79 @@ func (s *MainState) addUnequipTask(colonist *ecs.Entity, slot string) {
 		Data:      task_requests.UnequipRequest{Slot: slot},
 	}
 	wc.CurrentTask = t
+}
+
+func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled bool) {
+	if colonist == nil || !colonist.HasComponent(components.Worker) {
+		return
+	}
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	a := task.TaskAction(action)
+	if enabled {
+		// Add to allowed list if not already present
+		for _, existing := range wc.AllowedTasks {
+			if existing == a {
+				return
+			}
+		}
+		wc.AllowedTasks = append(wc.AllowedTasks, a)
+		// If every filterable action is now allowed, clear the filter entirely
+		if len(wc.AllowedTasks) >= len(task_requests.FilterableActions) {
+			wc.AllowedTasks = nil
+		}
+	} else {
+		// Initialize with all filterable actions before removing one
+		if wc.AllowedTasks == nil {
+			for _, fa := range task_requests.FilterableActions {
+				wc.AllowedTasks = append(wc.AllowedTasks, fa.Action)
+			}
+		}
+		for i, existing := range wc.AllowedTasks {
+			if existing == a {
+				wc.AllowedTasks = append(wc.AllowedTasks[:i], wc.AllowedTasks[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+func (s *MainState) requestDropOff(colonist *ecs.Entity) {
+	if colonist == nil {
+		return
+	}
+	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Settlement) {
+		return
+	}
+	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	if len(inv.Bag) == 0 {
+		return
+	}
+	sc := colonist.GetComponent(components.Settlement).(*components.SettlementComponent)
+	var storage *ecs.Entity
+	for _, e := range append(s.level.Entities, s.level.StaticEntities...) {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		st := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if st.OwnedBy == sc.Name {
+			storage = e
+			break
+		}
+	}
+	if storage == nil {
+		return
+	}
+	storagePC := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	aiMemory := colonist.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+	}
+	aiMemory.TargetX = storagePC.GetX()
+	aiMemory.TargetY = storagePC.GetY()
+	aiMemory.TargetZ = storagePC.GetZ()
+	aiMemory.State = "dropoff"
 }
 
 func (s *MainState) handleInput() {

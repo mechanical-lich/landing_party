@@ -33,6 +33,13 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 		return nil
 	}
 
+	if wc := entity.GetComponent(components.Worker); wc != nil {
+		workerC := wc.(*components.WorkerComponent)
+		if workerC.SwapCooldown > 0 {
+			workerC.SwapCooldown--
+		}
+	}
+
 	// Hunger: drain energy, seek food when hungry, take damage when starving
 	if entity.HasComponent(components.Hunger) {
 		hg := entity.GetComponent(components.Hunger).(*components.HungerComponent)

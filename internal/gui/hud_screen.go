@@ -15,7 +15,34 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
 	"github.com/mechanical-lich/scifi_settlements/internal/research"
+	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 )
+
+// scrollingVBox pairs a ScrollPanel with an inner VBox so that children
+// can be added/removed like a normal VBox while mouse-wheel scrolling works.
+// It overrides Update() to keep the VBox offset in sync with the scroll position.
+type scrollingVBox struct {
+	*minui.ScrollPanel
+	vbox *minui.VBox
+}
+
+func newScrollingVBox(id string, spacing int) *scrollingVBox {
+	sp := minui.NewScrollPanel(id)
+	vb := minui.NewVBox(id + "_content")
+	vb.Spacing = spacing
+	sp.AddChild(vb)
+	return &scrollingVBox{ScrollPanel: sp, vbox: vb}
+}
+
+func (s *scrollingVBox) Update() {
+	s.ScrollPanel.Update()
+	s.vbox.SetPosition(0, -s.ScrollPanel.ScrollOffsetY())
+	s.vbox.Layout()
+}
+
+func (s *scrollingVBox) AddContent(child minui.Element)    { s.vbox.AddChild(child) }
+func (s *scrollingVBox) RemoveContent(child minui.Element) { s.vbox.RemoveChild(child) }
+func (s *scrollingVBox) GetContent() []minui.Element       { return s.vbox.GetChildren() }
 
 // HUDScreen is the main in-game HUD: sidebar, messages, resource bar, entity detail.
 type HUDScreen struct {
@@ -42,8 +69,9 @@ type HUDScreen struct {
 
 	// Colonist modal
 	colonistModal         *minui.Modal
-	colonistEquipVBox     *minui.VBox
-	colonistStorageList   *minui.ListBox
+	colonistScroll        *scrollingVBox // left: info + filters
+	colonistInvScroll     *scrollingVBox // right top: carried items
+	colonistStorageList   *minui.ListBox // right bottom: collective storage
 	colonistStorageBPs    []string
 	colonistStorageEntity *ecs.Entity
 
@@ -519,24 +547,37 @@ func (h *HUDScreen) setupModals() {
 	h.uiGUI.AddModal(h.researchModal)
 
 	// Colonist modal — equipment (left) | storage (right, scrollable)
-	const colModalW, colModalH = 640, 500
-	const cColW, cColH = 300, 420
+	const colModalW, colModalH = 640, 560
+	const cColW, cColH = 300, 480
 	h.colonistModal = minui.NewModal("colonistModal", "Colonist", colModalW, colModalH)
 	h.colonistModal.SetPosition(sw/2-colModalW/2, sh/2-colModalH/2)
 	h.colonistModal.SetVisible(false)
 	h.colonistModal.Closeable = true
 
-	h.colonistEquipVBox = minui.NewVBox("colonistEquip")
-	h.colonistEquipVBox.SetPosition(14, 40)
-	h.colonistEquipVBox.Spacing = 4
-	h.colonistModal.AddChild(h.colonistEquipVBox)
+	h.colonistScroll = newScrollingVBox("colonistEquip", 4)
+	h.colonistScroll.SetBounds(minui.Rect{X: 14, Y: 40, Width: 300, Height: 480})
+	// spacing set in newScrollingVBox
+	h.colonistModal.AddChild(h.colonistScroll)
+
+	const rX = 14 + cColW + 16
+	// right column: Y=40..520 (matches left column height)
+	// top half: carrying inventory (Y=58..258)
+	// bottom half: collective storage (Y=286..520)
+
+	invHdr := minui.NewLabel("colonistInvHdr", "Carrying")
+	invHdr.SetPosition(rX, 40)
+	h.colonistModal.AddChild(invHdr)
+
+	h.colonistInvScroll = newScrollingVBox("colonistInv", 4)
+	h.colonistInvScroll.SetBounds(minui.Rect{X: rX, Y: 58, Width: cColW, Height: 200})
+	h.colonistModal.AddChild(h.colonistInvScroll)
 
 	storageHdr := minui.NewLabel("colonistStorageHdr", "Available in Storage")
-	storageHdr.SetPosition(14+cColW+16, 40)
+	storageHdr.SetPosition(rX, 268)
 	h.colonistModal.AddChild(storageHdr)
 
 	h.colonistStorageList = minui.NewListBox("colonistStorageList", nil)
-	h.colonistStorageList.SetBounds(minui.Rect{X: 14 + cColW + 16, Y: 60, Width: cColW, Height: cColH})
+	h.colonistStorageList.SetBounds(minui.Rect{X: rX, Y: 286, Width: cColW, Height: 234})
 	h.colonistStorageList.OnSelect = func(idx int, _ string) {
 		if idx < 0 || idx >= len(h.colonistStorageBPs) || h.colonistStorageEntity == nil {
 			return
@@ -631,29 +672,53 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		return
 	}
 
-	for _, child := range append([]minui.Element{}, h.colonistEquipVBox.GetChildren()...) {
-		h.colonistEquipVBox.RemoveChild(child)
+	for _, child := range append([]minui.Element{}, h.colonistScroll.GetContent()...) {
+		h.colonistScroll.RemoveContent(child)
+	}
+	for _, child := range append([]minui.Element{}, h.colonistInvScroll.GetContent()...) {
+		h.colonistInvScroll.RemoveContent(child)
 	}
 
 	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	dc := colonist.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+
+	// Populate the carrying panel
+	capturedColonist := colonist
+	if len(inv.Bag) == 0 {
+		empty := minui.NewLabel("inv_empty", "(nothing)")
+		h.colonistInvScroll.AddContent(empty)
+	} else {
+		for i, item := range inv.Bag {
+			name := item.Blueprint
+			if item.HasComponent(rlcomponents.Description) {
+				name = item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop Off]", name))
+			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
+			mi.OnClick = func() {
+				event.GetQueuedInstance().QueueEvent(DropOffRequestedEvent{Colonist: capturedColonist})
+				h.colonistModal.SetVisible(false)
+			}
+			h.colonistInvScroll.AddContent(mi)
+		}
+	}
 
 	fontSize := 13
 	smallSize := 11
 
 	nameLabel := minui.NewLabel("colonistName", dc.Name)
 	nameLabel.GetStyle().FontSize = &fontSize
-	h.colonistEquipVBox.AddChild(nameLabel)
+	h.colonistScroll.AddContent(nameLabel)
 
 	atk := inv.GetAttackModifier()
 	def := inv.GetDefenseModifier()
 	statsLabel := minui.NewLabel("colonistStats", fmt.Sprintf("ATK: %+d   DEF: %+d", atk, def))
 	statsLabel.GetStyle().FontSize = &smallSize
-	h.colonistEquipVBox.AddChild(statsLabel)
+	h.colonistScroll.AddContent(statsLabel)
 
 	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
 	eqHdr.GetStyle().FontSize = &smallSize
-	h.colonistEquipVBox.AddChild(eqHdr)
+	h.colonistScroll.AddContent(eqHdr)
 
 	slotList := []struct {
 		label string
@@ -686,12 +751,38 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				})
 				h.colonistModal.SetVisible(false)
 			}
-			h.colonistEquipVBox.AddChild(mi)
+			h.colonistScroll.AddContent(mi)
 		} else {
 			lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
 			lbl.GetStyle().FontSize = &smallSize
 			lbl.SetSize(rowW, rowH)
-			h.colonistEquipVBox.AddChild(lbl)
+			h.colonistScroll.AddContent(lbl)
+		}
+	}
+
+	// Task filter toggles
+	filterHdr := minui.NewLabel("filterHdr", "── Task Filters ──")
+	filterHdr.GetStyle().FontSize = &smallSize
+	h.colonistScroll.AddContent(filterHdr)
+
+	if colonist.HasComponent(components.Worker) {
+		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+		for _, fa := range task_requests.FilterableActions {
+			capturedFA := fa
+			capturedColonist := colonist
+			toggle := minui.NewToggle(fmt.Sprintf("filter_%s", fa.Action), fa.Label)
+			tw, th := 280, 26
+			toggle.GetStyle().Width = &tw
+			toggle.GetStyle().Height = &th
+			toggle.On = colonistTaskEnabled(wc, fa)
+			toggle.OnChange = func(on bool) {
+				event.GetQueuedInstance().QueueEvent(SetTaskFilterEvent{
+					Colonist: capturedColonist,
+					Action:   string(capturedFA.Action),
+					Enabled:  on,
+				})
+			}
+			h.colonistScroll.AddContent(toggle)
 		}
 	}
 
@@ -705,6 +796,21 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	h.colonistStorageList.SetItems(items)
 
 	h.colonistModal.SetVisible(true)
+}
+
+// colonistTaskEnabled reports whether a task action is currently enabled for the given worker.
+// If no filter is set (AllowedTasks is nil), all tasks are considered enabled.
+// An empty non-nil slice means all tasks are blocked.
+func colonistTaskEnabled(wc *components.WorkerComponent, action task_requests.FilterableAction) bool {
+	if wc.AllowedTasks == nil {
+		return true
+	}
+	for _, a := range wc.AllowedTasks {
+		if a == action.Action {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, station *ecs.Entity) {

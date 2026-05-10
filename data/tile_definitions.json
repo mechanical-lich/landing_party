@@ -372,6 +372,8 @@
     {
         "name": "stairs_up",
         "stairsUp": true,
+        "lightLevel": 30,
+        "lightRange": 4,
         "variants": [
             {
                 "variant": 0,
@@ -384,6 +386,8 @@
     {
         "name": "stairs_down",
         "stairsDown": true,
+        "lightLevel": 30,
+        "lightRange": 4,
         "variants": [
             {
                 "variant": 0,

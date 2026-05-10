@@ -1,0 +1,4 @@
+Task Locality Clustering:
+When a colonist claims a task, they soft-claim nearby same-type tasks within a radius, so other colonists won't reach across the map to steal work from an active zone. The goal is to keep workers in coherent clusters rather than leapfrogging each other across the map.
+
+The main tradeoff is complexity — we'd need some kind of "claimed zone" concept attached to tasks or tracked separately, and we'd need to decide how long a claim lasts and what radius to use. A simpler approximation would be: when picking a task, skip tasks that are within radius R of another colonist who is already doing the same task type. That avoids adding persistent state to tasks themselves.

@@ -170,10 +170,43 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 			rlentity.Face(entity, dx, dy)
 			return true
 		}
+		if tryColonistSwap(level, entity, pc, ntX, ntY, ntZ) {
+			aiMemory.CurrentSteps = aiMemory.CurrentSteps[1:]
+			return true
+		}
 		aiMemory.CurrentSteps = nil
 		break
 	}
 	return false
+}
+
+func tryColonistSwap(level *world.Level, entity *ecs.Entity, pc *rlcomponents.PositionComponent, ntX, ntY, ntZ int) bool {
+	blocker := level.GetSolidEntityAt(ntX, ntY, ntZ)
+	if blocker == nil || blocker == entity {
+		return false
+	}
+	if !blocker.HasComponent(components.Worker) || !blocker.HasComponent(components.Settlement) || !entity.HasComponent(components.Settlement) {
+		return false
+	}
+	entitySC := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	blockerSC := blocker.GetComponent(components.Settlement).(*components.SettlementComponent)
+	if entitySC.Name != blockerSC.Name {
+		return false
+	}
+	blockerWC := blocker.GetComponent(components.Worker).(*components.WorkerComponent)
+	if blockerWC.SwapCooldown > 0 {
+		return false
+	}
+	myX, myY, myZ := pc.GetX(), pc.GetY(), pc.GetZ()
+	level.PlaceEntity(ntX, ntY, ntZ, entity)
+	level.PlaceEntity(myX, myY, myZ, blocker)
+	blockerWC.SwapCooldown = 3
+	if blocker.HasComponent(rlcomponents.AIMemory) {
+		blockerAI := blocker.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+		blockerAI.CurrentSteps = nil
+	}
+	rlentity.Face(entity, ntX-myX, ntY-myY)
+	return true
 }
 
 func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {

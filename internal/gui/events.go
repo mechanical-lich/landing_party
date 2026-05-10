@@ -95,3 +95,21 @@ type UnequipItemRequestedEvent struct {
 }
 
 func (e UnequipItemRequestedEvent) GetType() event.EventType { return UnequipItemRequestedEventType }
+
+const SetTaskFilterEventType event.EventType = "set_task_filter"
+
+// SetTaskFilterEvent is fired when the player toggles a task type on/off for a colonist.
+// Action is the string form of task.TaskAction; Enabled=true means allow, false means block.
+type SetTaskFilterEvent struct {
+	Colonist *ecs.Entity
+	Action   string
+	Enabled  bool
+}
+
+func (e SetTaskFilterEvent) GetType() event.EventType { return SetTaskFilterEventType }
+
+const DropOffRequestedEventType event.EventType = "drop_off_requested"
+
+type DropOffRequestedEvent struct{ Colonist *ecs.Entity }
+
+func (e DropOffRequestedEvent) GetType() event.EventType { return DropOffRequestedEventType }

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"log"
+	"time"
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlai"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcombat"
@@ -42,10 +43,34 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 	}
 
 	if mySettlement, ok := settlement.Settlements[sc.Name]; ok {
-		t := mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ())
+		const momentumRadius = 15
+
+		// Momentum: if last task was extraction and that type is still allowed,
+		// prefer same type nearby before falling back.
+		if isExtractionAction(wc.LastTaskAction) && isActionAllowed(wc, wc.LastTaskAction) {
+			t := mySettlement.Tasks.PeekClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ(), wc.LastTaskAction)
+			if t != nil && utility.Abs(t.X-pc.GetX())+utility.Abs(t.Y-pc.GetY()) <= momentumRadius {
+				t.Start()
+				wc.CurrentTask = t
+				wc.LastTaskAction = t.Action
+				aiMemory.State = "task"
+				return
+			}
+			// No nearby same-type work — clear momentum and fall through
+			wc.LastTaskAction = ""
+		}
+
+		var t *task.Task
+		if wc.AllowedTasks == nil {
+			t = mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ())
+		} else if len(wc.AllowedTasks) > 0 {
+			t = mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ(), wc.AllowedTasks...)
+		}
+		// else: AllowedTasks is non-nil empty — all tasks blocked, t stays nil
 		if t != nil {
 			aiMemory.State = "task"
 			wc.CurrentTask = t
+			wc.LastTaskAction = t.Action
 			return
 		}
 		if mySettlement.Tasks.Count() > 0 {
@@ -63,27 +88,6 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 				rlentity.GetName(entity), mySettlement.Tasks.Count(), inProgress, completed, stopped)
 		}
 
-		// Drop off inventory if we're holding anything
-		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-		if len(inv.Bag) > 0 {
-			storage := FindAvailableStorage(level, sc.Name)
-			if storage != nil {
-				storagePC := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				aiMemory.TargetX = storagePC.GetX()
-				aiMemory.TargetY = storagePC.GetY()
-				aiMemory.TargetZ = storagePC.GetZ()
-				aiMemory.State = "dropoff"
-			}
-			return
-		}
-
-		// Auto-haul: pick up loose items on the ground
-		item := FindLooseItemOnGround(level, pc.GetX(), pc.GetY(), pc.GetZ())
-		if item != nil {
-			aiMemory.TargetX = -1
-			aiMemory.TargetY = -1
-			aiMemory.State = "haul"
-		}
 	}
 }
 
@@ -121,6 +125,8 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleEquipTask(level, entity, wc, aiMemory)
 	case task_requests.UnequipAction:
 		handleUnequipTask(level, entity, wc, aiMemory)
+	case task_requests.RetrieveAction:
+		handleRetrieveTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -134,14 +140,13 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		wc = entity.GetComponent(components.Worker).(*components.WorkerComponent)
 	}
 
-	if MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
-		if wc != nil {
-			wc.InteractTicks = 0
-		}
-		return
-	}
-
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, 1, 1, 0) {
+		if MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+			if wc != nil {
+				wc.InteractTicks = 0
+			}
+			return
+		}
 		return
 	}
 
@@ -388,7 +393,9 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			return
 		}
 
-		// Tile branch — yield ore every 10 ticks so partial work isn't wasted
+		// Tile branch — yield ore every 10 ticks so partial work isn't wasted.
+		// Drops land on the miner's tile so haulers can reach them without
+		// needing to stand on the (solid) ore deposit.
 		if req.Progress%10 == 0 {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			tileName := world.TileDefinitions[tile.Type].Name
@@ -402,10 +409,10 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 				dropBlueprint = "radioactive_material"
 			}
 			if dropBlueprint != "" {
-				ore, err := factory.Create(dropBlueprint, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
+				ore, err := factory.Create(dropBlueprint, pc.GetX(), pc.GetY(), pc.GetZ())
 				if err == nil {
-					inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-					inv.AddItem(ore)
+					level.AddEntity(ore)
+					queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
 				}
 			}
 		}
@@ -806,6 +813,73 @@ func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	}
 }
 
+func queueRetrieveTask(entity *ecs.Entity, item *ecs.Entity, x, y, z int) {
+	if !entity.HasComponent(components.Settlement) {
+		return
+	}
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	mySettlement, ok := settlement.Settlements[sc.Name]
+	if !ok {
+		return
+	}
+	mySettlement.Tasks.AddTask(&task.Task{
+		X: x, Y: y, Z: z,
+		Action:  task_requests.RetrieveAction,
+		Data:    task_requests.RetrieveRequest{Item: item},
+		Created: time.Now(),
+	})
+}
+
+func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	req, ok := wc.CurrentTask.Data.(task_requests.RetrieveRequest)
+	if !ok {
+		aiMemory.State = "idle"
+		return
+	}
+
+	tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
+
+	if !MoveTowardsTarget(level, entity, tx, ty, tz) {
+		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), tx, ty, tz, 1, 1, 0) {
+			wc.CurrentTask.Stop()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+			return
+		}
+
+		// At or adjacent to the drop tile — look for our specific item
+		var tileEntities []*ecs.Entity
+		level.GetEntitiesAt(tx, ty, tz, &tileEntities)
+		for _, e := range tileEntities {
+			if e == req.Item {
+				inv.AddItem(e)
+				level.RemoveEntity(e)
+				CompleteTaskWithMessage(entity, wc.CurrentTask, "Retrieved "+e.Blueprint)
+				storage := FindAvailableStorage(level, sc.Name)
+				if storage != nil {
+					spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+					aiMemory.TargetX = spc.GetX()
+					aiMemory.TargetY = spc.GetY()
+					aiMemory.TargetZ = spc.GetZ()
+					aiMemory.State = "dropoff"
+				} else {
+					aiMemory.State = "idle"
+				}
+				return
+			}
+		}
+
+		// Item already picked up by someone else — complete silently
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+	}
+}
+
 func checkInventoryForCraft(entity *ecs.Entity, cost map[string]int) bool {
 	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	for name, required := range cost {
@@ -856,6 +930,22 @@ func removeMaterialsFromInventory(entity *ecs.Entity, buildable construction.Bui
 			removed++
 		}
 	}
+}
+
+func isExtractionAction(action task.TaskAction) bool {
+	return action == task_requests.DigAction || action == task_requests.MineAction
+}
+
+func isActionAllowed(wc *components.WorkerComponent, action task.TaskAction) bool {
+	if wc.AllowedTasks == nil {
+		return true
+	}
+	for _, a := range wc.AllowedTasks {
+		if a == action {
+			return true
+		}
+	}
+	return false
 }
 
 // Satisfy unused import of task package via type reference

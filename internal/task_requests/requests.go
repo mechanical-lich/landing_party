@@ -63,6 +63,27 @@ type UnequipRequest struct {
 	StorageZ int
 }
 
+type RetrieveRequest struct {
+	Item *ecs.Entity // specific item entity to retrieve; nil check at pickup time
+}
+
+// FilterableAction pairs a task action with the label shown in the colonist UI.
+type FilterableAction struct {
+	Action task.TaskAction
+	Label  string
+}
+
+// FilterableActions is the ordered list of task types players can toggle per colonist.
+var FilterableActions = []FilterableAction{
+	{DigAction, "Dig"},
+	{MineAction, "Mine"},
+	{BuildAction, "Build"},
+	{CraftAction, "Craft"},
+	{ResearchAction, "Research"},
+	{RetrieveAction, "Retrieve"},
+	{AttackAction, "Combat"},
+}
+
 const (
 	PickupAction   task.TaskAction = "pickup"
 	BuildAction    task.TaskAction = "build"
@@ -74,4 +95,5 @@ const (
 	CraftAction    task.TaskAction = "craft"
 	EquipAction    task.TaskAction = "equip"
 	UnequipAction  task.TaskAction = "unequip"
+	RetrieveAction task.TaskAction = "retrieve"
 )

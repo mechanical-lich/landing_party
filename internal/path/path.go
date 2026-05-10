@@ -4,6 +4,7 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/path"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/skills"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -94,7 +95,7 @@ func getPossiblePath(level *world.Level, faction string, vacuumResist bool, from
 			if i != 0 && i != len(steps)-1 {
 				sx, sy, sz := st.Coords()
 				e := level.GetSolidEntityAt(sx, sy, sz)
-				if e != nil && !world.IsDoorPassableByFaction(e, faction) {
+				if e != nil && !world.IsDoorPassableByFaction(e, faction) && !e.HasComponent(components.Worker) {
 					blocked = true
 				}
 			}
