@@ -8,7 +8,9 @@ Welcome to Scifi Settlements. Build a colony. Keep your colonists alive. Try not
 - [Controls](controls.md) — keyboard and camera reference
 - [Colonists](colonists.md) — stats, needs, and how workers behave
 - [Buildings](buildings.md) — what you can build and what each structure does
+- [Crafting](crafting.md) — workbenches, recipes, and gear
 - [Research](research.md) — the tech tree and how to unlock new structures
+- [Scenarios](scenarios.md) — the available game modes and how each one starts
 - [Win Conditions](win_conditions.md) — how to win (and lose)
 
 ---
@@ -43,3 +45,9 @@ Use **Q** and **E** to move between Z-levels. Press **M** to toggle the minimap.
 ### Day and Night
 
 Most scenarios use a **day/night cycle**. At night visibility is reduced and hostile spawns become more active. Build `work_light` structures to maintain visibility around your colony at night.
+
+A few scenarios (notably abandoned-station modes) use **pitch dark** lighting — there is no ambient light at all and you depend entirely on placed lights and equipped colonist lights to see anything.
+
+### Biomes
+
+Planet-style scenarios pick from a mix of **biomes** (forest, plains, tundra, desert, alien forest, crystal field, regolith, asteroid rock, crater) based on temperature and humidity. Biome determines the surface tile, what grows there, and which scenario features appear nearby — desert biomes can hide radiation pockets, forest biomes can be peppered with alien flora, crystal fields are studded with crystal veins, and so on.

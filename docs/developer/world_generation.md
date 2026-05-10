@@ -57,9 +57,13 @@ Tile types are defined in `data/tile_definitions.json`.
 
 ## Level Generation
 
-Surface levels are generated using **Perlin noise** to produce varied terrain with open regolith and rock outcroppings. Underground levels use a cavern-carving algorithm to create tunnel networks.
+Generation runs in three phases (`internal/generation/`):
 
-The generation entry point is `internal/generation/`. Generation parameters (noise scale, cavern density, resource frequency) are configurable per scenario or world config.
+1. **Primer**: paints a default tile per terrain kind so a column has reasonable defaults even without a biome map.
+2. **Biome application**: if the scenario provides a `world.biome_map`, each surface column samples temperature/humidity noise and the matching biome's `rules` paint the entire vertical column. See [Biomes](biomes.md).
+3. **Features**: scenario-level and biome-level `features` (ore veins, radiation pockets, scattered entities) are placed in order.
+
+Surface variation is driven by **Perlin noise**; underground levels use a cavern-carving algorithm. Generation parameters (noise scale, cavern density, feature counts) are configurable per scenario via the `world` block — see [Scenarios](scenarios.md#world-block).
 
 ---
 

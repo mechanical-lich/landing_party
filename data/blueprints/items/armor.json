@@ -1,22 +1,13 @@
 {
-    "enviro_helmet": {
+    "enviro_boots": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 0,
+            "SpriteX": 112,
             "SpriteY": 96,
             "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Enviro Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 1
         },
         "Armor": {
             "DefenseBonus": 1,
@@ -24,23 +15,6 @@
             "Tags": [
                 "enviro"
             ]
-        },
-        "Skills": {
-            "Skills": [
-                "radiation_resist",
-                "vacuum_resist"
-            ]
-        }
-    },
-    "enviro_boots": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 96,
-            "SpriteSize": 16
         },
         "Description": {
             "Name": "Enviro Boots",
@@ -51,12 +25,38 @@
             "Slot": "feet",
             "Value": 1
         },
+        "Skills": {
+            "Skills": [
+                "radiation_resist",
+                "vacuum_resist"
+            ]
+        }
+    },
+    "enviro_helmet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 112,
+            "SpriteSize": 16
+        },
         "Armor": {
             "DefenseBonus": 1,
             "StoppingPower": 0,
             "Tags": [
                 "enviro"
             ]
+        },
+        "Description": {
+            "Name": "Enviro Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 1
         },
         "Skills": {
             "Skills": [
@@ -75,6 +75,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 2,
+            "Tags": [
+                "enviro"
+            ]
+        },
         "Description": {
             "Name": "Enviro Suit",
             "Faction": ""
@@ -84,530 +91,10 @@
             "Slot": "torso",
             "Value": 3
         },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 2,
-            "Tags": [
-                "enviro"
-            ]
-        },
         "Skills": {
             "Skills": [
                 "radiation_resist",
                 "vacuum_resist"
-            ]
-        }
-    },
-    "scout_head": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Scout Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "scout"
-            ]
-        }
-    },
-    "scout_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Scout Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "scout"
-            ]
-        }
-    },
-    "scout_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Scout Pants",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "legs",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "scout"
-            ]
-        }
-    },
-    "scout_feet": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Scout Boots",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "feet",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "scout"
-            ]
-        }
-    },
-    "marine_head": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Marine Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "marine"
-            ]
-        }
-    },
-    "marine_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Marine Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 3
-        },
-        "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
-            "Tags": [
-                "marine"
-            ]
-        }
-    },
-    "marine_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Marine Pants",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "legs",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "marine"
-            ]
-        }
-    },
-    "marine_feet": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Marine Boots",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "feet",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "marine"
-            ]
-        }
-    },
-    "tactical_head": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Tactical Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "tactical"
-            ]
-        }
-    },
-    "tactical_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Tactical Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 3
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "tactical"
-            ]
-        }
-    },
-    "tactical_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Tactical Pants",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "legs",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "tactical"
-            ]
-        }
-    },
-    "tactical_feet": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Tactical Boots",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "feet",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "tactical"
-            ]
-        }
-    },
-    "stealth_head": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Shadow Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "stealth"
-            ]
-        }
-    },
-    "stealth_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Shadow Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "stealth"
-            ]
-        }
-    },
-    "stealth_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Shadow Pants",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "legs",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "stealth"
-            ]
-        }
-    },
-    "stealth_feet": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 48,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Shadow Boots",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "feet",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "stealth"
-            ]
-        }
-    },
-    "heat_resistant_head": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Thermal Helmet",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "head",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "heat_resistant"
-            ]
-        }
-    },
-    "heat_resistant_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Thermal Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
-            "Tags": [
-                "heat_resistant"
-            ]
-        }
-    },
-    "heat_resistant_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Thermal Pants",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "legs",
-            "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "heat_resistant"
             ]
         }
     },
@@ -617,9 +104,16 @@
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 48,
+            "SpriteX": 176,
             "SpriteY": 96,
             "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "heat_resistant"
+            ]
         },
         "Description": {
             "Name": "Thermal Boots",
@@ -629,94 +123,87 @@
         "Item": {
             "Slot": "feet",
             "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 1,
-            "StoppingPower": 0,
-            "Tags": [
-                "heat_resistant"
-            ]
         }
     },
-    "heavy_head": {
+    "heat_resistant_head": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
+            "SpriteX": 80,
+            "SpriteY": 112,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "heat_resistant"
+            ]
+        },
         "Description": {
-            "Name": "Bulwark Helmet",
+            "Name": "Thermal Helmet",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "head",
-            "Value": 3
-        },
-        "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
-            "Tags": [
-                "heavy"
-            ]
+            "Value": 1
         }
     },
-    "heavy_torso": {
+    "heat_resistant_legs": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
+            "SpriteX": 80,
+            "SpriteY": 128,
             "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Bulwark Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 4
         },
         "Armor": {
-            "DefenseBonus": 4,
-            "StoppingPower": 3,
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
             "Tags": [
-                "heavy"
+                "heat_resistant"
             ]
-        }
-    },
-    "heavy_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
         },
         "Description": {
-            "Name": "Bulwark Pants",
+            "Name": "Thermal Pants",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "legs",
-            "Value": 3
+            "Value": 1
+        }
+    },
+    "heat_resistant_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 80,
+            "SpriteY": 96,
+            "SpriteSize": 16
         },
         "Armor": {
             "DefenseBonus": 3,
             "StoppingPower": 2,
             "Tags": [
-                "heavy"
+                "heat_resistant"
             ]
+        },
+        "Description": {
+            "Name": "Thermal Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 2
         }
     },
     "heavy_feet": {
@@ -729,6 +216,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "heavy"
+            ]
+        },
         "Description": {
             "Name": "Bulwark Boots",
             "Faction": ""
@@ -737,97 +231,63 @@
         "Item": {
             "Slot": "feet",
             "Value": 3
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "heavy"
-            ]
         }
     },
-    "super_heavy_head": {
+    "heavy_head": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 0,
-            "SpriteY": 96,
+            "SpriteX": 48,
+            "SpriteY": 112,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
+            "Tags": [
+                "heavy"
+            ]
+        },
         "Description": {
-            "Name": "Siege Helmet",
+            "Name": "Bulwark Helmet",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "head",
-            "Value": 4
-        },
-        "Armor": {
-            "DefenseBonus": 4,
-            "StoppingPower": 3,
-            "Tags": [
-                "super_heavy"
-            ]
+            "Value": 3
         }
     },
-    "super_heavy_torso": {
+    "heavy_legs": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
             "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
+            "SpriteX": 48,
+            "SpriteY": 128,
             "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Siege Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 5
         },
         "Armor": {
-            "DefenseBonus": 6,
-            "StoppingPower": 5,
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
             "Tags": [
-                "super_heavy"
+                "heavy"
             ]
-        }
-    },
-    "super_heavy_legs": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 32,
-            "SpriteY": 96,
-            "SpriteSize": 16
         },
         "Description": {
-            "Name": "Siege Pants",
+            "Name": "Bulwark Pants",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "legs",
-            "Value": 4
-        },
-        "Armor": {
-            "DefenseBonus": 4,
-            "StoppingPower": 3,
-            "Tags": [
-                "super_heavy"
-            ]
+            "Value": 3
         }
     },
-    "super_heavy_feet": {
+    "heavy_torso": {
         "Appearance": {
             "R": 255,
             "G": 255,
@@ -837,20 +297,160 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 4,
+            "StoppingPower": 3,
+            "Tags": [
+                "heavy"
+            ]
+        },
         "Description": {
-            "Name": "Siege Boots",
+            "Name": "Bulwark Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 4
+        }
+    },
+    "marine_feet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "marine"
+            ]
+        },
+        "Description": {
+            "Name": "Marine Boots",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "feet",
-            "Value": 4
+            "Value": 2
+        }
+    },
+    "marine_head": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "marine"
+            ]
+        },
+        "Description": {
+            "Name": "Marine Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 2
+        }
+    },
+    "marine_legs": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "marine"
+            ]
+        },
+        "Description": {
+            "Name": "Marine Pants",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "legs",
+            "Value": 2
+        }
+    },
+    "marine_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
         },
         "Armor": {
             "DefenseBonus": 3,
             "StoppingPower": 2,
             "Tags": [
-                "super_heavy"
+                "marine"
+            ]
+        },
+        "Description": {
+            "Name": "Marine Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 3
+        }
+    },
+    "radiation_feet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "radiation"
+            ]
+        },
+        "Description": {
+            "Name": "Rad-Guard Boots",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "feet",
+            "Value": 1
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
             ]
         }
     },
@@ -864,6 +464,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "radiation"
+            ]
+        },
         "Description": {
             "Name": "Rad-Guard Helmet",
             "Faction": ""
@@ -872,45 +479,6 @@
         "Item": {
             "Slot": "head",
             "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
-            "Tags": [
-                "radiation"
-            ]
-        },
-        "Skills": {
-            "Skills": [
-                "radiation_resist"
-            ]
-        }
-    },
-    "radiation_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Rad-Guard Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
-            "Tags": [
-                "radiation"
-            ]
         },
         "Skills": {
             "Skills": [
@@ -928,6 +496,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "radiation"
+            ]
+        },
         "Description": {
             "Name": "Rad-Guard Pants",
             "Faction": ""
@@ -937,12 +512,37 @@
             "Slot": "legs",
             "Value": 1
         },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
+        }
+    },
+    "radiation_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
         "Armor": {
-            "DefenseBonus": 2,
-            "StoppingPower": 1,
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
             "Tags": [
                 "radiation"
             ]
+        },
+        "Description": {
+            "Name": "Rad-Guard Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 2
         },
         "Skills": {
             "Skills": [
@@ -950,7 +550,7 @@
             ]
         }
     },
-    "radiation_feet": {
+    "scout_feet": {
         "Appearance": {
             "R": 255,
             "G": 255,
@@ -960,21 +560,345 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "scout"
+            ]
+        },
         "Description": {
-            "Name": "Rad-Guard Boots",
+            "Name": "Scout Boots",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "feet",
             "Value": 1
+        }
+    },
+    "scout_head": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "scout"
+            ]
+        },
+        "Description": {
+            "Name": "Scout Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 1
+        }
+    },
+    "scout_legs": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "scout"
+            ]
+        },
+        "Description": {
+            "Name": "Scout Pants",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "legs",
+            "Value": 1
+        }
+    },
+    "scout_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "scout"
+            ]
+        },
+        "Description": {
+            "Name": "Scout Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 2
+        }
+    },
+    "stealth_feet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "stealth"
+            ]
+        },
+        "Description": {
+            "Name": "Shadow Boots",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "feet",
+            "Value": 1
+        }
+    },
+    "stealth_head": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "stealth"
+            ]
+        },
+        "Description": {
+            "Name": "Shadow Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 1
+        }
+    },
+    "stealth_legs": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "stealth"
+            ]
+        },
+        "Description": {
+            "Name": "Shadow Pants",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "legs",
+            "Value": 1
+        }
+    },
+    "stealth_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
         },
         "Armor": {
             "DefenseBonus": 2,
             "StoppingPower": 1,
             "Tags": [
-                "radiation"
+                "stealth"
             ]
+        },
+        "Description": {
+            "Name": "Shadow Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 2
+        }
+    },
+    "super_heavy_feet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
+            "Tags": [
+                "super_heavy"
+            ]
+        },
+        "Description": {
+            "Name": "Siege Boots",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "feet",
+            "Value": 4
+        }
+    },
+    "super_heavy_head": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 4,
+            "StoppingPower": 3,
+            "Tags": [
+                "super_heavy"
+            ]
+        },
+        "Description": {
+            "Name": "Siege Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 4
+        }
+    },
+    "super_heavy_legs": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 4,
+            "StoppingPower": 3,
+            "Tags": [
+                "super_heavy"
+            ]
+        },
+        "Description": {
+            "Name": "Siege Pants",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "legs",
+            "Value": 4
+        }
+    },
+    "super_heavy_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 6,
+            "StoppingPower": 5,
+            "Tags": [
+                "super_heavy"
+            ]
+        },
+        "Description": {
+            "Name": "Siege Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 5
+        }
+    },
+    "super_radiation_feet": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "super_radiation"
+            ]
+        },
+        "Description": {
+            "Name": "Rad-Guard Mk. II Boots",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "feet",
+            "Value": 1
         },
         "Skills": {
             "Skills": [
@@ -992,6 +916,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
+            "Tags": [
+                "super_radiation"
+            ]
+        },
         "Description": {
             "Name": "Rad-Guard Mk. II Helmet",
             "Faction": ""
@@ -1000,45 +931,6 @@
         "Item": {
             "Slot": "head",
             "Value": 1
-        },
-        "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
-            "Tags": [
-                "super_radiation"
-            ]
-        },
-        "Skills": {
-            "Skills": [
-                "radiation_resist"
-            ]
-        }
-    },
-    "super_radiation_torso": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Resource": "scifi_items",
-            "SpriteX": 16,
-            "SpriteY": 96,
-            "SpriteSize": 16
-        },
-        "Description": {
-            "Name": "Rad-Guard Mk. II Vest",
-            "Faction": ""
-        },
-        "Inanimate": {},
-        "Item": {
-            "Slot": "torso",
-            "Value": 2
-        },
-        "Armor": {
-            "DefenseBonus": 4,
-            "StoppingPower": 3,
-            "Tags": [
-                "super_radiation"
-            ]
         },
         "Skills": {
             "Skills": [
@@ -1056,6 +948,13 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 2,
+            "Tags": [
+                "super_radiation"
+            ]
+        },
         "Description": {
             "Name": "Rad-Guard Mk. II Pants",
             "Faction": ""
@@ -1065,12 +964,37 @@
             "Slot": "legs",
             "Value": 1
         },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
+        }
+    },
+    "super_radiation_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
         "Armor": {
-            "DefenseBonus": 3,
-            "StoppingPower": 2,
+            "DefenseBonus": 4,
+            "StoppingPower": 3,
             "Tags": [
                 "super_radiation"
             ]
+        },
+        "Description": {
+            "Name": "Rad-Guard Mk. II Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 2
         },
         "Skills": {
             "Skills": [
@@ -1078,7 +1002,7 @@
             ]
         }
     },
-    "super_radiation_feet": {
+    "tactical_feet": {
         "Appearance": {
             "R": 255,
             "G": 255,
@@ -1088,26 +1012,102 @@
             "SpriteY": 96,
             "SpriteSize": 16
         },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "tactical"
+            ]
+        },
         "Description": {
-            "Name": "Rad-Guard Mk. II Boots",
+            "Name": "Tactical Boots",
             "Faction": ""
         },
         "Inanimate": {},
         "Item": {
             "Slot": "feet",
-            "Value": 1
+            "Value": 2
+        }
+    },
+    "tactical_head": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 1,
+            "StoppingPower": 0,
+            "Tags": [
+                "tactical"
+            ]
+        },
+        "Description": {
+            "Name": "Tactical Helmet",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 2
+        }
+    },
+    "tactical_legs": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 96,
+            "SpriteSize": 16
         },
         "Armor": {
             "DefenseBonus": 2,
             "StoppingPower": 1,
             "Tags": [
-                "super_radiation"
+                "tactical"
             ]
         },
-        "Skills": {
-            "Skills": [
-                "radiation_resist"
+        "Description": {
+            "Name": "Tactical Pants",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "legs",
+            "Value": 2
+        }
+    },
+    "tactical_torso": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 2,
+            "StoppingPower": 1,
+            "Tags": [
+                "tactical"
             ]
+        },
+        "Description": {
+            "Name": "Tactical Vest",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 3
         }
     }
 }

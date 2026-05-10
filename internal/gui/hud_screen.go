@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"image/color"
 	"strconv"
 	"strings"
 
@@ -15,8 +16,10 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
+	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
+	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // scrollingVBox pairs a ScrollPanel with an inner VBox so that children
@@ -341,8 +344,8 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 					event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: CursorModeBuild})
 				}
 			}
-			if buildable.Description != "" {
-				h.tooltipManager.RegisterWithTitle(mi, buildable.Name, buildable.Description)
+			if buildable.Description != "" || buildable.Name != "" {
+				h.tooltipManager.Register(mi, buildable.Name, buildable.Description, buildableTooltipIcon(buildType, buildable))
 			}
 			h.buildMenuItems["build_"+buildType] = mi
 			h.buildSubPanel.AddChild(mi)
@@ -738,7 +741,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				h.colonistModal.SetVisible(false)
 			}
 			if ttTitle, ttDesc := itemTooltipText(item); ttTitle != "" || ttDesc != "" {
-				h.tooltipManager.RegisterWithTitle(mi, ttTitle, ttDesc)
+				h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(item))
 			}
 			h.colonistInvScroll.AddContent(mi)
 		}
@@ -793,7 +796,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				h.colonistModal.SetVisible(false)
 			}
 			if ttTitle, ttDesc := itemTooltipText(captured.item); ttTitle != "" || ttDesc != "" {
-				h.tooltipManager.RegisterWithTitle(mi, ttTitle, ttDesc)
+				h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(captured.item))
 			}
 			h.colonistScroll.AddContent(mi)
 		} else {
@@ -850,11 +853,15 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			return
 		}
 		desc := h.storageTooltipDescs[idx]
-		if desc == "" {
+		var icon *minui.Icon
+		if idx < len(h.colonistStorageBPs) {
+			icon = blueprintTooltipIcon(h.colonistStorageBPs[idx])
+		}
+		if desc == "" && icon == nil {
 			h.listTooltip.Hide()
 			return
 		}
-		h.listTooltip.SetContent(items[idx], desc, nil)
+		h.listTooltip.SetContent(items[idx], desc, icon)
 		h.listTooltip.Show()
 	}
 
@@ -906,11 +913,15 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, s
 			return
 		}
 		desc := h.craftTooltipDescs[idx]
-		if desc == "" {
+		var icon *minui.Icon
+		if idx < len(h.craftingRecipeIDs) {
+			icon = blueprintTooltipIcon(h.craftingRecipeIDs[idx])
+		}
+		if desc == "" && icon == nil {
 			h.listTooltip.Hide()
 			return
 		}
-		h.listTooltip.SetContent(items[idx], desc, nil)
+		h.listTooltip.SetContent(items[idx], desc, icon)
 		h.listTooltip.Show()
 	}
 
@@ -1391,6 +1402,85 @@ func itemTooltipText(item *ecs.Entity) (title, desc string) {
 
 	desc = strings.TrimRight(desc, "\n")
 	return title, desc
+}
+
+// itemTooltipIcon returns an icon preview for the given item entity, or nil
+// if the entity has no usable Appearance.
+func itemTooltipIcon(item *ecs.Entity) *minui.Icon {
+	if item == nil || !item.HasComponent(components.Appearance) {
+		return nil
+	}
+	ac := item.GetComponent(components.Appearance).(*components.AppearanceComponent)
+	return appearanceIcon(ac)
+}
+
+// appearanceIcon builds a tooltip Icon from an AppearanceComponent. Returns
+// nil if the component has no resource set.
+func appearanceIcon(ac *components.AppearanceComponent) *minui.Icon {
+	if ac == nil || ac.Resource == "" {
+		return nil
+	}
+	size := ac.SpriteSize
+	if size <= 0 {
+		size = 24
+	}
+	// Scale up small item sprites so they're visible in the tooltip.
+	scale := 2.0
+	if size >= 24 {
+		scale = 1.5
+	}
+	icon := minui.NewIconWithScale(ac.Resource, ac.SpriteX, ac.SpriteY, size, size, scale)
+	if ac.R != 0 || ac.G != 0 || ac.B != 0 {
+		icon.Tint = color.RGBA{R: ac.R, G: ac.G, B: ac.B, A: 255}
+	}
+	return icon
+}
+
+// blueprintTooltipIcon builds a tooltip Icon from a blueprint's Appearance,
+// without instantiating the entity. Returns nil if the blueprint has no
+// Appearance.
+func blueprintTooltipIcon(blueprint string) *minui.Icon {
+	return appearanceIcon(factory.GetAppearance(blueprint))
+}
+
+// buildableTooltipIcon builds a preview Icon for a build menu entry. Entity
+// buildables resolve through the blueprint registry; tile buildables resolve
+// through the tile definitions table using the first variant's sprite.
+func buildableTooltipIcon(key string, b construction.Buildable) *minui.Icon {
+	name := b.Type
+	if name == "" {
+		name = key
+	}
+	if name == "" {
+		return nil
+	}
+	if b.IsEntity {
+		return blueprintTooltipIcon(name)
+	}
+	idx, ok := world.TileNameToIndex[name]
+	if !ok || idx < 0 || idx >= len(world.TileDefinitions) {
+		return nil
+	}
+	def := world.TileDefinitions[idx]
+	if def.Resource == "" || len(def.Variants) == 0 {
+		return nil
+	}
+	w := def.SpriteWidth
+	h := def.SpriteHeight
+	if w <= 0 {
+		w = config.Global().TileSizeW
+	}
+	if h <= 0 {
+		h = config.Global().TileSizeH
+	}
+	if w <= 0 {
+		w = 24
+	}
+	if h <= 0 {
+		h = 24
+	}
+	v := def.Variants[0]
+	return minui.NewIconWithScale(def.Resource, v.SpriteX, v.SpriteY, w, h, 1.5)
 }
 
 func goalLinesEqual(a, b []string) bool {

@@ -70,7 +70,7 @@ Friend/foe is determined by comparing `Faction` fields:
 
 ### Adding New Hostile Types
 
-1. Add a blueprint to `data/entity_blueprints.json` with `FactionAIComponent` set.
+1. Add a blueprint under `data/blueprints/entities/` (e.g. `aliens.json`) with a `FactionAI` component.
 2. Set `Faction` to `"alien"` (or a new faction string if you want a distinct group).
 3. Add the blueprint ID to a spawn rule in the relevant scenario JSON if it should appear in gameplay.
 

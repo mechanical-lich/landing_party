@@ -24,9 +24,16 @@ Allows colonists to perform research tasks. A colonist assigned to research must
 
 See [Research](research.md) for the full tech tree.
 
-### Workbench
+### Workbenches
 
-Enables crafting tasks. Colonists must be adjacent to a workbench to craft items. See the crafting recipes for what can be produced.
+Crafting stations. Each variant produces a different category of items:
+
+- **Workbench** — general items (medkits and similar).
+- **Gun Bench** — ranged weapons.
+- **Armor Bench** — light armor.
+- **Advanced Armor Bench** — heavy armor (requires Advanced Metallurgy research).
+
+Colonists work at whichever bench matches the queued recipe. See [Crafting](crafting.md) for the full workflow.
 
 ### Work Light
 

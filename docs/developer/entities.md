@@ -1,6 +1,15 @@
 # Entities & Blueprints — Developer Guide
 
-All entities are defined in `data/entity_blueprints.json`. Each blueprint is a key-value entry where the key is the blueprint ID and the value is a map of component definitions.
+All entities are defined as JSON blueprints under `data/blueprints/`. The loader (`factory.FactoryLoadDir`) walks the entire directory tree at startup and merges every `.json` file into a single blueprint registry. The directory layout is convention only — file location does not affect lookup, but blueprint IDs must be globally unique.
+
+```
+data/blueprints/
+    entities/      # colonists.json, aliens.json, critters.json, flora.json
+    items/         # weapons.json, armor.json, consumables.json, resources.json
+    structures/    # workbenches.json, doors.json, furniture.json
+```
+
+Each file is a JSON object keyed by blueprint ID; each value is a map of component name → component fields.
 
 ---
 
@@ -213,14 +222,15 @@ Empty marker component. Makes the entity impassable — other entities cannot mo
 
 ## Adding a New Entity
 
-1. Open `data/entity_blueprints.json`.
-2. Add a new top-level key (the blueprint ID).
+1. Pick the appropriate file under `data/blueprints/` (or create a new `.json` file in the relevant subdirectory). The subdirectory is convention; the loader merges all files.
+2. Add a new top-level key — this is the **blueprint ID** and must be unique across the entire `data/blueprints/` tree.
 3. Add the required components for your entity type:
-   - **Hostile NPC**: `Description`, `Appearance`, `Health`, `Stats`, `FactionAI`, `Initiative`, `AIMemory`, `Solid`
-   - **Colonist**: `Description`, `EquipmentAppearance`, `Health`, `Stats`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
-   - **Item**: `Description`, `Appearance` (no `Solid` — items are walkable)
-   - **Structure/Building**: typically defined via `build.json` type; add an entity blueprint only if it has interactive components
-4. Reference the blueprint ID in `data/build.json` if it should be player-buildable, or in `data/scenarios/` spawn rules if it should appear during gameplay.
+   - **Hostile NPC** (`data/blueprints/entities/aliens.json`): `Description`, `Appearance`, `Health`, `Stats`, `FactionAI`, `Initiative`, `AIMemory`, `Solid`
+   - **Colonist** (`data/blueprints/entities/colonists.json`): `Description`, `EquipmentAppearance`, `Health`, `Stats`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
+   - **Item** (`data/blueprints/items/*.json`): `Description`, `Appearance`, `Item`, plus `Weapon` / `Armor` / consumable components. No `Solid` — items are walkable.
+   - **Interactive Structure** (`data/blueprints/structures/*.json`): `Description`, `Appearance`, `Solid` (usually), plus role components like `CraftingStation`, `StorageContainer`, `Door`, `Light`. Reference the blueprint from `data/build.json` to make it player-buildable.
+   - **Plain Tile Build** (no entity needed): just add an entry to `data/build.json` with a tile `type`.
+4. Reference the blueprint ID in `data/build.json` (with `is_entity: true`) if it should be player-buildable, or in a scenario's `spawn_rules` / setup script if it should appear during gameplay.
 
 ---
 

@@ -1,6 +1,6 @@
 # Win Conditions
 
-Each scenario defines its own win and loss conditions. The current default scenario is **Survival**.
+Each scenario defines its own win and loss conditions. See [Scenarios](scenarios.md) for the full list of game modes; the most common shape is "survive N days without losing all colonists."
 
 ---
 
