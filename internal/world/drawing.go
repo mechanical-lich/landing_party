@@ -9,8 +9,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"fmt"
+
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
+	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/task"
@@ -76,6 +79,16 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 				pendingEntities = append(pendingEntities, pendingEntityDraw{entity: entity, tX: tX, tY: tY})
 			}
 
+			// Debug overlay: print the blob47 pruned mask on each cell whose
+			// Middle uses AutoTileBlob47. Useful for aligning a tilesheet.
+			if config.Global().DebugShowAutotileMask && tile != nil && !tile.Middle.IsEmpty() {
+				def := TileDefinitions[tile.Middle.Type]
+				if def.AutoTile == rllayered.AutoTileBlob47 {
+					mask := blob47MaskFor(level, tile)
+					mlge_text.Draw(screen, fmt.Sprintf("%d", mask), 10, int(tX)+1, int(tY)+1, color.RGBA{255, 255, 0, 255})
+				}
+			}
+
 			screenY++
 		}
 		screenX++
@@ -86,6 +99,54 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	for _, p := range pendingEntities {
 		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
+}
+
+// blob47MaskFor computes the pruned 8-direction neighbor mask of the cell's
+// Middle slot for debug overlay purposes. Mirrors what rllayered's
+// ResolveVariant does for AutoTileBlob47.
+func blob47MaskFor(level *Level, t *Tile) uint8 {
+	if t == nil || t.Middle.IsEmpty() {
+		return 0
+	}
+	x, y, z := t.Coords()
+	def := TileDefinitions[t.Middle.Type]
+	isAutoTile := def.AutoTile != rllayered.AutoTileNone
+	sameType := func(nx, ny, nz int) bool {
+		n := level.GetTilePtr(nx, ny, nz)
+		if n == nil || n.Middle.IsEmpty() {
+			return false
+		}
+		if isAutoTile {
+			return n.Middle.Type == t.Middle.Type
+		}
+		return n.Middle.Type == t.Middle.Type && n.Middle.Variant == t.Middle.Variant
+	}
+	var m uint8
+	if sameType(x, y-1, z) {
+		m |= rllayered.BlobBitN
+	}
+	if sameType(x, y+1, z) {
+		m |= rllayered.BlobBitS
+	}
+	if sameType(x-1, y, z) {
+		m |= rllayered.BlobBitW
+	}
+	if sameType(x+1, y, z) {
+		m |= rllayered.BlobBitE
+	}
+	if sameType(x+1, y-1, z) {
+		m |= rllayered.BlobBitNE
+	}
+	if sameType(x-1, y-1, z) {
+		m |= rllayered.BlobBitNW
+	}
+	if sameType(x+1, y+1, z) {
+		m |= rllayered.BlobBitSE
+	}
+	if sameType(x-1, y+1, z) {
+		m |= rllayered.BlobBitSW
+	}
+	return rllayered.PruneBlobMask(m)
 }
 
 // tileMiddleTransparent reports whether the cell's Middle slot lets light /
@@ -99,8 +160,22 @@ func tileMiddleTransparent(t *Tile) bool {
 	return def.Air || def.Space
 }
 
+// outOfBoundsSlot is a synthetic Slot pointing at the "space" tile, used to
+// render cells outside the level bounds (so the camera doesn't smear last
+// frame's pixels at the edges).
+var outOfBoundsSlot = func() rllayered.Slot {
+	if idx, ok := TileNameToIndex["space"]; ok {
+		return rllayered.Slot{Type: idx, Variant: 0}
+	}
+	return rllayered.Slot{}
+}
+
 func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	if tile == nil {
+		slot := outOfBoundsSlot()
+		if !slot.IsEmpty() {
+			drawSlot(screen, level, tile, slot, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+		}
 		return
 	}
 	// Floor → Middle → Ceiling. Each slot draws independently.

@@ -67,7 +67,7 @@
         "resource": "scifi_world"
     },
     {
-        "name": "rock",
+        "name": "rock_old",
         "layer": "middle",
         "solid": true,
         "autoTile": 2,
@@ -154,6 +154,252 @@
             }
         ],
         "resource": "fantasy_world"
+    },
+    {
+        "name": "rock",
+        "description": "Solid rock wall (47-blob autotile, GMS2-style).",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 3,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 72,
+                "spriteY": 48
+            },
+            {
+                "variant": 2,
+                "spriteX": 72,
+                "spriteY": 0
+            },
+            {
+                "variant": 3,
+                "spriteX": 72,
+                "spriteY": 24
+            },
+            {
+                "variant": 4,
+                "spriteX": 48,
+                "spriteY": 72
+            },
+            {
+                "variant": 5,
+                "spriteX": 168,
+                "spriteY": 72
+            },
+            {
+                "variant": 6,
+                "spriteX": 168,
+                "spriteY": 0
+            },
+            {
+                "variant": 7,
+                "spriteX": 168,
+                "spriteY": 96
+            },
+            {
+                "variant": 8,
+                "spriteX": 0,
+                "spriteY": 72
+            },
+            {
+                "variant": 9,
+                "spriteX": 96,
+                "spriteY": 72
+            },
+            {
+                "variant": 10,
+                "spriteX": 96,
+                "spriteY": 0
+            },
+            {
+                "variant": 11,
+                "spriteX": 96,
+                "spriteY": 96
+            },
+            {
+                "variant": 12,
+                "spriteX": 24,
+                "spriteY": 72
+            },
+            {
+                "variant": 13,
+                "spriteX": 192,
+                "spriteY": 72
+            },
+            {
+                "variant": 14,
+                "spriteX": 192,
+                "spriteY": 0
+            },
+            {
+                "variant": 15,
+                "spriteX": 192,
+                "spriteY": 96
+            },
+            {
+                "variant": 25,
+                "spriteX": 0,
+                "spriteY": 48
+            },
+            {
+                "variant": 27,
+                "spriteX": 96,
+                "spriteY": 24
+            },
+            {
+                "variant": 29,
+                "spriteX": 144,
+                "spriteY": 72
+            },
+            {
+                "variant": 31,
+                "spriteX": 216,
+                "spriteY": 72
+            },
+            {
+                "variant": 37,
+                "spriteX": 48,
+                "spriteY": 48
+            },
+            {
+                "variant": 39,
+                "spriteX": 168,
+                "spriteY": 24
+            },
+            {
+                "variant": 45,
+                "spriteX": 120,
+                "spriteY": 72
+            },
+            {
+                "variant": 47,
+                "spriteX": 240,
+                "spriteY": 72
+            },
+            {
+                "variant": 61,
+                "spriteX": 24,
+                "spriteY": 48
+            },
+            {
+                "variant": 63,
+                "spriteX": 192,
+                "spriteY": 24
+            },
+            {
+                "variant": 74,
+                "spriteX": 0,
+                "spriteY": 0
+            },
+            {
+                "variant": 75,
+                "spriteX": 96,
+                "spriteY": 48
+            },
+            {
+                "variant": 78,
+                "spriteX": 144,
+                "spriteY": 0
+            },
+            {
+                "variant": 79,
+                "spriteX": 216,
+                "spriteY": 48
+            },
+            {
+                "variant": 91,
+                "spriteX": 0,
+                "spriteY": 24
+            },
+            {
+                "variant": 95,
+                "spriteX": 144,
+                "spriteY": 96
+            },
+            {
+                "variant": 111,
+                "spriteX": 216,
+                "spriteY": 0
+            },
+            {
+                "variant": 127,
+                "spriteX": 144,
+                "spriteY": 24
+            },
+            {
+                "variant": 134,
+                "spriteX": 48,
+                "spriteY": 0
+            },
+            {
+                "variant": 135,
+                "spriteX": 168,
+                "spriteY": 48
+            },
+            {
+                "variant": 142,
+                "spriteX": 120,
+                "spriteY": 0
+            },
+            {
+                "variant": 143,
+                "spriteX": 240,
+                "spriteY": 48
+            },
+            {
+                "variant": 159,
+                "spriteX": 216,
+                "spriteY": 24
+            },
+            {
+                "variant": 167,
+                "spriteX": 48,
+                "spriteY": 24
+            },
+            {
+                "variant": 175,
+                "spriteX": 120,
+                "spriteY": 96
+            },
+            {
+                "variant": 191,
+                "spriteX": 120,
+                "spriteY": 24
+            },
+            {
+                "variant": 206,
+                "spriteX": 24,
+                "spriteY": 0
+            },
+            {
+                "variant": 207,
+                "spriteX": 192,
+                "spriteY": 48
+            },
+            {
+                "variant": 223,
+                "spriteX": 144,
+                "spriteY": 48
+            },
+            {
+                "variant": 239,
+                "spriteX": 120,
+                "spriteY": 48
+            },
+            {
+                "variant": 255,
+                "spriteX": 24,
+                "spriteY": 24
+            }
+        ],
+        "resource": "rock_blob47",
+        "mixId": 1
     },
     {
         "name": "rock_floor",
@@ -252,95 +498,246 @@
         "name": "dirt",
         "layer": "middle",
         "solid": true,
-        "autoTile": 2,
+        "autoTile": 3,
         "variants": [
             {
                 "variant": 0,
-                "spriteX": 216,
-                "spriteY": 312
+                "spriteX": 72,
+                "spriteY": 72
             },
             {
                 "variant": 1,
-                "spriteX": 360,
-                "spriteY": 312
+                "spriteX": 72,
+                "spriteY": 48
             },
             {
                 "variant": 2,
-                "spriteX": 312,
-                "spriteY": 312
+                "spriteX": 72,
+                "spriteY": 0
             },
             {
                 "variant": 3,
-                "spriteX": 336,
-                "spriteY": 312
+                "spriteX": 72,
+                "spriteY": 24
             },
             {
                 "variant": 4,
-                "spriteX": 288,
-                "spriteY": 312
+                "spriteX": 48,
+                "spriteY": 72
             },
             {
                 "variant": 5,
-                "spriteX": 456,
-                "spriteY": 312
+                "spriteX": 168,
+                "spriteY": 72
             },
             {
                 "variant": 6,
-                "spriteX": 408,
-                "spriteY": 312
+                "spriteX": 168,
+                "spriteY": 0
             },
             {
                 "variant": 7,
-                "spriteX": 528,
-                "spriteY": 312
+                "spriteX": 168,
+                "spriteY": 96
             },
             {
                 "variant": 8,
-                "spriteX": 240,
-                "spriteY": 312
+                "spriteX": 0,
+                "spriteY": 72
             },
             {
                 "variant": 9,
-                "spriteX": 432,
-                "spriteY": 312
+                "spriteX": 96,
+                "spriteY": 72
             },
             {
                 "variant": 10,
-                "spriteX": 384,
-                "spriteY": 312
+                "spriteX": 96,
+                "spriteY": 0
             },
             {
                 "variant": 11,
-                "spriteX": 552,
-                "spriteY": 312
+                "spriteX": 96,
+                "spriteY": 96
             },
             {
                 "variant": 12,
-                "spriteX": 264,
-                "spriteY": 312
+                "spriteX": 24,
+                "spriteY": 72
             },
             {
                 "variant": 13,
-                "spriteX": 576,
-                "spriteY": 312
+                "spriteX": 192,
+                "spriteY": 72
             },
             {
                 "variant": 14,
-                "spriteX": 504,
-                "spriteY": 312
+                "spriteX": 192,
+                "spriteY": 0
             },
             {
                 "variant": 15,
-                "spriteX": 480,
-                "spriteY": 312
+                "spriteX": 192,
+                "spriteY": 96
             },
             {
-                "variant": 16,
-                "spriteX": 648,
-                "spriteY": 312
+                "variant": 25,
+                "spriteX": 0,
+                "spriteY": 48
+            },
+            {
+                "variant": 27,
+                "spriteX": 96,
+                "spriteY": 24
+            },
+            {
+                "variant": 29,
+                "spriteX": 144,
+                "spriteY": 72
+            },
+            {
+                "variant": 31,
+                "spriteX": 216,
+                "spriteY": 72
+            },
+            {
+                "variant": 37,
+                "spriteX": 48,
+                "spriteY": 48
+            },
+            {
+                "variant": 39,
+                "spriteX": 168,
+                "spriteY": 24
+            },
+            {
+                "variant": 45,
+                "spriteX": 120,
+                "spriteY": 72
+            },
+            {
+                "variant": 47,
+                "spriteX": 240,
+                "spriteY": 72
+            },
+            {
+                "variant": 61,
+                "spriteX": 24,
+                "spriteY": 48
+            },
+            {
+                "variant": 63,
+                "spriteX": 192,
+                "spriteY": 24
+            },
+            {
+                "variant": 74,
+                "spriteX": 0,
+                "spriteY": 0
+            },
+            {
+                "variant": 75,
+                "spriteX": 96,
+                "spriteY": 48
+            },
+            {
+                "variant": 78,
+                "spriteX": 144,
+                "spriteY": 0
+            },
+            {
+                "variant": 79,
+                "spriteX": 216,
+                "spriteY": 48
+            },
+            {
+                "variant": 91,
+                "spriteX": 0,
+                "spriteY": 24
+            },
+            {
+                "variant": 95,
+                "spriteX": 144,
+                "spriteY": 96
+            },
+            {
+                "variant": 111,
+                "spriteX": 216,
+                "spriteY": 0
+            },
+            {
+                "variant": 127,
+                "spriteX": 144,
+                "spriteY": 24
+            },
+            {
+                "variant": 134,
+                "spriteX": 48,
+                "spriteY": 0
+            },
+            {
+                "variant": 135,
+                "spriteX": 168,
+                "spriteY": 48
+            },
+            {
+                "variant": 142,
+                "spriteX": 120,
+                "spriteY": 0
+            },
+            {
+                "variant": 143,
+                "spriteX": 240,
+                "spriteY": 48
+            },
+            {
+                "variant": 159,
+                "spriteX": 216,
+                "spriteY": 24
+            },
+            {
+                "variant": 167,
+                "spriteX": 48,
+                "spriteY": 24
+            },
+            {
+                "variant": 175,
+                "spriteX": 120,
+                "spriteY": 96
+            },
+            {
+                "variant": 191,
+                "spriteX": 120,
+                "spriteY": 24
+            },
+            {
+                "variant": 206,
+                "spriteX": 24,
+                "spriteY": 0
+            },
+            {
+                "variant": 207,
+                "spriteX": 192,
+                "spriteY": 48
+            },
+            {
+                "variant": 223,
+                "spriteX": 144,
+                "spriteY": 48
+            },
+            {
+                "variant": 239,
+                "spriteX": 120,
+                "spriteY": 48
+            },
+            {
+                "variant": 255,
+                "spriteX": 24,
+                "spriteY": 24
             }
         ],
-        "resource": "fantasy_world"
+        "resource": "dirt_blob47",
+        "mixId": 1
     },
     {
         "name": "grass",
@@ -377,7 +774,7 @@
         "resource": "fantasy_world"
     },
     {
-        "name": "ice",
+        "name": "ice_floor",
         "layer": "floor",
         "variants": [
             {
@@ -392,6 +789,251 @@
             }
         ],
         "resource": "fantasy_world"
+    },
+    {
+        "name": "ice",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 3,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 72,
+                "spriteY": 48
+            },
+            {
+                "variant": 2,
+                "spriteX": 72,
+                "spriteY": 0
+            },
+            {
+                "variant": 3,
+                "spriteX": 72,
+                "spriteY": 24
+            },
+            {
+                "variant": 4,
+                "spriteX": 48,
+                "spriteY": 72
+            },
+            {
+                "variant": 5,
+                "spriteX": 168,
+                "spriteY": 72
+            },
+            {
+                "variant": 6,
+                "spriteX": 168,
+                "spriteY": 0
+            },
+            {
+                "variant": 7,
+                "spriteX": 168,
+                "spriteY": 96
+            },
+            {
+                "variant": 8,
+                "spriteX": 0,
+                "spriteY": 72
+            },
+            {
+                "variant": 9,
+                "spriteX": 96,
+                "spriteY": 72
+            },
+            {
+                "variant": 10,
+                "spriteX": 96,
+                "spriteY": 0
+            },
+            {
+                "variant": 11,
+                "spriteX": 96,
+                "spriteY": 96
+            },
+            {
+                "variant": 12,
+                "spriteX": 24,
+                "spriteY": 72
+            },
+            {
+                "variant": 13,
+                "spriteX": 192,
+                "spriteY": 72
+            },
+            {
+                "variant": 14,
+                "spriteX": 192,
+                "spriteY": 0
+            },
+            {
+                "variant": 15,
+                "spriteX": 192,
+                "spriteY": 96
+            },
+            {
+                "variant": 25,
+                "spriteX": 0,
+                "spriteY": 48
+            },
+            {
+                "variant": 27,
+                "spriteX": 96,
+                "spriteY": 24
+            },
+            {
+                "variant": 29,
+                "spriteX": 144,
+                "spriteY": 72
+            },
+            {
+                "variant": 31,
+                "spriteX": 216,
+                "spriteY": 72
+            },
+            {
+                "variant": 37,
+                "spriteX": 48,
+                "spriteY": 48
+            },
+            {
+                "variant": 39,
+                "spriteX": 168,
+                "spriteY": 24
+            },
+            {
+                "variant": 45,
+                "spriteX": 120,
+                "spriteY": 72
+            },
+            {
+                "variant": 47,
+                "spriteX": 240,
+                "spriteY": 72
+            },
+            {
+                "variant": 61,
+                "spriteX": 24,
+                "spriteY": 48
+            },
+            {
+                "variant": 63,
+                "spriteX": 192,
+                "spriteY": 24
+            },
+            {
+                "variant": 74,
+                "spriteX": 0,
+                "spriteY": 0
+            },
+            {
+                "variant": 75,
+                "spriteX": 96,
+                "spriteY": 48
+            },
+            {
+                "variant": 78,
+                "spriteX": 144,
+                "spriteY": 0
+            },
+            {
+                "variant": 79,
+                "spriteX": 216,
+                "spriteY": 48
+            },
+            {
+                "variant": 91,
+                "spriteX": 0,
+                "spriteY": 24
+            },
+            {
+                "variant": 95,
+                "spriteX": 144,
+                "spriteY": 96
+            },
+            {
+                "variant": 111,
+                "spriteX": 216,
+                "spriteY": 0
+            },
+            {
+                "variant": 127,
+                "spriteX": 144,
+                "spriteY": 24
+            },
+            {
+                "variant": 134,
+                "spriteX": 48,
+                "spriteY": 0
+            },
+            {
+                "variant": 135,
+                "spriteX": 168,
+                "spriteY": 48
+            },
+            {
+                "variant": 142,
+                "spriteX": 120,
+                "spriteY": 0
+            },
+            {
+                "variant": 143,
+                "spriteX": 240,
+                "spriteY": 48
+            },
+            {
+                "variant": 159,
+                "spriteX": 216,
+                "spriteY": 24
+            },
+            {
+                "variant": 167,
+                "spriteX": 48,
+                "spriteY": 24
+            },
+            {
+                "variant": 175,
+                "spriteX": 120,
+                "spriteY": 96
+            },
+            {
+                "variant": 191,
+                "spriteX": 120,
+                "spriteY": 24
+            },
+            {
+                "variant": 206,
+                "spriteX": 24,
+                "spriteY": 0
+            },
+            {
+                "variant": 207,
+                "spriteX": 192,
+                "spriteY": 48
+            },
+            {
+                "variant": 223,
+                "spriteX": 144,
+                "spriteY": 48
+            },
+            {
+                "variant": 239,
+                "spriteX": 120,
+                "spriteY": 48
+            },
+            {
+                "variant": 255,
+                "spriteX": 24,
+                "spriteY": 24
+            }
+        ],
+        "resource": "ice_blob47",
+        "mixId": 1
     },
     {
         "name": "hull_floor",

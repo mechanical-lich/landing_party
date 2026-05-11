@@ -346,10 +346,19 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 	}
 
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
+		tile := level.GetTilePtr(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
+		// Bail out cleanly if the target became invalid (out of bounds) or no
+		// longer has anything to dig (Middle already empty — e.g. someone
+		// dug it first). Without this the task sits in-progress until a
+		// worker hits Required ticks for nothing.
+		if tile == nil || tile.Middle.IsEmpty() {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Nothing to dig")
+			aiMemory.State = "idle"
+			return
+		}
 		req.Progress++
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
-			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			clearTileRadiation(tile)
 			// Layered dig: just remove the Middle. Floor stays as whatever
 			// was there.

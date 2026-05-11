@@ -29,8 +29,10 @@ github.com/jfreymuth/vorbis v1.0.2 h1:m1xH6+ZI4thH927pgKD8JOH4eaGRm18rEE9/0WKjvN
 github.com/jfreymuth/vorbis v1.0.2/go.mod h1:DoftRo4AznKnShRl1GxiTFCseHr4zR9BN3TWXyuzrqQ=
 github.com/mechanical-lich/mechanical-basic v1.0.0 h1:AKFd6WdpqwJw5hN8oVBuJZanzXjvES3ST+pMHPwoxVw=
 github.com/mechanical-lich/mechanical-basic v1.0.0/go.mod h1:W6AUQYju/VDAtDtYs5vU3SJI9GIO9swi1BeB/qZp5Z8=
-github.com/mechanical-lich/ml-rogue-lib v1.13.1 h1:k8O2XH5l7W7pWEmQbUad7cWd0kQCFIZNwtGTxUdS1fM=
-github.com/mechanical-lich/ml-rogue-lib v1.13.1/go.mod h1:UPOB+FMPGH4tSCrCBdMtjhsdKxfDa9NNcgIEeq28jdQ=
+github.com/mechanical-lich/ml-rogue-lib v1.14.2 h1:yrbJPmL2fOS/qLx2A8eMVOkGFHW+fSWdHistEeoepIA=
+github.com/mechanical-lich/ml-rogue-lib v1.14.2/go.mod h1:UPOB+FMPGH4tSCrCBdMtjhsdKxfDa9NNcgIEeq28jdQ=
+github.com/mechanical-lich/mlge v1.7.6 h1:Y1/0kmhuaEhIPNkBvd1tAkSXn4ez2RcGGqviEU1M1eo=
+github.com/mechanical-lich/mlge v1.7.6/go.mod h1:01gKi6utmjTe+yuQia0LV7CNu/cLAuQS+19Ee2rze4g=
 github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
 github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

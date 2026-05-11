@@ -11,7 +11,7 @@
   "rules": [
     {
       "kind": "surface",
-      "tile": "ice"
+      "tile": "ice_floor"
     },
     {
       "kind": "subsurface",
