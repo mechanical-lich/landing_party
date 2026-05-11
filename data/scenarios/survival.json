@@ -9,7 +9,7 @@
         "alien_grunt": {
             "spawn_rate": 50,
             "light_min": 0,
-            "tiles": ["regolith", "dirt"],
+            "tiles": ["regolith", "dirt_floor"],
             "min_z": 5,
             "max_z": 5,
             "starting_equipment": {
@@ -20,14 +20,14 @@
         "alien_brute": {
             "spawn_rate": 10,
             "light_min": 0,
-            "tiles": ["regolith", "dirt"],
+            "tiles": ["regolith", "dirt_floor"],
             "min_z": 5,
             "max_z": 5
         },
         "critter": {
             "spawn_rate": 70,
             "light_min": 0,
-            "tiles": ["regolith", "dirt"],
+            "tiles": ["regolith", "dirt_floor"],
             "min_z": 4,
             "max_z": 6
         }

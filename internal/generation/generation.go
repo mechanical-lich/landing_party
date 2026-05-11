@@ -172,7 +172,7 @@ func placeScatter(level *world.Level, width, height, surfaceZ int) {
 		x := utility.GetRandom(1, width-1)
 		y := utility.GetRandom(1, height-1)
 		tile := level.GetTilePtr(x, y, surfaceZ)
-		if tile != nil && world.TileDefinitions[tile.Type].Name == "grass" {
+		if tile != nil && !tile.Floor.IsEmpty() && world.TileDefinitions[tile.Floor.Type].Name == "grass" {
 			scatterCluster(level, x, y, surfaceZ, "alien_flora", 6)
 		}
 	}

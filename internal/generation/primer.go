@@ -77,34 +77,54 @@ func paramString(params map[string]any, key, def string) string {
 	return def
 }
 
-// defaultTileForKind returns a placeholder tile for a TerrainKind so the level
-// is renderable even before biome rules run. Biome applier will overwrite.
-func defaultTileForKind(k world.TerrainKind) string {
+// floorForKind returns the Floor tile name for a TerrainKind. The Floor is
+// the persistent ground that survives mining/digging; the Middle slot (set
+// separately) is what blocks movement.
+func floorForKind(k world.TerrainKind) string {
 	switch k {
-	case world.TKSpace:
-		return "space"
-	case world.TKAtmosphere:
-		return "air"
 	case world.TKSurface:
 		return "regolith"
 	case world.TKSubsurface:
-		return "solid_dirt"
-	case world.TKUnderground:
-		return "rock"
-	case world.TKCavern:
-		return "air"
+		return "dirt_floor"
+	case world.TKUnderground, world.TKCavern:
+		return "rock_floor"
 	case world.TKBedrock:
 		return "bedrock"
-	case world.TKWater:
-		return "water"
 	case world.TKStructure:
 		return "hull_floor"
 	}
-	return "air"
+	return ""
 }
 
-// paintKind sets both the terrain skeleton and a placeholder tile.
+// middleForKind returns the Middle tile name (the blocking/visual layer) for
+// a TerrainKind. Returns empty string for kinds that leave Middle empty.
+func middleForKind(k world.TerrainKind) string {
+	switch k {
+	case world.TKSpace:
+		return "space"
+	case world.TKAtmosphere, world.TKCavern:
+		return "air"
+	case world.TKWater:
+		return "water"
+	case world.TKSubsurface:
+		return "dirt"
+	case world.TKUnderground:
+		return "rock"
+	case world.TKBedrock:
+		return "bedrock"
+	}
+	return ""
+}
+
+// paintKind paints the layered defaults for a TerrainKind. Floor and Middle
+// are set independently so digging out the Middle reveals the Floor cleanly.
 func paintKind(level *world.Level, x, y, z int, k world.TerrainKind) {
 	level.SetTerrainKind(x, y, z, k)
-	level.UpdateTileAt(x, y, z, defaultTileForKind(k), world.RandomTileVariant(defaultTileForKind(k)))
+
+	if floorName := floorForKind(k); floorName != "" {
+		level.SetFloor(x, y, z, floorName, world.RandomTileVariant(floorName))
+	}
+	if middleName := middleForKind(k); middleName != "" {
+		level.SetMiddle(x, y, z, middleName, world.RandomTileVariant(middleName))
+	}
 }

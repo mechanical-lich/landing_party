@@ -231,10 +231,10 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 			ox := cx + rand.Intn(3) - 1
 			oy := cy + rand.Intn(3) - 1
 			t := level.GetTilePtr(ox, oy, z)
-			if t == nil {
+			if t == nil || t.Middle.IsEmpty() {
 				continue
 			}
-			def := world.TileDefinitions[t.Type]
+			def := world.TileDefinitions[t.Middle.Type]
 			if def.Air || def.Space || def.Water {
 				continue
 			}

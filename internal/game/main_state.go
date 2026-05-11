@@ -1098,7 +1098,11 @@ func (s *MainState) addMineTask(x, y int) {
 	if tile == nil {
 		return
 	}
-	tileName := world.TileDefinitions[tile.(*world.Tile).Type].Name
+	t := tile.(*world.Tile)
+	if t.Middle.IsEmpty() {
+		return
+	}
+	tileName := world.TileDefinitions[t.Middle.Type].Name
 	if tileName != "ore_deposit" && tileName != "crystal_vein" {
 		return
 	}
@@ -1136,7 +1140,16 @@ func (s *MainState) updateHovered() {
 		return
 	}
 	t := tile.(*world.Tile)
-	def := world.TileDefinitions[t.Type]
+	// Hover info reflects the topmost painted slot the player would interact
+	// with: Middle wins (walls, ore, doors), then Floor, then nothing.
+	slot := t.Middle
+	if slot.IsEmpty() {
+		slot = t.Floor
+	}
+	var def world.TileDefinition
+	if !slot.IsEmpty() {
+		def = world.TileDefinitions[slot.Type]
+	}
 	s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
 		Name:       def.Name,
 		X:          tX,

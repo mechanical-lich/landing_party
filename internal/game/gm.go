@@ -73,7 +73,16 @@ func (gm *GameMaster) Update() {
 			continue
 		}
 		tile := ti.(*world.Tile)
-		bp := scenario.PickRandom(sc.SpawnRules, world.TileIndexToName[tile.Type], tile.LightLevel, z)
+		// Spawn rules match on surface tile name. Prefer Floor (the ground
+		// surface entities walk on), fall back to Middle.
+		nameSlot := tile.Floor
+		if nameSlot.IsEmpty() {
+			nameSlot = tile.Middle
+		}
+		if nameSlot.IsEmpty() {
+			continue
+		}
+		bp := scenario.PickRandom(sc.SpawnRules, world.TileIndexToName[nameSlot.Type], tile.LightLevel, z)
 		if bp == "" {
 			continue
 		}

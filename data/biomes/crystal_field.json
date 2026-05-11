@@ -1,14 +1,42 @@
 {
   "id": "crystal_field",
-  "temp_range": [0.0, 0.5],
-  "humidity_range": [0.0, 0.4],
+  "temp_range": [
+    0.0,
+    0.5
+  ],
+  "humidity_range": [
+    0.0,
+    0.4
+  ],
   "rules": [
-    { "kind": "surface",     "tile": "regolith" },
-    { "kind": "subsurface",  "tile": "rock" },
-    { "kind": "underground", "tile": "crystal_vein" },
-    { "kind": "cavern",      "tile": "air" },
-    { "kind": "atmosphere",  "tile": "air" },
-    { "kind": "space",       "tile": "space" },
-    { "kind": "bedrock",     "tile": "bedrock" }
+    {
+      "kind": "surface",
+      "tile": "regolith"
+    },
+    {
+      "kind": "subsurface",
+      "tile": "rock",
+      "floor": "rock_floor"
+    },
+    {
+      "kind": "underground",
+      "tile": "crystal_vein"
+    },
+    {
+      "kind": "cavern",
+      "tile": "air"
+    },
+    {
+      "kind": "atmosphere",
+      "tile": "air"
+    },
+    {
+      "kind": "space",
+      "tile": "space"
+    },
+    {
+      "kind": "bedrock",
+      "tile": "bedrock"
+    }
   ]
 }

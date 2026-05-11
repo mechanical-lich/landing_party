@@ -4,7 +4,7 @@ go 1.25.5
 
 replace github.com/mechanical-lich/mlge => ../mlge
 
-//replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
+replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
 
 //replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
 

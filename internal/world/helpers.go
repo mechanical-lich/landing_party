@@ -1,6 +1,9 @@
 package world
 
-import "github.com/mechanical-lich/mlge/utility"
+import (
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
+	"github.com/mechanical-lich/mlge/utility"
+)
 
 func RandomTileVariant(tileName string) int {
 	idx, ok := TileNameToIndex[tileName]
@@ -14,14 +17,23 @@ func RandomTileVariant(tileName string) int {
 	return utility.GetRandom(0, n)
 }
 
+// SetTileTypeAndVariant paints the named tile into whichever slot its
+// TileDefinition declares via its Layer field (default Middle).
 func SetTileTypeAndVariant(tile *Tile, tileName string, variant int) {
-	idx := TileNameToIndex[tileName]
-	if idx < 0 || idx >= len(TileDefinitions) {
+	idx, ok := TileNameToIndex[tileName]
+	if !ok || idx < 0 || idx >= len(TileDefinitions) {
 		return
 	}
 	if variant < 0 || variant >= len(TileDefinitions[idx].Variants) {
 		variant = 0
 	}
-	tile.Type = idx
-	tile.Variant = variant
+	slot := rllayered.Slot{Type: idx, Variant: variant}
+	switch TileDefinitions[idx].LayerOf() {
+	case rllayered.LayerFloor:
+		tile.Floor = slot
+	case rllayered.LayerCeiling:
+		tile.Ceiling = slot
+	default:
+		tile.Middle = slot
+	}
 }

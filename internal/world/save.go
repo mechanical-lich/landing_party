@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
@@ -35,7 +36,9 @@ type TileRun struct {
 }
 
 type SaveData struct {
-	TileRuns       []TileRun
+	FloorRuns      []TileRun  `json:"FloorRuns,omitempty"`
+	MiddleRuns     []TileRun  `json:"MiddleRuns,omitempty"`
+	CeilingRuns    []TileRun  `json:"CeilingRuns,omitempty"`
 	Entities       []*SaveEntity
 	StaticEntities []*SaveEntity
 	Settlements    map[string]*settlement.Settlement
@@ -44,39 +47,72 @@ type SaveData struct {
 	MapSizeZ       int
 }
 
-func encodeTileRuns(tiles []Tile) []TileRun {
+// encodeSlotRuns RLE-compresses one slot across a tile array.
+func encodeSlotRuns(tiles []Tile, pick func(t *Tile) (typ, variant int)) []TileRun {
 	if len(tiles) == 0 {
 		return nil
 	}
 	runs := make([]TileRun, 0, len(tiles)/4)
-	cur := TileRun{T: tiles[0].Type, V: tiles[0].Variant, C: 1}
-	for _, tile := range tiles[1:] {
-		if tile.Type == cur.T && tile.Variant == cur.V {
+	t0, v0 := pick(&tiles[0])
+	cur := TileRun{T: t0, V: v0, C: 1}
+	for i := 1; i < len(tiles); i++ {
+		ti, vi := pick(&tiles[i])
+		if ti == cur.T && vi == cur.V {
 			cur.C++
 		} else {
 			runs = append(runs, cur)
-			cur = TileRun{T: tile.Type, V: tile.Variant, C: 1}
+			cur = TileRun{T: ti, V: vi, C: 1}
 		}
 	}
 	runs = append(runs, cur)
 	return runs
 }
 
-func decodeTileRuns(runs []TileRun) []Tile {
+func encodeFloorRuns(tiles []Tile) []TileRun {
+	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Floor.Type, t.Floor.Variant })
+}
+func encodeMiddleRuns(tiles []Tile) []TileRun {
+	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Middle.Type, t.Middle.Variant })
+}
+func encodeCeilingRuns(tiles []Tile) []TileRun {
+	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Ceiling.Type, t.Ceiling.Variant })
+}
+
+// decodeLayeredTiles rebuilds a tile array from three parallel RLE streams.
+// Any stream may be empty (POC-era saves where ceilings were never painted).
+func decodeLayeredTiles(floor, middle, ceiling []TileRun) []Tile {
 	total := 0
-	for _, r := range runs {
+	for _, r := range middle {
 		total += r.C
 	}
-	tiles := make([]Tile, total)
-	i := 0
-	for _, r := range runs {
-		for j := 0; j < r.C; j++ {
-			tiles[i] = Tile{Type: r.T, Variant: r.V}
-			i++
+	if total == 0 {
+		for _, r := range floor {
+			total += r.C
 		}
 	}
+	tiles := make([]Tile, total)
+	apply := func(runs []TileRun, set func(t *Tile, typ, variant int)) {
+		i := 0
+		for _, r := range runs {
+			for j := 0; j < r.C && i < total; j++ {
+				set(&tiles[i], r.T, r.V)
+				i++
+			}
+		}
+	}
+	apply(floor, func(t *Tile, typ, variant int) { t.Floor = rllayeredSlot(typ, variant) })
+	apply(middle, func(t *Tile, typ, variant int) { t.Middle = rllayeredSlot(typ, variant) })
+	apply(ceiling, func(t *Tile, typ, variant int) { t.Ceiling = rllayeredSlot(typ, variant) })
 	return tiles
 }
+
+func rllayeredSlot(typ, variant int) rllayeredSlotT {
+	return rllayeredSlotT{Type: typ, Variant: variant}
+}
+
+// rllayeredSlotT is a type alias to avoid pulling rllayered into every save
+// declaration site.
+type rllayeredSlotT = rllayered.Slot
 
 func entityToSaveEntity(e *ecs.Entity) *SaveEntity {
 	if e == nil {
@@ -195,7 +231,9 @@ func SaveLevel(level *Level) SaveData {
 	}
 
 	return SaveData{
-		TileRuns:       encodeTileRuns(level.Data),
+		FloorRuns:      encodeFloorRuns(level.Data),
+		MiddleRuns:     encodeMiddleRuns(level.Data),
+		CeilingRuns:    encodeCeilingRuns(level.Data),
 		Entities:       saveEntities,
 		StaticEntities: staticSaveEntities,
 		Settlements:    settlement.Settlements,
@@ -227,13 +265,14 @@ func LoadSaveData(data SaveData) *Level {
 	}
 	level := NewLevel(w, h, d)
 
-	tiles := decodeTileRuns(data.TileRuns)
+	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, data.CeilingRuns)
 	for i, tile := range tiles {
 		if i >= len(level.Data) {
 			break
 		}
-		level.Data[i].Type = tile.Type
-		level.Data[i].Variant = tile.Variant
+		level.Data[i].Floor = tile.Floor
+		level.Data[i].Middle = tile.Middle
+		level.Data[i].Ceiling = tile.Ceiling
 	}
 
 	for _, saveEntity := range data.Entities {

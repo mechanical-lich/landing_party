@@ -1,5 +1,11 @@
 [
     {
+        "name": "empty",
+        "description": "Sentinel for an unfilled layer slot. Never painted, never rendered.",
+        "variants": null,
+        "resource": ""
+    },
+    {
         "name": "space",
         "space": true,
         "variants": [
@@ -40,6 +46,7 @@
     },
     {
         "name": "regolith",
+        "layer": "floor",
         "variants": [
             {
                 "variant": 0,
@@ -61,6 +68,7 @@
     },
     {
         "name": "rock",
+        "layer": "middle",
         "solid": true,
         "autoTile": 2,
         "variants": [
@@ -148,7 +156,35 @@
         "resource": "fantasy_world"
     },
     {
+        "name": "rock_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 360
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 360
+            },
+            {
+                "variant": 2,
+                "spriteX": 120,
+                "spriteY": 360
+            },
+            {
+                "variant": 3,
+                "spriteX": 144,
+                "spriteY": 360
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
         "name": "bedrock",
+        "layer": "floor",
         "solid": true,
         "variants": [
             {
@@ -196,7 +232,8 @@
         "resource": "scifi_world"
     },
     {
-        "name": "dirt",
+        "name": "dirt_floor",
+        "layer": "floor",
         "variants": [
             {
                 "variant": 0,
@@ -212,24 +249,102 @@
         "resource": "fantasy_world"
     },
     {
-        "name": "solid_dirt",
+        "name": "dirt",
+        "layer": "middle",
         "solid": true,
+        "autoTile": 2,
         "variants": [
             {
                 "variant": 0,
-                "spriteX": 672,
-                "spriteY": 600
+                "spriteX": 216,
+                "spriteY": 312
             },
             {
                 "variant": 1,
-                "spriteX": 696,
-                "spriteY": 600
+                "spriteX": 360,
+                "spriteY": 312
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 312
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 312
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 312
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 312
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 312
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 312
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 312
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 312
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 312
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 312
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 312
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 312
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 312
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 312
+            },
+            {
+                "variant": 16,
+                "spriteX": 648,
+                "spriteY": 312
             }
         ],
         "resource": "fantasy_world"
     },
     {
         "name": "grass",
+        "layer": "floor",
         "variants": [
             {
                 "variant": 0,
@@ -263,6 +378,7 @@
     },
     {
         "name": "ice",
+        "layer": "floor",
         "variants": [
             {
                 "variant": 0,
@@ -279,6 +395,7 @@
     },
     {
         "name": "hull_floor",
+        "layer": "floor",
         "variants": [
             {
                 "variant": 0,
@@ -389,8 +506,6 @@
     {
         "name": "stairs_up",
         "stairsUp": true,
-        "lightLevel": 30,
-        "lightRange": 4,
         "variants": [
             {
                 "variant": 0,
@@ -403,8 +518,6 @@
     {
         "name": "stairs_down",
         "stairsDown": true,
-        "lightLevel": 30,
-        "lightRange": 4,
         "variants": [
             {
                 "variant": 0,
@@ -416,6 +529,7 @@
     },
     {
         "name": "lava",
+        "layer": "floor",
         "solid": true,
         "variants": [
             {

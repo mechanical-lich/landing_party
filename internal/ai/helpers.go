@@ -213,12 +213,19 @@ func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {
 	if tile == nil {
 		return false
 	}
-	def := world.TileDefinitions[tile.Type]
-	if def.Solid || def.Water {
+	// Layered walkability: need ground (Floor non-empty) and a non-blocking
+	// Middle slot. Empty Middle is fine — that's just air.
+	if tile.Floor.IsEmpty() {
 		return false
 	}
-	if def.Space && !skills.Has(entity, fspath.VacuumResistSkill) {
-		return false
+	if !tile.Middle.IsEmpty() {
+		def := world.TileDefinitions[tile.Middle.Type]
+		if def.Solid || def.Water {
+			return false
+		}
+		if def.Space && !skills.Has(entity, fspath.VacuumResistSkill) {
+			return false
+		}
 	}
 	tX, tY, tZ := tile.Coords()
 	solid := level.GetSolidEntityAt(tX, tY, tZ)

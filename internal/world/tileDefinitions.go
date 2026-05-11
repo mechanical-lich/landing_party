@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlworld"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 )
 
-type TileVariant = rlworld.TileVariant
+type TileVariant = rllayered.TileVariant
 
 // TileDefinition extends the base with scifi-specific fields.
 type TileDefinition struct {
-	rlworld.TileDefinition
+	rllayered.TileDefinition
 	Space bool `json:"space"` // true for vacuum/void tiles above the atmosphere
 }
 
@@ -42,20 +42,21 @@ func LoadTileDefinitions(path string) error {
 		TileIndexToName[i] = def.Name
 	}
 
-	// Sync base definitions so Tile.IsSolid(), IsAir(), etc. work
-	baseDefs := make([]rlworld.TileDefinition, len(defs))
+	// Sync base definitions so layered Tile helpers (IsSolid, IsAir, etc.)
+	// resolve correctly and PaintTile can dispatch by layer.
+	baseDefs := make([]rllayered.TileDefinition, len(defs))
 	for i, def := range defs {
 		baseDefs[i] = def.TileDefinition
 	}
-	rlworld.SetTileDefinitions(baseDefs)
+	rllayered.SetTileDefinitions(baseDefs)
 
 	return nil
 }
 
-// IsSpace reports whether the tile at position (x,y,z) is a space/void tile.
+// IsSpaceTile reports whether the tile's Middle slot is a space/void tile.
 func IsSpaceTile(t *Tile) bool {
-	if t == nil {
+	if t == nil || t.Middle.IsEmpty() {
 		return false
 	}
-	return TileDefinitions[t.Type].Space
+	return TileDefinitions[t.Middle.Type].Space
 }

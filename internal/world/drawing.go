@@ -10,6 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/task"
@@ -39,24 +40,20 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			level.entitiesBuffer = level.entitiesBuffer[:0]
 			level.GetEntitiesAt(x, y, cameraZ, &level.entitiesBuffer)
 
-			// See through air and space tiles: draw tiles and entities on lower z-levels
+			// See through cells whose Middle and Floor are both effectively empty
+			// — i.e. nothing opaque at this z. Layered cells block lookdown if
+			// they have a Floor (a ground surface) or a non-air Middle.
 			drawnZ := cameraZ
-			isTransparent := tile == nil || TileDefinitions[tile.Type].Air || TileDefinitions[tile.Type].Space
+			isTransparent := tile == nil || (tile.Floor.IsEmpty() && tileMiddleTransparent(tile))
 			if isTransparent {
-				startZ := cameraZ - 1
-				if tile != nil {
-					_, _, startZ = tile.Coords()
-					startZ--
-				}
-				for z := startZ; z >= 0; z-- {
+				for z := cameraZ - 1; z >= 0; z-- {
 					below := level.GetTilePtr(x, y, z)
 					if below == nil {
 						break
 					}
-					belowDef := TileDefinitions[below.Type]
 					drawTile(screen, level, below, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 					level.GetEntitiesAt(x, y, z, &level.entitiesBuffer)
-					if !belowDef.Air && !belowDef.Space {
+					if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
 						drawnZ = z
 						break
 					}
@@ -91,22 +88,46 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	}
 }
 
-var spaceTile = &Tile{}
+// tileMiddleTransparent reports whether the cell's Middle slot lets light /
+// vision through to lower z-levels. Empty Middle, "air", and "space" all
+// count.
+func tileMiddleTransparent(t *Tile) bool {
+	if t == nil || t.Middle.IsEmpty() {
+		return true
+	}
+	def := TileDefinitions[t.Middle.Type]
+	return def.Air || def.Space
+}
 
 func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	if tile == nil {
-		tile = spaceTile
+		return
 	}
-	def := TileDefinitions[tile.Type]
+	// Floor → Middle → Ceiling. Each slot draws independently.
+	if !tile.Floor.IsEmpty() {
+		drawSlot(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+	}
+	if !tile.Middle.IsEmpty() {
+		drawSlot(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+	}
+	if !tile.Ceiling.IsEmpty() {
+		drawSlot(screen, level, tile, tile.Ceiling, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+	}
+}
+
+// drawSlot renders one slot of a tile. autotileEligible is true only for the
+// Middle slot (Floor/Ceiling don't autotile in the POC).
+func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slot, autotileEligible bool, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+	def := TileDefinitions[slot.Type]
 	if len(def.Variants) == 0 {
 		return
 	}
 
 	var variant TileVariant
-	if def.AutoTile > 0 && level != nil {
+	if autotileEligible && def.AutoTile > 0 && level != nil {
 		variant = level.ResolveVariant(tile)
 	} else {
-		v := tile.Variant
+		v := slot.Variant
 		if v < 0 || v >= len(def.Variants) {
 			v = 0
 		}
@@ -163,8 +184,7 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 			tile := level.GetTilePtr(cameraX+sx, cameraY+sy, cameraZ)
 			lightLevel := 0
 			if tile != nil {
-				def := TileDefinitions[tile.Type]
-				if def.Air || def.Space {
+				if tileMiddleTransparent(tile) && tile.Floor.IsEmpty() {
 					// Look through transparent layers to find the lit tile below
 					found := false
 					for z := cameraZ - 1; z >= 0; z-- {
@@ -172,8 +192,7 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 						if below == nil {
 							break
 						}
-						belowDef := TileDefinitions[below.Type]
-						if !belowDef.Air && !belowDef.Space {
+						if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
 							lightLevel = below.LightLevel
 							found = true
 							break

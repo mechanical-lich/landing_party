@@ -1,4 +1,5 @@
 {
+    "world": "assets/tilesets/world.png",
     "scifi_world": "assets/tilesets/oryx_16bit_scifi_world.png",
     "scifi_world_extra": "assets/tilesets/oryx_16bit_scifi_world_extra.png",
     "fantasy_world": "assets/tilesets/oryx_16bit_fantasy_world.png",

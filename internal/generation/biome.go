@@ -22,7 +22,9 @@ import (
 type BiomeRule struct {
 	Kind      string `json:"kind"`               // "surface", "subsurface", "underground", "cavern", "atmosphere", "space", "bedrock"
 	YOffset   *int   `json:"y_offset,omitempty"` // optional: relative to surface column
-	Tile      string `json:"tile"`               // tile type to paint
+	Tile      string `json:"tile"`               // primary tile (paints into its declared layer)
+	Floor     string `json:"floor,omitempty"`    // optional explicit Floor override
+	Middle    string `json:"middle,omitempty"`   // optional explicit Middle override
 	Radiation int    `json:"radiation,omitempty"`
 }
 

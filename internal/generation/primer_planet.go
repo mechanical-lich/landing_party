@@ -66,6 +66,14 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 							belowKind := level.GetTerrainKind(x, y, c.z-1)
 							if belowKind == world.TKSurface || belowKind == world.TKUnderground || belowKind == world.TKSubsurface {
 								paintKind(level, x, y, c.z, world.TKUnderground)
+								// Anchor the mountain at surface level so the
+								// camera-z=SurfaceZ view actually shows the
+								// rock obstacle instead of grass with a
+								// disconnected rock floating one z above.
+								if belowKind == world.TKSurface {
+									paintKind(level, x, y, c.z-1, world.TKUnderground)
+									level.SetSurfaceZ(x, y, c.z-1)
+								}
 								continue
 							}
 						}

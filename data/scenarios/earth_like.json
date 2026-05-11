@@ -9,7 +9,7 @@
         "critter": {
             "spawn_rate": 70,
             "light_min": 0,
-            "tiles": ["grass", "dirt", "regolith"],
+            "tiles": ["grass", "dirt_floor", "regolith"],
             "min_z": 4,
             "max_z": 6
         }

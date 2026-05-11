@@ -2,7 +2,7 @@ package world
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlworld"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
@@ -40,9 +40,9 @@ const (
 	TKStructure                      // tile placed by station/blueprint primer; biome rules skip
 )
 
-// Level embeds rlworld.Level and adds rendering state and z-band metadata.
+// Level embeds rllayered.Level and adds rendering state and z-band metadata.
 type Level struct {
-	*rlworld.Level
+	*rllayered.Level
 
 	Flags map[string]any
 
@@ -89,7 +89,7 @@ func (l *Level) EffectiveSunIntensity() int {
 }
 
 func NewLevel(width, height, depth int) *Level {
-	base := rlworld.NewLevel(width, height, depth)
+	base := rllayered.NewLevel(width, height, depth)
 	level := &Level{
 		Level:          base,
 		Flags:          make(map[string]any),

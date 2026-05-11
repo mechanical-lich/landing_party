@@ -111,7 +111,9 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any) e
 			doorX := p[0] + dx
 			doorY := p[1] + dy
 			if level.GetTerrainKind(doorX, doorY, z) == world.TKStructure {
-				level.UpdateTileAt(doorX, doorY, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+				// Knock through the wall: keep the Floor, clear the Middle.
+				level.SetFloor(doorX, doorY, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+				level.ClearMiddle(doorX, doorY, z)
 			}
 			rooms = append(rooms, rect{rx, ry, rw, rh})
 		}
@@ -131,11 +133,14 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any) e
 		level.TagRegion("station_hub", cx, cy, z)
 	}
 
-	// Stair columns near the hub between consecutive floors.
+	// Stair columns near the hub between consecutive floors. Stairs go in
+	// Middle; the hull_floor underneath keeps the cell walkable.
 	for z := 0; z < floors-1; z++ {
 		sx, sy := cx+2, cy
-		level.UpdateTileAt(sx, sy, z, "stairs_up", 0)
-		level.UpdateTileAt(sx, sy, z+1, "stairs_down", 0)
+		level.SetFloor(sx, sy, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+		level.SetFloor(sx, sy, z+1, "hull_floor", world.RandomTileVariant("hull_floor"))
+		level.SetMiddle(sx, sy, z, "stairs_up", 0)
+		level.SetMiddle(sx, sy, z+1, "stairs_down", 0)
 		level.SetTerrainKind(sx, sy, z, world.TKStructure)
 		level.SetTerrainKind(sx, sy, z+1, world.TKStructure)
 	}
@@ -147,20 +152,32 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any) e
 
 type rect struct{ x, y, ww, hh int }
 
+// stampStationCell paints a station floor cell with optional wall middle.
+// Floor is always hull_floor (so destroyed walls leave a walkable cell).
+// If isWall, Middle gets hull_wall — unless this cell was already cleared
+// by a previous interior pass (lets corridors / doorways punch through).
+func stampStationCell(level *world.Level, x, y, z int, isWall bool) {
+	preserveInterior := level.GetTerrainKind(x, y, z) == world.TKStructure && interiorMiddle(level, x, y, z)
+	level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+	if isWall && !preserveInterior {
+		level.SetMiddle(x, y, z, "hull_wall", world.RandomTileVariant("hull_wall"))
+	} else if !isWall {
+		level.ClearMiddle(x, y, z)
+	}
+	level.SetTerrainKind(x, y, z, world.TKStructure)
+}
+
+func interiorMiddle(level *world.Level, x, y, z int) bool {
+	t := level.GetTilePtr(x, y, z)
+	return t != nil && t.Middle.IsEmpty()
+}
+
 func stampRoom(level *world.Level, x, y, z, w, h int) {
 	for dy := 0; dy < h; dy++ {
 		for dx := 0; dx < w; dx++ {
 			tx, ty := x+dx, y+dy
 			edge := dx == 0 || dy == 0 || dx == w-1 || dy == h-1
-			if edge {
-				if level.GetTerrainKind(tx, ty, z) != world.TKStructure ||
-					currentTileName(level, tx, ty, z) != "hull_floor" {
-					level.UpdateTileAt(tx, ty, z, "hull_wall", world.RandomTileVariant("hull_wall"))
-				}
-			} else {
-				level.UpdateTileAt(tx, ty, z, "hull_floor", world.RandomTileVariant("hull_floor"))
-			}
-			level.SetTerrainKind(tx, ty, z, world.TKStructure)
+			stampStationCell(level, tx, ty, z, edge)
 		}
 	}
 }
@@ -170,7 +187,14 @@ func currentTileName(level *world.Level, x, y, z int) string {
 	if t == nil {
 		return ""
 	}
-	return world.TileIndexToName[t.Type]
+	// Inspect Middle first (walls/doors/etc.), fall back to Floor.
+	if !t.Middle.IsEmpty() {
+		return world.TileIndexToName[t.Middle.Type]
+	}
+	if !t.Floor.IsEmpty() {
+		return world.TileIndexToName[t.Floor.Type]
+	}
+	return ""
 }
 
 // carveStationCircle paints a filled disc as walls + interior floor.
@@ -181,13 +205,7 @@ func carveStationCircle(level *world.Level, cx, cy, z, r int) {
 			if d2 > r*r {
 				continue
 			}
-			tx, ty := cx+dx, cy+dy
-			if d2 >= (r-1)*(r-1) {
-				level.UpdateTileAt(tx, ty, z, "hull_wall", world.RandomTileVariant("hull_wall"))
-			} else {
-				level.UpdateTileAt(tx, ty, z, "hull_floor", world.RandomTileVariant("hull_floor"))
-			}
-			level.SetTerrainKind(tx, ty, z, world.TKStructure)
+			stampStationCell(level, cx+dx, cy+dy, z, d2 >= (r-1)*(r-1))
 		}
 	}
 }
@@ -217,14 +235,7 @@ func carveStationLine(level *world.Level, x0, y0, x1, y1, z, width int) {
 					continue
 				}
 				edge := absInt(ox) == half+1 || absInt(oy) == half+1
-				if edge {
-					if currentTileName(level, tx, ty, z) != "hull_floor" {
-						level.UpdateTileAt(tx, ty, z, "hull_wall", world.RandomTileVariant("hull_wall"))
-					}
-				} else {
-					level.UpdateTileAt(tx, ty, z, "hull_floor", world.RandomTileVariant("hull_floor"))
-				}
-				level.SetTerrainKind(tx, ty, z, world.TKStructure)
+				stampStationCell(level, tx, ty, z, edge)
 			}
 		}
 	}
@@ -292,8 +303,9 @@ func budRooms(level *world.Level, z, attempts, minR, maxR int) []rect {
 			continue
 		}
 		stampRoom(level, rx, ry, z, rw, rh)
-		// Knock a door at the bud wall.
-		level.UpdateTileAt(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+		// Knock a door at the bud wall: clear the Middle, keep Floor.
+		level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+		level.ClearMiddle(x, y, z)
 		rooms = append(rooms, rect{rx, ry, rw, rh})
 	}
 	return rooms

@@ -20,7 +20,10 @@ func isSunBlocking(ti interface{}) bool {
 	if tile.IsAir() {
 		return false
 	}
-	def := world.TileDefinitions[tile.Type]
+	if tile.Middle.IsEmpty() {
+		return false
+	}
+	def := world.TileDefinitions[tile.Middle.Type]
 	return !def.Space
 }
 
@@ -104,7 +107,16 @@ func (s *LightingSystem) buildTileSourceCache(level *world.Level) {
 					continue
 				}
 				tile := ti.(*world.Tile)
-				def := world.TileDefinitions[tile.Type]
+				// Light-emitting tiles can live in any slot; check Middle
+				// first (most common), fall back to Floor.
+				slot := tile.Middle
+				if slot.IsEmpty() {
+					slot = tile.Floor
+				}
+				if slot.IsEmpty() {
+					continue
+				}
+				def := world.TileDefinitions[slot.Type]
 				if def.LightLevel <= 0 {
 					continue
 				}

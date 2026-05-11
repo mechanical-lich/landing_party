@@ -81,14 +81,19 @@ func getPossiblePath(level *world.Level, faction string, vacuumResist bool, from
 		stairCount, floating, blocked := 0, false, false
 		for i, stepID := range steps {
 			st := level.Level.GetTilePtrIndex(stepID)
-			def := world.TileDefinitions[st.Type]
-			if def.StairsUp || def.StairsDown {
+			// Stair semantics live on the Middle slot. Missing Middle = the
+			// cell is air/empty and counts as a non-stair.
+			var midDef world.TileDefinition
+			if !st.Middle.IsEmpty() {
+				midDef = world.TileDefinitions[st.Middle.Type]
+			}
+			if midDef.StairsUp || midDef.StairsDown {
 				stairCount++
 			}
-			if (def.Air || def.Space) && !vacuumResist {
-				sx, sy, sz := st.Coords()
-				below := level.GetTileAt(sx, sy, sz-1)
-				if below == nil || !below.IsSolid() {
+			if (st.Middle.IsEmpty() || midDef.Air || midDef.Space) && !vacuumResist {
+				// Layered model: a cell is "floating" if it has no Floor
+				// (nothing to stand on).
+				if st.Floor.IsEmpty() {
 					floating = true
 				}
 			}

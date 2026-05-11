@@ -38,14 +38,22 @@ func (m *Minimap) GenerateImageAtZ(z int) {
 			if tile == nil {
 				continue
 			}
-			def := world.TileDefinitions[tile.Type]
+			// Prefer Middle for color, fall back to Floor.
+			slot := tile.Middle
+			if slot.IsEmpty() {
+				slot = tile.Floor
+			}
+			if slot.IsEmpty() {
+				continue
+			}
+			def := world.TileDefinitions[slot.Type]
 			if def.Air || def.Space {
 				continue
 			}
 			if len(def.Variants) == 0 {
 				continue
 			}
-			v := tile.Variant
+			v := slot.Variant
 			if v < 0 || v >= len(def.Variants) {
 				v = 0
 			}

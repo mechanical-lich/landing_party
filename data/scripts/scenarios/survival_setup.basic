@@ -12,16 +12,7 @@ function on_setup()
     top    = sy - 5
     bottom = sy + 1
 
-    for x = left to right
-        for y = top to bottom
-            if x = left or x = right or y = top or y = bottom then
-                set_tile(x, y, sz, "hull_wall")
-            else
-                set_tile(x, y, sz, "hull_floor")
-            endif
-        next y
-    next x
-
+    carve_room(left, top, sz, 9, 7, "hull_wall", "hull_floor")
     spawn_entity_owned("airlock", sx, bottom, sz, faction)
     spawn_entity_owned("storage_locker", left + 1, sy - 2, sz, sname)
     spawn_entity_owned("basic_workbench", right - 1, sy - 2, sz, sname)

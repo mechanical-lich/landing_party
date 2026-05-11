@@ -284,7 +284,6 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		wc.CurrentTask.Data = buildRequest
 		if buildRequest.Progress >= buildRequest.Required {
 			sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
-			tile := level.GetTileAt(buildRequest.X, buildRequest.Y, buildRequest.Z).(*world.Tile)
 			if buildable.IsEntity {
 				newEntity, err := factory.Create(buildRequest.Type, buildRequest.X, buildRequest.Y, buildRequest.Z)
 				if err == nil {
@@ -306,26 +305,19 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 					level.AddEntity(newEntity)
 				}
 			} else {
-				tile.Type = world.TileNameToIndex[buildRequest.Type]
-				tileDef := world.TileDefinitions[tile.Type]
-				if tileDef.AutoTile != 0 {
-					tile.Variant = 0
-				} else {
-					tile.Variant = utility.GetRandom(0, len(tileDef.Variants))
+				typeIdx := world.TileNameToIndex[buildRequest.Type]
+				tileDef := world.TileDefinitions[typeIdx]
+				variant := 0
+				if tileDef.AutoTile == 0 {
+					variant = utility.GetRandom(0, len(tileDef.Variants))
 				}
+				// PaintTile dispatches into the slot declared by the tile def.
+				level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z, buildRequest.Type, variant)
 				if tileDef.StairsUp {
-					if t2i := level.GetTileAt(buildRequest.X, buildRequest.Y, buildRequest.Z+1); t2i != nil {
-						t2 := t2i.(*world.Tile)
-						t2.Type = world.TileNameToIndex["stairs_down"]
-						t2.Variant = 0
-					}
+					level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z+1, "stairs_down", 0)
 				}
 				if tileDef.StairsDown {
-					if t2i := level.GetTileAt(buildRequest.X, buildRequest.Y, buildRequest.Z-1); t2i != nil {
-						t2 := t2i.(*world.Tile)
-						t2.Type = world.TileNameToIndex["stairs_up"]
-						t2.Variant = 0
-					}
+					level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z-1, "stairs_up", 0)
 				}
 				level.InvalidateSunColumn(buildRequest.X, buildRequest.Y)
 			}
@@ -359,8 +351,9 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		if req.Progress >= req.Required {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			clearTileRadiation(tile)
-			tile.Type = world.TileNameToIndex["regolith"]
-			tile.Variant = world.RandomTileVariant("regolith")
+			// Layered dig: just remove the Middle. Floor stays as whatever
+			// was there.
+			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Dug out tile")
 			aiMemory.State = "idle"
@@ -418,7 +411,11 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		// needing to stand on the (solid) ore deposit.
 		if req.Progress%10 == 0 {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
-			tileName := world.TileDefinitions[tile.Type].Name
+			// Ore lives in the Middle slot.
+			tileName := ""
+			if !tile.Middle.IsEmpty() {
+				tileName = world.TileDefinitions[tile.Middle.Type].Name
+			}
 			var dropBlueprint string
 			switch tileName {
 			case "ore_deposit":
@@ -440,8 +437,8 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		if req.Progress >= req.Required {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			clearTileRadiation(tile)
-			tile.Type = world.TileNameToIndex["rock"]
-			tile.Variant = world.RandomTileVariant("rock")
+			// Layered mine: just remove the Middle. Floor stays.
+			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Mined out deposit")
 			aiMemory.State = "idle"
@@ -589,7 +586,11 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	tileI := level.GetTileAt(tx, ty, tz)
 	if tileI != nil {
 		tile := tileI.(*world.Tile)
-		tileDef := world.TileDefinitions[tile.Type]
+		// Mining targets the Middle slot (ore veins, walls).
+		if tile.Middle.IsEmpty() {
+			return false
+		}
+		tileDef := world.TileDefinitions[tile.Middle.Type]
 		tileName := tileDef.Name
 		if tileName == "ore_deposit" || tileName == "crystal_vein" {
 			wc.CurrentTask.Action = task_requests.MineAction

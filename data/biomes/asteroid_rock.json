@@ -1,14 +1,42 @@
 {
   "id": "asteroid_rock",
-  "temp_range": [0.0, 1.0],
-  "humidity_range": [0.0, 1.0],
+  "temp_range": [
+    0.0,
+    1.0
+  ],
+  "humidity_range": [
+    0.0,
+    1.0
+  ],
   "rules": [
-    { "kind": "surface",     "tile": "regolith" },
-    { "kind": "subsurface",  "tile": "rock" },
-    { "kind": "underground", "tile": "rock" },
-    { "kind": "cavern",      "tile": "air" },
-    { "kind": "atmosphere",  "tile": "space" },
-    { "kind": "space",       "tile": "space" },
-    { "kind": "bedrock",     "tile": "bedrock" }
+    {
+      "kind": "surface",
+      "tile": "regolith"
+    },
+    {
+      "kind": "subsurface",
+      "tile": "rock",
+      "floor": "rock_floor"
+    },
+    {
+      "kind": "underground",
+      "tile": "rock"
+    },
+    {
+      "kind": "cavern",
+      "tile": "air"
+    },
+    {
+      "kind": "atmosphere",
+      "tile": "space"
+    },
+    {
+      "kind": "space",
+      "tile": "space"
+    },
+    {
+      "kind": "bedrock",
+      "tile": "bedrock"
+    }
   ]
 }

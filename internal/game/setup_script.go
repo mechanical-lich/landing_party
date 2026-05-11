@@ -90,7 +90,15 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			return "", nil
 		}
 		t := tI.(*world.Tile)
-		return world.TileIndexToName[t.Type], nil
+		// Prefer Middle (walls/ore), then Floor (ground), else empty.
+		slot := t.Middle
+		if slot.IsEmpty() {
+			slot = t.Floor
+		}
+		if slot.IsEmpty() {
+			return "", nil
+		}
+		return world.TileIndexToName[slot.Type], nil
 	})
 
 	interp.RegisterFunc("spawn_entity", func(args ...any) (any, error) {
@@ -126,11 +134,10 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		if e.HasComponent(rlcomponents.Door) {
 			e.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent).OwnedBy = owner
-			// Door must sit on a passable tile so pathfinding can route through it
-			if tI := level.GetTileAt(x, y, z); tI != nil {
-				t := tI.(*world.Tile)
-				world.SetTileTypeAndVariant(t, "hull_floor", world.RandomTileVariant("hull_floor"))
-			}
+			// Door must sit in a walkable cell: floor underneath, nothing
+			// blocking the middle. Clear the wall that carve_room stamped.
+			level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+			level.ClearMiddle(x, y, z)
 		}
 		if e.HasComponent(components.Storage) {
 			e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy = owner
@@ -324,10 +331,10 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 				ox := cx + rand.Intn(3) - 1
 				oy := cy + rand.Intn(3) - 1
 				t := level.GetTilePtr(ox, oy, z)
-				if t == nil {
+				if t == nil || t.Middle.IsEmpty() {
 					continue
 				}
-				def := world.TileDefinitions[t.Type]
+				def := world.TileDefinitions[t.Middle.Type]
 				if def.Air || def.Space || def.Water {
 					continue
 				}
@@ -390,7 +397,9 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return regionCoord(level, args, 2)
 	})
 
-	// carve_room(x, y, z, w, h, wall_tile, floor_tile) — bordered room.
+	// carve_room(x, y, z, w, h, wall_tile, floor_tile) — bordered room. The
+	// floor tile is always stamped (Floor slot) so destroyed walls leave a
+	// walkable cell; wall tiles are also stamped on edges (Middle slot).
 	interp.RegisterFunc("carve_room", func(args ...any) (any, error) {
 		if len(args) < 7 {
 			return nil, nil
@@ -405,10 +414,11 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		for dy := 0; dy < h; dy++ {
 			for dx := 0; dx < w; dx++ {
 				edge := dx == 0 || dy == 0 || dx == w-1 || dy == h-1
+				level.SetFloor(x+dx, y+dy, z, floorTile, world.RandomTileVariant(floorTile))
 				if edge {
-					level.UpdateTileAt(x+dx, y+dy, z, wallTile, world.RandomTileVariant(wallTile))
+					level.SetMiddle(x+dx, y+dy, z, wallTile, world.RandomTileVariant(wallTile))
 				} else {
-					level.UpdateTileAt(x+dx, y+dy, z, floorTile, world.RandomTileVariant(floorTile))
+					level.ClearMiddle(x+dx, y+dy, z)
 				}
 			}
 		}

@@ -77,7 +77,16 @@ func SpawnTiles(level *world.Level, z int, rule SpawnRule) [][2]int {
 			if t.IsSolid() || t.IsWater() {
 				continue
 			}
-			name := world.TileIndexToName[t.Type]
+			// Match against whichever slot has a tile — Floor wins for
+			// surface checks (e.g. "grass", "regolith").
+			matchSlot := t.Floor
+			if matchSlot.IsEmpty() {
+				matchSlot = t.Middle
+			}
+			if matchSlot.IsEmpty() {
+				continue
+			}
+			name := world.TileIndexToName[matchSlot.Type]
 			if !rule.tileMatches(name) {
 				continue
 			}
