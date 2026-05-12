@@ -22,7 +22,7 @@ function on_setup()
                 oy = get_open_y()
                 dist = (ox - sx) * (ox - sx) + (oy - sy) * (oy - sy)
                 if dist > 600 then
-                    spawn_entity("alien_grunt", ox, oy, z)
+                    spawn_entity("mutant_grunt", ox, oy, z)
                     spawned = spawned + 1
                 endif
             endif

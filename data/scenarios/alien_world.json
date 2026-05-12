@@ -6,14 +6,18 @@
     "setup_scripts": ["data/scripts/scenarios/alien_setup.basic"],
     "hostile_max": 200,
     "spawn_rules": {
-        "alien_grunt": {
+        "mutant_grunt": {
             "spawn_rate": 60,
             "light_min": 0,
             "tiles": ["grass", "regolith"],
             "min_z": 5,
-            "max_z": 5
+            "max_z": 5,
+            "starting_equipment": {
+                "knife": 0.5,
+                "laser_pistol": 0.5
+            }
         },
-        "alien_brute": {
+        "mutant_brute": {
             "spawn_rate": 15,
             "light_min": 0,
             "tiles": ["grass", "regolith"],

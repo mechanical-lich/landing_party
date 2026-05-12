@@ -6,7 +6,7 @@
     "setup_scripts": ["data/scripts/scenarios/survival_setup.basic"],
     "hostile_max": 200,
     "spawn_rules": {
-        "alien_grunt": {
+        "mutant_grunt": {
             "spawn_rate": 50,
             "light_min": 0,
             "tiles": ["regolith", "dirt_floor"],
@@ -17,7 +17,7 @@
                 "laser_pistol": 0.5
             }
         },
-        "alien_brute": {
+        "mutant_brute": {
             "spawn_rate": 10,
             "light_min": 0,
             "tiles": ["regolith", "dirt_floor"],

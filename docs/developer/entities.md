@@ -16,7 +16,7 @@ Each file is a JSON object keyed by blueprint ID; each value is a map of compone
 ## Blueprint Structure
 
 ```json
-"alien_grunt": {
+"mutant_grunt": {
     "Description": {
         "Name": "Alien Grunt",
         "Faction": "alien"
@@ -238,7 +238,7 @@ Empty marker component. Makes the entity impassable — other entities cannot mo
 
 | Category | Blueprint IDs |
 |----------|--------------|
-| Hostile aliens | `alien_grunt`, `alien_scout`, `alien_brute` |
+| Hostile aliens | `mutant_grunt`, `mutant_scout`, `mutant_brute` |
 | Ambient creatures | `critter` |
 | Colonists | `colonist` |
 | Structures (entities) | `airlock`, `blast_door`, `storage_locker`, `research_lab`, `workbench`, `work_light` |

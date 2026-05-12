@@ -1,9 +1,9 @@
 {
-    "alien_grunt": {
+    "mutant_grunt": {
         "AIMemory": {},
         "Description": {
-            "Name": "Alien Grunt",
-            "Faction": "alien"
+            "Name": "Mutant Grunt",
+            "Faction": "mutant"
         },
         "Inventory": {},
         "EquipmentAppearance": {
@@ -23,7 +23,7 @@
         },
         "FactionAI": {
             "BehaviorKey": "hostile",
-            "Faction": "alien"
+            "Faction": "mutant"
         },
         "Health": {
             "MaxHealth": 12
@@ -41,7 +41,7 @@
             "BasicAttackDice": "1d6"
         }
     },
-    "alien_scout": {
+    "mutant_scout": {
         "AIMemory": {},
         "Appearance": {
             "R": 80,
@@ -53,12 +53,12 @@
             "SpriteY": 360
         },
         "Description": {
-            "Name": "Alien Scout",
-            "Faction": "alien"
+            "Name": "Mutant Scout",
+            "Faction": "mutant"
         },
         "FactionAI": {
             "BehaviorKey": "hostile",
-            "Faction": "alien"
+            "Faction": "mutant"
         },
         "Health": {
             "MaxHealth": 8
@@ -76,7 +76,7 @@
             "BasicAttackDice": "1d4"
         }
     },
-    "alien_brute": {
+    "mutant_brute": {
         "AIMemory": {},
         "Appearance": {
             "R": 160,
@@ -88,12 +88,12 @@
             "SpriteY": 360
         },
         "Description": {
-            "Name": "Alien Brute",
-            "Faction": "alien"
+            "Name": "Mutant Brute",
+            "Faction": "mutant"
         },
         "FactionAI": {
             "BehaviorKey": "hostile",
-            "Faction": "alien"
+            "Faction": "mutant"
         },
         "Health": {
             "MaxHealth": 30

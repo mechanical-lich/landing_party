@@ -6,7 +6,7 @@
     "setup_scripts": ["data/scripts/scenarios/station_setup.basic"],
     "hostile_max": 40,
     "spawn_rules": {
-        "alien_grunt": {
+        "mutant_grunt": {
             "spawn_rate": 30,
             "light_min": 0,
             "tiles": ["hull_floor"],

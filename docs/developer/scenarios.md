@@ -42,7 +42,7 @@ Scenarios are defined as JSON files in `data/scenarios/`. Each file configures s
 
 ```json
 "spawn_rules": {
-    "alien_grunt": {
+    "mutant_grunt": {
         "spawn_rate": 40,
         "light_min": 0,
         "tiles": ["regolith", "dirt"],

@@ -96,7 +96,7 @@ Specific scenarios need custom initialization logic beyond spawn rules.
 **Tasks**
 - [ ] Write `data/scripts/scenarios/survival_setup.basic`
   - Post "Day 1. The colony pod has landed. Establish a perimeter."
-  - Spawn 2 `alien_grunt` patrols at map edges
+  - Spawn 2 `mutant_grunt` patrols at map edges
   - Set flag `survival_started = 1`
 - [ ] Add `setup_scripts` field to `survival.json` pointing at the script
 
