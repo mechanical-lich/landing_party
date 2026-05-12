@@ -1140,18 +1140,19 @@ func (s *MainState) updateHovered() {
 		return
 	}
 	t := tile.(*world.Tile)
-	// Hover info reflects the topmost painted slot the player would interact
-	// with: Middle wins (walls, ore, doors), then Floor, then nothing.
-	slot := t.Middle
-	if slot.IsEmpty() {
-		slot = t.Floor
-	}
+	// Middle slot wins for display (walls, ore, doors). Floor is the fallback
+	// for cells where Middle is air/empty (caverns, open surface).
 	var def world.TileDefinition
-	if !slot.IsEmpty() {
-		def = world.TileDefinitions[slot.Type]
+	if !t.Middle.IsEmpty() {
+		def = world.TileDefinitions[t.Middle.Type]
+	}
+	floorName := ""
+	if !t.Floor.IsEmpty() {
+		floorName = world.TileDefinitions[t.Floor.Type].Name
 	}
 	s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
 		Name:       def.Name,
+		FloorName:  floorName,
 		X:          tX,
 		Y:          tY,
 		Z:          s.CameraZ,

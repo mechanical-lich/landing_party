@@ -68,9 +68,9 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			tX := float64(screenX * tileSizeW)
 			tY := float64(screenY * tileSizeH)
 			if depth > 0 {
-				alpha := 40 + depth*35
-				if alpha > 210 {
-					alpha = 210
+				alpha := 15 + depth*18
+				if alpha > 180 {
+					alpha = 180
 				}
 				vector.DrawFilledRect(screen, float32(tX), float32(tY), float32(tileSizeW), float32(tileSizeH), color.RGBA{0, 0, 0, uint8(alpha)}, false)
 			}
@@ -178,11 +178,13 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 		}
 		return
 	}
-	// Floor → Middle → Ceiling. Each slot draws independently.
+	// Floor → Middle → Ceiling. Each slot draws independently. Air/space
+	// Middle slots are skipped — they're vision markers, not visuals, and
+	// painting them clobbers tiles drawn through them by the z-lookdown.
 	if !tile.Floor.IsEmpty() {
 		drawSlot(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
-	if !tile.Middle.IsEmpty() {
+	if !tile.Middle.IsEmpty() && !TileDefinitions[tile.Middle.Type].Air {
 		drawSlot(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 	if !tile.Ceiling.IsEmpty() {
@@ -260,18 +262,25 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 			lightLevel := 0
 			if tile != nil {
 				if tileMiddleTransparent(tile) && tile.Floor.IsEmpty() {
-					// Look through transparent layers to find the lit tile below
+					// Look through transparent layers. The visible surface is
+					// the *top* of the first opaque tile we hit, so sample
+					// light from the air cell directly above it — that's where
+					// sun/lamps actually reach. Solid tiles themselves usually
+					// have LightLevel=0 (lighting doesn't propagate inside
+					// rock), which would otherwise paint a pitch-black overlay.
 					found := false
+					lastAir := tile
 					for z := cameraZ - 1; z >= 0; z-- {
 						below := level.GetTilePtr(cameraX+sx, cameraY+sy, z)
 						if below == nil {
 							break
 						}
 						if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
-							lightLevel = below.LightLevel
+							lightLevel = lastAir.LightLevel
 							found = true
 							break
 						}
+						lastAir = below
 					}
 					if !found {
 						// Pure-space column (no solid below). Use ambient sun

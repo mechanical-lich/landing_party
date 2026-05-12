@@ -1040,11 +1040,17 @@ func (h *HUDScreen) SetHoveredEntity(entity *ecs.Entity) {
 }
 
 // HoveredTileInfo carries the data shown in the tile-hover detail panel.
+//
+// Name is the Middle slot's tile name (e.g. "air", "rock"). FloorName is the
+// Floor slot's tile name when present (e.g. "rock_floor", "regolith"). The
+// hover panel prefers FloorName whenever the Middle is air/empty, so a player
+// hovering a cavern reads "rock_floor" instead of the meaningless "air".
 type HoveredTileInfo struct {
-	Name                  string
-	X, Y, Z               int
-	LightLevel            int
-	Radiation             int
+	Name                     string
+	FloorName                string
+	X, Y, Z                  int
+	LightLevel               int
+	Radiation                int
 	Solid, Water, Air, Space bool
 }
 
@@ -1064,7 +1070,13 @@ func (h *HUDScreen) SetHoveredTile(info HoveredTileInfo) {
 		labelID++
 	}
 
-	add("Tile: " + info.Name)
+	// Prefer the Floor name when standing on something through air/empty
+	// (caverns, surface). Falls back to Middle for solids, atmosphere, space.
+	displayName := info.Name
+	if (info.Air || info.Name == "" || info.Name == "air") && info.FloorName != "" {
+		displayName = info.FloorName
+	}
+	add("Tile: " + displayName)
 	add(fmt.Sprintf("Pos: %d, %d, %d", info.X, info.Y, info.Z))
 	add(fmt.Sprintf("Light: %d", info.LightLevel))
 	if info.Radiation > 0 {

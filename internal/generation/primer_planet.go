@@ -25,7 +25,9 @@ func init() {
 //	terrain_alpha   float (default 6)
 //	terrain_beta    float (default 5)
 //	terrain_n       int   (default 2)
-//	cavern_density  float (default 0.35) — higher = fewer caves
+//	cavern_density  float (default 0.25) — higher = fewer caves
+//	cavern_scale_xy float (default 40)   — larger = wider chambers
+//	cavern_scale_z  float (default 10)   — larger = taller chambers (more vertical connectivity)
 func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
@@ -38,7 +40,9 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 	alpha := paramFloat(params, "terrain_alpha", 6)
 	beta := paramFloat(params, "terrain_beta", 5)
 	nOct := paramInt(params, "terrain_n", 2)
-	cavernThreshold := paramFloat(params, "cavern_density", 0.35)
+	cavernThreshold := paramFloat(params, "cavern_density", 0.25)
+	cavernScaleXY := paramFloat(params, "cavern_scale_xy", 40)
+	cavernScaleZ := paramFloat(params, "cavern_scale_z", 10)
 
 	p := perlin.NewPerlin(alpha, beta, int32(nOct), time.Now().UnixNano())
 	pc := perlin.NewPerlin(alpha, beta, int32(nOct), time.Now().UnixNano()+1)
@@ -55,7 +59,7 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 				for y := 0; y < h; y++ {
 					terrain := p.Noise3D(float64(x)/80, float64(y)/80, float64(c.z)/8)
 					value := int(terrain * 10)
-					cavern := pc.Noise3D(float64(x)/40, float64(y)/40, float64(c.z)/6)
+					cavern := pc.Noise3D(float64(x)/cavernScaleXY, float64(y)/cavernScaleXY, float64(c.z)/cavernScaleZ)
 
 					switch {
 					case c.z >= cfg.SpaceZ:
