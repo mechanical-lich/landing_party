@@ -56,7 +56,7 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 			if entity.HasComponent(components.Worker) {
 				wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 				if wc.CurrentTask != nil {
-					wc.CurrentTask.Stop()
+					wc.CurrentTask.ReQueue()
 					wc.CurrentTask = nil
 				}
 			}

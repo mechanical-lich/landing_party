@@ -331,7 +331,7 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		}
 	} else {
 		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.Stop()
+			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 		}
 	}
@@ -369,7 +369,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		}
 	} else {
 		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.Stop()
+			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 		}
 	}
@@ -454,7 +454,7 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		}
 	} else {
 		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.Stop()
+			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 		}
 	}
@@ -467,7 +467,7 @@ func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		return
 	}
 	if pc.GetX() != wc.CurrentTask.X || pc.GetY() != wc.CurrentTask.Y {
-		wc.CurrentTask.Stop()
+		wc.CurrentTask.ReQueue()
 		wc.CurrentTask = nil
 		wc.InteractTicks = 0
 		return
@@ -659,7 +659,7 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 			log.Printf("[CRAFT] %s can't reach workbench at (%d,%d,%d) from (%d,%d,%d)",
 				rlentity.GetName(entity), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ,
 				pc.GetX(), pc.GetY(), pc.GetZ())
-			wc.CurrentTask.Stop()
+			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
 		}
@@ -891,7 +891,7 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 
 	if !MoveTowardsTarget(level, entity, tx, ty, tz) {
 		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), tx, ty, tz, 1, 1, 0) {
-			wc.CurrentTask.Stop()
+			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
 			return

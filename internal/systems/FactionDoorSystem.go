@@ -2,10 +2,28 @@ package systems
 
 import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
-	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
+
+// isFactionMember reports whether the entity belongs to a faction the door
+// would admit. Unlike rlentity.CanPassThroughDoor, this ignores the door's
+// current open state so it can be used to decide whether to keep it open.
+func isFactionMember(entity *ecs.Entity, door *rlcomponents.DoorComponent) bool {
+	if !entity.HasComponent(rlcomponents.Description) {
+		return false
+	}
+	dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+	if door.OwnedBy != "" && dc.Faction == door.OwnedBy {
+		return true
+	}
+	for _, f := range door.AllowedFactions {
+		if dc.Faction == f {
+			return true
+		}
+	}
+	return false
+}
 
 // FactionDoorSystem auto-opens doors for authorized factions on approach and
 // closes them when no authorized entity is adjacent.
@@ -58,7 +76,7 @@ func (s *FactionDoorSystem) hasAuthorizedOccupant(level *world.Level, door *rlco
 		if cp.GetX() != x || cp.GetY() != y || cp.GetZ() != z {
 			continue
 		}
-		if rlentity.CanPassThroughDoor(candidate, door) {
+		if isFactionMember(candidate, door) {
 			return true
 		}
 	}
@@ -79,7 +97,7 @@ func (s *FactionDoorSystem) hasAuthorizedNeighbor(level *world.Level, door *rlco
 				if cp.GetX() != x+dx || cp.GetY() != y+dy || cp.GetZ() != z {
 					continue
 				}
-				if rlentity.CanPassThroughDoor(candidate, door) {
+				if isFactionMember(candidate, door) {
 					return true
 				}
 			}

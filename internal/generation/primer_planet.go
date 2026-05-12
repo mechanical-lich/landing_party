@@ -128,10 +128,14 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 	wg.Wait()
 	dispatch(cfg.SurfaceZ)
 	wg.Wait()
+	// Atmosphere/cliff phase: each z's cliff check reads belowKind at z-1,
+	// so we must serialize by z. Without the per-z wait, upper cliff cells
+	// race against lower ones and get painted as TKAtmosphere (no Floor),
+	// producing rendering glitches at mountain tops.
 	for z := cfg.SurfaceZ + 1; z < d; z++ {
 		dispatch(z)
+		wg.Wait()
 	}
-	wg.Wait()
 	close(chunkChan)
 
 	log.Printf("PlanetPrimer: %dx%dx%d done", w, h, d)

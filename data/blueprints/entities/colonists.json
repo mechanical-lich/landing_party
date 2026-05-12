@@ -1,6 +1,7 @@
 {
     "colonist": {
         "AIMemory": {},
+         "NeverSleep": {},
         "Appearance": {
             "R": 255,
             "G": 255,
