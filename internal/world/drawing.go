@@ -7,16 +7,17 @@ import (
 	"math"
 	"time"
 
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"fmt"
 
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
-	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/task"
+	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
@@ -99,54 +100,6 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	for _, p := range pendingEntities {
 		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
-}
-
-// blob47MaskFor computes the pruned 8-direction neighbor mask of the cell's
-// Middle slot for debug overlay purposes. Mirrors what rllayered's
-// ResolveVariant does for AutoTileBlob47.
-func blob47MaskFor(level *Level, t *Tile) uint8 {
-	if t == nil || t.Middle.IsEmpty() {
-		return 0
-	}
-	x, y, z := t.Coords()
-	def := TileDefinitions[t.Middle.Type]
-	isAutoTile := def.AutoTile != rllayered.AutoTileNone
-	sameType := func(nx, ny, nz int) bool {
-		n := level.GetTilePtr(nx, ny, nz)
-		if n == nil || n.Middle.IsEmpty() {
-			return false
-		}
-		if isAutoTile {
-			return n.Middle.Type == t.Middle.Type
-		}
-		return n.Middle.Type == t.Middle.Type && n.Middle.Variant == t.Middle.Variant
-	}
-	var m uint8
-	if sameType(x, y-1, z) {
-		m |= rllayered.BlobBitN
-	}
-	if sameType(x, y+1, z) {
-		m |= rllayered.BlobBitS
-	}
-	if sameType(x-1, y, z) {
-		m |= rllayered.BlobBitW
-	}
-	if sameType(x+1, y, z) {
-		m |= rllayered.BlobBitE
-	}
-	if sameType(x+1, y-1, z) {
-		m |= rllayered.BlobBitNE
-	}
-	if sameType(x-1, y-1, z) {
-		m |= rllayered.BlobBitNW
-	}
-	if sameType(x+1, y+1, z) {
-		m |= rllayered.BlobBitSE
-	}
-	if sameType(x-1, y+1, z) {
-		m |= rllayered.BlobBitSW
-	}
-	return rllayered.PruneBlobMask(m)
 }
 
 // tileMiddleTransparent reports whether the cell's Middle slot lets light /
@@ -262,25 +215,20 @@ func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, came
 			lightLevel := 0
 			if tile != nil {
 				if tileMiddleTransparent(tile) && tile.Floor.IsEmpty() {
-					// Look through transparent layers. The visible surface is
-					// the *top* of the first opaque tile we hit, so sample
-					// light from the air cell directly above it — that's where
-					// sun/lamps actually reach. Solid tiles themselves usually
-					// have LightLevel=0 (lighting doesn't propagate inside
-					// rock), which would otherwise paint a pitch-black overlay.
+					// Look through transparent layers to find the first opaque
+					// tile and sample its LightLevel (set by LightingSystem).
 					found := false
-					lastAir := tile
 					for z := cameraZ - 1; z >= 0; z-- {
 						below := level.GetTilePtr(cameraX+sx, cameraY+sy, z)
 						if below == nil {
 							break
 						}
 						if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
-							lightLevel = lastAir.LightLevel
+							lightLevel = below.LightLevel
 							found = true
 							break
 						}
-						lastAir = below
+
 					}
 					if !found {
 						// Pure-space column (no solid below). Use ambient sun

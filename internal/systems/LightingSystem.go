@@ -17,14 +17,15 @@ func isSunBlocking(ti interface{}) bool {
 	if !ok || tile == nil {
 		return false
 	}
-	if tile.IsAir() {
+	slot := tile.Middle
+	if slot.IsEmpty() {
+		slot = tile.Floor
+	}
+	if slot.IsEmpty() {
 		return false
 	}
-	if tile.Middle.IsEmpty() {
-		return false
-	}
-	def := world.TileDefinitions[tile.Middle.Type]
-	return !def.Space
+	def := world.TileDefinitions[slot.Type]
+	return !def.Space && !def.Air
 }
 
 const (
