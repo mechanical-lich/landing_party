@@ -60,6 +60,7 @@ func (gm *GUIManager) WithinModalBounds(x, y int) bool { return gm.hud.WithinMod
 func (gm *GUIManager) SetHoveredEntity(entity *ecs.Entity)                        { gm.hud.SetHoveredEntity(entity) }
 func (gm *GUIManager) SetHoveredTile(info HoveredTileInfo) { gm.hud.SetHoveredTile(info) }
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
+func (gm *GUIManager) SetDefaultContext(title, desc, blueprint string)            { gm.hud.SetDefaultContext(title, desc, blueprint) }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
 func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }
 func (gm *GUIManager) SetKnownTechs(techs []string)                                { gm.hud.SetKnownTechs(techs) }

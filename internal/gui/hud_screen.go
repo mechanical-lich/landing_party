@@ -424,6 +424,16 @@ func (h *HUDScreen) selectBuildItem(selectedID string) {
 	}
 }
 
+// SetDefaultContext shows a context hint in the selection tooltip while in Default cursor mode.
+// Pass an empty title to hide it. blueprint is used to build the sprite icon (may be empty).
+func (h *HUDScreen) SetDefaultContext(title, desc, blueprint string) {
+	var icon *minui.Icon
+	if blueprint != "" {
+		icon = blueprintTooltipIcon(blueprint)
+	}
+	h.setSelectionLabel(title, desc, icon)
+}
+
 func (h *HUDScreen) setSelectionLabel(title, desc string, icon *minui.Icon) {
 	if h.selectionTooltip == nil {
 		return
@@ -669,6 +679,7 @@ func (h *HUDScreen) registerListeners() {
 	event.GetQueuedInstance().RegisterListener(h, message.MessageEventType)
 	event.GetQueuedInstance().RegisterListener(h, EntitySelectedEventType)
 	event.GetQueuedInstance().RegisterListener(h, minui.EventTypeModalClose)
+	event.GetQueuedInstance().RegisterListener(h, CursorModeChangedEventType)
 }
 
 func (h *HUDScreen) HandleEvent(evt event.EventData) error {
@@ -679,6 +690,11 @@ func (h *HUDScreen) HandleEvent(evt event.EventData) error {
 		_ = e
 	case minui.ModalCloseEvent:
 		_ = e
+	case CursorModeChangedEvent:
+		if e.Mode == CursorModeDefault {
+			h.selectBuildItem("default")
+			h.setSelectionLabel("", "", nil)
+		}
 	}
 	return nil
 }

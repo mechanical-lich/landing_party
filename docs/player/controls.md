@@ -22,15 +22,25 @@
 |-----|--------|
 | M | Toggle minimap |
 
-## Building
+## Default Mode
 
-Select a structure from the build menu, then click a valid tile to place it. The colonists will automatically begin construction when materials are available.
+When no order is selected the cursor is in Default mode.
 
-| Key | Action |
-|-----|--------|
-| Escape | Cancel placement / close modal |
-| Left click | Place selected structure or select entity |
-| Right click | Cancel current placement |
+| Input | Action |
+|-------|--------|
+| Left click entity | Select / open detail panel |
+| Left click tile with pending task | Escalate task (higher priority) |
+| Right click tile with pending task | Cancel and remove the task |
+
+## Orders (Dig, Build, Mine, etc.)
+
+Select an order from the Build menu. The active order is shown in the tooltip near the top of the screen beside the sidebar.
+
+| Input | Action |
+|-------|--------|
+| Left click | Perform the order at that tile |
+| Left click + drag | Paint the order across multiple tiles (Build / Dig) |
+| Right click | Cancel the active order and return to Default mode |
 
 ## Pause Menu
 
@@ -39,6 +49,6 @@ Press **Escape** when no modal is open to bring up the pause menu.
 | Option | What it does |
 |--------|-------------|
 | Save | Manually save the current game |
-| Options | Adjust display and gameplay settings |
-| Return to Title | Exit to the title screen |
-| Close | Resume the game |
+| Load | Load a saved game |
+| New Game | Return to the title screen |
+| Quit | Exit the application |

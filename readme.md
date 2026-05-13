@@ -29,8 +29,14 @@ To test with a local copy of the mlge library add this to the mod file.  It assu
 ## Controls
 - **WASD**: Move camera
 - **Q/E**: Up/Down Z Level
-- **Scroll Wheele/Pinch**: Zoom in/out
+- **Scroll Wheel/Pinch**: Zoom in/out
 - **M**: Minimap hotkey
-- **Esc**: Quit
-- **Left Click**: Select
-- **Right Click**: Build/Move/Cancel depending on Cursor Mode
+- **Esc**: Open pause menu
+
+**Default mode**
+- **Left Click**: Select entity / escalate task at tile
+- **Right Click**: Cancel task at tile
+
+**With an order selected (Dig, Build, etc.)**
+- **Left Click**: Perform the order (drag to paint area)
+- **Right Click**: Cancel order, return to Default

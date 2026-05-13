@@ -499,7 +499,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case input.MouseClickEvent:
 		s.handleMouseClick(ev)
 	case input.MouseReleasedEvent:
-		if ev.Button == ebiten.MouseButtonRight {
+		if ev.Button == ebiten.MouseButtonLeft {
 			s.mouseDragging = false
 		}
 	case input.KeyPressEvent:
@@ -961,71 +961,122 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	tY := cY/s.TileSizeH + s.CameraY
 
 	if e.Button == ebiten.MouseButtonLeft {
-		// Select entity
-		for _, ent := range s.level.Entities {
-			ent.RemoveComponent(components.Selected)
-		}
-		s.selectedEntity = nil
-		ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
-		if ent == nil {
-			for _, se := range s.level.StaticEntities {
-				pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.CameraZ {
-					ent = se
-					break
+		if s.CursorMode == gui.CursorModeDefault {
+			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
+
+			if ent != nil && ent.HasComponent(components.FactionAI) && s.MainSettlement != nil {
+				// Attack hostile entity
+				s.MainSettlement.Tasks.AddTask(&task.Task{
+					Action: task_requests.AttackAction, Data: ent,
+					X: tX, Y: tY, Z: s.CameraZ, Escalated: true,
+				})
+			} else if ent != nil && ent.HasComponent(components.Choppable) && s.MainSettlement != nil {
+				// Harvest choppable entity (flora, crystals, etc.)
+				s.addMineTask(tX, tY)
+			} else if ent != nil && ent.HasComponent(rlcomponents.Item) && s.MainSettlement != nil {
+				// Retrieve dropped item
+				s.MainSettlement.Tasks.AddTask(&task.Task{
+					Action: task_requests.RetrieveAction,
+					Data:   task_requests.RetrieveRequest{Item: ent},
+					X:      tX, Y: tY, Z: s.CameraZ, Escalated: true,
+				})
+			} else {
+				// Select entity (colonist, building, etc.)
+				for _, e := range s.level.Entities {
+					e.RemoveComponent(components.Selected)
+				}
+				s.selectedEntity = nil
+				if ent == nil {
+					for _, se := range s.level.StaticEntities {
+						pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+						if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.CameraZ {
+							ent = se
+							break
+						}
+					}
+				}
+				if ent != nil {
+					ent.AddComponent(&components.SelectedComponent{})
+					s.selectedEntity = ent
+					event.GetQueuedInstance().SendEvent(gui.EntitySelectedEvent{Entity: ent})
+					if ent.HasComponent(components.CraftingStation) {
+						event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
+					} else if ent.HasComponent(components.ResearchBuilding) {
+						event.GetQueuedInstance().QueueEvent(gui.ResearchStationClickedEvent{Station: ent})
+					} else if ent.HasComponent(components.Worker) {
+						event.GetQueuedInstance().QueueEvent(gui.ColonistSelectedEvent{Entity: ent})
+					}
+				} else if s.MainSettlement != nil {
+					// Walkable empty tile — queue a move task
+					tile := s.level.GetTileAt(tX, tY, s.CameraZ)
+					if tile != nil {
+						t := tile.(*world.Tile)
+						walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
+						if walkable && !t.Floor.IsEmpty() {
+							s.MainSettlement.Tasks.AddTask(&task.Task{
+								X: tX, Y: tY, Z: s.CameraZ, Escalated: true,
+							})
+						}
+					}
+				}
+				// Escalate any pending task at this tile
+				if s.MainSettlement != nil {
+					for _, t := range s.MainSettlement.Tasks.GetTasks() {
+						if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
+							t.Escalated = true
+						}
+					}
 				}
 			}
-		}
-		if ent != nil {
-			ent.AddComponent(&components.SelectedComponent{})
-			s.selectedEntity = ent
-			event.GetQueuedInstance().SendEvent(gui.EntitySelectedEvent{Entity: ent})
-			if ent.HasComponent(components.CraftingStation) {
-				event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
-			} else if ent.HasComponent(components.ResearchBuilding) {
-				event.GetQueuedInstance().QueueEvent(gui.ResearchStationClickedEvent{Station: ent})
-			} else if ent.HasComponent(components.Worker) {
-				event.GetQueuedInstance().QueueEvent(gui.ColonistSelectedEvent{Entity: ent})
-			}
-		}
-	}
-
-	if e.Button == ebiten.MouseButtonLeft && s.CursorMode == gui.CursorModeAttack && s.MainSettlement != nil {
-		target := s.level.GetEntityAt(tX, tY, s.CameraZ)
-		if target != nil && target.HasComponent(components.FactionAI) {
-			for _, colonist := range s.level.Entities {
-				if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
-					wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
-					if wc.CurrentTask == nil || wc.CurrentTask.Completed {
-						s.MainSettlement.Tasks.AddTask(&task.Task{
-							Action: task_requests.AttackAction,
-							Data:   target,
-							X:      tX, Y: tY, Z: s.CameraZ,
-						})
-						break
+		} else if s.MainSettlement != nil {
+			// Perform the active order
+			switch s.CursorMode {
+			case gui.CursorModeBuild:
+				s.mouseDragging = true
+				s.lastDragTileX = -1
+				s.lastDragTileY = -1
+				s.addBuildTask(tX, tY)
+			case gui.CursorModeDig:
+				s.mouseDragging = true
+				s.lastDragTileX = -1
+				s.lastDragTileY = -1
+				s.addDigTask(tX, tY)
+			case gui.CursorModeMine:
+				s.addMineTask(tX, tY)
+			case gui.CursorModeCancel:
+				for _, t := range s.MainSettlement.Tasks.GetTasks() {
+					if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
+						t.Complete()
+						s.MainSettlement.Tasks.RemoveTask(t)
+					}
+				}
+			case gui.CursorModeAttack:
+				target := s.level.GetEntityAt(tX, tY, s.CameraZ)
+				if target != nil && target.HasComponent(components.FactionAI) {
+					for _, colonist := range s.level.Entities {
+						if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
+							wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+							if wc.CurrentTask == nil || wc.CurrentTask.Completed {
+								s.MainSettlement.Tasks.AddTask(&task.Task{
+									Action: task_requests.AttackAction,
+									Data:   target,
+									X:      tX, Y: tY, Z: s.CameraZ,
+								})
+								break
+							}
+						}
 					}
 				}
 			}
 		}
 	}
 
-	if e.Button == ebiten.MouseButtonRight && s.MainSettlement != nil {
-		switch s.CursorMode {
-		case gui.CursorModeDefault:
-			s.MainSettlement.Tasks.AddTask(&task.Task{X: tX, Y: tY, Z: s.CameraZ, Escalated: true})
-		case gui.CursorModeBuild:
-			s.mouseDragging = true
-			s.lastDragTileX = -1
-			s.lastDragTileY = -1
-			s.addBuildTask(tX, tY)
-		case gui.CursorModeDig:
-			s.mouseDragging = true
-			s.lastDragTileX = -1
-			s.lastDragTileY = -1
-			s.addDigTask(tX, tY)
-		case gui.CursorModeMine:
-			s.addMineTask(tX, tY)
-		case gui.CursorModeCancel:
+	if e.Button == ebiten.MouseButtonRight {
+		if s.CursorMode != gui.CursorModeDefault {
+			// Cancel active order, return to default
+			event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
+		} else if s.MainSettlement != nil {
+			// Cancel any pending task at this tile
 			for _, t := range s.MainSettlement.Tasks.GetTasks() {
 				if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
 					t.Complete()
@@ -1120,6 +1171,7 @@ func (s *MainState) updateHovered() {
 	const sidebarW = 200
 	if cX < sidebarW || cX >= cfg.WorldWidth || cY < 0 || cY >= cfg.WorldHeight {
 		s.guiManager.ClearHover()
+		s.guiManager.SetDefaultContext("", "", "")
 		s.hoverActive = false
 		return
 	}
@@ -1131,12 +1183,16 @@ func (s *MainState) updateHovered() {
 
 	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
 		s.guiManager.SetHoveredEntity(entity)
+		if s.CursorMode == gui.CursorModeDefault {
+			s.updateDefaultContext(tX, tY)
+		}
 		return
 	}
 
 	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
 	if tile == nil {
 		s.guiManager.ClearHover()
+		s.guiManager.SetDefaultContext("", "", "")
 		s.hoverActive = false
 		return
 	}
@@ -1164,6 +1220,61 @@ func (s *MainState) updateHovered() {
 		Air:        def.Air,
 		Space:      def.Space,
 	})
+	if s.CursorMode == gui.CursorModeDefault {
+		s.updateDefaultContext(tX, tY)
+	}
+}
+
+// updateDefaultContext detects what a Default-mode left-click would do at (tX,tY)
+// and updates the HUD context hint accordingly.
+func (s *MainState) updateDefaultContext(tX, tY int) {
+	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
+		if entity.HasComponent(components.FactionAI) {
+			name := "Enemy"
+			if entity.HasComponent(rlcomponents.Description) {
+				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.SetDefaultContext("Attack: "+name, "Order colonists to attack this target.", entity.Blueprint)
+			return
+		}
+		if entity.HasComponent(components.Choppable) {
+			name := "Flora"
+			if entity.HasComponent(rlcomponents.Description) {
+				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.SetDefaultContext("Harvest: "+name, "Order colonists to harvest this.", entity.Blueprint)
+			return
+		}
+		if entity.HasComponent(rlcomponents.Item) {
+			name := "Item"
+			if entity.HasComponent(rlcomponents.Description) {
+				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.SetDefaultContext("Retrieve: "+name, "Order colonists to pick this up.", entity.Blueprint)
+			return
+		}
+		if entity.HasComponent(components.Worker) {
+			name := "Colonist"
+			if entity.HasComponent(rlcomponents.Description) {
+				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.SetDefaultContext("Inspect: "+name, "View equipment, inventory, and task filters.", entity.Blueprint)
+			return
+		}
+	}
+
+	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
+	if tile != nil {
+		t := tile.(*world.Tile)
+		walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
+		hasFloor := !t.Floor.IsEmpty()
+		if walkable && hasFloor {
+			s.guiManager.SetDefaultContext("Move Here", "Send colonists to this location.", "")
+			return
+		}
+	}
+
+	s.guiManager.SetDefaultContext("", "", "")
 }
 
 func (s *MainState) refreshHUD() {
