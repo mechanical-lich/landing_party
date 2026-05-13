@@ -127,6 +127,9 @@ type HUDScreen struct {
 	craftTooltipDescs []string
 	researchTooltipDescs []string
 	storageTooltipDescs  []string
+
+	// Active selection indicator
+	selectionTooltip *minui.Tooltip
 }
 
 func NewHUDScreen() *HUDScreen {
@@ -164,12 +167,14 @@ func (h *HUDScreen) Update() {
 	h.uiGUI.Layout()
 	h.tooltipManager.Update()
 	h.listTooltip.Update()
+	h.selectionTooltip.Update()
 }
 
 func (h *HUDScreen) Draw(screen *ebiten.Image) {
 	h.uiGUI.Draw(screen)
 	h.tooltipManager.Draw(screen)
 	h.listTooltip.Draw(screen)
+	h.selectionTooltip.Draw(screen)
 	h.drawCursor(screen)
 }
 
@@ -200,6 +205,12 @@ func (h *HUDScreen) setupHUDElements() {
 	h.resourceBar.AddResource("crystal", nil, 0)
 	h.resourceBar.AddResource("food", nil, 0)
 	h.uiGUI.AddElement(h.resourceBar)
+
+	theme := h.uiGUI.GetTheme()
+	h.selectionTooltip = minui.NewTooltip("selectionTooltip")
+	h.selectionTooltip.SetTheme(theme)
+	h.selectionTooltip.SetPosition(210, 8)
+	h.selectionTooltip.Hide()
 }
 
 func (h *HUDScreen) setupSidebar() {
@@ -310,9 +321,16 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			oiMode := oi.mode
 			mi := minui.NewMenuItem("order_"+oi.id, oi.label)
 			mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
+			oiLabel := oi.label
+			oiDesc := oi.description
 			mi.OnClick = func() {
 				h.selectBuildItem(oiID)
 				event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: oiMode})
+				if oiMode == CursorModeDefault {
+					h.setSelectionLabel("", "", nil)
+				} else {
+					h.setSelectionLabel(oiLabel, oiDesc, nil)
+				}
 			}
 			if oi.description != "" {
 				h.tooltipManager.RegisterWithTitle(mi, oi.label, oi.description)
@@ -338,10 +356,14 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			if locked {
 				mi.SetEnabled(false)
 			} else {
+				btName := buildable.Name
+				btDesc := buildable.Description
+				btIcon := buildableTooltipIcon(buildType, buildable)
 				mi.OnClick = func() {
 					h.selectBuildItem("build_" + btID)
 					event.GetQueuedInstance().QueueEvent(BuildOptionChangedEvent{Option: btID})
 					event.GetQueuedInstance().QueueEvent(CursorModeChangedEvent{Mode: CursorModeBuild})
+					h.setSelectionLabel(btName, btDesc, btIcon)
 				}
 			}
 			if buildable.Description != "" || buildable.Name != "" {
@@ -400,6 +422,20 @@ func (h *HUDScreen) selectBuildItem(selectedID string) {
 	for id, item := range h.buildMenuItems {
 		item.SetSelected(id == selectedID)
 	}
+}
+
+func (h *HUDScreen) setSelectionLabel(title, desc string, icon *minui.Icon) {
+	if h.selectionTooltip == nil {
+		return
+	}
+	if title == "" {
+		h.selectionTooltip.Hide()
+		return
+	}
+	h.selectionTooltip.SetContent(title, desc, icon)
+	h.selectionTooltip.Layout()
+	h.selectionTooltip.SetPosition(210, 8)
+	h.selectionTooltip.Show()
 }
 
 func (h *HUDScreen) setupModals() {

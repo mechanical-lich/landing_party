@@ -137,7 +137,7 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	if !tile.Floor.IsEmpty() {
 		drawSlot(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
-	if !tile.Middle.IsEmpty() && !TileDefinitions[tile.Middle.Type].Air {
+	if !tile.Middle.IsEmpty() && !TileDefinitions[tile.Middle.Type].Air && !TileDefinitions[tile.Middle.Type].Space {
 		drawSlot(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 	if !tile.Ceiling.IsEmpty() {

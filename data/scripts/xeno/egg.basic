@@ -1,0 +1,15 @@
+function on_turn()
+    turns = get_var("turns") + 0
+    turns = turns + 1
+    set_var("turns", turns)
+
+    if turns >= 20 then
+        add_message("Xeno egg was heard hatching!")
+        x = get_self_x()
+        y = get_self_y()
+        z = get_self_z()
+        spawn_entity("xeno_egg_cracked", x, y, z)
+        spawn_entity("xeno_hatchling", x, y, z)
+        despawn_self()
+    endif
+endfunction

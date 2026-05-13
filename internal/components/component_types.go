@@ -24,6 +24,7 @@ const (
 	CraftingStation  ecs.ComponentType = "CraftingStation"
 	Skills           ecs.ComponentType = "Skills"
 	Script           ecs.ComponentType = "Script"
+	ScriptedAI       ecs.ComponentType = "ScriptedAI"
 	LaserBeam        ecs.ComponentType = "LaserBeam"
 )
 
