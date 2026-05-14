@@ -101,6 +101,47 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 
+	// Third pass: faded Z+1 overlay — tiles and entities one level above the
+	// camera are drawn desaturated/semi-transparent so the player knows they
+	// exist without mistaking them for current-level content.
+	aboveZ := cameraZ + 1
+	if aboveZ < level.GetDepth() {
+		screenX = 0
+		for x := cameraX; x < cameraX+viewW; x++ {
+			screenY := 0
+			for y := cameraY; y < cameraY+viewH; y++ {
+				above := level.GetTilePtr(x, y, aboveZ)
+				tX := float64(screenX * tileSizeW)
+				tY := float64(screenY * tileSizeH)
+				drawTileFaded(screen, level, above, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+				// Faded entities at Z+1.
+				level.entitiesBuffer = level.entitiesBuffer[:0]
+				level.GetEntitiesAt(x, y, aboveZ, &level.entitiesBuffer)
+				for _, entity := range level.entitiesBuffer {
+					pendingEntities = append(pendingEntities, pendingEntityDraw{entity: entity, tX: tX, tY: tY})
+				}
+				screenY++
+			}
+			screenX++
+		}
+		// Draw faded Z+1 entities — reuse drawEntity but with a separate tint rect after.
+		for _, p := range pendingEntities {
+			// Only draw entities that are actually at aboveZ.
+			if !p.entity.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			pc := p.entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if pc.GetZ() != aboveZ {
+				continue
+			}
+			drawEntity(screen, p.entity, p.tX, p.tY, aboveZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+			// Paint a semi-transparent grey-blue tint over the entity sprite.
+			vector.DrawFilledRect(screen, float32(p.tX), float32(p.tY), float32(tileSizeW), float32(tileSizeH),
+				color.RGBA{30, 40, 80, 140}, false)
+		}
+		pendingEntities = pendingEntities[:0]
+	}
+
 	// Debug: draw pathfinding steps for all entities that have an AIMemory.
 	if config.Global().RenderPathfindingSteps {
 		for _, entity := range level.Entities {
@@ -183,6 +224,70 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	if !tile.Ceiling.IsEmpty() {
 		drawSlot(screen, level, tile, tile.Ceiling, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
+}
+
+// drawTileFaded renders Z+1 tiles as a desaturated, semi-transparent overlay
+// so the player can see what's directly above without confusing it with the
+// current camera level. Only the floor and non-solid middles are shown.
+func drawTileFaded(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+	if tile == nil {
+		return
+	}
+	// Only render if there's something meaningful to show.
+	if tile.Floor.IsEmpty() && tile.Middle.IsEmpty() {
+		return
+	}
+	if !tile.Floor.IsEmpty() {
+		drawSlotFaded(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+	}
+	if !tile.Middle.IsEmpty() {
+		def := TileDefinitions[tile.Middle.Type]
+		if !def.Air && !def.Space {
+			drawSlotFaded(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+		}
+	}
+}
+
+// drawSlotFaded draws a slot with a grey-blue desaturated tint at ~50% alpha.
+func drawSlotFaded(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slot, autotileEligible bool, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+	def := TileDefinitions[slot.Type]
+	if len(def.Variants) == 0 {
+		return
+	}
+	var variant TileVariant
+	if autotileEligible && def.AutoTile > 0 && level != nil {
+		variant = level.ResolveVariant(tile)
+	} else {
+		v := slot.Variant
+		if v < 0 || v >= len(def.Variants) {
+			v = 0
+		}
+		variant = def.Variants[v]
+	}
+	tex := resource.Textures[def.Resource]
+	if tex == nil {
+		return
+	}
+	srcW, srcH := spriteSizeW, spriteSizeH
+	if def.SpriteWidth > 0 {
+		srcW = def.SpriteWidth
+	}
+	if def.SpriteHeight > 0 {
+		srcH = def.SpriteHeight
+	}
+	src := tex.SubImage(image.Rect(variant.SpriteX, variant.SpriteY, variant.SpriteX+srcW, variant.SpriteY+srcH)).(*ebiten.Image)
+	drawOp.GeoM.Reset()
+	drawOp.ColorScale.Reset()
+	// Desaturate toward grey-blue and reduce to ~45% opacity.
+	const fade = 0.45
+	drawOp.ColorScale.Scale(fade, fade, fade, fade)
+	// Add a slight blue tint to distinguish from depth fog below.
+	drawOp.ColorScale.SetR(drawOp.ColorScale.R() * 0.7)
+	drawOp.ColorScale.SetG(drawOp.ColorScale.G() * 0.8)
+	drawOp.GeoM.Scale(float64(tileSizeW)/float64(srcW), float64(tileSizeH)/float64(srcH))
+	drawOp.GeoM.Translate(float64(screenX*tileSizeW+def.SpriteOffsetX), float64(screenY*tileSizeH+def.SpriteOffsetY))
+	screen.DrawImage(src, drawOp)
+	drawOp.ColorScale.Reset()
 }
 
 // drawSlot renders one slot of a tile. autotileEligible is true only for the
