@@ -1171,7 +1171,6 @@ func (s *MainState) updateHovered() {
 	const sidebarW = 200
 	if cX < sidebarW || cX >= cfg.WorldWidth || cY < 0 || cY >= cfg.WorldHeight {
 		s.guiManager.ClearHover()
-		s.guiManager.SetDefaultContext("", "", "")
 		s.hoverActive = false
 		return
 	}
@@ -1192,7 +1191,9 @@ func (s *MainState) updateHovered() {
 	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
 	if tile == nil {
 		s.guiManager.ClearHover()
-		s.guiManager.SetDefaultContext("", "", "")
+		if s.CursorMode == gui.CursorModeDefault {
+			s.guiManager.SetDefaultContext("", "", "")
+		}
 		s.hoverActive = false
 		return
 	}

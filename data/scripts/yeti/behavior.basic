@@ -1,0 +1,53 @@
+function on_turn()
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+
+    # Store home on first turn — wherever the yeti spawns is its cave
+    home_set = get_var("home_set") + 0
+    if home_set = 0 then
+        set_var("home_x", sx)
+        set_var("home_y", sy)
+        set_var("home_z", sz)
+        set_var("home_set", 1)
+    endif
+
+    if is_night() = 1 then
+        # Hunt at night
+        if find_nearest_worker(20) = 1 then
+            nx = get_nearest_x()
+            ny = get_nearest_y()
+            nz = get_nearest_z()
+            if dist(sx, sy, nx, ny) <= 1.5 then
+                attack_at(nx, ny, nz)
+            else
+                moved = pathfind_step(nx, ny, nz)
+                if moved = 0 then
+                    # Break through the wall blocking the path
+                    bx = sx
+                    by = sy
+                    if nx > sx then bx = sx + 1 endif
+                    if nx < sx then bx = sx - 1 endif
+                    if ny > sy then by = sy + 1 endif
+                    if ny < sy then by = sy - 1 endif
+                    if is_tile_solid(bx, by, sz) = 1 then
+                        break_tile(bx, by, sz)
+                    endif
+                endif
+            endif
+        else
+            dx = rnd_int(3) - 1
+            dy = rnd_int(3) - 1
+            move_by(dx, dy)
+        endif
+    else
+        # Day: return to cave home
+        hx = get_var("home_x") + 0
+        hy = get_var("home_y") + 0
+        hz = get_var("home_z") + 0
+        if dist(sx, sy, hx, hy) > 1.5 then
+            add_message("Pathing home")
+            pathfind_step(hx, hy, hz)
+        endif
+    endif
+endfunction

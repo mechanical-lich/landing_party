@@ -1,87 +1,10 @@
 {
-    "mutant_grunt": {
-        "AIMemory": {},
-        "Description": {
-            "Name": "Mutant Grunt",
-            "Faction": "mutant"
-        },
-        "Inventory": {},
-        "EquipmentAppearance": {
-            "Resource": "scifi_entities",
-            "SpriteSize": 24,
-            "BlockOriginX": 48,
-            "BlockOriginY": 360,
-            "AnimationFrames": 2,
-            "DefaultWeaponColumn": 0,
-            "DefaultArmorRow": 0,
-            "WeaponColumns": {
-                "*": 2,
-                "energy_sword": 3,
-                "knife": 3,
-                "laser_sword": 3
-            }
-        },
-        "FactionAI": {
-            "BehaviorKey": "hostile",
-            "Faction": "mutant"
-        },
-        "Health": {
-            "MaxHealth": 12
-        },
-        "Initiative": {
-            "DefaultValue": 12,
-            "Ticks": 1
-        },
-        "Solid": {},
-        "Stats": {
-            "Str": 8,
-            "Int": 4,
-            "Dex": 12,
-            "AC": 8,
-            "BasicAttackDice": "1d6"
-        }
-    },
-    "mutant_scout": {
-        "AIMemory": {},
-        "Appearance": {
-            "R": 80,
-            "G": 200,
-            "B": 80,
-            "Bounces": true,
-            "Resource": "scifi_entities",
-            "SpriteX": 48,
-            "SpriteY": 360
-        },
-        "Description": {
-            "Name": "Mutant Scout",
-            "Faction": "mutant"
-        },
-        "FactionAI": {
-            "BehaviorKey": "hostile",
-            "Faction": "mutant"
-        },
-        "Health": {
-            "MaxHealth": 8
-        },
-        "Initiative": {
-            "DefaultValue": 8,
-            "Ticks": 1
-        },
-        "Solid": {},
-        "Stats": {
-            "Str": 6,
-            "Int": 6,
-            "Dex": 16,
-            "AC": 6,
-            "BasicAttackDice": "1d4"
-        }
-    },
     "mutant_brute": {
         "AIMemory": {},
         "Appearance": {
-            "R": 160,
+            "R": 255,
             "G": 255,
-            "B": 160,
+            "B": 255,
             "Bounces": true,
             "Resource": "scifi_entities",
             "SpriteX": 240,
@@ -109,6 +32,116 @@
             "Dex": 6,
             "AC": 14,
             "BasicAttackDice": "2d6"
+        }
+    },
+    "mutant_grunt": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "Mutant Grunt",
+            "Faction": "mutant"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 48,
+            "BlockOriginY": 360,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 2,
+                "energy_sword": 3,
+                "knife": 3,
+                "laser_sword": 3
+            }
+        },
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "mutant"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "mutant_scout": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 360
+        },
+        "Description": {
+            "Name": "Mutant Scout",
+            "Faction": "mutant"
+        },
+        "FactionAI": {
+            "BehaviorKey": "hostile",
+            "Faction": "mutant"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 6,
+            "Dex": 16,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "radiation_mutant": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 336
+        },
+        "Description": {
+            "Name": "Radiation Mutant",
+            "Faction": "mutant"
+        },
+        "Health": {
+            "MaxHealth": 18
+        },
+        "Initiative": {
+            "DefaultValue": 11,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/mutants/radiation.basic"
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 3,
+            "Dex": 10,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
         }
     }
 }

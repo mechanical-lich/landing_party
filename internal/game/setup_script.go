@@ -364,6 +364,39 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return float64(level.GetSurfaceZ(x, y)), nil
 	})
 
+	// find_cave_tile() — random search for a TKCavern tile anywhere in the level.
+	// Returns 1 on success; use get_cave_x/y/z to retrieve the coords.
+	var lastCaveX, lastCaveY, lastCaveZ int
+	interp.RegisterFunc("find_cave_tile", func(args ...any) (any, error) {
+		w := level.GetWidth()
+		h := level.GetHeight()
+		depth := level.GetDepth()
+		for attempt := 0; attempt < 500; attempt++ {
+			x := rand.Intn(w)
+			y := rand.Intn(h)
+			z := rand.Intn(depth)
+			if level.GetTerrainKind(x, y, z) != world.TKCavern {
+				continue
+			}
+			tI := level.GetTileAt(x, y, z)
+			if tI == nil {
+				continue
+			}
+			t := tI.(*world.Tile)
+			if t.IsSolid() || t.IsWater() || level.GetEntityAt(x, y, z) != nil {
+				continue
+			}
+			lastCaveX = x
+			lastCaveY = y
+			lastCaveZ = z
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	interp.RegisterFunc("get_cave_x", func(args ...any) (any, error) { return float64(lastCaveX), nil })
+	interp.RegisterFunc("get_cave_y", func(args ...any) (any, error) { return float64(lastCaveY), nil })
+	interp.RegisterFunc("get_cave_z", func(args ...any) (any, error) { return float64(lastCaveZ), nil })
+
 	// tag_region(name, x, y, z) — record an anchor point for later lookup.
 	interp.RegisterFunc("tag_region", func(args ...any) (any, error) {
 		if len(args) < 4 {

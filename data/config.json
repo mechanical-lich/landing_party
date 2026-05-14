@@ -15,7 +15,7 @@
     "blueprintPath": "data/blueprints",
     "dpi": 72,
     "renderPathfindingSteps": false,
-    "debugDisableLighting": false,
+    "debugDisableLighting": true,
     "debugShowAutotileMask": false,
     "profileCPU": false,
     "profileMemory": false

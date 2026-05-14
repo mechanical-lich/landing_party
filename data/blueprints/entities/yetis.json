@@ -1,0 +1,36 @@
+{
+    "yeti": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 432,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Yeti",
+            "Faction": "wildlife"
+        },
+        "Health": {
+            "MaxHealth": 45
+        },
+        "Initiative": {
+            "DefaultValue": 13,
+            "Ticks": 1
+        },
+        "NeverSleep": {},
+        "ScriptedAI": {
+            "script": "data/scripts/yeti/behavior.basic"
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 18,
+            "Int": 3,
+            "Dex": 8,
+            "AC": 14,
+            "BasicAttackDice": "2d8"
+        }
+    }
+}

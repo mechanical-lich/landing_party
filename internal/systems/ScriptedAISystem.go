@@ -189,6 +189,19 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		}
 		return float64(0), nil
 	})
+	interp.RegisterFunc("get_tile_light", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		t := level.GetTilePtr(x, y, z)
+		if t == nil {
+			return float64(0), nil
+		}
+		return float64(t.LightLevel), nil
+	})
 
 	// --- nearest radiation tile scan ---
 	// find_highest_radiation_tile(radius) — scans a square of tiles around the
