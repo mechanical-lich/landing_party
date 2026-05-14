@@ -1,0 +1,43 @@
+function on_turn()
+    turns = get_var("turns") + 0
+    turns = turns + 1
+    set_var("turns", turns)
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+
+    # Lay an egg every 50 turns using a cooldown var
+    cooldown = get_var("egg_cooldown") + 0
+    if cooldown > 0 then
+        set_var("egg_cooldown", cooldown - 1)
+    else
+        found = find_open_tile(sz)
+        if found = 1 then
+            ex = get_open_x()
+            ey = get_open_y()
+            # Only lay nearby — within 6 tiles
+            if dist(sx, sy, ex, ey) <= 6 then
+                spawn_entity("troid_egg", ex, ey, sz)
+                set_var("egg_cooldown", 50)
+            endif
+        endif
+    endif
+
+    # Always hunt
+    if find_nearest_worker(20) = 1 then
+        nx = get_nearest_x()
+        ny = get_nearest_y()
+        nz = get_nearest_z()
+        d = dist(sx, sy, nx, ny)
+        if d <= 1.5 then
+            attack_at(nx, ny, nz)
+        else
+            pathfind_step(nx, ny, nz)
+        endif
+    else
+        dx = rnd_int(3) - 1
+        dy = rnd_int(3) - 1
+        move_by(dx, dy)
+    endif
+endfunction

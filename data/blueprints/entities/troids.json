@@ -1,0 +1,157 @@
+{
+    "troid_egg": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 768
+        },
+        "Description": {
+            "Name": "Troid Egg",
+            "Faction": "troid"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 20,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/troid/egg.basic"
+        },
+        "Solid": {}
+    },
+    "troid_egg_cracked": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 768
+        },
+        "Description": {
+            "Name": "Cracked Egg",
+            "Faction": "troid"
+        },
+        "Inanimate": {}
+    },
+    "troid_hatchling": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Troid Hatchling",
+            "Faction": "troid"
+        },
+        "Health": {
+            "MaxHealth": 6
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/troid/hatchling.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "spacefaring"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 5,
+            "Int": 2,
+            "Dex": 16,
+            "AC": 5,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "troid_stage2": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Troid",
+            "Faction": "troid"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/troid/stage2.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "spacefaring"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 4,
+            "Dex": 14,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "troid_stage3": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Troid Adult",
+            "Faction": "troid"
+        },
+        "Health": {
+            "MaxHealth": 32
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/troid/stage3.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "spacefaring"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 16,
+            "Int": 6,
+            "Dex": 12,
+            "AC": 12,
+            "BasicAttackDice": "2d6"
+        }
+    }
+}

@@ -166,7 +166,11 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 		}
 		if canMoveTo(level, entity, next) {
 			dx, dy, dz := rlai.TrackTarget(pc.GetX(), pc.GetY(), pc.GetZ(), ntX, ntY, ntZ)
-			rlentity.Move(entity, level, dx, dy, dz)
+			if isFlying(entity) {
+				flyMove(entity, level, dx, dy, dz)
+			} else {
+				rlentity.Move(entity, level, dx, dy, dz)
+			}
 			rlentity.Face(entity, dx, dy)
 			return true
 		}
@@ -209,13 +213,17 @@ func tryColonistSwap(level *world.Level, entity *ecs.Entity, pc *rlcomponents.Po
 	return true
 }
 
+func isFlying(entity *ecs.Entity) bool {
+	return skills.Has(entity, fspath.FlyingSkill) || skills.Has(entity, fspath.SpacefaringSkill) || skills.Has(entity, fspath.ClimbingSkill)
+}
+
 func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {
 	if tile == nil {
 		return false
 	}
-	// Layered walkability: need ground (Floor non-empty) and a non-blocking
-	// Middle slot. Empty Middle is fine — that's just air.
-	if tile.Floor.IsEmpty() {
+	flying := isFlying(entity)
+	// Layered walkability: need ground (Floor non-empty) unless flying.
+	if tile.Floor.IsEmpty() && !flying {
 		return false
 	}
 	if !tile.Middle.IsEmpty() {
@@ -223,13 +231,34 @@ func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {
 		if def.Solid || def.Water {
 			return false
 		}
-		if def.Space && !skills.Has(entity, fspath.VacuumResistSkill) {
+		if def.Space && !skills.Has(entity, fspath.VacuumResistSkill) && !skills.Has(entity, fspath.SpacefaringSkill) {
 			return false
 		}
 	}
 	tX, tY, tZ := tile.Coords()
 	solid := level.GetSolidEntityAt(tX, tY, tZ)
 	return solid == nil || solid == entity
+}
+
+// flyMove moves a flying entity directly to a destination tile, bypassing
+// the rlentity.Move floor/air checks which block movement through empty space.
+func flyMove(entity *ecs.Entity, level *world.Level, dx, dy, dz int) {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	destX := pc.GetX() + dx
+	destY := pc.GetY() + dy
+	destZ := pc.GetZ() + dz
+	tile, _ := level.GetTileAt(destX, destY, destZ).(*world.Tile)
+	if tile == nil {
+		return
+	}
+	if !tile.Middle.IsEmpty() && world.TileDefinitions[tile.Middle.Type].Solid {
+		return
+	}
+	solid := level.GetSolidEntityAt(destX, destY, destZ)
+	if solid != nil && solid != entity {
+		return
+	}
+	level.PlaceEntity(destX, destY, destZ, entity)
 }
 
 // FindLooseItemOnGround returns the nearest item entity lying on the ground (not in storage/inventory).

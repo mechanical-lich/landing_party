@@ -14,7 +14,7 @@
     "title": "Scifi Settlements",
     "blueprintPath": "data/blueprints",
     "dpi": 72,
-    "renderPathfindingSteps": false,
+    "renderPathfindingSteps": true,
     "debugDisableLighting": true,
     "debugShowAutotileMask": false,
     "profileCPU": false,

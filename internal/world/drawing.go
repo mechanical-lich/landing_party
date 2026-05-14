@@ -100,6 +100,39 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	for _, p := range pendingEntities {
 		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
+
+	// Debug: draw pathfinding steps for all entities that have an AIMemory.
+	if config.Global().RenderPathfindingSteps {
+		for _, entity := range level.Entities {
+			if !entity.HasComponent(rlcomponents.AIMemory) {
+				continue
+			}
+			mem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+			for i, stepIdx := range mem.CurrentSteps {
+				t := level.Level.GetTilePtrIndex(stepIdx)
+				if t == nil {
+					continue
+				}
+				tx, ty, tz := t.Coords()
+				if tz != cameraZ {
+					continue
+				}
+				sx := tx - cameraX
+				sy := ty - cameraY
+				if sx < 0 || sy < 0 || sx >= viewW || sy >= viewH {
+					continue
+				}
+				c := color.RGBA{0, 200, 255, 80}
+				if i == 0 {
+					c = color.RGBA{255, 200, 0, 120} // current position highlight
+				}
+				vector.DrawFilledRect(screen,
+					float32(sx*tileSizeW), float32(sy*tileSizeH),
+					float32(tileSizeW), float32(tileSizeH),
+					c, false)
+			}
+		}
+	}
 }
 
 // tileMiddleTransparent reports whether the cell's Middle slot lets light /
@@ -137,7 +170,14 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	if !tile.Floor.IsEmpty() {
 		drawSlot(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
-	if !tile.Middle.IsEmpty() && !TileDefinitions[tile.Middle.Type].Air && !TileDefinitions[tile.Middle.Type].Space {
+	// Air middles are always skipped — they're vision markers only.
+	// Space middles are skipped only when the tile has a floor beneath them
+	// (e.g. a hull floor built in open space); otherwise open space must render.
+	spaceMiddle := !tile.Middle.IsEmpty() && TileDefinitions[tile.Middle.Type].Space
+	skipMiddle := tile.Middle.IsEmpty() ||
+		TileDefinitions[tile.Middle.Type].Air ||
+		(spaceMiddle && !tile.Floor.IsEmpty())
+	if !skipMiddle {
 		drawSlot(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 	if !tile.Ceiling.IsEmpty() {

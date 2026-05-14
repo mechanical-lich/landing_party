@@ -48,6 +48,7 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 			Single: opts.BiomeSingle,
 		})
 		ApplyBiomes(level)
+		ExposeMountainTops(level)
 	}
 
 	if len(opts.Features) > 0 {

@@ -116,6 +116,35 @@ func middleForKind(k world.TerrainKind) string {
 	return ""
 }
 
+// ExposeMountainTops clears the Middle slot of any solid tile above SurfaceZ
+// whose tile directly above is non-solid. This makes mountain tops walkable
+// after biomes have been applied (biomes run after the primer and would
+// otherwise re-stamp solid Middle tiles on exposed rock tops).
+func ExposeMountainTops(level *world.Level) {
+	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
+	surfZ := level.SurfaceZ
+	for x := 0; x < w; x++ {
+		for y := 0; y < h; y++ {
+			for z := surfZ + 1; z < d-1; z++ {
+				tile := level.GetTilePtr(x, y, z)
+				if tile == nil || tile.Middle.IsEmpty() {
+					continue
+				}
+				if !world.TileDefinitions[tile.Middle.Type].Solid {
+					continue
+				}
+				above := level.GetTilePtr(x, y, z+1)
+				if above == nil {
+					continue
+				}
+				if above.Middle.IsEmpty() || !world.TileDefinitions[above.Middle.Type].Solid {
+					level.ClearMiddle(x, y, z)
+				}
+			}
+		}
+	}
+}
+
 // paintKind paints the layered defaults for a TerrainKind. Floor and Middle
 // are set independently so digging out the Middle reveals the Floor cleanly.
 func paintKind(level *world.Level, x, y, z int, k world.TerrainKind) {

@@ -21,6 +21,7 @@
         "Health": {
             "MaxHealth": 30
         },
+        "Skills": { "Skills": ["radiation_heal"] },
         "Initiative": {
             "DefaultValue": 15,
             "Ticks": 1
@@ -62,6 +63,7 @@
         "Health": {
             "MaxHealth": 12
         },
+        "Skills": { "Skills": ["radiation_heal"] },
         "Initiative": {
             "DefaultValue": 12,
             "Ticks": 1
@@ -98,6 +100,7 @@
         "Health": {
             "MaxHealth": 8
         },
+        "Skills": { "Skills": ["radiation_heal"] },
         "Initiative": {
             "DefaultValue": 8,
             "Ticks": 1
@@ -135,6 +138,7 @@
         "ScriptedAI": {
             "script": "data/scripts/mutants/radiation.basic"
         },
+        "Skills": { "Skills": ["radiation_heal"] },
         "Solid": {},
         "Stats": {
             "Str": 10,

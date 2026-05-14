@@ -18,15 +18,15 @@ func (s *RadiationSystem) Requires() []ecs.ComponentType { return radiationSyste
 
 func (s *RadiationSystem) UpdateSystem(data interface{}) error { return nil }
 
-const RadiationResistSkill = "radiation_resist"
+const (
+	RadiationResistSkill = "radiation_resist" // immunity — grantable by armor
+	RadiationHealSkill   = "radiation_heal"   // heals from radiation — innate only
+)
 
 func (s *RadiationSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entity) error {
 	level := levelInterface.(*world.Level)
 
 	if entity.HasComponent(rlcomponents.Dead) {
-		return nil
-	}
-	if skills.Has(entity, RadiationResistSkill) {
 		return nil
 	}
 
@@ -36,13 +36,31 @@ func (s *RadiationSystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 		return nil
 	}
 
+	hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
+
+	// radiation_heal: heals from radiation instead of taking damage.
+	if skills.Has(entity, RadiationHealSkill) {
+		if hc.Health < hc.MaxHealth {
+			heal := int(tile.Radiation)/128 + 1
+			hc.Health += heal
+			if hc.Health > hc.MaxHealth {
+				hc.Health = hc.MaxHealth
+			}
+		}
+		return nil
+	}
+
+	// radiation_resist: immunity only, no healing.
+	if skills.Has(entity, RadiationResistSkill) {
+		return nil
+	}
+
 	// 0..255 radiation maps to 0..4 damage per turn (very low so it's
 	// survivable for short crossings but lethal for camping).
 	dmg := int(tile.Radiation) / 64
 	if dmg < 1 {
 		dmg = 1
 	}
-	hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
 	hc.Health -= dmg
 	return nil
 }

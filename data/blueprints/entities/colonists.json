@@ -103,6 +103,7 @@
         "Health": {
             "MaxHealth": 20
         },
+        "Skills": { "Skills": ["spacefaring"] },
         "Hunger": {
             "Energy": 100,
             "MaxEnergy": 100,

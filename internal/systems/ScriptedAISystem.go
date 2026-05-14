@@ -16,6 +16,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
+	"github.com/mechanical-lich/scifi_settlements/internal/skills"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
@@ -356,7 +357,8 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		return float64(1), nil
 	})
 	// move_by(dx, dy) — raw relative move (no pathfinding).
-	// Returns 1 if the move succeeded. Refuses to step into space tiles.
+	// Returns 1 if the move succeeded. Refuses to step into space tiles
+	// unless the entity has the spacefaring skill.
 	interp.RegisterFunc("move_by", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return float64(0), nil
@@ -364,8 +366,27 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		dx := int(toAIFloat(args[0]))
 		dy := int(toAIFloat(args[1]))
 		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		dest := level.GetTilePtr(pc.GetX()+dx, pc.GetY()+dy, pc.GetZ())
-		if dest != nil && !dest.Middle.IsEmpty() && world.TileDefinitions[dest.Middle.Type].Space {
+		destX, destY, destZ := pc.GetX()+dx, pc.GetY()+dy, pc.GetZ()
+		dest := level.GetTilePtr(destX, destY, destZ)
+		spacefaring := skills.Has(entity, fspath.SpacefaringSkill)
+		flying := spacefaring || skills.Has(entity, fspath.FlyingSkill) || skills.Has(entity, fspath.ClimbingSkill)
+		if dest != nil && !dest.Middle.IsEmpty() && world.TileDefinitions[dest.Middle.Type].Space && !spacefaring {
+			return float64(0), nil
+		}
+		if flying {
+			// Bypass rlentity.Move's floor/air checks for 3D-capable entities.
+			if dest == nil {
+				return float64(0), nil
+			}
+			if !dest.Middle.IsEmpty() && world.TileDefinitions[dest.Middle.Type].Solid {
+				return float64(0), nil
+			}
+			solid := level.GetSolidEntityAt(destX, destY, destZ)
+			if solid != nil && solid != entity {
+				return float64(1), nil
+			}
+			level.PlaceEntity(destX, destY, destZ, entity)
+			rlentity.Face(entity, dx, dy)
 			return float64(0), nil
 		}
 		moved := rlentity.Move(entity, level, dx, dy, 0)

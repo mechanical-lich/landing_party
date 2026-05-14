@@ -1,0 +1,35 @@
+function on_turn()
+    turns = get_var("turns") + 0
+    turns = turns + 1
+    set_var("turns", turns)
+
+    # Grow into stage 2 after 30 turns
+    if turns >= 30 then
+        x = get_self_x()
+        y = get_self_y()
+        z = get_self_z()
+        spawn_entity("troid_stage2", x, y, z)
+        despawn_self()
+        return
+    endif
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+
+    if find_nearest_worker(12) = 1 then
+        nx = get_nearest_x()
+        ny = get_nearest_y()
+        nz = get_nearest_z()
+        d = dist(sx, sy, nx, ny)
+        if d <= 1.5 then
+            attack_at(nx, ny, nz)
+        else
+            pathfind_step(nx, ny, nz)
+        endif
+    else
+        dx = rnd_int(3) - 1
+        dy = rnd_int(3) - 1
+        move_by(dx, dy)
+    endif
+endfunction
