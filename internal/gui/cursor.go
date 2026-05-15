@@ -10,4 +10,5 @@ const (
 	CursorModeAttack                CursorModeType = "attack"
 	CursorModeCancel                CursorModeType = "cancel"
 	CursorModeSetSettlementLocation CursorModeType = "setSettlementLocation"
+	CursorModeFollow                CursorModeType = "follow"
 )

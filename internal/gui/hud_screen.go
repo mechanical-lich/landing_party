@@ -430,6 +430,12 @@ func (h *HUDScreen) selectBuildItem(selectedID string) {
 	}
 }
 
+// SetSelectionLabel directly sets the selection tooltip text regardless of cursor mode.
+// Pass an empty title to hide it.
+func (h *HUDScreen) SetSelectionLabel(title, desc string) {
+	h.setSelectionLabel(title, desc, nil)
+}
+
 // SetDefaultContext shows a context hint in the selection tooltip while in Default cursor mode.
 // Pass an empty title to hide it. blueprint is used to build the sprite icon (may be empty).
 func (h *HUDScreen) SetDefaultContext(title, desc, blueprint string) {

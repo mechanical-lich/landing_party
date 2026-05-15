@@ -84,6 +84,7 @@ type MainState struct {
 	next             state.StateInterface
 	mapModal         *MapModal
 	smallMap         *SmallMapWidget
+	followEntity     *ecs.Entity
 }
 
 var _ state.StateInterface = (*MainState)(nil)
@@ -223,6 +224,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.mapModal = newMapModal(level)
 	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
 		cfg := config.Global()
 		sidebarTiles := 200/s.TileSizeW + 1
@@ -349,6 +351,7 @@ func (s *MainState) newGame() {
 	s.mapModal = newMapModal(s.level)
 	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
 		cfg := config.Global()
 		sidebarTiles := 200/s.TileSizeW + 1
@@ -465,6 +468,18 @@ func (s *MainState) Update() state.StateInterface {
 	cfg2 := config.Global()
 	viewW2 := cfg2.WorldWidth / s.TileSizeW
 	viewH2 := cfg2.WorldHeight / s.TileSizeH
+	// If following an entity, center camera on it every frame.
+	if s.CursorMode == gui.CursorModeFollow && s.followEntity != nil {
+		if s.followEntity.HasComponent(rlcomponents.Position) && !s.followEntity.HasComponent(rlcomponents.Dead) {
+			pc := s.followEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			sidebarTiles := 200/s.TileSizeW + 1
+			s.CameraX = pc.GetX() - sidebarTiles - (viewW2-sidebarTiles)/2
+			s.CameraY = pc.GetY() - viewH2/2
+			s.CameraZ = pc.GetZ()
+		} else {
+			s.cancelFollowMode()
+		}
+	}
 	s.mapModal.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
 	s.smallMap.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
 	if !s.mapModal.Visible {
@@ -564,6 +579,9 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.buildMode = "hull_wall"
 		}
 	case gui.CursorModeChangedEvent:
+		if s.CursorMode == gui.CursorModeFollow {
+			s.cancelFollowMode()
+		}
 		s.CursorMode = ev.Mode
 	case gui.MainMenuEvent:
 		switch ev.Action {
@@ -1031,12 +1049,30 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	if s.guiManager.GetMouseFocused() || s.guiManager.WithinModalBounds(ebiten.CursorPosition()) {
 		return
 	}
+	cXg, cYg := ebiten.CursorPosition()
+	if s.smallMap.WithinBounds(cXg, cYg) {
+		return
+	}
 
 	cX, cY := ebiten.CursorPosition()
 	tX := cX/s.TileSizeW + s.CameraX
 	tY := cY/s.TileSizeH + s.CameraY
 
 	if e.Button == ebiten.MouseButtonLeft {
+		if s.CursorMode == gui.CursorModeFollow {
+			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
+			if ent != nil && ent.HasComponent(rlcomponents.Position) {
+				s.followEntity = ent
+				name := "Entity"
+				if ent.HasComponent(rlcomponents.Description) {
+					name = ent.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+				}
+				s.guiManager.SetSelectionLabel("Following: "+name, "Right-click to cancel follow.")
+			} else {
+				s.cancelFollowMode()
+			}
+			return
+		}
 		if s.CursorMode == gui.CursorModeDefault {
 			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
 
@@ -1148,6 +1184,10 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	}
 
 	if e.Button == ebiten.MouseButtonRight {
+		if s.CursorMode == gui.CursorModeFollow {
+			s.cancelFollowMode()
+			return
+		}
 		if s.CursorMode != gui.CursorModeDefault {
 			// Cancel active order, return to default
 			event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
@@ -1161,6 +1201,24 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 			}
 		}
 	}
+}
+
+func (s *MainState) toggleFollowMode() {
+	if s.CursorMode == gui.CursorModeFollow {
+		s.cancelFollowMode()
+		return
+	}
+	s.followEntity = nil
+	s.CursorMode = gui.CursorModeFollow
+	s.smallMap.FollowActive = true
+	s.guiManager.SetSelectionLabel("Follow Mode", "Click an entity to follow it.  Right-click to cancel.")
+}
+
+func (s *MainState) cancelFollowMode() {
+	s.followEntity = nil
+	s.CursorMode = gui.CursorModeDefault
+	s.smallMap.FollowActive = false
+	s.guiManager.SetSelectionLabel("", "")
 }
 
 func (s *MainState) addBuildTask(x, y int) {
