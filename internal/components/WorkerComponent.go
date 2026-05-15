@@ -22,6 +22,9 @@ type WorkerComponent struct {
 	// DropOffItem is the specific inventory item to deposit when entering the
 	// "dropoff" state. Cleared after deposit.
 	DropOffItem *ecs.Entity
+	// SelfDefend causes the worker to counter-attack when struck, if they have
+	// not already used their turn this tick. Defaults to true.
+	SelfDefend bool
 }
 
 func (w *WorkerComponent) GetType() ecs.ComponentType { return Worker }

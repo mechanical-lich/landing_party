@@ -210,6 +210,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.UnequipItemRequestedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.SetTaskFilterEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.DropOffRequestedEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.SetSelfDefendEventType)
 
 	return s, nil
 }
@@ -430,7 +431,7 @@ func (s *MainState) newGame() {
 			colonist, err := factory.Create("colonist", spawnX+i-2, spawnY, spawnZ)
 			if err == nil {
 				colonist.AddComponent(&components.SettlementComponent{Name: name})
-				colonist.AddComponent(&components.WorkerComponent{})
+				colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
 				s.level.AddEntity(colonist)
 			}
 		}
@@ -544,6 +545,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 
 	viewW := config.Global().WorldWidth / s.TileSizeW
 	viewH := config.Global().WorldHeight / s.TileSizeH
+	s.level.CameraZ = s.CameraZ
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
 	world.DrawLightOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 	world.DrawRadiationOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
@@ -659,6 +661,8 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		s.applyTaskFilter(ev.Colonist, ev.Action, ev.Enabled)
 	case gui.DropOffRequestedEvent:
 		s.requestDropOff(ev.Colonist, ev.Item)
+	case gui.SetSelfDefendEvent:
+		s.applySelfDefend(ev.Colonist, ev.Enabled)
 	}
 	return nil
 }
@@ -865,6 +869,14 @@ func (s *MainState) addUnequipTask(colonist *ecs.Entity, slot string) {
 		Data:      task_requests.UnequipRequest{Slot: slot},
 	}
 	wc.CurrentTask = t
+}
+
+func (s *MainState) applySelfDefend(colonist *ecs.Entity, enabled bool) {
+	if colonist == nil || !colonist.HasComponent(components.Worker) {
+		return
+	}
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	wc.SelfDefend = enabled
 }
 
 func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled bool) {

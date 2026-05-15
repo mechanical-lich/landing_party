@@ -25,12 +25,8 @@ func PathCostFunctionForFaction(level *Level, faction string) func(from, to *Til
 // can't stand there) and blocks based on the Middle slot.
 func PathCostFunctionForEntity(level *Level, faction string, vacuumResist bool) func(from, to *Tile) float64 {
 	return func(from, to *Tile) float64 {
-		// Need ground to stand on.
-		if to.Floor.IsEmpty() {
-			return 5000.0
-		}
-
 		// Middle slot decides blocking. Empty Middle = walkable through.
+		isStairTile := false
 		if !to.Middle.IsEmpty() {
 			midDef := TileDefinitions[to.Middle.Type]
 			if midDef.Solid || midDef.Water {
@@ -39,6 +35,13 @@ func PathCostFunctionForEntity(level *Level, faction string, vacuumResist bool) 
 			if midDef.Space && !vacuumResist {
 				return 5000.0
 			}
+			isStairTile = midDef.StairsUp || midDef.StairsDown
+		}
+
+		// Need ground to stand on — but stairs are self-supporting so skip
+		// the floor check for stair tiles painted into previously-solid ground.
+		if to.Floor.IsEmpty() && !isStairTile {
+			return 5000.0
 		}
 
 		cost := 0.0

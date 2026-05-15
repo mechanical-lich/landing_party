@@ -51,8 +51,14 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			tX := float64(screenX * tileSizeW)
 			tY := float64(screenY * tileSizeH)
 
-			visible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
 			seen := level.GetSeen(x, y, cameraZ)
+			visible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
+			// At non-worker Z levels use Seen as visible — fog-of-war there is
+			// based on permanent discovery, not live LOS, saving fog overlay
+			// draw calls and redundant Visible writes every tick.
+			if !visible && seen && !level.WorkerZLevels[cameraZ] {
+				visible = true
+			}
 
 			// Never-seen tiles: draw solid black and skip everything else.
 			if !seen && !visible {
@@ -144,8 +150,12 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			for y := cameraY; y < cameraY+viewH; y++ {
 				above := level.GetTilePtr(x, y, aboveZ)
 				hasCeiling := above != nil && !above.Floor.IsEmpty()
-				visible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
-				if !hasCeiling && visible {
+				shadowSeen := level.GetSeen(x, y, cameraZ)
+				shadowVisible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
+				if !shadowVisible && shadowSeen && !level.WorkerZLevels[cameraZ] {
+					shadowVisible = true
+				}
+				if !hasCeiling && shadowVisible {
 					level.entitiesBuffer = level.entitiesBuffer[:0]
 					level.GetEntitiesAt(x, y, aboveZ, &level.entitiesBuffer)
 					if len(level.entitiesBuffer) > 0 {

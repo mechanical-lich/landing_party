@@ -878,6 +878,20 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 
 	if colonist.HasComponent(components.Worker) {
 		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+		capturedColonistSD := colonist
+		sdToggle := minui.NewToggle("filter_self_defend", "Self-Defend")
+		tw, th := 280, 26
+		sdToggle.GetStyle().Width = &tw
+		sdToggle.GetStyle().Height = &th
+		sdToggle.On = wc.SelfDefend
+		sdToggle.OnChange = func(on bool) {
+			event.GetQueuedInstance().QueueEvent(SetSelfDefendEvent{
+				Colonist: capturedColonistSD,
+				Enabled:  on,
+			})
+		}
+		h.colonistScroll.AddContent(sdToggle)
+
 		for _, fa := range task_requests.FilterableActions {
 			capturedFA := fa
 			capturedColonist := colonist

@@ -23,6 +23,11 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 	level := data.(*world.Level)
 	level.ClearVisible()
 
+	// Reset the worker Z set each pass.
+	for k := range level.WorkerZLevels {
+		delete(level.WorkerZLevels, k)
+	}
+
 	for _, entity := range level.Entities {
 		if !entity.HasComponent(components.Worker) {
 			continue
@@ -42,11 +47,44 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 		}
 
 		updateFOV(level, x, y, z, radius)
+		level.WorkerZLevels[z] = true
+
+		// Mark tiles as Seen at the camera Z so scrolling to another level
+		// reveals terrain around workers. Only writes Seen (permanent), never
+		// Visible — DrawLevel uses Seen directly for non-worker Z levels.
+		// Skips tiles already seen to avoid redundant writes every tick.
+		if level.CameraZ != z {
+			markSeenRadius(level, x, y, level.CameraZ, radius)
+		}
 	}
 	return nil
 }
 
 func (s *FOVSystem) UpdateEntity(data interface{}, entity *ecs.Entity) error { return nil }
+
+// markSeenRadius marks tiles within radius of (ox,oy,oz) as permanently seen
+// without any LOS check and without touching the Visible array. Used for the
+// camera Z projection — DrawLevel uses Seen directly for non-worker Z levels,
+// so we don't need to redo this work every tick once tiles are already seen.
+func markSeenRadius(level *world.Level, ox, oy, oz, radius int) {
+	r2 := radius * radius
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx*dx+dy*dy > r2 {
+				continue
+			}
+			tx, ty := ox+dx, oy+dy
+			if !level.InBounds(tx, ty, oz) {
+				continue
+			}
+			// Conditional write: skip if already seen to avoid cache-dirtying
+			// writes on every tick after the first pass at this Z level.
+			if !level.GetSeen(tx, ty, oz) {
+				level.SetSeen(tx, ty, oz, true)
+			}
+		}
+	}
+}
 
 // updateFOV marks all tiles within radius of (ox,oy,oz) as visible + seen if
 // they have line of sight to the origin. Uses Bresenham ray casting.

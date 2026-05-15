@@ -34,7 +34,7 @@ func registerComponents() {
 	jsonFactory.RegisterComponent("Selected", func() ecs.Component { return &components.SelectedComponent{} })
 	jsonFactory.RegisterComponent("Settlement", func() ecs.Component { return &components.SettlementComponent{} })
 	jsonFactory.RegisterComponent("Storage", func() ecs.Component { return &components.StorageComponent{} })
-	jsonFactory.RegisterComponent("Worker", func() ecs.Component { return &components.WorkerComponent{} })
+	jsonFactory.RegisterComponent("Worker", func() ecs.Component { return &components.WorkerComponent{SelfDefend: true} })
 	jsonFactory.RegisterComponent("Choppable", func() ecs.Component { return &components.ChoppableComponent{} })
 	jsonFactory.RegisterComponent("Drops", func() ecs.Component { return &components.DropsComponent{} })
 	jsonFactory.RegisterComponent("ResourceItem", func() ecs.Component { return &components.ResourceItemComponent{Quantity: 1} })

@@ -315,10 +315,13 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z, buildRequest.Type, variant)
 				if tileDef.StairsUp {
 					level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z+1, "stairs_down", 0)
+					markSeenAroundStairs(level, buildRequest.X, buildRequest.Y, buildRequest.Z+1)
 				}
 				if tileDef.StairsDown {
 					level.PaintTile(buildRequest.X, buildRequest.Y, buildRequest.Z-1, "stairs_up", 0)
+					markSeenAroundStairs(level, buildRequest.X, buildRequest.Y, buildRequest.Z-1)
 				}
+				markSeenAroundStairs(level, buildRequest.X, buildRequest.Y, buildRequest.Z)
 				level.InvalidateSunColumn(buildRequest.X, buildRequest.Y)
 			}
 			removeMaterialsFromInventory(entity, buildable)
@@ -973,6 +976,20 @@ func removeMaterialsFromInventory(entity *ecs.Entity, buildable construction.Bui
 			} else {
 				remaining--
 				inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			}
+		}
+	}
+}
+
+func markSeenAroundStairs(level *world.Level, x, y, z int) {
+	const radius = 6
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if !level.InBounds(x+dx, y+dy, z) {
+				continue
+			}
+			if !level.GetSeen(x+dx, y+dy, z) {
+				level.SetSeen(x+dx, y+dy, z, true)
 			}
 		}
 	}

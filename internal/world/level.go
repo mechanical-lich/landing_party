@@ -73,6 +73,15 @@ type Level struct {
 	// line-of-sight from any worker. Seen (on the embedded Level) is permanent.
 	Visible []bool
 
+	// CameraZ is the z-level the player is currently viewing. Set by the game
+	// state before drawing so FOVSystem can include it in visibility computation.
+	CameraZ int
+
+	// WorkerZLevels is the set of z-levels that have active worker FOV this tick.
+	// Reset by FOVSystem each pass. DrawLevel uses it to decide whether to apply
+	// live fog-of-war (worker Z) or just use Seen as visible (camera Z).
+	WorkerZLevels map[int]bool
+
 	op             *ebiten.DrawImageOptions
 	entitiesBuffer []*ecs.Entity
 	lightOverlay   *ebiten.Image
@@ -96,11 +105,12 @@ func NewLevel(width, height, depth int) *Level {
 	base := rllayered.NewLevel(width, height, depth)
 	total := width * height * depth
 	level := &Level{
-		Level:          base,
-		Flags:          make(map[string]any),
-		Regions:        make(map[string][][3]int),
-		Visible:        make([]bool, total),
-		op:             &ebiten.DrawImageOptions{},
+		Level:         base,
+		Flags:         make(map[string]any),
+		Regions:       make(map[string][][3]int),
+		Visible:       make([]bool, total),
+		WorkerZLevels: make(map[int]bool),
+		op:            &ebiten.DrawImageOptions{},
 		entitiesBuffer: make([]*ecs.Entity, 0, 16),
 	}
 	base.PathCostFunc = getPathCostFunction(level)

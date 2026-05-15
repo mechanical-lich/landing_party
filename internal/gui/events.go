@@ -116,3 +116,13 @@ type DropOffRequestedEvent struct {
 }
 
 func (e DropOffRequestedEvent) GetType() event.EventType { return DropOffRequestedEventType }
+
+const SetSelfDefendEventType event.EventType = "set_self_defend"
+
+// SetSelfDefendEvent is fired when the player toggles self-defense on/off for a colonist.
+type SetSelfDefendEvent struct {
+	Colonist *ecs.Entity
+	Enabled  bool
+}
+
+func (e SetSelfDefendEvent) GetType() event.EventType { return SetSelfDefendEventType }

@@ -4,6 +4,7 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/scifi_settlements/internal/ai"
+	"github.com/mechanical-lich/scifi_settlements/internal/combat"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -63,6 +64,20 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 			aiMemory.TargetX = -1
 			aiMemory.TargetY = -1
 			aiMemory.State = "findfood"
+		}
+	}
+
+	// Self-defense: counter-attack whoever just hit this worker, then return.
+	if wc := entity.GetComponent(components.Worker); wc != nil {
+		workerC := wc.(*components.WorkerComponent)
+		if workerC.SelfDefend && aiMemory.Attacked {
+			selfPC := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			attacker := level.GetSolidEntityAt(aiMemory.AttackerX, aiMemory.AttackerY, selfPC.GetZ())
+			aiMemory.Attacked = false
+			if attacker != nil && attacker.HasComponent(rlcomponents.Health) {
+				combat.MeleeAttack(level, entity, aiMemory.AttackerX, aiMemory.AttackerY, selfPC.GetZ())
+				return nil
+			}
 		}
 	}
 
