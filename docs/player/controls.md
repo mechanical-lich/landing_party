@@ -18,9 +18,23 @@
 
 ## Map
 
-| Key | Action |
-|-----|--------|
-| M | Toggle minimap |
+| Key / Input | Action |
+|-------------|--------|
+| M | Toggle the full-screen minimap modal |
+| ESC (modal open) | Close the minimap modal |
+| ← / → (modal open) | Browse to the previous / next Z-level |
+| Drag (modal open) | Pan the map viewport |
+| Double-click tile (modal open) | Move the camera to that tile and close the modal |
+
+A smaller **minimap widget** is always visible in the top-right corner of the screen. It shows the current Z-level centered on the camera view. Click it to open the full minimap modal.
+
+Entity dots on the minimap use the following color coding:
+
+| Color | Entity type |
+|-------|-------------|
+| Green | Colonist |
+| Red | Hostile creature |
+| Yellow | Other entity |
 
 ## Default Mode
 

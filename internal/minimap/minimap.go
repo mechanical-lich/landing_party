@@ -51,12 +51,48 @@ func (m *Minimap) InvalidateZ(z int) {
 func (m *Minimap) GenerateImageAtZ(z int) {
 	cfg := config.Global()
 	img := ebiten.NewImage(m.Width, m.Height)
+	m.drawRegion(img, z, 0, 0, cfg.WorldGenSizeW, cfg.WorldGenSizeH)
+	m.mu.Lock()
+	m.images[z] = img
+	m.mu.Unlock()
+}
 
+// InvalidatePartial redraws a rectangular region of tiles into the existing
+// image for layer z without regenerating the whole map. If no image exists yet
+// for z, falls back to a full generation.
+func (m *Minimap) InvalidatePartial(z, tileX, tileY, tileW, tileH int) {
+	m.mu.Lock()
+	img := m.images[z]
+	m.mu.Unlock()
+
+	if img == nil {
+		m.GenerateImageAtZ(z)
+		return
+	}
+
+	cfg := config.Global()
+	if tileX < 0 {
+		tileX = 0
+	}
+	if tileY < 0 {
+		tileY = 0
+	}
+	if tileX+tileW > cfg.WorldGenSizeW {
+		tileW = cfg.WorldGenSizeW - tileX
+	}
+	if tileY+tileH > cfg.WorldGenSizeH {
+		tileH = cfg.WorldGenSizeH - tileY
+	}
+	m.drawRegion(img, z, tileX, tileY, tileW, tileH)
+}
+
+func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
+	cfg := config.Global()
 	scaleX := float64(m.Width) / float64(cfg.WorldGenSizeW)
 	scaleY := float64(m.Height) / float64(cfg.WorldGenSizeH)
 
-	for y := 0; y < cfg.WorldGenSizeH; y++ {
-		for x := 0; x < cfg.WorldGenSizeW; x++ {
+	for y := y0; y < y0+h; y++ {
+		for x := x0; x < x0+w; x++ {
 			px := float64(x) * scaleX
 			py := float64(y) * scaleY
 
@@ -64,7 +100,7 @@ func (m *Minimap) GenerateImageAtZ(z int) {
 			seen := m.level.GetSeen(x, y, z)
 
 			var c color.RGBA
-			if tile == nil || (!seen) {
+			if tile == nil || !seen {
 				if tile == nil {
 					c = colUnseen
 				} else {
@@ -77,10 +113,6 @@ func (m *Minimap) GenerateImageAtZ(z int) {
 			ebitenutil.DrawRect(img, px, py, scaleX, scaleY, c)
 		}
 	}
-
-	m.mu.Lock()
-	m.images[z] = img
-	m.mu.Unlock()
 }
 
 // tileColor picks a flat color for a seen tile based on its category.

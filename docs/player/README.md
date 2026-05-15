@@ -40,7 +40,7 @@ The world is made up of multiple **Z-levels** organized into altitude bands:
 | Atmosphere | Raised structures, upper platforms |
 | Space | Orbital layer (scenario-dependent) |
 
-Use **Q** and **E** to move between Z-levels. Press **M** to toggle the minimap.
+Use **Q** and **E** to move between Z-levels. A small minimap widget is always visible in the top-right corner — click it or press **M** to open the full-screen map modal.
 
 ### Day and Night
 

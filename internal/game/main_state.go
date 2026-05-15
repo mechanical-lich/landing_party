@@ -83,6 +83,7 @@ type MainState struct {
 	done             bool
 	next             state.StateInterface
 	mapModal         *MapModal
+	smallMap         *SmallMapWidget
 }
 
 var _ state.StateInterface = (*MainState)(nil)
@@ -220,6 +221,18 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.level = level
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(level)
+	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
+	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
+		cfg := config.Global()
+		sidebarTiles := 200/s.TileSizeW + 1
+		viewW := cfg.WorldWidth / s.TileSizeW
+		viewH := cfg.WorldHeight / s.TileSizeH
+		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
+		s.CameraY = y - viewH/2
+		s.CameraZ = z
+	}
+	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
 	s.gm.Init(level)
 
@@ -334,6 +347,18 @@ func (s *MainState) newGame() {
 	}
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level)
+	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
+	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
+		cfg := config.Global()
+		sidebarTiles := 200/s.TileSizeW + 1
+		viewW := cfg.WorldWidth / s.TileSizeW
+		viewH := cfg.WorldHeight / s.TileSizeH
+		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
+		s.CameraY = y - viewH/2
+		s.CameraZ = z
+	}
+	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
 	s.gm.Init(s.level)
 
@@ -438,7 +463,13 @@ func (s *MainState) Update() state.StateInterface {
 	s.guiManager.SetInputBlocked(s.mapModal.Visible)
 	s.guiManager.Update()
 	cfg2 := config.Global()
-	s.mapModal.SetCamera(s.CameraX, s.CameraY, s.CameraZ, cfg2.WorldWidth/s.TileSizeW, cfg2.WorldHeight/s.TileSizeH)
+	viewW2 := cfg2.WorldWidth / s.TileSizeW
+	viewH2 := cfg2.WorldHeight / s.TileSizeH
+	s.mapModal.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
+	s.smallMap.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
+	if !s.mapModal.Visible {
+		s.smallMap.Update()
+	}
 	s.mapModal.Update()
 	s.updateHovered()
 
@@ -507,6 +538,9 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	effect.GetEffectManager().Draw(s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, cfg.SpriteSizeW, cfg.SpriteSizeH)
 	screen.DrawImage(s.worldImage, nil)
 	s.guiManager.Draw(screen)
+	if !s.mapModal.Visible {
+		s.smallMap.Draw(screen)
+	}
 	s.mapModal.Draw(screen)
 }
 

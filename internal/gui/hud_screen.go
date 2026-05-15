@@ -52,7 +52,8 @@ func (s *scrollingVBox) GetContent() []minui.Element       { return s.vbox.GetCh
 type HUDScreen struct {
 	uiGUI        *minui.GUI
 	op           *ebiten.DrawImageOptions
-	inputBlocked bool
+	inputBlocked      bool
+	detailsTopOffset  int
 
 	// Sidebar
 	sidebarTabPanel    *minui.TabPanel
@@ -1381,6 +1382,8 @@ func (h *HUDScreen) updateDetailsContent() {
 	h.resizeDetailPanel()
 }
 
+func (h *HUDScreen) SetDetailsTopOffset(offset int) { h.detailsTopOffset = offset }
+
 func (h *HUDScreen) resizeDetailPanel() {
 	const panelW = 220
 	const padding = 8
@@ -1391,7 +1394,8 @@ func (h *HUDScreen) resizeDetailPanel() {
 
 	cfg := config.Global()
 	h.detailsPanel.SetSize(panelW, panelH)
-	h.detailsPanel.SetPosition(cfg.ScreenWidth-panelW-margin, margin)
+	topY := margin + h.detailsTopOffset
+	h.detailsPanel.SetPosition(cfg.ScreenWidth-panelW-margin, topY)
 	h.detailsVBox.SetPosition(padding, padding)
 }
 
