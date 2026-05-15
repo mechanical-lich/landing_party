@@ -82,6 +82,7 @@ type MainState struct {
 	settlementCfg    SettlementConfig
 	done             bool
 	next             state.StateInterface
+	mapModal         *MapModal
 }
 
 var _ state.StateInterface = (*MainState)(nil)
@@ -175,6 +176,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
 	s.systemManager.AddSystem(&systems.RadiationSystem{})
 	s.systemManager.AddSystem(&systems.LightingSystem{})
+	s.systemManager.AddSystem(&systems.FOVSystem{})
 	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	s.systemManager.AddSystem(&systems.FactionDoorSystem{})
 	s.systemManager.AddSystem(&systems.ScriptSystem{})
@@ -217,6 +219,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	}
 	s.level = level
 	s.guiManager = gui.NewGUIManager()
+	s.mapModal = newMapModal(level)
 	s.gm = &GameMaster{}
 	s.gm.Init(level)
 
@@ -330,6 +333,7 @@ func (s *MainState) newGame() {
 		s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
 	}
 	s.guiManager = gui.NewGUIManager()
+	s.mapModal = newMapModal(s.level)
 	s.gm = &GameMaster{}
 	s.gm.Init(s.level)
 
@@ -339,45 +343,29 @@ func (s *MainState) newGame() {
 	if startingZ <= 0 {
 		startingZ = cfg.StartingZ
 	}
+	// Initial plaza search — used for camera positioning and as the script
+	// anchor. On asteroid maps the tiles are solid rock here; the setup script
+	// will carve the room, so we re-search after the script for colonist spawn.
 	x, y, startingZ := findStartingPlaza(s.level, startingZ, 5)
+
+	name := s.settlementCfg.Name
+	if name == "" {
+		name = "Colony Alpha"
+	}
+
 	if x != -1 {
-		// Position camera so colonists (at x-2..x+2) appear centered in the
-		// visible world area (to the right of the 200px sidebar).
+		// Position camera centred on the starting area.
 		sidebarTiles := 200/s.TileSizeW + 1
 		viewW := cfg.WorldWidth / s.TileSizeW
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
 		s.CameraY = y - viewH/2
 		s.CameraZ = startingZ
-		name := s.settlementCfg.Name
-		if name == "" {
-			name = "Colony Alpha"
-		}
 		s.MainSettlement = settlement.NewSettlement(x, y, startingZ)
-		// Rename to player-chosen name
 		oldName := s.MainSettlement.Name
 		s.MainSettlement.Name = name
 		delete(settlement.Settlements, oldName)
 		settlement.Settlements[name] = s.MainSettlement
-
-		// Spawn starting colonists
-		for i := 0; i < 5; i++ {
-			colonist, err := factory.Create("colonist", x+i-2, y, startingZ)
-			if err == nil {
-				colonist.AddComponent(&components.SettlementComponent{Name: name})
-				colonist.AddComponent(&components.WorkerComponent{})
-				s.level.AddEntity(colonist)
-			}
-		}
-	}
-
-	if s.settlementCfg.ScenarioID != "" {
-		if err := scenario.SelectByID(s.settlementCfg.ScenarioID); err != nil {
-			log.Printf("scenario %q not found, using random", s.settlementCfg.ScenarioID)
-			_ = scenario.SelectRandom()
-		}
-	} else if len(scenario.AllEnabled()) > 0 {
-		_ = scenario.SelectRandom()
 	}
 
 	if len(scenario.AllEnabled()) > 0 {
@@ -388,10 +376,35 @@ func (s *MainState) newGame() {
 			s.level.Flags["start_y"] = float64(y)
 			s.level.Flags["start_z"] = float64(startingZ)
 			if s.MainSettlement != nil {
-				s.level.Flags["settlement_name"] = s.MainSettlement.Name
+				s.level.Flags["settlement_name"] = name
 			}
 			s.level.Flags["colonist_faction"] = "colony"
 			RunSetupScripts(sc.SetupScripts, s.level)
+		}
+	}
+
+	// Spawn colonists after the setup script so any carved rooms are in place.
+	// Prefer the original plaza (where the camera and buildings are). Only
+	// re-search if the original location is still not standable — this handles
+	// asteroid scenarios where the script carves the room after the first search.
+	spawnX, spawnY, spawnZ := x, y, startingZ
+	if spawnX == -1 || !isStandable(s.level, spawnX, spawnY, spawnZ) {
+		spawnX, spawnY, spawnZ = findStartingPlaza(s.level, startingZ, 5)
+	}
+	if spawnX != -1 && s.MainSettlement != nil {
+		sidebarTiles := 200/s.TileSizeW + 1
+		viewW := cfg.WorldWidth / s.TileSizeW
+		viewH := cfg.WorldHeight / s.TileSizeH
+		s.CameraX = spawnX - sidebarTiles - (viewW-sidebarTiles)/2
+		s.CameraY = spawnY - viewH/2
+		s.CameraZ = spawnZ
+		for i := 0; i < 5; i++ {
+			colonist, err := factory.Create("colonist", spawnX+i-2, spawnY, spawnZ)
+			if err == nil {
+				colonist.AddComponent(&components.SettlementComponent{Name: name})
+				colonist.AddComponent(&components.WorkerComponent{})
+				s.level.AddEntity(colonist)
+			}
 		}
 	}
 	s.day = 0
@@ -422,7 +435,11 @@ func (s *MainState) Update() state.StateInterface {
 	if s.MainSettlement != nil {
 		s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
 	}
+	s.guiManager.SetInputBlocked(s.mapModal.Visible)
 	s.guiManager.Update()
+	cfg2 := config.Global()
+	s.mapModal.SetCamera(s.CameraX, s.CameraY, s.CameraZ, cfg2.WorldWidth/s.TileSizeW, cfg2.WorldHeight/s.TileSizeH)
+	s.mapModal.Update()
 	s.updateHovered()
 
 	fps := ebiten.ActualFPS()
@@ -490,6 +507,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	effect.GetEffectManager().Draw(s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, cfg.SpriteSizeW, cfg.SpriteSizeH)
 	screen.DrawImage(s.worldImage, nil)
 	s.guiManager.Draw(screen)
+	s.mapModal.Draw(screen)
 }
 
 func (s *MainState) Done() bool { return s.done }
@@ -570,6 +588,16 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
 		}
 	case gui.ColonistSelectedEvent:
+		if ev.Entity.HasComponent(rlcomponents.Position) {
+			pc := ev.Entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			cfg := config.Global()
+			sidebarTiles := 200/s.TileSizeW + 1
+			viewW := cfg.WorldWidth / s.TileSizeW
+			viewH := cfg.WorldHeight / s.TileSizeH
+			s.CameraX = pc.GetX() - sidebarTiles - (viewW-sidebarTiles)/2
+			s.CameraY = pc.GetY() - viewH/2
+			s.CameraZ = pc.GetZ()
+		}
 		s.openColonistModal(ev.Entity)
 	case gui.EquipItemRequestedEvent:
 		s.addEquipTask(ev.ColonistEntity, ev.ItemBlueprint)
@@ -920,7 +948,18 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		s.initiativeSystem.Speed = 4
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		s.guiManager.ToggleModal("mainMenu")
+		if s.mapModal.Visible {
+			s.mapModal.Visible = false
+		} else {
+			s.guiManager.ToggleModal("mainMenu")
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
+		if s.mapModal.Visible {
+			s.mapModal.Visible = false
+		} else {
+			s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY)
+		}
 	}
 }
 
@@ -952,6 +991,9 @@ func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
 }
 
 func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
+	if s.mapModal.Visible {
+		return
+	}
 	if s.guiManager.GetMouseFocused() || s.guiManager.WithinModalBounds(ebiten.CursorPosition()) {
 		return
 	}

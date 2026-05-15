@@ -66,8 +66,12 @@ type Level struct {
 	Regions map[string][][3]int
 
 	// Lighting config — set from scenario at level creation.
-	LightMode     string // "day_night", "fixed", or "pitch_dark"
-	FixedAmbient  int    // used when LightMode == "fixed"
+	LightMode    string // "day_night", "fixed", or "pitch_dark"
+	FixedAmbient int    // used when LightMode == "fixed"
+
+	// Fog of war: Visible is reset each FOV pass and marks tiles with current
+	// line-of-sight from any worker. Seen (on the embedded Level) is permanent.
+	Visible []bool
 
 	op             *ebiten.DrawImageOptions
 	entitiesBuffer []*ecs.Entity
@@ -90,15 +94,41 @@ func (l *Level) EffectiveSunIntensity() int {
 
 func NewLevel(width, height, depth int) *Level {
 	base := rllayered.NewLevel(width, height, depth)
+	total := width * height * depth
 	level := &Level{
 		Level:          base,
 		Flags:          make(map[string]any),
 		Regions:        make(map[string][][3]int),
+		Visible:        make([]bool, total),
 		op:             &ebiten.DrawImageOptions{},
 		entitiesBuffer: make([]*ecs.Entity, 0, 16),
 	}
 	base.PathCostFunc = getPathCostFunction(level)
 	return level
+}
+
+func (l *Level) visibleIdx(x, y, z int) int {
+	return (z*l.GetHeight()+y)*l.GetWidth() + x
+}
+
+func (l *Level) GetVisible(x, y, z int) bool {
+	if !l.InBounds(x, y, z) {
+		return false
+	}
+	return l.Visible[l.visibleIdx(x, y, z)]
+}
+
+func (l *Level) SetVisible(x, y, z int) {
+	if !l.InBounds(x, y, z) {
+		return
+	}
+	l.Visible[l.visibleIdx(x, y, z)] = true
+}
+
+func (l *Level) ClearVisible() {
+	for i := range l.Visible {
+		l.Visible[i] = false
+	}
 }
 
 // ZBandOf returns the semantic band for a given z-level.

@@ -41,6 +41,20 @@ func (g *flyingGraph) PathNeighborIDs(tileIdx int, buf []int) []int {
 		if n == nil {
 			continue
 		}
+		if offset[2] != 0 {
+			// Allow z-transitions at explicit stair tiles (same as base pathfinding).
+			tIsStair := !t.Middle.IsEmpty() && (world.TileDefinitions[t.Middle.Type].StairsUp || world.TileDefinitions[t.Middle.Type].StairsDown)
+			nIsStair := !n.Middle.IsEmpty() && (world.TileDefinitions[n.Middle.Type].StairsUp || world.TileDefinitions[n.Middle.Type].StairsDown)
+			isStairTransition := tIsStair || nIsStair
+			// Flying up: destination's floor blocks entry from below.
+			// Flying down: source's floor blocks exit downward.
+			if offset[2] > 0 && !n.Floor.IsEmpty() && !isStairTransition {
+				continue
+			}
+			if offset[2] < 0 && !t.Floor.IsEmpty() && !isStairTransition {
+				continue
+			}
+		}
 		if n.Middle.IsEmpty() {
 			buf = append(buf, n.Idx)
 			continue

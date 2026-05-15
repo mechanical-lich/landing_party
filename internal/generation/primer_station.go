@@ -145,6 +145,30 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any) e
 		level.SetTerrainKind(sx, sy, z+1, world.TKStructure)
 	}
 
+	// Ceiling pass: for every structure tile at z whose z+1 is not also a
+	// structure floor, stamp hull_floor at z+1 to act as a sealed ceiling.
+	// This prevents flying/spacefaring entities from exiting through the roof.
+	// Multi-story transitions are unaffected — z+1 of a lower floor is already
+	// TKStructure (the upper floor), so the check skips it.
+	for z := 0; z < floors; z++ {
+		ceilZ := z + 1
+		if ceilZ >= d {
+			continue
+		}
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				if level.GetTerrainKind(x, y, z) != world.TKStructure {
+					continue
+				}
+				if level.GetTerrainKind(x, y, ceilZ) == world.TKStructure {
+					continue
+				}
+				level.SetFloor(x, y, ceilZ, "hull_floor", world.RandomTileVariant("hull_floor"))
+				level.SetTerrainKind(x, y, ceilZ, world.TKStructure)
+			}
+		}
+	}
+
 	level.TagRegion("starting_floor", cx, cy, 0)
 	log.Printf("AbandonedStationPrimer: %d floors (hub-spokes)", floors)
 	return nil

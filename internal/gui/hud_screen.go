@@ -50,8 +50,9 @@ func (s *scrollingVBox) GetContent() []minui.Element       { return s.vbox.GetCh
 
 // HUDScreen is the main in-game HUD: sidebar, messages, resource bar, entity detail.
 type HUDScreen struct {
-	uiGUI *minui.GUI
-	op    *ebiten.DrawImageOptions
+	uiGUI        *minui.GUI
+	op           *ebiten.DrawImageOptions
+	inputBlocked bool
 
 	// Sidebar
 	sidebarTabPanel    *minui.TabPanel
@@ -162,8 +163,12 @@ func (h *HUDScreen) OnEnter()       {}
 func (h *HUDScreen) OnExit()        {}
 func (h *HUDScreen) IsOpaque() bool { return true }
 
+func (h *HUDScreen) SetInputBlocked(blocked bool) { h.inputBlocked = blocked }
+
 func (h *HUDScreen) Update() {
-	h.uiGUI.Update()
+	if !h.inputBlocked {
+		h.uiGUI.Update()
+	}
 	h.uiGUI.Layout()
 	h.tooltipManager.Update()
 	h.listTooltip.Update()

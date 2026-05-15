@@ -53,6 +53,7 @@ func (gm *GUIManager) ToggleModal(name string) {
 	}
 }
 
+func (gm *GUIManager) SetInputBlocked(blocked bool)     { gm.hud.SetInputBlocked(blocked) }
 func (gm *GUIManager) GetInputFocused() bool            { return gm.hud.GetInputFocused() }
 func (gm *GUIManager) GetMouseFocused() bool            { return gm.hud.GetMouseFocused() }
 func (gm *GUIManager) WithinModalBounds(x, y int) bool { return gm.hud.WithinModalBounds(x, y) }
