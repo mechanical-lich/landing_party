@@ -70,7 +70,9 @@ type HUDScreen struct {
 	populationVBox    *minui.VBox
 	populationPanel   *minui.Panel
 	populationHeader  *minui.Label
+	rogueExitButton   *minui.Button
 	populationItems   []*minui.MenuItem
+	populationCtrl    []*minui.MenuItem
 	lastPopEntries    []PopulationEntry
 
 	// Colonist modal
@@ -217,6 +219,35 @@ func (h *HUDScreen) setupHUDElements() {
 	h.selectionTooltip.SetTheme(theme)
 	h.selectionTooltip.SetPosition(210, 8)
 	h.selectionTooltip.Hide()
+
+	h.rogueExitButton = minui.NewButton("rogueExit", "Exit Control Mode (X)")
+	h.rogueExitButton.SetBounds(minui.Rect{X: sw/2 - 90, Y: sh - 70, Width: 180, Height: 32})
+	h.rogueExitButton.OnClick = func() {
+		event.GetQueuedInstance().QueueEvent(ExitRogueModeEvent{})
+	}
+	h.rogueExitButton.SetVisible(false)
+	h.uiGUI.AddElement(h.rogueExitButton)
+}
+
+// SetSidebarVisible shows or hides the left build/population/goals sidebar.
+func (h *HUDScreen) SetSidebarVisible(v bool) {
+	if h.sidebarTabPanel != nil {
+		h.sidebarTabPanel.SetVisible(v)
+	}
+}
+
+// ShowRogueExit reveals the on-screen "Exit Control Mode" button.
+func (h *HUDScreen) ShowRogueExit() {
+	if h.rogueExitButton != nil {
+		h.rogueExitButton.SetVisible(true)
+	}
+}
+
+// HideRogueExit hides the on-screen "Exit Control Mode" button.
+func (h *HUDScreen) HideRogueExit() {
+	if h.rogueExitButton != nil {
+		h.rogueExitButton.SetVisible(false)
+	}
 }
 
 func (h *HUDScreen) setupSidebar() {
@@ -736,18 +767,26 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 	}
 	h.populationHeader.Text = fmt.Sprintf("Colonists: %d", len(entries))
 
-	// Grow items slice
+	// Grow items slice (name row + a Take Control row per colonist)
 	for len(h.populationItems) < len(entries) {
 		idx := len(h.populationItems)
 		mi := minui.NewMenuItem(fmt.Sprintf("pop_%d", idx), "")
+		ctrl := minui.NewMenuItem(fmt.Sprintf("pop_ctrl_%d", idx), "  → Take Control")
+		ctrlSize := 11
+		ctrl.GetStyle().FontSize = &ctrlSize
 		h.populationItems = append(h.populationItems, mi)
+		h.populationCtrl = append(h.populationCtrl, ctrl)
 		h.populationVBox.AddChild(mi)
+		h.populationVBox.AddChild(ctrl)
 	}
 	// Shrink items slice
 	for len(h.populationItems) > len(entries) {
 		last := h.populationItems[len(h.populationItems)-1]
+		lastCtrl := h.populationCtrl[len(h.populationCtrl)-1]
 		h.populationVBox.RemoveChild(last)
+		h.populationVBox.RemoveChild(lastCtrl)
 		h.populationItems = h.populationItems[:len(h.populationItems)-1]
+		h.populationCtrl = h.populationCtrl[:len(h.populationCtrl)-1]
 	}
 
 	for i, entry := range entries {
@@ -755,6 +794,9 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 		h.populationItems[i].Text = fmt.Sprintf("%s  [%s/%s]", entry.Name, entry.State, entry.Task)
 		h.populationItems[i].OnClick = func() {
 			event.GetQueuedInstance().QueueEvent(ColonistSelectedEvent{Entity: captured.Entity})
+		}
+		h.populationCtrl[i].OnClick = func() {
+			event.GetQueuedInstance().QueueEvent(EnterRogueModeEvent{Entity: captured.Entity})
 		}
 	}
 }
@@ -817,6 +859,14 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	nameLabel := minui.NewLabel("colonistName", dc.Name)
 	nameLabel.GetStyle().FontSize = &fontSize
 	h.colonistScroll.AddContent(nameLabel)
+
+	rogueBtn := minui.NewMenuItem("colonistTakeControl", "[ Take Control (Rogue) ]")
+	rogueBtn.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
+	rogueBtn.OnClick = func() {
+		event.GetQueuedInstance().QueueEvent(EnterRogueModeEvent{Entity: capturedColonist})
+		h.colonistModal.SetVisible(false)
+	}
+	h.colonistScroll.AddContent(rogueBtn)
 
 	atk := inv.GetAttackModifier()
 	def := inv.GetDefenseModifier()
@@ -1237,8 +1287,19 @@ func (h *HUDScreen) OpenModal(name string) {
 	}
 }
 
+// CloseColonistModal hides the colonist detail modal and clears its hover
+// tooltips so they don't linger (e.g. when entering Rogue mode).
+func (h *HUDScreen) CloseColonistModal() {
+	if h.colonistModal != nil {
+		h.colonistModal.SetVisible(false)
+	}
+	h.tooltipManager.Clear()
+}
+
 func (h *HUDScreen) CloseModal(name string) {
 	switch name {
+	case "colonistModal":
+		h.CloseColonistModal()
 	case "mainMenu":
 		h.mainMenuModal.SetVisible(false)
 	case "saveModal":

@@ -85,6 +85,7 @@ type MainState struct {
 	mapModal         *MapModal
 	smallMap         *SmallMapWidget
 	followEntity     *ecs.Entity
+	rogueEntity      *ecs.Entity
 }
 
 var _ state.StateInterface = (*MainState)(nil)
@@ -211,6 +212,8 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	event.GetQueuedInstance().RegisterListener(s, gui.SetTaskFilterEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.DropOffRequestedEventType)
 	event.GetQueuedInstance().RegisterListener(s, gui.SetSelfDefendEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.EnterRogueModeEventType)
+	event.GetQueuedInstance().RegisterListener(s, gui.ExitRogueModeEventType)
 
 	return s, nil
 }
@@ -469,15 +472,20 @@ func (s *MainState) Update() state.StateInterface {
 	cfg2 := config.Global()
 	viewW2 := cfg2.WorldWidth / s.TileSizeW
 	viewH2 := cfg2.WorldHeight / s.TileSizeH
-	// If following an entity, center camera on it every frame.
-	if s.CursorMode == gui.CursorModeFollow && s.followEntity != nil {
+	// In Rogue mode the controlled colonist died or was lost — exit cleanly.
+	if s.rogueEntity != nil &&
+		(!s.rogueEntity.HasComponent(rlcomponents.Position) || s.rogueEntity.HasComponent(rlcomponents.Dead)) {
+		s.exitRogueMode()
+	}
+	// If following an entity (manual follow or Rogue mode), center camera on it.
+	if s.followEntity != nil && (s.CursorMode == gui.CursorModeFollow || s.rogueEntity != nil) {
 		if s.followEntity.HasComponent(rlcomponents.Position) && !s.followEntity.HasComponent(rlcomponents.Dead) {
 			pc := s.followEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 			sidebarTiles := 200/s.TileSizeW + 1
 			s.CameraX = pc.GetX() - sidebarTiles - (viewW2-sidebarTiles)/2
 			s.CameraY = pc.GetY() - viewH2/2
 			s.CameraZ = pc.GetZ()
-		} else {
+		} else if s.rogueEntity == nil {
 			s.cancelFollowMode()
 		}
 	}
@@ -497,21 +505,10 @@ func (s *MainState) Update() state.StateInterface {
 	}
 	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Hour:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, day, s.level.Hour, s.CameraZ, fps, tps))
 
-	if !s.Paused {
-		s.tick++
-		s.gm.Update()
-		s.systemManager.UpdateSystems(s.level)
-		for _, entity := range s.level.Entities {
-			if entity == nil {
-				continue
-			}
-			if entity.HasComponent(rlcomponents.Inanimate) {
-				continue
-			}
-			s.systemManager.UpdateSystemsForEntity(s.level, entity)
-		}
-		s.cleanUpSystem.Update(s.level)
-		effect.GetEffectManager().Update()
+	// In Rogue mode the world is turn-based: it only advances when the player
+	// commits an action (see advancePlayerTurn). Otherwise it runs in real time.
+	if !s.Paused && s.rogueEntity == nil {
+		s.stepWorld()
 	}
 
 	if s.tick%30 == 0 {
@@ -668,6 +665,10 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		s.requestDropOff(ev.Colonist, ev.Item)
 	case gui.SetSelfDefendEvent:
 		s.applySelfDefend(ev.Colonist, ev.Enabled)
+	case gui.EnterRogueModeEvent:
+		s.enterRogueMode(ev.Entity)
+	case gui.ExitRogueModeEvent:
+		s.exitRogueMode()
 	}
 	return nil
 }
@@ -981,6 +982,11 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		return
 	}
 
+	if s.rogueEntity != nil {
+		s.handleRogueKeys()
+		return
+	}
+
 	for _, k := range e.Keys {
 		switch k.String() {
 		case "W":
@@ -1074,6 +1080,13 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	cX, cY := ebiten.CursorPosition()
 	tX := cX/s.TileSizeW + s.CameraX
 	tY := cY/s.TileSizeH + s.CameraY
+
+	if s.rogueEntity != nil {
+		if e.Button == ebiten.MouseButtonLeft {
+			s.rogueFire(tX, tY)
+		}
+		return
+	}
 
 	if e.Button == ebiten.MouseButtonLeft {
 		if s.CursorMode == gui.CursorModeFollow {

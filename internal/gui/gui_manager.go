@@ -64,6 +64,9 @@ func (gm *GUIManager) SetHoveredTile(info HoveredTileInfo) { gm.hud.SetHoveredTi
 func (gm *GUIManager) ClearHover()                                                { gm.hud.ClearHover() }
 func (gm *GUIManager) SetDefaultContext(title, desc, blueprint string)            { gm.hud.SetDefaultContext(title, desc, blueprint) }
 func (gm *GUIManager) SetSelectionLabel(title, desc string)                      { gm.hud.SetSelectionLabel(title, desc) }
+func (gm *GUIManager) SetSidebarVisible(v bool)                                  { gm.hud.SetSidebarVisible(v) }
+func (gm *GUIManager) ShowRogueExit()                                            { gm.hud.ShowRogueExit() }
+func (gm *GUIManager) HideRogueExit()                                            { gm.hud.HideRogueExit() }
 func (gm *GUIManager) UpdateResource(id string, value int)                        { gm.hud.UpdateResource(id, value) }
 func (gm *GUIManager) SetSaveNames(names []string)                                { gm.hud.SetSaveNames(names) }
 func (gm *GUIManager) SetKnownTechs(techs []string)                                { gm.hud.SetKnownTechs(techs) }

@@ -25,6 +25,22 @@ type WorkerComponent struct {
 	// SelfDefend causes the worker to counter-attack when struck, if they have
 	// not already used their turn this tick. Defaults to true.
 	SelfDefend bool
+	// RogueControlled is true while the player is directly puppeting this
+	// colonist in Rogue mode. The worker AI is skipped entirely; the colonist
+	// only acts in response to player input.
+	RogueControlled bool
+	// RogueExtract holds transient dig/mine progress while the player bumps a
+	// tile in Rogue mode. Reset when the target tile changes or is cleared.
+	RogueExtract *RogueExtractProgress
+}
+
+// RogueExtractProgress tracks how far a player-controlled dig or mine has
+// progressed against a specific tile.
+type RogueExtractProgress struct {
+	X, Y, Z  int
+	Progress int
+	Required int
+	Mining   bool // true = mine (ore), false = dig
 }
 
 func (w *WorkerComponent) GetType() ecs.ComponentType { return Worker }

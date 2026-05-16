@@ -34,6 +34,14 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 		return nil
 	}
 
+	// Player-controlled colonists run no autonomous AI; they act only on
+	// direct player input handled in the game state.
+	if wc := entity.GetComponent(components.Worker); wc != nil {
+		if wc.(*components.WorkerComponent).RogueControlled {
+			return nil
+		}
+	}
+
 	if wc := entity.GetComponent(components.Worker); wc != nil {
 		workerC := wc.(*components.WorkerComponent)
 		if workerC.SwapCooldown > 0 {

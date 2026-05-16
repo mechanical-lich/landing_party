@@ -126,3 +126,17 @@ type SetSelfDefendEvent struct {
 }
 
 func (e SetSelfDefendEvent) GetType() event.EventType { return SetSelfDefendEventType }
+
+const EnterRogueModeEventType event.EventType = "enter_rogue_mode"
+
+// EnterRogueModeEvent is fired when the player chooses to directly control a colonist.
+type EnterRogueModeEvent struct{ Entity *ecs.Entity }
+
+func (e EnterRogueModeEvent) GetType() event.EventType { return EnterRogueModeEventType }
+
+const ExitRogueModeEventType event.EventType = "exit_rogue_mode"
+
+// ExitRogueModeEvent is fired when the player exits Rogue mode via the on-screen button.
+type ExitRogueModeEvent struct{}
+
+func (e ExitRogueModeEvent) GetType() event.EventType { return ExitRogueModeEventType }
