@@ -16,6 +16,7 @@
     "dpi": 72,
     "renderPathfindingSteps": false,
     "debugDisableLighting": false,
+    "debugDisableLookdown": false,
     "debugShowAutotileMask": false,
     "profileCPU": false,
     "profileMemory": false

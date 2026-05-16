@@ -43,6 +43,10 @@ var pendingEntities []pendingEntityDraw
 
 func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int, viewW, viewH int) {
 	pendingEntities = pendingEntities[:0]
+
+	disableLighting := config.Global().DebugDisableLighting
+	disableLookdown := config.Global().DebugDisableLookdown
+
 	screenX := 0
 	for x := cameraX; x < cameraX+viewW; x++ {
 		screenY := 0
@@ -54,13 +58,52 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			seen := level.GetSeen(x, y, cameraZ)
 			visible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
 
-			// Never-seen tiles: draw solid black and skip everything else.
+			// Never-seen tiles: skipped entirely. The world image is cleared to
+			// black each frame so there's nothing to draw here.
 			if !seen && !visible {
-				vector.DrawFilledRect(screen, float32(tX), float32(tY), float32(tileSizeW), float32(tileSizeH), color.RGBA{0, 0, 0, 255}, false)
 				screenY++
 				continue
 			}
 
+			var brightness float32
+			if !visible {
+				// Seen but fogged: draw at ~37% brightness (equivalent to 160/255 black overlay).
+				brightness = 1.0 - 160.0/255.0
+			} else if disableLighting {
+				brightness = 1.0
+			} else {
+				// Visible: derive brightness from the tile's light level.
+				lightLevel := 0
+				if tile != nil {
+					if tileMiddleTransparent(tile) && tile.Floor.IsEmpty() {
+						found := false
+						for z := cameraZ - 1; z >= 0; z-- {
+							below := level.GetTilePtr(x, y, z)
+							if below == nil {
+								break
+							}
+							if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
+								lightLevel = below.LightLevel
+								found = true
+								break
+							}
+						}
+						if !found {
+							lightLevel = level.EffectiveSunIntensity()
+						}
+					} else {
+						lightLevel = tile.LightLevel
+					}
+				}
+				brightness = float32(lightLevel) / 100.0
+				if brightness > 1.0 {
+					brightness = 1.0
+				}
+			}
+
+			// Apply brightness as a ColorScale tint — no overlay image needed.
+			drawOp.ColorScale.Reset()
+			drawOp.ColorScale.Scale(brightness, brightness, brightness, 1.0)
 			drawTile(screen, level, tile, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 
 			level.entitiesBuffer = level.entitiesBuffer[:0]
@@ -68,42 +111,32 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 				level.GetEntitiesAt(x, y, cameraZ, &level.entitiesBuffer)
 			}
 
-			// See through cells whose Middle and Floor are both effectively empty
-			// — i.e. nothing opaque at this z. Layered cells block lookdown if
-			// they have a Floor (a ground surface) or a non-air Middle.
-			drawnZ := cameraZ
+			// See through cells whose Middle and Floor are both effectively empty.
+			// Depth fog is folded into each lookdown tile's ColorScale instead of
+			// a separate overlay rect, so all tile draws stay in one batch.
 			isTransparent := tile == nil || (tile.Floor.IsEmpty() && tileMiddleTransparent(tile))
-			if isTransparent {
+			if isTransparent && !disableLookdown {
 				for z := cameraZ - 1; z >= 0; z-- {
 					below := level.GetTilePtr(x, y, z)
 					if below == nil {
 						break
 					}
+					depth := cameraZ - z
+					depthAlpha := 15 + depth*18
+					if depthAlpha > 180 {
+						depthAlpha = 180
+					}
+					df := brightness * (1.0 - float32(depthAlpha)/255.0)
+					drawOp.ColorScale.Reset()
+					drawOp.ColorScale.Scale(df, df, df, 1.0)
 					drawTile(screen, level, below, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 					if visible {
 						level.GetEntitiesAt(x, y, z, &level.entitiesBuffer)
 					}
 					if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
-						drawnZ = z
 						break
 					}
 				}
-			}
-
-			// Depth fog: darken tiles seen through air layers.
-			if drawnZ < cameraZ {
-				depth := cameraZ - drawnZ
-				alpha := 15 + depth*18
-				if alpha > 180 {
-					alpha = 180
-				}
-				vector.DrawFilledRect(screen, float32(tX), float32(tY), float32(tileSizeW), float32(tileSizeH), color.RGBA{0, 0, 0, uint8(alpha)}, false)
-			}
-
-			// Fog of war: previously-seen-but-not-currently-visible tiles get a
-			// dark overlay so the player can see explored terrain but not active state.
-			if !visible {
-				vector.DrawFilledRect(screen, float32(tX), float32(tY), float32(tileSizeW), float32(tileSizeH), color.RGBA{0, 0, 0, 160}, false)
 			}
 
 			if visible {
@@ -276,7 +309,6 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	}
 }
 
-
 // drawSlot renders one slot of a tile. autotileEligible is true only for the
 // Middle slot (Floor/Ceiling don't autotile in the POC).
 func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slot, autotileEligible bool, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
@@ -312,84 +344,11 @@ func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slo
 
 	src := tex.SubImage(image.Rect(variant.SpriteX, variant.SpriteY, variant.SpriteX+srcW, variant.SpriteY+srcH)).(*ebiten.Image)
 	drawOp.GeoM.Reset()
-	drawOp.ColorScale.Reset()
 	drawOp.GeoM.Scale(float64(tileSizeW)/float64(srcW), float64(tileSizeH)/float64(srcH))
 	drawOp.GeoM.Translate(float64(screenX*tileSizeW+def.SpriteOffsetX), float64(screenY*tileSizeH+def.SpriteOffsetY))
 	screen.DrawImage(src, drawOp)
 }
 
-var lightOverlayImg *ebiten.Image
-var lightOverlayPixels []byte
-var lightOverlayW, lightOverlayH int
-
-func DrawLightOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, viewW, viewH int) {
-	if config.Global().DebugDisableLighting {
-		return
-	}
-	imgW := viewW * tileSizeW
-	imgH := viewH * tileSizeH
-
-	if lightOverlayImg == nil || lightOverlayW != imgW || lightOverlayH != imgH {
-		lightOverlayImg = ebiten.NewImage(imgW, imgH)
-		lightOverlayPixels = make([]byte, imgW*imgH*4)
-		lightOverlayW = imgW
-		lightOverlayH = imgH
-	}
-
-	// Clear to transparent
-	for i := range lightOverlayPixels {
-		lightOverlayPixels[i] = 0
-	}
-
-	for sx := 0; sx < viewW; sx++ {
-		for sy := 0; sy < viewH; sy++ {
-			tile := level.GetTilePtr(cameraX+sx, cameraY+sy, cameraZ)
-			lightLevel := 0
-			if tile != nil {
-				if tileMiddleTransparent(tile) && tile.Floor.IsEmpty() {
-					// Look through transparent layers to find the first opaque
-					// tile and sample its LightLevel (set by LightingSystem).
-					found := false
-					for z := cameraZ - 1; z >= 0; z-- {
-						below := level.GetTilePtr(cameraX+sx, cameraY+sy, z)
-						if below == nil {
-							break
-						}
-						if !below.Floor.IsEmpty() || !tileMiddleTransparent(below) {
-							lightLevel = below.LightLevel
-							found = true
-							break
-						}
-
-					}
-					if !found {
-						// Pure-space column (no solid below). Use ambient sun
-						// so entities standing in vacuum aren't covered by an
-						// opaque black overlay.
-						lightLevel = level.EffectiveSunIntensity()
-					}
-				} else {
-					lightLevel = tile.LightLevel
-				}
-			}
-			if lightLevel >= 100 {
-				continue
-			}
-			alpha := byte(255 - lightLevel*255/100)
-			baseX := sx * tileSizeW
-			baseY := sy * tileSizeH
-			for py := 0; py < tileSizeH; py++ {
-				row := (baseY+py)*imgW + baseX
-				for px := 0; px < tileSizeW; px++ {
-					lightOverlayPixels[(row+px)*4+3] = alpha
-				}
-			}
-		}
-	}
-
-	lightOverlayImg.WritePixels(lightOverlayPixels)
-	screen.DrawImage(lightOverlayImg, nil)
-}
 
 // DrawRadiationOverlay paints a green tint over tiles with nonzero Radiation.
 // Intensity scales with the tile's Radiation byte (0..255).

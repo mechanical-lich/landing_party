@@ -24,6 +24,7 @@ type Config struct {
 	BlueprintPath          string `json:"blueprintPath"`
 	RenderPathfindingSteps bool   `json:"renderPathfindingSteps"`
 	DebugDisableLighting   bool   `json:"debugDisableLighting"`
+	DebugDisableLookdown   bool   `json:"debugDisableLookdown"`
 	DebugShowAutotileMask  bool   `json:"debugShowAutotileMask"`
 	ProfileCPU             bool   `json:"profileCPU"`
 	ProfileMemory          bool   `json:"profileMemory"`

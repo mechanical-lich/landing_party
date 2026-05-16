@@ -60,10 +60,11 @@ func (w *SmallMapWidget) SetCamera(x, y, z, viewW, viewH int) {
 }
 
 func (w *SmallMapWidget) Update() {
-	// Invalidate when Z changes.
+	// Track Z changes. The destination Z's cached image is reused if it
+	// exists (its content doesn't change just because the camera moved);
+	// tile edits and fog are picked up by the per-frame partial refresh
+	// below. A missing image is built lazily once by InvalidatePartial.
 	if w.camZ != w.lastZ {
-		w.mm.InvalidateZ(w.lastZ)
-		w.mm.InvalidateZ(w.camZ)
 		w.lastZ = w.camZ
 	}
 

@@ -21,7 +21,7 @@ func (s *FOVSystem) Requires() []ecs.ComponentType { return nil }
 
 func (s *FOVSystem) UpdateSystem(data interface{}) error {
 	level := data.(*world.Level)
-	level.ClearVisible()
+	level.ClearVisibleViewport(level.GetDepth() - 1)
 
 	// Reset the worker Z set each pass.
 	for k := range level.WorkerZLevels {

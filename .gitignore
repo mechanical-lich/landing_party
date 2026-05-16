@@ -5,3 +5,5 @@ tile-editor
 saves/
 bin/
 dist/
+cpu.pprof
+mem.pprof

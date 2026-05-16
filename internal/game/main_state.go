@@ -542,12 +542,17 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	if s.worldImage == nil {
 		s.worldImage = ebiten.NewImage(config.Global().WorldWidth, config.Global().WorldHeight)
 	}
+	// Clear to black once per frame so never-seen tiles need no per-tile fill.
+	s.worldImage.Fill(color.Black)
 
 	viewW := config.Global().WorldWidth / s.TileSizeW
 	viewH := config.Global().WorldHeight / s.TileSizeH
+	s.level.CameraX = s.CameraX
+	s.level.CameraY = s.CameraY
 	s.level.CameraZ = s.CameraZ
+	s.level.ViewW = viewW
+	s.level.ViewH = viewH
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
-	world.DrawLightOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 	world.DrawRadiationOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 
 	s.drawTasks(s.worldImage)

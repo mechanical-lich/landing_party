@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
@@ -33,19 +34,42 @@ func chdirToExecutableIfBundled() {
 func main() {
 	chdirToExecutableIfBundled()
 
+	cfg := config.Global()
+
+	if cfg.ProfileCPU {
+		f, err := os.Create("cpu.pprof")
+		if err != nil {
+			log.Fatal("could not create CPU profile:", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile:", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	if err := world.LoadTileDefinitions("data/tile_definitions.json"); err != nil {
 		log.Fatalf("Failed to load tile definitions: %v", err)
 	}
-	if err := factory.FactoryLoadDir(config.Global().BlueprintPath); err != nil {
+	if err := factory.FactoryLoadDir(cfg.BlueprintPath); err != nil {
 		log.Fatalf("Failed to load blueprints: %v", err)
 	}
 
-	g, err := game.NewGame(config.Global().Title)
+	g, err := game.NewGame(cfg.Title)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if err := g.Run(); err != nil {
 		log.Fatal(err)
+	}
+
+	if cfg.ProfileMemory {
+		f, err := os.Create("mem.pprof")
+		if err != nil {
+			log.Fatal("could not create memory profile:", err)
+		}
+		defer f.Close()
+		pprof.WriteHeapProfile(f)
 	}
 }
