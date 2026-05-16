@@ -1248,6 +1248,9 @@ func (s *MainState) addBuildTask(x, y int) {
 		Data:   task_requests.BuildRequest{X: x, Y: y, Z: s.CameraZ, Type: s.buildMode, Required: buildable.BuildTime},
 		X:      x, Y: y, Z: s.CameraZ,
 	})
+	if !buildable.AllowMultiple {
+		s.CursorMode = gui.CursorModeDefault
+	}
 }
 
 func (s *MainState) addDigTask(x, y int) {

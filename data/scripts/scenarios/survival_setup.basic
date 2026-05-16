@@ -17,6 +17,11 @@ function on_setup()
     spawn_entity_owned("storage_locker", left + 1, sy - 2, sz, sname)
     spawn_entity_owned("basic_workbench", right - 1, sy - 2, sz, sname)
 
+    # 2nd floor — same footprint, enclosed, connected by stairs along the back wall
+    carve_room(left, top, sz + 1, 9, 7, "hull_wall", "hull_floor")
+    set_tile(sx, top + 1, sz, "stairs_up")
+    set_tile(sx, top + 1, sz + 1, "stairs_down")
+
     z = sz
     spawned = 0
     for attempt = 1 to 100

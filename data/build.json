@@ -4,6 +4,7 @@
         "type": "hull_wall",
         "description": "A reinforced metal wall panel.",
         "build_time": 1,
+        "allow_multiple": true,
         "cost": {}
     },
     "hull_floor": {
@@ -11,6 +12,7 @@
         "type": "hull_floor",
         "description": "A metal floor panel.",
         "build_time": 1,
+        "allow_multiple": true,
         "cost": {}
     },
     "storage_locker": {
@@ -19,6 +21,7 @@
         "description": "A secure locker for storing resources.",
         "build_time": 1,
         "is_entity": true,
+        "allow_multiple": true,
         "cost": {}
     },
     "research_lab": {
@@ -35,6 +38,7 @@
         "description": "A powered light that illuminates the surrounding area.",
         "build_time": 1,
         "is_entity": true,
+        "allow_multiple": true,
         "cost": {}
     },
     "stairs_up": {
@@ -72,26 +76,21 @@
         "description": "A general-purpose crafting station.",
         "build_time": 20,
         "is_entity": true,
-        "cost": {
-            
-        }
+        "cost": {}
     },
     "gun_bench": {
         "name": "Gun Bench",
         "description": "Fabricates weapons and firearms.",
         "build_time": 30,
         "is_entity": true,
-        "cost": {
-           
-        }
+        "cost": {}
     },
     "basic_armor_bench": {
         "name": "Armor Bench",
         "description": "Crafts standard armor sets.",
         "build_time": 30,
         "is_entity": true,
-        "cost": {
-        }
+        "cost": {}
     },
     "advanced_armor_bench": {
         "name": "Advanced Armor Bench",
@@ -99,8 +98,6 @@
         "build_time": 50,
         "is_entity": true,
         "required_tech": "advanced_metallurgy",
-        "cost": {
-  
-        }
+        "cost": {}
     }
 }

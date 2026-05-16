@@ -223,8 +223,14 @@ func canMoveTo(level *world.Level, entity *ecs.Entity, tile *world.Tile) bool {
 	}
 	flying := isFlying(entity)
 	// Layered walkability: need ground (Floor non-empty) unless flying.
+	// Stair tiles are self-supporting so they don't require a floor slot,
+	// mirroring the exemption in PathCostFunctionForEntity.
 	if tile.Floor.IsEmpty() && !flying {
-		return false
+		isStair := !tile.Middle.IsEmpty() &&
+			(world.TileDefinitions[tile.Middle.Type].StairsUp || world.TileDefinitions[tile.Middle.Type].StairsDown)
+		if !isStair {
+			return false
+		}
 	}
 	if !tile.Middle.IsEmpty() {
 		def := world.TileDefinitions[tile.Middle.Type]

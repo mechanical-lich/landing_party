@@ -9,14 +9,15 @@ import (
 )
 
 type Buildable struct {
-	Name         string         `json:"name"`
-	Type         string         `json:"type"`
-	Description  string         `json:"description"`
-	BuildTime    int            `json:"build_time"`
-	IsEntity     bool           `json:"is_entity"`
-	Hidden       bool           `json:"hidden"`
-	RequiredTech string         `json:"required_tech"`
-	Cost         map[string]int `json:"cost"`
+	Name          string         `json:"name"`
+	Type          string         `json:"type"`
+	Description   string         `json:"description"`
+	BuildTime     int            `json:"build_time"`
+	IsEntity      bool           `json:"is_entity"`
+	Hidden        bool           `json:"hidden"`
+	RequiredTech  string         `json:"required_tech"`
+	AllowMultiple bool           `json:"allow_multiple"`
+	Cost          map[string]int `json:"cost"`
 }
 
 var buildables map[string]Buildable

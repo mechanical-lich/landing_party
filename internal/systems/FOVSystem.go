@@ -48,46 +48,17 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 
 		updateFOV(level, x, y, z, radius)
 		level.WorkerZLevels[z] = true
-
-		// Mark tiles as Seen at the camera Z so scrolling to another level
-		// reveals terrain around workers. Only writes Seen (permanent), never
-		// Visible — DrawLevel uses Seen directly for non-worker Z levels.
-		// Skips tiles already seen to avoid redundant writes every tick.
-		if level.CameraZ != z {
-			markSeenRadius(level, x, y, level.CameraZ, radius)
-		}
 	}
 	return nil
 }
 
 func (s *FOVSystem) UpdateEntity(data interface{}, entity *ecs.Entity) error { return nil }
 
-// markSeenRadius marks tiles within radius of (ox,oy,oz) as permanently seen
-// without any LOS check and without touching the Visible array. Used for the
-// camera Z projection — DrawLevel uses Seen directly for non-worker Z levels,
-// so we don't need to redo this work every tick once tiles are already seen.
-func markSeenRadius(level *world.Level, ox, oy, oz, radius int) {
-	r2 := radius * radius
-	for dy := -radius; dy <= radius; dy++ {
-		for dx := -radius; dx <= radius; dx++ {
-			if dx*dx+dy*dy > r2 {
-				continue
-			}
-			tx, ty := ox+dx, oy+dy
-			if !level.InBounds(tx, ty, oz) {
-				continue
-			}
-			// Conditional write: skip if already seen to avoid cache-dirtying
-			// writes on every tick after the first pass at this Z level.
-			if !level.GetSeen(tx, ty, oz) {
-				level.SetSeen(tx, ty, oz, true)
-			}
-		}
-	}
-}
 
 // updateFOV marks all tiles within radius of (ox,oy,oz) as visible + seen if
 // they have line of sight to the origin. Uses Bresenham ray casting.
+// After marking each tile visible, propagates upward through open-air tiles
+// (no floor = no ceiling blocking the view from below).
 func updateFOV(level *world.Level, ox, oy, oz, radius int) {
 	r2 := radius * radius
 	for dy := -radius; dy <= radius; dy++ {
@@ -102,7 +73,26 @@ func updateFOV(level *world.Level, ox, oy, oz, radius int) {
 			if losCheck(level, ox, oy, tx, ty, oz) {
 				level.SetVisible(tx, ty, oz)
 				level.SetSeen(tx, ty, oz, true)
+				propagateVisibilityUp(level, tx, ty, oz)
 			}
+		}
+	}
+}
+
+// propagateVisibilityUp marks tiles above (x,y,z) as visible + seen as long as
+// the tile above has no floor (no ceiling blocking upward sight) and is in bounds.
+func propagateVisibilityUp(level *world.Level, x, y, z int) {
+	for above := z + 1; level.InBounds(x, y, above); above++ {
+		tile := level.GetTilePtr(x, y, above)
+		// A non-empty floor at this level acts as a ceiling — stop here.
+		if tile != nil && !tile.Floor.IsEmpty() {
+			break
+		}
+		level.SetVisible(x, y, above)
+		level.SetSeen(x, y, above, true)
+		// A solid middle at this level blocks further upward sight.
+		if tile != nil && tile.IsSolid() {
+			break
 		}
 	}
 }
