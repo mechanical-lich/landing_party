@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -25,36 +24,46 @@ type Minimap struct {
 	Width, Height int
 	level         *world.Level
 	images        map[int]*ebiten.Image
+	buffers       map[int][]byte
 }
 
 func NewMinimap(level *world.Level, width, height int) *Minimap {
 	return &Minimap{
-		Width:  width,
-		Height: height,
-		level:  level,
-		images: make(map[int]*ebiten.Image),
+		Width:   width,
+		Height:  height,
+		level:   level,
+		images:  make(map[int]*ebiten.Image),
+		buffers: make(map[int][]byte),
 	}
 }
 
 func (m *Minimap) InvalidateAll() {
 	m.mu.Lock()
 	m.images = make(map[int]*ebiten.Image)
+	m.buffers = make(map[int][]byte)
 	m.mu.Unlock()
 }
 
 func (m *Minimap) InvalidateZ(z int) {
 	m.mu.Lock()
 	delete(m.images, z)
+	delete(m.buffers, z)
 	m.mu.Unlock()
 }
 
 func (m *Minimap) GenerateImageAtZ(z int) {
 	cfg := config.Global()
-	img := ebiten.NewImage(m.Width, m.Height)
-	m.drawRegion(img, z, 0, 0, cfg.WorldGenSizeW, cfg.WorldGenSizeH)
 	m.mu.Lock()
-	m.images[z] = img
+	img := m.images[z]
+	if img == nil {
+		img = ebiten.NewImage(m.Width, m.Height)
+		m.images[z] = img
+	}
+	if m.buffers[z] == nil {
+		m.buffers[z] = make([]byte, m.Width*m.Height*4)
+	}
 	m.mu.Unlock()
+	m.drawRegion(img, z, 0, 0, cfg.WorldGenSizeW, cfg.WorldGenSizeH)
 }
 
 // InvalidatePartial redraws a rectangular region of tiles into the existing
@@ -86,33 +95,76 @@ func (m *Minimap) InvalidatePartial(z, tileX, tileY, tileW, tileH int) {
 	m.drawRegion(img, z, tileX, tileY, tileW, tileH)
 }
 
+// drawRegion recomputes the minimap pixels covering tile rect
+// [x0,x0+w)×[y0,y0+h) into the per-Z CPU buffer, then uploads the whole
+// buffer to the image with a single WritePixels (one GPU op instead of one
+// DrawRect per tile).
 func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
 	cfg := config.Global()
-	scaleX := float64(m.Width) / float64(cfg.WorldGenSizeW)
-	scaleY := float64(m.Height) / float64(cfg.WorldGenSizeH)
+	worldW := cfg.WorldGenSizeW
+	worldH := cfg.WorldGenSizeH
+	scaleX := float64(m.Width) / float64(worldW)
+	scaleY := float64(m.Height) / float64(worldH)
 
-	for y := y0; y < y0+h; y++ {
-		for x := x0; x < x0+w; x++ {
-			px := float64(x) * scaleX
-			py := float64(y) * scaleY
+	m.mu.Lock()
+	buf := m.buffers[z]
+	if buf == nil {
+		buf = make([]byte, m.Width*m.Height*4)
+		m.buffers[z] = buf
+	}
+	m.mu.Unlock()
 
-			tile := m.level.GetTilePtr(x, y, z)
-			seen := m.level.GetSeen(x, y, z)
+	// Pixel rectangle covering the requested tile region.
+	px0 := int(float64(x0) * scaleX)
+	px1 := int(float64(x0+w)*scaleX) + 1
+	py0 := int(float64(y0) * scaleY)
+	py1 := int(float64(y0+h)*scaleY) + 1
+	if px0 < 0 {
+		px0 = 0
+	}
+	if py0 < 0 {
+		py0 = 0
+	}
+	if px1 > m.Width {
+		px1 = m.Width
+	}
+	if py1 > m.Height {
+		py1 = m.Height
+	}
+
+	for py := py0; py < py1; py++ {
+		ty := int(float64(py) / scaleY)
+		if ty >= worldH {
+			ty = worldH - 1
+		}
+		rowBase := py * m.Width
+		for px := px0; px < px1; px++ {
+			tx := int(float64(px) / scaleX)
+			if tx >= worldW {
+				tx = worldW - 1
+			}
+
+			tile := m.level.GetTilePtr(tx, ty, z)
+			seen := m.level.GetSeen(tx, ty, z)
 
 			var c color.RGBA
-			if tile == nil || !seen {
-				if tile == nil {
-					c = colUnseen
-				} else {
-					c = colGhost
-				}
+			if tile == nil {
+				c = colUnseen
+			} else if !seen {
+				c = colGhost
 			} else {
 				c = tileColor(tile)
 			}
 
-			ebitenutil.DrawRect(img, px, py, scaleX, scaleY, c)
+			idx := (rowBase + px) * 4
+			buf[idx+0] = c.R
+			buf[idx+1] = c.G
+			buf[idx+2] = c.B
+			buf[idx+3] = c.A
 		}
 	}
+
+	img.WritePixels(buf)
 }
 
 // tileColor picks a flat color for a seen tile based on its category.
