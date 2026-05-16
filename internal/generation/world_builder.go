@@ -3,6 +3,7 @@ package generation
 import (
 	"fmt"
 	"log"
+	"math/rand"
 
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -12,6 +13,10 @@ import (
 // package doesn't import scenario (which would import generation).
 type BuildWorldOptions struct {
 	Width, Height, Depth int
+	// Seed makes terrain generation reproducible: primers and the biome map
+	// derive their noise from it, and math/rand is seeded for incidental
+	// generation variance (best-effort — not every rand call is audited).
+	Seed                 int64
 	Terrain              string
 	TerrainParams        map[string]any
 	BiomeMapType         string
@@ -35,8 +40,11 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Best-effort: seed the global RNG so incidental rand use during priming
+	// and feature placement is reproducible for a given seed.
+	rand.Seed(opts.Seed)
 	level := world.NewLevel(opts.Width, opts.Height, opts.Depth)
-	if err := primer.Prime(level, opts.TerrainParams); err != nil {
+	if err := primer.Prime(level, opts.TerrainParams, opts.Seed); err != nil {
 		return level, fmt.Errorf("primer %s: %w", opts.Terrain, err)
 	}
 
@@ -46,7 +54,7 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 			Scale:  opts.BiomeMapScale,
 			Biomes: opts.BiomeIDs,
 			Single: opts.BiomeSingle,
-		})
+		}, opts.Seed)
 		ApplyBiomes(level)
 		ExposeMountainTops(level)
 	}

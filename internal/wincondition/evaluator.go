@@ -7,101 +7,77 @@ type EvalContext struct {
 	Flags           map[string]any
 	SettlementPop   map[string]int
 	StructuresBuilt map[string]int
-	Day             int
+	// ResourceCounts is the colony's stored quantity per resource blueprint
+	// (e.g. "metal_ore", "crystal", "food").
+	ResourceCounts map[string]int
+	// EntityCounts is the live (non-dead) entity count per blueprint.
+	EntityCounts map[string]int
+	Day          int
 }
 
 type Evaluator struct {
 	rules RuleSet
+	// seenEntities records blueprints that have been observed alive at least
+	// once, so "kill all of X" rules don't fire before X has ever existed.
+	seenEntities map[string]bool
 }
 
 func New(rules RuleSet) *Evaluator {
-	return &Evaluator{rules: rules}
+	return &Evaluator{rules: rules, seenEntities: map[string]bool{}}
 }
 
-func (e *Evaluator) EvalSettlementPopulation(settlementName string, ctx EvalContext) (*Rule, bool) {
-	pop := ctx.SettlementPop[settlementName]
-	for i := range e.rules.Rules {
-		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerSettlementPopulation {
-			continue
-		}
-		if r.Settlement != "" && r.Settlement != settlementName {
-			continue
-		}
-		if !compareInt(pop, r.Op, r.Threshold) || !checkConditions(r.When, ctx) {
-			continue
-		}
-		return r, true
+// Evaluate walks every rule and returns the first whose trigger condition is
+// satisfied, so callers fire all scenario-defined win/lose rules from one
+// place. tech_researched is intentionally excluded (no tech state in ctx).
+func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
+	if e.seenEntities == nil {
+		e.seenEntities = map[string]bool{}
 	}
-	return nil, false
-}
-
-func (e *Evaluator) EvalEntityEliminated(blueprint string, ctx EvalContext) (*Rule, bool) {
-	for i := range e.rules.Rules {
-		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerEntityEliminated || r.Blueprint != blueprint {
-			continue
+	for bp, n := range ctx.EntityCounts {
+		if n > 0 {
+			e.seenEntities[bp] = true
 		}
-		if !checkConditions(r.When, ctx) {
-			continue
-		}
-		return r, true
 	}
-	return nil, false
-}
-
-func (e *Evaluator) EvalDaysSurvived(ctx EvalContext) (*Rule, bool) {
 	for i := range e.rules.Rules {
 		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerDaysSurvived {
+		var actual int
+		switch r.Trigger {
+		case TriggerDaysSurvived:
+			actual = ctx.Day
+		case TriggerColonistEliminated:
+			actual = ctx.SettlementPop["colony"]
+		case TriggerSettlementPopulation:
+			actual = ctx.SettlementPop[r.Settlement]
+		case TriggerStructureBuilt:
+			// No op → "at least one built".
+			if r.Op == "" {
+				if ctx.StructuresBuilt[r.Structure] >= 1 && checkConditions(r.When, ctx) {
+					return r, true
+				}
+				continue
+			}
+			actual = ctx.StructuresBuilt[r.Structure]
+		case TriggerEntityEliminated:
+			// Satisfied when none of Blueprint remain — but only once it has
+			// existed, so the rule doesn't trip before any ever spawn.
+			if e.seenEntities[r.Blueprint] && ctx.EntityCounts[r.Blueprint] == 0 && checkConditions(r.When, ctx) {
+				return r, true
+			}
+			continue
+		case TriggerEntityKilled:
+			// "Kill all" (threshold 0) requires the entity to have existed.
+			if r.Threshold == 0 && !e.seenEntities[r.Blueprint] {
+				continue
+			}
+			actual = ctx.EntityCounts[r.Blueprint]
+		case TriggerResourceGathered:
+			actual = ctx.ResourceCounts[r.Resource]
+		default:
 			continue
 		}
-		if !compareInt(ctx.Day, r.Op, r.Threshold) || !checkConditions(r.When, ctx) {
-			continue
+		if compareInt(actual, r.Op, r.Threshold) && checkConditions(r.When, ctx) {
+			return r, true
 		}
-		return r, true
-	}
-	return nil, false
-}
-
-func (e *Evaluator) EvalStructureBuilt(structureType string, ctx EvalContext) (*Rule, bool) {
-	for i := range e.rules.Rules {
-		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerStructureBuilt || r.Structure != structureType {
-			continue
-		}
-		if !checkConditions(r.When, ctx) {
-			continue
-		}
-		return r, true
-	}
-	return nil, false
-}
-
-func (e *Evaluator) EvalColonistEliminated(ctx EvalContext) (*Rule, bool) {
-	for i := range e.rules.Rules {
-		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerColonistEliminated {
-			continue
-		}
-		if !compareInt(ctx.SettlementPop["colony"], r.Op, r.Threshold) || !checkConditions(r.When, ctx) {
-			continue
-		}
-		return r, true
-	}
-	return nil, false
-}
-
-func (e *Evaluator) EvalTechResearched(techKey string, ctx EvalContext) (*Rule, bool) {
-	for i := range e.rules.Rules {
-		r := &e.rules.Rules[i]
-		if r.Trigger != TriggerTechResearched || r.TechKey != techKey {
-			continue
-		}
-		if !checkConditions(r.When, ctx) {
-			continue
-		}
-		return r, true
 	}
 	return nil, false
 }
@@ -114,10 +90,17 @@ func checkConditions(conds []Condition, ctx EvalContext) bool {
 			}
 		}
 		if c.EntityCount != nil {
+			// Prefer the live (non-dead) tally so corpses don't keep a
+			// "kill all" conjunction from ever completing; fall back to a
+			// raw scan for callers that don't populate EntityCounts.
 			count := 0
-			for _, e := range ctx.Entities {
-				if e.Blueprint == c.EntityCount.Blueprint {
-					count++
+			if ctx.EntityCounts != nil {
+				count = ctx.EntityCounts[c.EntityCount.Blueprint]
+			} else {
+				for _, e := range ctx.Entities {
+					if e.Blueprint == c.EntityCount.Blueprint {
+						count++
+					}
 				}
 			}
 			if !compareInt(count, c.EntityCount.Op, c.EntityCount.Value) {

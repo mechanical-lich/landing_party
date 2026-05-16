@@ -19,6 +19,8 @@ Welcome to Scifi Settlements. Build a colony. Keep your colonists alive. Try not
 
 Scifi Settlements is an **indirect-control RTS**. You do not directly control individual colonists — you build structures, issue tasks, and your colonists figure out how to execute them. The game is turn-based and tile-based.
 
+If you want to, you can also take **direct control** of a single colonist (Rogue mode) and pilot them around like a roguelike — see [Controls](controls.md#rogue-mode).
+
 ### The Colony
 
 Your colony starts with a small group of colonists on an alien world. They will:

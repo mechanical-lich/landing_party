@@ -9,6 +9,12 @@ const (
 	TriggerSettlementPopulation TriggerType = "settlement_population"
 	TriggerEntityEliminated    TriggerType = "entity_eliminated"
 	TriggerColonistEliminated  TriggerType = "colonist_eliminated"
+	// TriggerResourceGathered fires when the colony's stored count of Resource
+	// satisfies Op/Threshold (e.g. gather 200 metal_ore).
+	TriggerResourceGathered TriggerType = "resource_gathered"
+	// TriggerEntityKilled fires when the live count of Blueprint satisfies
+	// Op/Threshold. "Kill all of X" is op "lte", threshold 0.
+	TriggerEntityKilled TriggerType = "entity_killed"
 )
 
 type ResultType string
@@ -36,6 +42,7 @@ type Rule struct {
 	Structure  string      `json:"structure,omitempty"`
 	Settlement string      `json:"settlement,omitempty"`
 	TechKey    string      `json:"tech_key,omitempty"`
+	Resource   string      `json:"resource,omitempty"`
 	Threshold  int         `json:"threshold,omitempty"`
 	Op         string      `json:"op,omitempty"`
 	When       []Condition `json:"when,omitempty"`

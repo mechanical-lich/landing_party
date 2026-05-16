@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/rand"
 	"sort"
-	"time"
 
 	"github.com/aquilax/go-perlin"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
@@ -25,7 +24,7 @@ func init() {
 //	threshold       float (default 0.15) — noise > threshold = solid
 //	min_size        int   (default 40)   — drop components smaller than this
 //	noise_scale     float (default 22)   — smaller = chunkier asteroids
-func (AsteroidFieldPrimer) Prime(level *world.Level, params map[string]any) error {
+func (AsteroidFieldPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
 
@@ -39,7 +38,7 @@ func (AsteroidFieldPrimer) Prime(level *world.Level, params map[string]any) erro
 	minSize := paramInt(params, "min_size", 40)
 	scale := paramFloat(params, "noise_scale", 22)
 
-	p := perlin.NewPerlin(4, 4, 2, time.Now().UnixNano())
+	p := perlin.NewPerlin(4, 4, 2, seed)
 
 	// Build solid mask for the surface slab.
 	mask := make([]bool, w*h)

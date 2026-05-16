@@ -1,8 +1,6 @@
 package generation
 
 import (
-	"time"
-
 	"github.com/aquilax/go-perlin"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -19,7 +17,7 @@ type BiomeMapConfig struct {
 
 // BuildBiomeMap fills level.BiomeMap based on cfg. If level.BiomeMap is nil
 // the level was not allocated for biomes — caller error.
-func BuildBiomeMap(level *world.Level, cfg BiomeMapConfig) {
+func BuildBiomeMap(level *world.Level, cfg BiomeMapConfig, seed int64) {
 	if level.BiomeMap == nil {
 		return
 	}
@@ -38,8 +36,8 @@ func BuildBiomeMap(level *world.Level, cfg BiomeMapConfig) {
 	if scale <= 0 {
 		scale = 200
 	}
-	pTemp := perlin.NewPerlin(2, 2, 2, time.Now().UnixNano())
-	pHum := perlin.NewPerlin(2, 2, 2, time.Now().UnixNano()+13)
+	pTemp := perlin.NewPerlin(2, 2, 2, seed+7)
+	pHum := perlin.NewPerlin(2, 2, 2, seed+13)
 
 	candidates := cfg.Biomes
 	if len(candidates) == 0 {

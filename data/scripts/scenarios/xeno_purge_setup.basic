@@ -1,0 +1,81 @@
+function on_setup()
+    add_message("Day 1. A xeno infestation has taken root. Exterminate every last one.")
+
+    # Base location: prefer the primer's starting region, else the spawn flags.
+    sz = get_flag("start_z")
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    n = get_region_count("starting_asteroid")
+    if n > 0 then
+        sx = get_region_x("starting_asteroid", 0)
+        sy = get_region_y("starting_asteroid", 0)
+        sz = get_region_z("starting_asteroid", 0)
+    endif
+    m = get_region_count("starting_floor")
+    if m > 0 then
+        sx = get_region_x("starting_floor", 0)
+        sy = get_region_y("starting_floor", 0)
+        sz = get_region_z("starting_floor", 0)
+    endif
+
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    # Carve and stock a small landing base so it works on solid maps too.
+    carve_room(sx - 3, sy - 3, sz, 7, 7, "hull_wall", "hull_floor")
+    spawn_entity_owned("airlock", sx, sy + 3, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 2, sy - 2, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 2, sy - 2, sz, sname)
+
+    # Scatter xeno eggs intelligently across whatever terrain this map has.
+    eggs_target = 10
+    eggs_spawned = 0
+    asteroid_count = get_region_count("asteroid")
+
+    for attempt = 1 to 800
+        if eggs_spawned < eggs_target then
+            ex = -1
+            ey = -1
+            ez = sz
+
+            if asteroid_count > 0 then
+                # Asteroid maps: nestle eggs on the rocks.
+                ai = rnd_int(asteroid_count)
+                ex = get_region_x("asteroid", ai) + rnd_int(17) - 8
+                ey = get_region_y("asteroid", ai) + rnd_int(17) - 8
+                ez = sz
+            else
+                pick = rnd_int(3)
+                if pick = 0 then
+                    # Tuck eggs into caves where they can fester.
+                    if find_cave_tile() = 1 then
+                        ex = get_cave_x()
+                        ey = get_cave_y()
+                        ez = get_cave_z()
+                    endif
+                else
+                    # Open ground on the surface layer.
+                    if find_open_tile(sz) = 1 then
+                        ex = get_open_x()
+                        ey = get_open_y()
+                        ez = sz
+                    endif
+                endif
+            endif
+
+            if ex >= 0 and ey >= 0 then
+                ddx = ex - sx
+                ddy = ey - sy
+                d2 = ddx * ddx + ddy * ddy
+                ttype = get_tile_type(ex, ey, ez)
+                if d2 > 64 and ttype <> "space" and ttype <> "" then
+                    spawn_entity("xeno_egg", ex, ey, ez)
+                    eggs_spawned = eggs_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    add_message(num_to_str(eggs_spawned) + " xeno eggs detected across the region.")
+    set_flag("xeno_purge_started", 1)
+endfunction

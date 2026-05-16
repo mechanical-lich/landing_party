@@ -5,6 +5,7 @@
     "enabled": true,
     "setup_scripts": ["data/scripts/scenarios/survival_setup.basic"],
     "hostile_max": 200,
+    "supported_maps": ["earth_like", "alien", "moon"],
     "spawn_rules": {
         "mutant_grunt": {
             "spawn_rate": 50,

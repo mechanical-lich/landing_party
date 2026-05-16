@@ -12,7 +12,9 @@ import (
 // the biome applier's job — primers only paint a default tile per kind so
 // scenarios without a biome map still produce something playable.
 type TerrainPrimer interface {
-	Prime(level *world.Level, params map[string]any) error
+	// Prime paints the terrain skeleton. seed makes noise reproducible; pass
+	// it (and offsets of it) to any perlin/random source.
+	Prime(level *world.Level, params map[string]any, seed int64) error
 }
 
 var primers = map[string]TerrainPrimer{}

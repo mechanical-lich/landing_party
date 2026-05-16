@@ -5,20 +5,9 @@
     "enabled": true,
     "setup_scripts": ["data/scripts/scenarios/moon_setup.basic"],
     "hostile_max": 30,
+    "supported_maps": ["moon"],
     "spawn_rules": {},
     "lighting": { "mode": "day_night" },
-    "world": {
-        "terrain": "planet",
-        "biome_map": {
-            "type": "perlin_temp_humidity",
-            "scale": 60,
-            "biomes": ["regolith", "crater"]
-        },
-        "features": [
-            { "kind": "ore_vein", "count": 25, "params": { "tile": "ore_deposit", "radius": 2 } },
-            { "kind": "radiation_pocket", "count": 8, "params": { "peak": 200, "radius": 5 } }
-        ]
-    },
     "win_conditions": {
         "rules": [
             {

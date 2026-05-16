@@ -5,6 +5,7 @@
     "enabled": true,
     "setup_scripts": ["data/scripts/scenarios/station_setup.basic"],
     "hostile_max": 40,
+    "supported_maps": ["abandoned_station"],
     "spawn_rules": {
         "mutant_grunt": {
             "spawn_rate": 30,
@@ -15,14 +16,6 @@
         }
     },
     "lighting": { "mode": "fixed", "ambient_level": 20 },
-    "world": {
-        "terrain": "abandoned_station",
-        "terrain_params": { "floors": 5, "station_size": 50, "hub_radius": 5, "spokes": 4, "bud_attempts": 80, "min_room": 4, "max_room": 8 },
-        "features": [
-            { "kind": "botany_bay", "count": 3, "params": { "tile": "dirt_floor", "radius": 3 } },
-            { "kind": "radiation_pocket", "count": 2, "in_region": "station_room_large", "jitter": 4, "params": { "peak": 180, "radius": 3 } }
-        ]
-    },
     "win_conditions": {
         "rules": [
             {

@@ -20,6 +20,8 @@ const savesDir = "saves"
 type SaveMeta struct {
 	Name       string    `json:"name"`
 	ScenarioID string    `json:"scenario_id"`
+	MapID      string    `json:"map_id"`
+	Seed       int64     `json:"seed"`
 	SavedAt    time.Time `json:"saved_at"`
 	MapSizeW   int       `json:"map_size_w"`
 	MapSizeH   int       `json:"map_size_h"`
@@ -151,6 +153,8 @@ func LoadSave(name string) (*MainState, error) {
 	cfg := SettlementConfig{
 		Name:       sf.Meta.Name,
 		ScenarioID: sf.Meta.ScenarioID,
+		MapID:      sf.Meta.MapID,
+		Seed:       sf.Meta.Seed,
 	}
 	return newMainStateFromLevel(level, cfg)
 }

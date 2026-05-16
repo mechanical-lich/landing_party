@@ -2,8 +2,10 @@ package game
 
 import (
 	"image/color"
+	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -13,6 +15,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/lore"
+	"github.com/mechanical-lich/scifi_settlements/internal/mapdef"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -34,6 +37,17 @@ type TitleState struct {
 
 	nameInput      *minui.TextInput
 	randomNameBtn  *minui.Button
+
+	seedInput     *minui.TextInput
+	randomSeedBtn *minui.Button
+
+	widthInput  *minui.TextInput
+	heightInput *minui.TextInput
+	depthInput  *minui.TextInput
+
+	mapPicker *minui.SelectBox
+	mapIDs    []string
+
 	scenarioPicker *minui.SelectBox
 	scenarioIDs    []string
 
@@ -61,6 +75,7 @@ var _ state.StateInterface = (*TitleState)(nil)
 func NewTitleState() *TitleState {
 	ts := &TitleState{screen: screenMain}
 	_ = scenario.Load("data/scenarios")
+	_ = mapdef.Load("data/maps")
 	_ = generation.LoadBiomes("data/biomes")
 	ts.buildMainMenu()
 	ts.buildNewSettlementScreen()
@@ -79,7 +94,7 @@ func (ts *TitleState) buildMainMenu() {
 	ts.newBtn.SetSize(btnW, btnH)
 	ts.newBtn.OnClick = func() {
 		ts.errMsg = ""
-		ts.buildScenarioPicker()
+		ts.reloadMapsAndScenarios()
 		ts.screen = screenNewSettlement
 	}
 
@@ -151,20 +166,53 @@ func (ts *TitleState) buildNewSettlementScreen() {
 	cx := cfg.ScreenWidth / 2
 
 	ts.nameInput = minui.NewTextInput("settlement_name", "")
-	ts.nameInput.SetPosition(cx-150, 300)
+	ts.nameInput.SetPosition(cx-150, 270)
 	ts.nameInput.SetSize(220, 28)
-
 	ts.randomNameBtn = minui.NewButton("random_name", "Random")
-	ts.randomNameBtn.SetPosition(cx+80, 300)
+	ts.randomNameBtn.SetPosition(cx+80, 270)
 	ts.randomNameBtn.SetSize(80, 28)
 	ts.randomNameBtn.OnClick = func() { ts.nameInput.Text = lore.RandomSettlementName() }
 
-	ts.buildScenarioPicker()
+	ts.seedInput = minui.NewTextInput("seed", "")
+	ts.seedInput.SetPosition(cx-150, 312)
+	ts.seedInput.SetSize(220, 28)
+	ts.randomSeedBtn = minui.NewButton("random_seed", "Random")
+	ts.randomSeedBtn.SetPosition(cx+80, 312)
+	ts.randomSeedBtn.SetSize(80, 28)
+	ts.randomSeedBtn.OnClick = func() {
+		ts.seedInput.Text = strconv.FormatInt(rand.Int63(), 10)
+	}
+
+	ts.widthInput = minui.NewTextInput("map_w", strconv.Itoa(cfg.WorldGenSizeW))
+	ts.widthInput.SetPosition(cx-150, 356)
+	ts.widthInput.SetSize(60, 28)
+	ts.heightInput = minui.NewTextInput("map_h", strconv.Itoa(cfg.WorldGenSizeH))
+	ts.heightInput.SetPosition(cx-78, 356)
+	ts.heightInput.SetSize(60, 28)
+	ts.depthInput = minui.NewTextInput("map_z", strconv.Itoa(cfg.WorldGenSizeZ))
+	ts.depthInput.SetPosition(cx-6, 356)
+	ts.depthInput.SetSize(60, 28)
+
+	ts.mapPicker = minui.NewSelectBox("map_picker", []string{"Random"})
+	ts.mapPicker.SetPosition(cx-150, 400)
+	ts.mapPicker.SetSize(300, 28)
+	ts.mapPicker.OnSelect = func(idx int, _ string) {
+		mapID := ""
+		if idx > 0 && idx < len(ts.mapIDs) {
+			mapID = ts.mapIDs[idx]
+		}
+		ts.refreshScenarioPicker(mapID)
+	}
+
+	ts.scenarioPicker = minui.NewSelectBox("scenario_picker", []string{"Random"})
+	ts.scenarioPicker.SetPosition(cx-150, 444)
+	ts.scenarioPicker.SetSize(300, 28)
+	ts.scenarioPicker.SelectByIndex(0)
 
 	// Lighting override
 	ts.lightingModes = []string{"", world.LightModedayNight, world.LightModeFixed, world.LightModePitchDark}
 	ts.lightingPicker = minui.NewSelectBox("lighting_picker", []string{"Scenario Default", "Day / Night Cycle", "Fixed Ambient", "Pitch Dark"})
-	ts.lightingPicker.SetPosition(cx-150, 410)
+	ts.lightingPicker.SetPosition(cx-150, 488)
 	ts.lightingPicker.SetSize(300, 28)
 	ts.lightingPicker.SelectByIndex(0)
 	ts.lightingPicker.OnSelect = func(idx int, _ string) {
@@ -173,42 +221,61 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		ts.ambientInput.SetVisible(isFixed)
 	}
 
-	ts.ambientLabel = minui.NewLabel("ambient_label", "Ambient Level (0-100):")
-	ts.ambientLabel.SetPosition(cx-150, 448)
-	ts.ambientLabel.SetSize(220, 18)
+	ts.ambientLabel = minui.NewLabel("ambient_label", "Ambient (0-100):")
+	ts.ambientLabel.SetPosition(cx-150, 530)
+	ts.ambientLabel.SetSize(160, 18)
 	ts.ambientLabel.SetVisible(false)
-
 	ts.ambientInput = minui.NewTextInput("ambient_input", "50")
-	ts.ambientInput.SetPosition(cx-150, 468)
-	ts.ambientInput.SetSize(100, 28)
+	ts.ambientInput.SetPosition(cx+10, 526)
+	ts.ambientInput.SetSize(80, 28)
 	ts.ambientInput.SetVisible(false)
 
 	ts.generateBtn = minui.NewButton("generate", "Generate")
-	ts.generateBtn.SetPosition(cx-80, 510)
+	ts.generateBtn.SetPosition(cx-80, 600)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
-
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 556)
+	ts.cancelBtn.SetPosition(cx-80, 644)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
+
+	ts.reloadMapsAndScenarios()
 }
 
-func (ts *TitleState) buildScenarioPicker() {
-	cfg := config.Global()
-	cx := cfg.ScreenWidth / 2
+// reloadMapsAndScenarios re-reads the map/scenario data files and repopulates
+// the map picker, then syncs the scenario picker to the current map.
+func (ts *TitleState) reloadMapsAndScenarios() {
 	_ = scenario.Load("data/scenarios")
+	_ = mapdef.Load("data/maps")
 	_ = generation.LoadBiomes("data/biomes")
-	scenarios := scenario.AllEnabled()
+
+	labels := []string{"Random"}
+	ts.mapIDs = []string{""}
+	for _, m := range mapdef.All() {
+		labels = append(labels, m.Name)
+		ts.mapIDs = append(ts.mapIDs, m.ID)
+	}
+	ts.mapPicker.SetItems(labels)
+	ts.mapPicker.SelectByIndex(0)
+	ts.refreshScenarioPicker("")
+}
+
+// refreshScenarioPicker rebuilds the scenario list to only those compatible
+// with mapID (empty mapID = all scenarios).
+func (ts *TitleState) refreshScenarioPicker(mapID string) {
+	var scenarios []scenario.Scenario
+	if mapID == "" {
+		scenarios = scenario.AllEnabled()
+	} else {
+		scenarios = scenario.ForMap(mapID)
+	}
 	labels := []string{"Random"}
 	ts.scenarioIDs = []string{""}
 	for _, s := range scenarios {
 		labels = append(labels, s.Name)
 		ts.scenarioIDs = append(ts.scenarioIDs, s.ID)
 	}
-	ts.scenarioPicker = minui.NewSelectBox("scenario_picker", labels)
-	ts.scenarioPicker.SetPosition(cx-150, 355)
-	ts.scenarioPicker.SetSize(300, 28)
+	ts.scenarioPicker.SetItems(labels)
 	ts.scenarioPicker.SelectByIndex(0)
 }
 
@@ -217,11 +284,36 @@ func (ts *TitleState) startNewSettlement() {
 	if name == "" {
 		name = lore.RandomSettlementName()
 	}
+
+	var seed int64
+	if s := strings.TrimSpace(ts.seedInput.Text); s != "" {
+		seed, _ = strconv.ParseInt(s, 10, 64)
+	}
+	if seed == 0 {
+		seed = rand.Int63()
+	}
+
+	gc := config.Global()
+	parseDim := func(in *minui.TextInput, def int) int {
+		v, err := strconv.Atoi(strings.TrimSpace(in.Text))
+		if err != nil || v <= 0 {
+			return def
+		}
+		return v
+	}
+	mapW := parseDim(ts.widthInput, gc.WorldGenSizeW)
+	mapH := parseDim(ts.heightInput, gc.WorldGenSizeH)
+	mapZ := parseDim(ts.depthInput, gc.WorldGenSizeZ)
+
+	var mapID string
+	if mi := ts.mapPicker.SelectedIndex; mi > 0 && mi < len(ts.mapIDs) {
+		mapID = ts.mapIDs[mi]
+	}
 	var scenarioID string
-	idx := ts.scenarioPicker.SelectedIndex
-	if idx > 0 && idx < len(ts.scenarioIDs) {
+	if idx := ts.scenarioPicker.SelectedIndex; idx > 0 && idx < len(ts.scenarioIDs) {
 		scenarioID = ts.scenarioIDs[idx]
 	}
+
 	lightIdx := ts.lightingPicker.SelectedIndex
 	lightMode := ""
 	if lightIdx >= 0 && lightIdx < len(ts.lightingModes) {
@@ -236,7 +328,18 @@ func (ts *TitleState) startNewSettlement() {
 			ambient = 100
 		}
 	}
-	cfg := SettlementConfig{Name: name, ScenarioID: scenarioID, LightingMode: lightMode, LightingAmbient: ambient}
+
+	cfg := SettlementConfig{
+		Name:            name,
+		ScenarioID:      scenarioID,
+		MapID:           mapID,
+		Seed:            seed,
+		MapW:            mapW,
+		MapH:            mapH,
+		MapZ:            mapZ,
+		LightingMode:    lightMode,
+		LightingAmbient: ambient,
+	}
 	ms, err := NewMainState(cfg)
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
@@ -265,9 +368,15 @@ func (ts *TitleState) Update() state.StateInterface {
 			return ts.next
 		}
 		// Block clicks on widgets behind an expanded SelectBox dropdown.
-		minui.PrepareInputClaims(ts.scenarioPicker, ts.lightingPicker)
+		minui.PrepareInputClaims(ts.mapPicker, ts.scenarioPicker, ts.lightingPicker)
 		ts.nameInput.Update()
 		ts.randomNameBtn.Update()
+		ts.seedInput.Update()
+		ts.randomSeedBtn.Update()
+		ts.widthInput.Update()
+		ts.heightInput.Update()
+		ts.depthInput.Update()
+		ts.mapPicker.Update()
 		ts.scenarioPicker.Update()
 		ts.lightingPicker.Update()
 		if ts.ambientInput.IsVisible() {
@@ -311,12 +420,23 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		ts.loadConfirm.Draw(screen)
 		ts.loadCancel.Draw(screen)
 	case screenNewSettlement:
-		mlge_text.Draw(screen, "Colony Name:", 14, cfg.ScreenWidth/2-150, 283, color.RGBA{180, 210, 255, 255})
+		lx := cfg.ScreenWidth/2 - 150
+		lblCol := color.RGBA{180, 210, 255, 255}
+		mlge_text.Draw(screen, "Colony Name:", 14, lx, 253, lblCol)
 		ts.nameInput.Draw(screen)
 		ts.randomNameBtn.Draw(screen)
-		mlge_text.Draw(screen, "Scenario:", 14, cfg.ScreenWidth/2-150, 338, color.RGBA{180, 210, 255, 255})
+		mlge_text.Draw(screen, "Seed (blank = random):", 14, lx, 295, lblCol)
+		ts.seedInput.Draw(screen)
+		ts.randomSeedBtn.Draw(screen)
+		mlge_text.Draw(screen, "Map Size (W  H  D):", 14, lx, 339, lblCol)
+		ts.widthInput.Draw(screen)
+		ts.heightInput.Draw(screen)
+		ts.depthInput.Draw(screen)
+		mlge_text.Draw(screen, "Map:", 14, lx, 383, lblCol)
+		ts.mapPicker.Draw(screen)
+		mlge_text.Draw(screen, "Scenario:", 14, lx, 427, lblCol)
 		ts.scenarioPicker.Draw(screen)
-		mlge_text.Draw(screen, "Lighting:", 14, cfg.ScreenWidth/2-150, 393, color.RGBA{180, 210, 255, 255})
+		mlge_text.Draw(screen, "Lighting:", 14, lx, 471, lblCol)
 		ts.lightingPicker.Draw(screen)
 		if ts.ambientInput.IsVisible() {
 			ts.ambientLabel.Draw(screen)

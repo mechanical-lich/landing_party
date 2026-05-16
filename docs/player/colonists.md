@@ -48,3 +48,15 @@ Colonists do not take orders directly. They poll the settlement's **task queue**
 ## Combat
 
 Colonists are not soldiers. They will retaliate when attacked but deal minimal damage and have limited health. Do not rely on colonists to defend the colony — use barriers, airlocks, and blast doors to keep hostiles out.
+
+---
+
+## Rogue Mode (Direct Control)
+
+You can take direct control of any colonist from its detail panel
+(**[ Take Control (Rogue) ]**) or the Population sidebar tab
+(**→ Take Control**). The controlled colonist stops taking tasks and responds
+to your keyboard and mouse instead, the camera follows them, and the game
+switches to turn-based until you exit. See **Controls → Rogue Mode** for the
+full key list. Press **X** (or the on-screen button) to hand the colonist back
+to the autonomous task system.

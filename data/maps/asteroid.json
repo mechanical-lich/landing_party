@@ -1,0 +1,16 @@
+{
+    "id": "asteroid",
+    "name": "Asteroid Field",
+    "description": "A sparse field of rocks across a single slab. Land on the largest.",
+    "terrain": "asteroid_field",
+    "terrain_params": { "threshold": 0.15, "min_size": 60, "noise_scale": 22 },
+    "biome_map": {
+        "type": "uniform",
+        "single": "asteroid_rock"
+    },
+    "features": [
+        { "kind": "ore_vein", "count": 40, "in_region": "asteroid", "jitter": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein", "count": 15, "in_region": "asteroid", "jitter": 8, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "radiation_pocket", "count": 6, "in_region": "asteroid", "jitter": 10, "params": { "peak": 220, "radius": 4 } }
+    ]
+}

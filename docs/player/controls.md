@@ -56,6 +56,34 @@ Select an order from the Build menu. The active order is shown in the tooltip ne
 | Left click + drag | Paint the order across multiple tiles (Build / Dig) |
 | Right click | Cancel the active order and return to Default mode |
 
+## Rogue Mode
+
+You can take direct control of a single colonist. Open a colonist's detail
+panel and click **[ Take Control (Rogue) ]**, or click **→ Take Control** next
+to a colonist in the Population (Pop) sidebar tab.
+
+While controlling a colonist:
+
+- The colonist stops pulling tasks and obeys your input directly.
+- The camera follows the controlled colonist automatically.
+- The left sidebar is hidden, and an **Exit Control Mode (X)** button appears.
+- The game becomes **turn-based**: the world only advances when you act, and
+  each of your actions advances it by one of the colonist's turns (faster
+  entities still get proportionally more turns).
+
+| Input | Action |
+|-------|--------|
+| W / A / S / D | Move one tile. Bump a hostile to attack it; bump rock/ore to dig or mine it |
+| Q | Go up stairs (only while standing on a staircase) |
+| E | Go down stairs (only while standing on a staircase) |
+| P | Pick up an item on the current tile |
+| Left click tile | Fire an equipped ranged weapon at that tile |
+| X / Exit Control Mode button | Leave Rogue mode; the colonist resumes normal work |
+
+Moving into a friendly colonist swaps places with them, so you are never
+blocked in by your own settlers. If the controlled colonist dies, Rogue mode
+ends automatically.
+
 ## Pause Menu
 
 Press **Escape** when no modal is open to bring up the pause menu.

@@ -20,36 +20,6 @@ type LightingConfig struct {
 	AmbientLevel int    `json:"ambient_level"`
 }
 
-// WorldConfig is the v2 scenario block for world generation. Optional —
-// scenarios without it fall back to the legacy planet pipeline.
-type WorldConfig struct {
-	Terrain       string         `json:"terrain"`        // primer name: "planet", "asteroid_field", "abandoned_station"
-	TerrainParams map[string]any `json:"terrain_params"` // forwarded to the primer
-	BiomeMap      BiomeMapBlock  `json:"biome_map"`      // optional
-	Features      []FeatureBlock `json:"features"`       // ordered list of feature placements
-}
-
-// BiomeMapBlock mirrors generation.BiomeMapConfig but lives here to keep
-// scenario JSON self-contained.
-type BiomeMapBlock struct {
-	Type   string   `json:"type"`
-	Scale  float64  `json:"scale"`
-	Biomes []string `json:"biomes"`
-	Single string   `json:"single"`
-}
-
-// FeatureBlock mirrors generation.FeatureSpec.
-type FeatureBlock struct {
-	Kind     string         `json:"kind"`
-	Count    int            `json:"count"`
-	Biome    string         `json:"biome,omitempty"`
-	InRegion string         `json:"in_region,omitempty"`
-	Jitter   int            `json:"jitter,omitempty"`
-	MinZ     int            `json:"min_z,omitempty"`
-	MaxZ     int            `json:"max_z,omitempty"`
-	Params   map[string]any `json:"params,omitempty"`
-}
-
 type Scenario struct {
 	ID            string                  `json:"id"`
 	Name          string                  `json:"name"`
@@ -60,5 +30,22 @@ type Scenario struct {
 	SetupScripts  []string                `json:"setup_scripts"`
 	WinConditions wincondition.RuleSet    `json:"win_conditions"`
 	Lighting      LightingConfig          `json:"lighting"`
-	World         *WorldConfig            `json:"world,omitempty"`
+	// SupportedMaps lists the map IDs (data/maps/*.json) this scenario can run
+	// on. Empty means "any map". Terrain generation is driven by the chosen
+	// map, not by the scenario.
+	SupportedMaps []string                `json:"supported_maps,omitempty"`
+}
+
+// SupportsMap reports whether this scenario can run on the given map ID. An
+// empty SupportedMaps list means the scenario supports any map.
+func (s *Scenario) SupportsMap(mapID string) bool {
+	if len(s.SupportedMaps) == 0 {
+		return true
+	}
+	for _, m := range s.SupportedMaps {
+		if m == mapID {
+			return true
+		}
+	}
+	return false
 }

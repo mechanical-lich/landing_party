@@ -33,6 +33,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/game/listeners"
 	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/gui"
+	"github.com/mechanical-lich/scifi_settlements/internal/mapdef"
 	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
 	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
@@ -46,6 +47,9 @@ import (
 type SettlementConfig struct {
 	Name            string
 	ScenarioID      string
+	MapID           string // "" = random map
+	Seed            int64  // 0 = pick a random seed at generation time
+	MapW, MapH, MapZ int   // 0 = use config.json defaults
 	LightingMode    string // "" = use scenario default
 	LightingAmbient int    // only used when LightingMode == "fixed"
 }
@@ -301,38 +305,80 @@ func (s *MainState) newGame() {
 	mapW := cfg.WorldGenSizeW
 	mapH := cfg.WorldGenSizeH
 	mapZ := cfg.WorldGenSizeZ
+	if s.settlementCfg.MapW > 0 {
+		mapW = s.settlementCfg.MapW
+	}
+	if s.settlementCfg.MapH > 0 {
+		mapH = s.settlementCfg.MapH
+	}
+	if s.settlementCfg.MapZ > 0 {
+		mapZ = s.settlementCfg.MapZ
+	}
 
-	// Select the scenario before terrain generation so its WorldConfig (if
-	// any) can drive the build. The original flow selected after terrain;
-	// the post-terrain block below is a no-op now but kept for safety.
+	// Resolve the seed; persist it so saves/regeneration reproduce the map.
+	seed := s.settlementCfg.Seed
+	if seed == 0 {
+		seed = time.Now().UnixNano()
+		s.settlementCfg.Seed = seed
+	}
+
+	// Resolve the map definition (the terrain recipe). The map — not the
+	// scenario — drives terrain generation.
+	var md *mapdef.MapDef
+	if s.settlementCfg.MapID != "" {
+		md = mapdef.ByID(s.settlementCfg.MapID)
+	}
+	if md == nil {
+		md = mapdef.Random()
+	}
+	mapID := ""
+	if md != nil {
+		mapID = md.ID
+		s.settlementCfg.MapID = mapID
+	}
+
+	// Select a scenario compatible with the chosen map.
+	compatible := scenario.ForMap(mapID)
+	selected := false
 	if s.settlementCfg.ScenarioID != "" {
-		if err := scenario.SelectByID(s.settlementCfg.ScenarioID); err != nil {
-			log.Printf("scenario %q not found, using random", s.settlementCfg.ScenarioID)
-			_ = scenario.SelectRandom()
+		for i := range compatible {
+			if compatible[i].ID == s.settlementCfg.ScenarioID {
+				if err := scenario.SelectByID(s.settlementCfg.ScenarioID); err == nil {
+					selected = true
+				}
+				break
+			}
 		}
-	} else if len(scenario.AllEnabled()) > 0 {
-		_ = scenario.SelectRandom()
+		if !selected {
+			log.Printf("scenario %q not compatible with map %q, picking a compatible one",
+				s.settlementCfg.ScenarioID, mapID)
+		}
+	}
+	if !selected && len(compatible) > 0 {
+		_ = scenario.SelectByID(compatible[rand.Intn(len(compatible))].ID)
+		selected = true
 	}
 
 	var activeScenario *scenario.Scenario
-	if len(scenario.AllEnabled()) > 0 {
+	if selected {
 		activeScenario = scenario.Active()
+		s.settlementCfg.ScenarioID = activeScenario.ID
 	}
 
-	if activeScenario != nil && activeScenario.World != nil {
-		sc := activeScenario
+	if md != nil {
 		opts := generation.BuildWorldOptions{
 			Width:         mapW,
 			Height:        mapH,
 			Depth:         mapZ,
-			Terrain:       sc.World.Terrain,
-			TerrainParams: sc.World.TerrainParams,
-			BiomeMapType:  sc.World.BiomeMap.Type,
-			BiomeMapScale: sc.World.BiomeMap.Scale,
-			BiomeIDs:      sc.World.BiomeMap.Biomes,
-			BiomeSingle:   sc.World.BiomeMap.Single,
+			Seed:          seed,
+			Terrain:       md.Terrain,
+			TerrainParams: md.TerrainParams,
+			BiomeMapType:  md.BiomeMap.Type,
+			BiomeMapScale: md.BiomeMap.Scale,
+			BiomeIDs:      md.BiomeMap.Biomes,
+			BiomeSingle:   md.BiomeMap.Single,
 		}
-		for _, fb := range sc.World.Features {
+		for _, fb := range md.Features {
 			opts.Features = append(opts.Features, generation.FeatureSpec{
 				Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
 				InRegion: fb.InRegion, Jitter: fb.Jitter,
@@ -400,10 +446,10 @@ func (s *MainState) newGame() {
 		settlement.Settlements[name] = s.MainSettlement
 	}
 
-	if len(scenario.AllEnabled()) > 0 {
-		s.winEval = wincondition.New(scenario.Active().WinConditions)
+	if activeScenario != nil {
+		s.winEval = wincondition.New(activeScenario.WinConditions)
 		s.applyScenarioLighting(s.level)
-		if sc := scenario.Active(); len(sc.SetupScripts) > 0 {
+		if sc := activeScenario; len(sc.SetupScripts) > 0 {
 			s.level.Flags["start_x"] = float64(x)
 			s.level.Flags["start_y"] = float64(y)
 			s.level.Flags["start_z"] = float64(startingZ)
@@ -603,6 +649,8 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		if err := SaveSettlement(s.level, SaveMeta{
 			Name:       name,
 			ScenarioID: s.settlementCfg.ScenarioID,
+			MapID:      s.settlementCfg.MapID,
+			Seed:       s.settlementCfg.Seed,
 			MapSizeW:   s.level.GetWidth(),
 			MapSizeH:   s.level.GetHeight(),
 			MapSizeZ:   s.level.GetDepth(),
@@ -1560,25 +1608,42 @@ func (s *MainState) checkWinConditions() {
 	}
 
 	colonistPop := 0
+	entityCounts := map[string]int{}
+	resourceCounts := map[string]int{}
 	for _, e := range s.level.Entities {
-		if e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+		if e.HasComponent(rlcomponents.Dead) {
+			continue
+		}
+		if e.HasComponent(components.Worker) {
 			colonistPop++
+		}
+		if e.Blueprint != "" {
+			entityCounts[e.Blueprint]++
+		}
+		if e.HasComponent(components.Storage) {
+			st := e.GetComponent(components.Storage).(*components.StorageComponent)
+			for _, item := range st.Items {
+				if item.Blueprint != "" {
+					resourceCounts[item.Blueprint]++
+				}
+				if item.HasComponent(rlcomponents.Food) {
+					resourceCounts["food"]++
+				}
+			}
 		}
 	}
 
 	ctx := wincondition.EvalContext{
-		Entities:      s.level.Entities,
-		Flags:         s.level.Flags,
-		SettlementPop: map[string]int{"colony": colonistPop},
-		Day:           s.day,
+		Entities:        s.level.Entities,
+		Flags:           s.level.Flags,
+		SettlementPop:   map[string]int{"colony": colonistPop},
+		StructuresBuilt: entityCounts,
+		EntityCounts:    entityCounts,
+		ResourceCounts:  resourceCounts,
+		Day:             s.day,
 	}
 
-	if rule, ok := s.winEval.EvalDaysSurvived(ctx); ok {
-		message.AddMessage(rule.Message)
-		s.Paused = true
-		return
-	}
-	if rule, ok := s.winEval.EvalColonistEliminated(ctx); ok {
+	if rule, ok := s.winEval.Evaluate(ctx); ok {
 		message.AddMessage(rule.Message)
 		s.Paused = true
 	}

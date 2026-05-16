@@ -4,7 +4,6 @@ import (
 	"log"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/aquilax/go-perlin"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
@@ -28,7 +27,7 @@ func init() {
 //	cavern_density  float (default 0.25) — higher = fewer caves
 //	cavern_scale_xy float (default 40)   — larger = wider chambers
 //	cavern_scale_z  float (default 10)   — larger = taller chambers (more vertical connectivity)
-func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
+func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
 
@@ -44,8 +43,8 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any) error {
 	cavernScaleXY := paramFloat(params, "cavern_scale_xy", 40)
 	cavernScaleZ := paramFloat(params, "cavern_scale_z", 10)
 
-	p := perlin.NewPerlin(alpha, beta, int32(nOct), time.Now().UnixNano())
-	pc := perlin.NewPerlin(alpha, beta, int32(nOct), time.Now().UnixNano()+1)
+	p := perlin.NewPerlin(alpha, beta, int32(nOct), seed)
+	pc := perlin.NewPerlin(alpha, beta, int32(nOct), seed+1)
 
 	const chunkSize = 64
 	type chunk struct{ z, xStart, xEnd int }

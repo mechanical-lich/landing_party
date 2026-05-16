@@ -28,7 +28,9 @@ func init() {
 //	bud_attempts     int (default 60)
 //	min_room         int (default 4)
 //	max_room         int (default 8)
-func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any) error {
+// Prime ignores seed directly — it uses the package global rand, which
+// BuildWorld seeds for reproducibility before priming.
+func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
 

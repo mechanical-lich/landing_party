@@ -3,7 +3,6 @@ package scenario
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 )
@@ -38,15 +37,6 @@ func Load(dir string) error {
 	return nil
 }
 
-func SelectRandom() error {
-	if len(enabled) == 0 {
-		return fmt.Errorf("scenario.SelectRandom: no enabled scenarios")
-	}
-	s := enabled[rand.Intn(len(enabled))]
-	active = &s
-	return nil
-}
-
 func SelectByID(id string) error {
 	for i := range enabled {
 		if enabled[i].ID == id {
@@ -66,4 +56,15 @@ func Active() *Scenario {
 
 func AllEnabled() []Scenario {
 	return enabled
+}
+
+// ForMap returns the enabled scenarios that support the given map ID.
+func ForMap(mapID string) []Scenario {
+	var out []Scenario
+	for i := range enabled {
+		if enabled[i].SupportsMap(mapID) {
+			out = append(out, enabled[i])
+		}
+	}
+	return out
 }
