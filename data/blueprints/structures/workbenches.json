@@ -70,8 +70,7 @@
             "Faction": ""
         },
         "CraftingStation": {
-            "StationID": "advanced_armor_bench",
-            "RequiresTech": "advanced_metallurgy"
+            "StationID": "advanced_armor_bench"
         },
         "Inanimate": {},
         "Solid": {}

@@ -672,17 +672,26 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case gui.StationClickedEvent:
 		if s.MainSettlement != nil {
 			cs := ev.Station.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
-			recipes := crafting.RecipesByStation(cs.StationID)
+			knownTechs := s.MainSettlement.KnownTechSet()
+			allRecipes := crafting.RecipesByStation(cs.StationID)
+			var recipes, lockedRecipes []crafting.Recipe
+			for _, r := range allRecipes {
+				if r.RequiresTech == "" || knownTechs[r.RequiresTech] {
+					recipes = append(recipes, r)
+				} else {
+					lockedRecipes = append(lockedRecipes, r)
+				}
+			}
 			title := cs.StationID
 			if ev.Station.HasComponent(rlcomponents.Description) {
 				title = ev.Station.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.OpenCraftingModal(title, recipes, ev.Station)
+			s.guiManager.OpenCraftingModal(title, recipes, lockedRecipes, ev.Station)
 		}
 	case gui.ResearchStationClickedEvent:
 		if s.MainSettlement != nil {
-			available, completed, inProgress, queue := s.researchSnapshot()
-			s.guiManager.OpenResearchModal(ev.Station, available, completed, inProgress, queue)
+			available, locked, completed, inProgress, queue := s.researchSnapshot()
+			s.guiManager.OpenResearchModal(ev.Station, available, locked, completed, inProgress, queue)
 		}
 	case gui.ResearchRequestedEvent:
 		s.addResearchTask(ev.TechKey, ev.Station)
@@ -735,7 +744,7 @@ func (s *MainState) purgeCompletedTasks() {
 // researchSnapshot collects the lists the research modal needs: techs that
 // can be started, those already known, those currently being researched, and
 // the live progress queue.
-func (s *MainState) researchSnapshot() (available, completed, inProgress []research.Tech, queue []gui.ResearchQueueEntry) {
+func (s *MainState) researchSnapshot() (available, locked, completed, inProgress []research.Tech, queue []gui.ResearchQueueEntry) {
 	if s.MainSettlement == nil {
 		return
 	}
@@ -777,6 +786,7 @@ func (s *MainState) researchSnapshot() (available, completed, inProgress []resea
 		}
 		available = append(available, t)
 	}
+	locked = research.LockedTechs(s.MainSettlement.KnownTechs)
 	return
 }
 
@@ -1557,8 +1567,8 @@ func (s *MainState) refreshHUD() {
 	s.guiManager.RefreshGoalsTab(goalLines)
 	s.refreshCraftQueue()
 	if s.MainSettlement != nil {
-		available, completed, inProgress, queue := s.researchSnapshot()
-		s.guiManager.RefreshResearchModal(available, completed, inProgress, queue)
+		available, locked, completed, inProgress, queue := s.researchSnapshot()
+		s.guiManager.RefreshResearchModal(available, locked, completed, inProgress, queue)
 	}
 }
 
@@ -1633,6 +1643,10 @@ func (s *MainState) checkWinConditions() {
 		}
 	}
 
+	var knownTechs []string
+	if s.MainSettlement != nil {
+		knownTechs = s.MainSettlement.KnownTechs
+	}
 	ctx := wincondition.EvalContext{
 		Entities:        s.level.Entities,
 		Flags:           s.level.Flags,
@@ -1640,6 +1654,7 @@ func (s *MainState) checkWinConditions() {
 		StructuresBuilt: entityCounts,
 		EntityCounts:    entityCounts,
 		ResourceCounts:  resourceCounts,
+		KnownTechs:      knownTechs,
 		Day:             s.day,
 	}
 

@@ -49,3 +49,11 @@ func (s *Settlement) UnlockTech(key string) {
 		s.KnownTechs = append(s.KnownTechs, key)
 	}
 }
+
+func (s *Settlement) KnownTechSet() map[string]bool {
+	set := make(map[string]bool, len(s.KnownTechs))
+	for _, k := range s.KnownTechs {
+		set[k] = true
+	}
+	return set
+}

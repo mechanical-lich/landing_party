@@ -616,6 +616,10 @@ func (h *HUDScreen) setupModals() {
 			return
 		}
 		recipeID := h.craftingRecipeIDs[idx]
+		if recipeID == "" {
+			h.craftingRecipeList.SelectedIndex = -1
+			return // locked recipe — not selectable
+		}
 		event.GetQueuedInstance().QueueEvent(CraftRequestedEvent{
 			RecipeID: recipeID,
 			Station:  h.craftingStationEnt,
@@ -1011,14 +1015,17 @@ func colonistTaskEnabled(wc *components.WorkerComponent, action task_requests.Fi
 	return false
 }
 
-func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, station *ecs.Entity) {
+func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []crafting.Recipe, station *ecs.Entity) {
 	h.craftingStationEnt = station
 	h.craftingModal.Title = title
 
-	items := make([]string, 0, len(recipes))
+	total := len(recipes) + len(lockedRecipes)
+	items := make([]string, 0, total)
+	itemColors := make([]color.Color, 0, total)
 	h.craftingRecipeIDs = h.craftingRecipeIDs[:0]
 	h.craftTooltipDescs = h.craftTooltipDescs[:0]
-	for _, r := range recipes {
+
+	appendRecipe := func(r crafting.Recipe, locked bool) {
 		costStr := ""
 		for mat, qty := range r.Cost {
 			if costStr != "" {
@@ -1026,15 +1033,37 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, s
 			}
 			costStr += fmt.Sprintf("%s×%d", mat, qty)
 		}
-		label := r.Name
-		if costStr != "" {
-			label = fmt.Sprintf("%s  [%s]", r.Name, costStr)
+		var label string
+		if locked {
+			prereqName := r.RequiresTech
+			if prereq, ok := research.GetTech(r.RequiresTech); ok {
+				prereqName = prereq.Name
+			}
+			label = fmt.Sprintf("%s  [requires: %s]", r.Name, prereqName)
+			itemColors = append(itemColors, color.RGBA{120, 120, 120, 255})
+			h.craftingRecipeIDs = append(h.craftingRecipeIDs, "") // empty = not selectable
+		} else {
+			if costStr != "" {
+				label = fmt.Sprintf("%s  [%s]", r.Name, costStr)
+			} else {
+				label = r.Name
+			}
+			itemColors = append(itemColors, nil)
+			h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Output)
 		}
 		items = append(items, label)
-		h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Output)
 		h.craftTooltipDescs = append(h.craftTooltipDescs, r.Description)
 	}
+
+	for _, r := range recipes {
+		appendRecipe(r, false)
+	}
+	for _, r := range lockedRecipes {
+		appendRecipe(r, true)
+	}
+
 	h.craftingRecipeList.SetItems(items)
+	h.craftingRecipeList.ItemColors = itemColors
 	h.craftingRecipeList.OnHover = func(idx int) {
 		if idx < 0 || idx >= len(h.craftTooltipDescs) {
 			h.listTooltip.Hide()
@@ -1042,7 +1071,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes []crafting.Recipe, s
 		}
 		desc := h.craftTooltipDescs[idx]
 		var icon *minui.Icon
-		if idx < len(h.craftingRecipeIDs) {
+		if idx < len(h.craftingRecipeIDs) && h.craftingRecipeIDs[idx] != "" {
 			icon = blueprintTooltipIcon(h.craftingRecipeIDs[idx])
 		}
 		if desc == "" && icon == nil {
@@ -1063,41 +1092,51 @@ type ResearchQueueEntry struct {
 }
 
 // OpenResearchModal opens the research modal for a given lab entity.
-func (h *HUDScreen) OpenResearchModal(station *ecs.Entity, available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+func (h *HUDScreen) OpenResearchModal(station *ecs.Entity, available, locked, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
 	h.researchStationEnt = station
-	h.populateResearchTechList(available)
+	h.populateResearchTechList(available, locked)
 	h.populateResearchQueueList(completed, queue)
 	h.researchModal.SetVisible(true)
 }
 
 // RefreshResearchModal updates the modal in place if it's currently visible.
-func (h *HUDScreen) RefreshResearchModal(available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+func (h *HUDScreen) RefreshResearchModal(available, locked, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
 	if h.researchModal == nil || !h.researchModal.IsVisible() {
 		return
 	}
-	h.populateResearchTechList(available)
+	h.populateResearchTechList(available, locked)
 	h.populateResearchQueueList(completed, queue)
 }
 
-func (h *HUDScreen) populateResearchTechList(available []research.Tech) {
-	items := make([]string, 0, len(available))
-	keys := make([]string, 0, len(available))
+func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) {
+	items := make([]string, 0, len(available)+len(locked))
+	keys := make([]string, 0, len(available)+len(locked))
+	colors := make([]color.Color, 0, len(available)+len(locked))
 	h.researchTooltipDescs = h.researchTooltipDescs[:0]
 	for _, t := range available {
-		prereq := ""
-		if t.RequiresTech != "" {
-			prereq = fmt.Sprintf(" (requires: %s)", t.RequiresTech)
-		}
-		items = append(items, fmt.Sprintf("%s%s  [%d ticks]", t.Name, prereq, t.Duration))
+		items = append(items, fmt.Sprintf("%s  [%d ticks]", t.Name, t.Duration))
 		keys = append(keys, t.Key)
+		colors = append(colors, nil)
+		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
+	}
+	for _, t := range locked {
+		prereqName := t.RequiresTech
+		if prereq, ok := research.GetTech(t.RequiresTech); ok {
+			prereqName = prereq.Name
+		}
+		items = append(items, fmt.Sprintf("%s  [requires: %s]", t.Name, prereqName))
+		keys = append(keys, "") // empty key = not selectable
+		colors = append(colors, color.RGBA{120, 120, 120, 255})
 		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
 	}
 	if len(items) == 0 {
 		items = append(items, "No research available.")
 		keys = append(keys, "")
+		colors = append(colors, nil)
 		h.researchTooltipDescs = append(h.researchTooltipDescs, "")
 	}
 	h.researchTechList.SetItems(items)
+	h.researchTechList.ItemColors = colors
 	h.researchTechKeys = keys
 	h.researchTechList.OnHover = func(idx int) {
 		if idx < 0 || idx >= len(h.researchTooltipDescs) {

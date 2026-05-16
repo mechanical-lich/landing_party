@@ -68,10 +68,14 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 		}
 		// else: AllowedTasks is non-nil empty — all tasks blocked, t stays nil
 		if t != nil {
-			aiMemory.State = "task"
-			wc.CurrentTask = t
-			wc.LastTaskAction = t.Action
-			return
+			if !workerQualifiesForTask(entity, t) {
+				t.ReQueue()
+			} else {
+				aiMemory.State = "task"
+				wc.CurrentTask = t
+				wc.LastTaskAction = t.Action
+				return
+			}
 		}
 		if mySettlement.Tasks.Count() > 0 {
 			inProgress, completed, stopped := 0, 0, 0
@@ -619,11 +623,40 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	return false
 }
 
-func handleResearchTask(_ *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+func workerQualifiesForTask(entity *ecs.Entity, t *task.Task) bool {
+	if t.Action != task_requests.ResearchAction {
+		return true
+	}
+	rr, ok := t.Data.(*task_requests.ResearchRequest)
+	if !ok {
+		return true
+	}
+	tech, found := research.GetTech(rr.TechKey)
+	if !found || tech.RequiredInt == 0 {
+		return true
+	}
+	if !entity.HasComponent(rlcomponents.Stats) {
+		return false
+	}
+	sc := entity.GetComponent(rlcomponents.Stats).(*rlcomponents.StatsComponent)
+	return sc.Int >= tech.RequiredInt
+}
+
+func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	rr, ok := wc.CurrentTask.Data.(*task_requests.ResearchRequest)
 	if !ok {
 		aiMemory.State = "idle"
 		wc.CurrentTask = nil
+		return
+	}
+
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
+		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
+			wc.CurrentTask.ReQueue()
+			wc.CurrentTask = nil
+			aiMemory.State = "idle"
+		}
 		return
 	}
 

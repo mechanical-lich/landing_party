@@ -12,7 +12,9 @@ type EvalContext struct {
 	ResourceCounts map[string]int
 	// EntityCounts is the live (non-dead) entity count per blueprint.
 	EntityCounts map[string]int
-	Day          int
+	// KnownTechs is the list of tech keys the colony has researched.
+	KnownTechs []string
+	Day        int
 }
 
 type Evaluator struct {
@@ -27,8 +29,7 @@ func New(rules RuleSet) *Evaluator {
 }
 
 // Evaluate walks every rule and returns the first whose trigger condition is
-// satisfied, so callers fire all scenario-defined win/lose rules from one
-// place. tech_researched is intentionally excluded (no tech state in ctx).
+// satisfied, so callers fire all scenario-defined win/lose rules from one place.
 func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 	if e.seenEntities == nil {
 		e.seenEntities = map[string]bool{}
@@ -62,6 +63,13 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 			// existed, so the rule doesn't trip before any ever spawn.
 			if e.seenEntities[r.Blueprint] && ctx.EntityCounts[r.Blueprint] == 0 && checkConditions(r.When, ctx) {
 				return r, true
+			}
+			continue
+		case TriggerTechResearched:
+			for _, k := range ctx.KnownTechs {
+				if k == r.TechKey && checkConditions(r.When, ctx) {
+					return r, true
+				}
 			}
 			continue
 		case TriggerEntityKilled:

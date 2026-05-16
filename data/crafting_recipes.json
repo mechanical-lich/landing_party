@@ -165,7 +165,8 @@
         "output": "marine_head",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "combat_armor"
     },
     "marine_torso": {
         "name": "Marine Vest",
@@ -173,7 +174,8 @@
         "output": "marine_torso",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "combat_armor"
     },
     "marine_legs": {
         "name": "Marine Pants",
@@ -181,7 +183,8 @@
         "output": "marine_legs",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "combat_armor"
     },
     "marine_feet": {
         "name": "Marine Boots",
@@ -189,7 +192,8 @@
         "output": "marine_feet",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "combat_armor"
     },
     "tactical_head": {
         "name": "Tactical Helmet",
@@ -197,7 +201,8 @@
         "output": "tactical_head",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "tactical_systems"
     },
     "tactical_torso": {
         "name": "Tactical Vest",
@@ -205,7 +210,8 @@
         "output": "tactical_torso",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "tactical_systems"
     },
     "tactical_legs": {
         "name": "Tactical Pants",
@@ -213,7 +219,8 @@
         "output": "tactical_legs",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "tactical_systems"
     },
     "tactical_feet": {
         "name": "Tactical Boots",
@@ -221,71 +228,8 @@
         "output": "tactical_feet",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
-    },
-    "stealth_head": {
-        "name": "Stealth Helmet",
-        "description": "Signal-dampening helmet that reduces detection by electronic sensors.",
-        "output": "stealth_head",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "stealth_torso": {
-        "name": "Stealth Vest",
-        "description": "Micro-fiber vest that absorbs radar and reduces thermal signature.",
-        "output": "stealth_torso",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "stealth_legs": {
-        "name": "Stealth Pants",
-        "description": "Sound-dampening leg armor for silent infiltration.",
-        "output": "stealth_legs",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "stealth_feet": {
-        "name": "Stealth Boots",
-        "description": "Virtually silent boots engineered for covert operations.",
-        "output": "stealth_feet",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "heat_resistant_head": {
-        "name": "Heat Resistant Helmet",
-        "description": "Ceramic-lined helmet that insulates against extreme heat.",
-        "output": "heat_resistant_head",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "heat_resistant_torso": {
-        "name": "Heat Resistant Vest",
-        "description": "Ablative plating that dissipates thermal energy from fire and plasma.",
-        "output": "heat_resistant_torso",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "heat_resistant_legs": {
-        "name": "Heat Resistant Pants",
-        "description": "Insulated leg armor rated for volcanic environments.",
-        "output": "heat_resistant_legs",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
-    },
-    "heat_resistant_feet": {
-        "name": "Heat Resistant Boots",
-        "description": "Thermally insulated boots for high-temperature zones.",
-        "output": "heat_resistant_feet",
-        "build_time": 1,
-        "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "tactical_systems"
     },
     "heavy_head": {
         "name": "Heavy Helmet",
@@ -293,7 +237,8 @@
         "output": "heavy_head",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "reinforced_plating"
     },
     "heavy_torso": {
         "name": "Heavy Vest",
@@ -301,7 +246,8 @@
         "output": "heavy_torso",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "reinforced_plating"
     },
     "heavy_legs": {
         "name": "Heavy Pants",
@@ -309,7 +255,8 @@
         "output": "heavy_legs",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "reinforced_plating"
     },
     "heavy_feet": {
         "name": "Heavy Boots",
@@ -317,7 +264,80 @@
         "output": "heavy_feet",
         "build_time": 1,
         "cost": {},
-        "station": "basic_armor_bench"
+        "station": "basic_armor_bench",
+        "requires_tech": "reinforced_plating"
+    },
+    "stealth_head": {
+        "name": "Stealth Helmet",
+        "description": "Signal-dampening helmet that reduces detection by electronic sensors.",
+        "output": "stealth_head",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "stealth_module"
+    },
+    "stealth_torso": {
+        "name": "Stealth Vest",
+        "description": "Micro-fiber vest that absorbs radar and reduces thermal signature.",
+        "output": "stealth_torso",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "stealth_module"
+    },
+    "stealth_legs": {
+        "name": "Stealth Pants",
+        "description": "Sound-dampening leg armor for silent infiltration.",
+        "output": "stealth_legs",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "stealth_module"
+    },
+    "stealth_feet": {
+        "name": "Stealth Boots",
+        "description": "Virtually silent boots engineered for covert operations.",
+        "output": "stealth_feet",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "stealth_module"
+    },
+    "heat_resistant_head": {
+        "name": "Heat Resistant Helmet",
+        "description": "Ceramic-lined helmet that insulates against extreme heat.",
+        "output": "heat_resistant_head",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "thermal_insulation"
+    },
+    "heat_resistant_torso": {
+        "name": "Heat Resistant Vest",
+        "description": "Ablative plating that dissipates thermal energy from fire and plasma.",
+        "output": "heat_resistant_torso",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "thermal_insulation"
+    },
+    "heat_resistant_legs": {
+        "name": "Heat Resistant Pants",
+        "description": "Insulated leg armor rated for volcanic environments.",
+        "output": "heat_resistant_legs",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "thermal_insulation"
+    },
+    "heat_resistant_feet": {
+        "name": "Heat Resistant Boots",
+        "description": "Thermally insulated boots for high-temperature zones.",
+        "output": "heat_resistant_feet",
+        "build_time": 1,
+        "cost": {},
+        "station": "advanced_armor_bench",
+        "requires_tech": "thermal_insulation"
     },
     "super_heavy_head": {
         "name": "Super Heavy Helmet",
@@ -325,7 +345,8 @@
         "output": "super_heavy_head",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "powered_exoskeleton"
     },
     "super_heavy_torso": {
         "name": "Super Heavy Vest",
@@ -333,7 +354,8 @@
         "output": "super_heavy_torso",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "powered_exoskeleton"
     },
     "super_heavy_legs": {
         "name": "Super Heavy Pants",
@@ -341,7 +363,8 @@
         "output": "super_heavy_legs",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "powered_exoskeleton"
     },
     "super_heavy_feet": {
         "name": "Super Heavy Boots",
@@ -349,7 +372,8 @@
         "output": "super_heavy_feet",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "powered_exoskeleton"
     },
     "radiation_head": {
         "name": "Radiation Helmet",
@@ -357,7 +381,8 @@
         "output": "radiation_head",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "radiation_shielding"
     },
     "radiation_torso": {
         "name": "Radiation Vest",
@@ -365,7 +390,8 @@
         "output": "radiation_torso",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "radiation_shielding"
     },
     "radiation_legs": {
         "name": "Radiation Pants",
@@ -373,7 +399,8 @@
         "output": "radiation_legs",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "radiation_shielding"
     },
     "radiation_feet": {
         "name": "Radiation Boots",
@@ -381,7 +408,8 @@
         "output": "radiation_feet",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "radiation_shielding"
     },
     "super_radiation_head": {
         "name": "Super Radiation Helmet",
@@ -389,7 +417,8 @@
         "output": "super_radiation_head",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "advanced_radiation_shielding"
     },
     "super_radiation_torso": {
         "name": "Super Radiation Vest",
@@ -397,7 +426,8 @@
         "output": "super_radiation_torso",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "advanced_radiation_shielding"
     },
     "super_radiation_legs": {
         "name": "Super Radiation Pants",
@@ -405,7 +435,8 @@
         "output": "super_radiation_legs",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "advanced_radiation_shielding"
     },
     "super_radiation_feet": {
         "name": "Super Radiation Boots",
@@ -413,7 +444,8 @@
         "output": "super_radiation_feet",
         "build_time": 1,
         "cost": {},
-        "station": "advanced_armor_bench"
+        "station": "advanced_armor_bench",
+        "requires_tech": "advanced_radiation_shielding"
     },
     "enviro_helmet": {
         "name": "Enviro Helmet",

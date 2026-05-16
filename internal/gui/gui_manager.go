@@ -74,14 +74,14 @@ func (gm *GUIManager) ShowColonistModal(colonist *ecs.Entity, storageItems []Sto
 	gm.hud.ShowColonistModal(colonist, storageItems)
 }
 
-func (gm *GUIManager) OpenCraftingModal(title string, recipes []crafting.Recipe, station *ecs.Entity) {
-	gm.hud.OpenCraftingModal(title, recipes, station)
+func (gm *GUIManager) OpenCraftingModal(title string, recipes, lockedRecipes []crafting.Recipe, station *ecs.Entity) {
+	gm.hud.OpenCraftingModal(title, recipes, lockedRecipes, station)
 }
 
-func (gm *GUIManager) OpenResearchModal(station *ecs.Entity, available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
-	gm.hud.OpenResearchModal(station, available, completed, inProgress, queue)
+func (gm *GUIManager) OpenResearchModal(station *ecs.Entity, available, locked, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	gm.hud.OpenResearchModal(station, available, locked, completed, inProgress, queue)
 }
 
-func (gm *GUIManager) RefreshResearchModal(available, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
-	gm.hud.RefreshResearchModal(available, completed, inProgress, queue)
+func (gm *GUIManager) RefreshResearchModal(available, locked, completed, inProgress []research.Tech, queue []ResearchQueueEntry) {
+	gm.hud.RefreshResearchModal(available, locked, completed, inProgress, queue)
 }

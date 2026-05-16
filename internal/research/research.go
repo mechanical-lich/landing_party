@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 )
 
 type Tech struct {
@@ -14,8 +15,7 @@ type Tech struct {
 	Duration         int      `json:"duration"`
 	RequiredBuilding string   `json:"required_building"`
 	RequiredInt      int      `json:"required_int"`
-	RequiresTech     string   `json:"requires_tech"`
-	Unlocks          []string `json:"unlocks"`
+	RequiresTech string `json:"requires_tech"`
 }
 
 var techs map[string]Tech
@@ -54,7 +54,7 @@ func AllTechs() map[string]Tech {
 
 // AvailableTechs returns techs that can be researched given the current known
 // tech keys. A tech is available when it isn't already known and any
-// prerequisite tech is.
+// prerequisite tech is. Results are sorted by name for stable display order.
 func AvailableTechs(knownTechs []string) []Tech {
 	known := make(map[string]bool, len(knownTechs))
 	for _, k := range knownTechs {
@@ -70,5 +70,26 @@ func AvailableTechs(knownTechs []string) []Tech {
 		}
 		result = append(result, t)
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result
+}
+
+// LockedTechs returns techs that are not yet researchable because their
+// prerequisite has not been researched. Results are sorted by name.
+func LockedTechs(knownTechs []string) []Tech {
+	known := make(map[string]bool, len(knownTechs))
+	for _, k := range knownTechs {
+		known[k] = true
+	}
+	var result []Tech
+	for _, t := range techs {
+		if known[t.Key] {
+			continue
+		}
+		if t.RequiresTech != "" && !known[t.RequiresTech] {
+			result = append(result, t)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
 }
