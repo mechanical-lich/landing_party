@@ -1,0 +1,67 @@
+{
+  "name_prefixes": ["Veil", "Ashen", "Cinder", "Hollow", "Drift", "Pale", "Umbral", "Verdant", "Iron", "Glass", "Storm", "Quiet", "Far", "Lost", "Saffron", "Gleaming", "Sable", "Wether"],
+  "name_suffixes": ["Reach", "Expanse", "Hollow", "Drift", "Verge", "Shoals", "Mire", "Steppe", "Basin", "Spire", "Hold", "Wastes", "Cradle", "Fold", "Threshold"],
+  "archetypes": [
+    {
+      "id": "temperate",
+      "kind": "planet",
+      "weight": 3,
+      "start_ok": true,
+      "maps": ["earth_like"],
+      "scenarios": ["survival", "earth_like"],
+      "tags": ["biomass", "ore"],
+      "summary": "A temperate world: breathable air, scattered ore, abundant biomass."
+    },
+    {
+      "id": "alien",
+      "kind": "planet",
+      "weight": 2,
+      "start_ok": true,
+      "maps": ["alien"],
+      "scenarios": ["alien_world", "survival"],
+      "tags": ["biomass", "hostile"],
+      "summary": "An alien biosphere — strange flora and restless fauna."
+    },
+    {
+      "id": "moon",
+      "kind": "moon",
+      "weight": 2,
+      "maps": ["moon"],
+      "scenarios": ["moon"],
+      "tags": ["ore", "radioactive"],
+      "summary": "A barren, irradiated moon. Resources lie beneath the regolith."
+    },
+    {
+      "id": "belt",
+      "kind": "asteroid_field",
+      "weight": 2,
+      "maps": ["asteroid"],
+      "scenarios": ["asteroid_field"],
+      "tags": ["ore"],
+      "summary": "A slow-tumbling belt, dense with metal-rich rock."
+    },
+    {
+      "id": "hive",
+      "kind": "planet",
+      "weight": 1,
+      "maps": ["alien", "earth_like"],
+      "scenarios": ["exterminate_xenos"],
+      "tags": ["hive", "hostile"],
+      "summary": "A world overrun by a xeno hive. Hostile on arrival."
+    },
+    {
+      "id": "derelict",
+      "kind": "station",
+      "weight": 1,
+      "maps": ["abandoned_station"],
+      "scenarios": ["abandoned_station"],
+      "tags": ["salvage"],
+      "summary": "A long-dead orbital station, dark and silent."
+    }
+  ],
+  "home": {
+    "maps": ["earth_like"],
+    "scenarios": ["earth_like"],
+    "summary": "Home. The long way back — and a colossal fuel burn to reach it."
+  }
+}

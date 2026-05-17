@@ -159,26 +159,16 @@ func addToHold(c *campaign.Campaign, blueprint string, qty int) {
 }
 
 // applyQuestReward grants a completed quest's reward: fuel/resources into the
-// ship hold, and reveals any locations (explicit reward list or a location
-// whose RevealQuest names this quest).
+// ship hold, and any new systems charted by SpawnSystems.
 func (wm *WorldManager) applyQuestReward(q *campaign.Quest) {
 	c := wm.Campaign
 	addToHold(c, "fuel", q.Reward.Fuel)
 	for bp, n := range q.Reward.Resources {
 		addToHold(c, bp, n)
 	}
-	reveal := func(id string) {
-		if loc := c.Locations[id]; loc != nil && !loc.Discovered {
-			loc.Discovered = true
-			message.AddMessage("New location discovered: " + loc.Name)
-		}
-	}
-	for _, id := range q.Reward.RevealLocations {
-		reveal(id)
-	}
-	for id, loc := range c.Locations {
-		if loc.RevealQuest == q.ID {
-			reveal(id)
+	if q.Reward.SpawnSystems > 0 {
+		for _, loc := range c.Expand(q.Reward.SpawnSystems) {
+			message.PostMessage("Mission", "New system charted: "+loc.Name)
 		}
 	}
 }
@@ -245,6 +235,21 @@ func sweepResourcesToShip(level *world.Level, colonyName string, ship *campaign.
 
 // Freeze serializes the current live level to its per-location file and records
 // view state, after sweeping resources up to the ship.
+// countLevelColonists tallies living colonists on a level (for total-wipe
+// detection recorded onto the frozen location).
+func countLevelColonists(level *world.Level) int {
+	if level == nil {
+		return 0
+	}
+	n := 0
+	for _, e := range level.Entities {
+		if e != nil && e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+			n++
+		}
+	}
+	return n
+}
+
 func (wm *WorldManager) Freeze(s *MainState) error {
 	c := wm.Campaign
 	loc := c.CurrentLocation()
@@ -260,6 +265,7 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 	loc.CameraX, loc.CameraY, loc.CameraZ = s.CameraX, s.CameraY, s.CameraZ
 	loc.BuildMode = s.buildMode
 	loc.Visited = true
+	loc.Colonists = countLevelColonists(s.level)
 
 	root := campaignRoot(c.Name)
 	if err := os.MkdirAll(root, 0755); err != nil {
@@ -352,7 +358,8 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 // handled by the caller. The Star Map stays open afterward.
 func (wm *WorldManager) Travel(locID string) error {
 	c := wm.Campaign
-	if c.Locations[locID] == nil {
+	dest := c.Locations[locID]
+	if dest == nil {
 		return fmt.Errorf("travel: unknown location %q", locID)
 	}
 	if wm.current != nil {
@@ -364,6 +371,12 @@ func (wm *WorldManager) Travel(locID string) error {
 		}
 		wm.current = nil
 	}
+	// Reaching Home ends the run in victory — no level to generate or land.
+	if dest.Kind == campaign.HomeKind {
+		c.CurrentLocationID = locID
+		c.Won = true
+		return nil
+	}
 	c.CurrentLocationID = locID
 	wm.landSet = false
 	ms, err := wm.buildParked(locID)
@@ -371,6 +384,14 @@ func (wm *WorldManager) Travel(locID string) error {
 		return err
 	}
 	wm.current = ms
+	// Travelling stirs up new contracts: 1-in-6 chance of 1d4 fresh quests
+	// (existing systems and/or newly charted ones) so the run keeps flowing.
+	if newLocs, added := c.MaybeTravelQuests(); added > 0 {
+		for _, loc := range newLocs {
+			message.PostMessage("Mission", "New system charted: "+loc.Name)
+		}
+		message.PostMessage("Mission", fmt.Sprintf("New contracts received (%d).", added))
+	}
 	return nil
 }
 

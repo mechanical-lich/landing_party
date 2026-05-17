@@ -29,7 +29,7 @@ The game uses an **ECS (Entity-Component-System)** architecture provided by `mlg
 | Campaign / overworld model | `internal/campaign/` |
 | Shared stockpile accessor | `internal/storage/` |
 | Level swap / lifecycle | `internal/game/world_manager.go` |
-| Overworld data | `data/overworld.json` |
+| Generation templates/tuning | `data/location_templates.json`, `data/quest_templates.json`, `data/generation.json` |
 | Entity blueprints | `data/blueprints/` (entities, items, structures) |
 | Build data | `data/build.json` |
 | Crafting recipes | `data/crafting_recipes.json` |

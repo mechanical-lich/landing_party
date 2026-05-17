@@ -16,18 +16,14 @@ type Location struct {
 	Visited    bool `json:"visited"`
 
 	// X, Y are the location's position on the star map. Fuel cost to travel is
-	// derived from the distance between the ship's current location and the
-	// destination (see Campaign.FuelCost). FuelCost is a legacy fallback used
-	// only when coordinates are absent.
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
-	FuelCost int     `json:"fuel_cost"`
-	Summary  string  `json:"summary"`
+	// the distance between the ship's current location and the destination
+	// (see Campaign.FuelCost).
+	X       float64 `json:"x"`
+	Y       float64 `json:"y"`
+	Summary string  `json:"summary"`
 
-	// RevealQuest, when non-empty, names the quest whose completion flips
-	// Discovered to true (Phase 2 wiring).
-	RevealQuest string `json:"reveal_quest,omitempty"`
-	// QuestTag is an opaque marker used by quest setup scripts.
+	// QuestTag carries the location's first archetype tag, used to match
+	// tag-gated quest templates posted to an existing system.
 	QuestTag string `json:"quest_tag,omitempty"`
 
 	// SaveFile is "" until the location has been visited and frozen; once set
@@ -41,4 +37,8 @@ type Location struct {
 	CameraY   int    `json:"camera_y,omitempty"`
 	CameraZ   int    `json:"camera_z,omitempty"`
 	BuildMode string `json:"build_mode,omitempty"`
+
+	// Colonists is the number of living colonists left here, recorded on
+	// Freeze. Used for campaign-wide total-wipe detection.
+	Colonists int `json:"colonists,omitempty"`
 }

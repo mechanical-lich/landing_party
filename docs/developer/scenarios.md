@@ -1,6 +1,6 @@
 # Scenarios — Developer Guide
 
-Scenarios are defined as JSON files in `data/scenarios/`. Each file configures spawn rules, win/loss conditions, and world parameters for one game mode. Scenarios are no longer selected at game start — each overworld location binds a `scenario_id` (and `map_id`); travelling there loads that scenario. See [Campaign & Overworld](campaign.md) and `data/overworld.json`.
+Scenarios are defined as JSON files in `data/scenarios/`. Each file configures spawn rules, win/loss conditions, and world parameters for one game mode. Scenarios are no longer selected at game start — the procedural generator binds each generated system to a `scenario_id` (and `map_id`) via `data/location_templates.json`; travelling there loads that scenario. See [Campaign & Overworld](campaign.md).
 
 ---
 
@@ -33,7 +33,7 @@ Scenarios are defined as JSON files in `data/scenarios/`. Each file configures s
 | `world` | object | Optional world generation config: biome map and feature placement (see below) |
 
 > Scenarios no longer define win/loss conditions. The old `win_conditions`
-> block was removed; objectives now live in `data/quests.json` and use the
+> block was removed; objectives are procedurally generated quests using the
 > shared condition engine in `internal/objective` (see
 > [Campaign & Overworld](campaign.md)).
 
@@ -118,8 +118,8 @@ Features can also be defined per-biome inside the biome JSON; those run for any 
 
 Scenarios no longer carry win/loss rules. The rule engine that used to live in
 `internal/wincondition` is now `internal/objective` (a generic condition
-engine, no win/lose framing) and is consumed by **quests** in
-`data/quests.json`. A quest's `objective` is one `objective.Rule` using the
+engine, no win/lose framing) and is consumed by procedurally generated
+**quests**. A quest's `objective` is one `objective.Rule` using the
 same triggers (`days_survived`, `resource_gathered`, `entity_killed`,
 `tech_researched`, `structure_built`, …). See
 [Campaign & Overworld](campaign.md) for the quest schema and lifecycle.
@@ -176,4 +176,4 @@ endfunction
 3. Add entries to `spawn_rules` for each entity type you want to appear during gameplay.
 4. (Optional) Add a `world` block selecting biomes and listing one-time features.
 5. Add a setup script in `data/scripts/scenarios/<id>_setup.basic` for starting structures and colonists, then list it in `setup_scripts`.
-6. Bind the scenario to a Star Map location in `data/overworld.json` (`scenario_id`); add quests in `data/quests.json` for any objectives.
+6. Add the scenario's `id` to a `data/location_templates.json` archetype's `scenarios` pool so the generator can bind systems to it; add matching `data/quest_templates.json` entries for any objectives.

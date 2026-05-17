@@ -1,6 +1,6 @@
 # Scenarios
 
-A scenario sets the world type, starting equipment, hostile pressure, and win/loss conditions. Scenarios are no longer chosen from a menu — each **Star Map location** is bound to a map + scenario (see `data/overworld.json` and [The Ship & the Star Map](star_map.md)). Travel to a location to play its scenario; the descriptions below cover the scenarios the default overworld uses.
+A scenario sets the world type, starting equipment, and hostile pressure. Scenarios are no longer chosen from a menu — each **procedurally generated system** is bound to a map + scenario (see [The Ship & the Star Map](star_map.md)). Travel to a system to play its scenario; the descriptions below cover the scenarios the generator draws from.
 
 ---
 

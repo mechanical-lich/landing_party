@@ -1,0 +1,22 @@
+{
+  "home_radius": 220,
+
+  "start_fuel": 400,
+  "start_colonists": 6,
+  "roster_cap": 12,
+
+  "nearby_min": 2,
+  "nearby_max": 3,
+  "nearby_radius_min": 9,
+  "nearby_radius_max": 27,
+
+  "travel_quest_one_in": 6,
+  "travel_quest_max": 4,
+  "contract_one_in": 3,
+  "new_system_one_in": 3,
+
+  "expansion_gap_min": 18,
+  "expansion_gap_rand": 32,
+  "home_cap_frac": 0.9,
+  "angle_jitter": 1.1
+}

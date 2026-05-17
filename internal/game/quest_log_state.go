@@ -169,8 +169,8 @@ func questRewardText(def *campaign.Quest) string {
 	for bp, n := range def.Reward.Resources {
 		parts = append(parts, fmt.Sprintf("%d %s", n, bp))
 	}
-	for _, id := range def.Reward.RevealLocations {
-		parts = append(parts, "reveal "+id)
+	if def.Reward.SpawnSystems > 0 {
+		parts = append(parts, "charts new space")
 	}
 	out := ""
 	for i, p := range parts {

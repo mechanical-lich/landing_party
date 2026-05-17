@@ -4,10 +4,10 @@ import "testing"
 
 func newTestEval() *Evaluator {
 	return New(RuleSet{Rules: []Rule{
-		{ID: "survive", Trigger: TriggerDaysSurvived, Op: "gte", Threshold: 30, Message: "win"},
-		{ID: "wiped", Trigger: TriggerColonistEliminated, Op: "eq", Threshold: 0, Message: "lose"},
-		{ID: "hoard", Trigger: TriggerResourceGathered, Resource: "metal_ore", Op: "gte", Threshold: 100, Message: "rich"},
-		{ID: "purge", Trigger: TriggerEntityKilled, Blueprint: "alien_egg", Op: "lte", Threshold: 0, Message: "cleared"},
+		{ID: "survive", Trigger: TriggerDaysSurvived, Op: "gte", Threshold: 30},
+		{ID: "wiped", Trigger: TriggerColonistEliminated, Op: "eq", Threshold: 0},
+		{ID: "hoard", Trigger: TriggerResourceGathered, Resource: "metal_ore", Op: "gte", Threshold: 100},
+		{ID: "purge", Trigger: TriggerEntityKilled, Blueprint: "alien_egg", Op: "lte", Threshold: 0},
 	}})
 }
 

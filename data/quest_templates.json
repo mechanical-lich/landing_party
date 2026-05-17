@@ -1,0 +1,72 @@
+{
+  "templates": [
+    {
+      "id": "gather_ore",
+      "weight": 3,
+      "requires_tag": "ore",
+      "name": "Ore Run",
+      "desc": "Mine and stockpile %n metal ore.",
+      "trigger": "resource_gathered",
+      "resource": "metal_ore",
+      "min": 20,
+      "max": 60,
+      "reward_fuel_per": 1
+    },
+    {
+      "id": "gather_biomass",
+      "weight": 2,
+      "requires_tag": "biomass",
+      "name": "Harvest Run",
+      "desc": "Gather and stockpile %n biomass.",
+      "trigger": "resource_gathered",
+      "resource": "biomass",
+      "min": 20,
+      "max": 50,
+      "reward_fuel_per": 1
+    },
+    {
+      "id": "refine_fuel",
+      "weight": 2,
+      "name": "Fuel Up",
+      "desc": "Refine and stockpile %n fuel cells.",
+      "trigger": "resource_gathered",
+      "resource": "fuel",
+      "min": 15,
+      "max": 35,
+      "reward_fuel_per": 0,
+      "reward_resources": { "biomass": 8 }
+    },
+    {
+      "id": "purge",
+      "weight": 2,
+      "spawn_archetype": "hive",
+      "name": "Distress Call",
+      "desc": "A colony is overrun. Make planetfall and destroy every xeno — eggs and all life stages.",
+      "trigger": "entity_killed",
+      "blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3"],
+      "reward_fuel_flat": 35,
+      "reward_resources": { "crystal": 5 },
+      "spawn_systems": 1
+    },
+    {
+      "id": "research",
+      "weight": 1,
+      "name": "Field Research",
+      "desc": "Research %tech at a research lab.",
+      "trigger": "tech_researched",
+      "tech_pool": ["basic_metallurgy", "advanced_metallurgy", "combat_armor", "reinforced_plating"],
+      "reward_fuel_flat": 20,
+      "spawn_systems": 1
+    },
+    {
+      "id": "outpost",
+      "weight": 1,
+      "name": "Establish an Outpost",
+      "desc": "Build a research lab to chart nearby space.",
+      "trigger": "structure_built",
+      "structure": "research_lab",
+      "reward_fuel_flat": 15,
+      "spawn_systems": 2
+    }
+  ]
+}

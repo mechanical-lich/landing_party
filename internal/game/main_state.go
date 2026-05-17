@@ -715,7 +715,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			if err := s.wm.SaveCampaign(s); err != nil {
 				log.Printf("campaign save failed: %v", err)
 			} else {
-				message.AddMessage("Expedition saved.")
+				message.PostMessage("Mission", "Expedition saved.")
 			}
 			return nil
 		}
@@ -1194,7 +1194,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 func (s *MainState) beamUpSelected() {
 	e := s.selectedEntity
 	if e == nil || !e.HasComponent(components.Worker) {
-		message.AddMessage("Select a colonist to beam up.")
+		message.PostMessage("Ship", "Select a colonist to beam up.")
 		return
 	}
 	if e.HasComponent(components.Worker) {
@@ -1205,13 +1205,13 @@ func (s *MainState) beamUpSelected() {
 		wc.CurrentTask = nil
 	}
 	if err := campaign.BeamUp(s.level, s.campaign.Ship, e); err != nil {
-		message.AddMessage(err.Error())
+		message.PostMessage("Ship", err.Error())
 		return
 	}
 	if s.selectedEntity == e {
 		s.selectedEntity = nil
 	}
-	message.AddMessage("Colonist beamed up to the ship.")
+	message.PostMessage("Ship", "Colonist beamed up to the ship.")
 }
 
 // openStarMap parks the live location (keeps it in memory, detaches its event
@@ -1772,9 +1772,9 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 	colonistPop := 0
 	entityCounts := map[string]int{}
 	resourceCounts := map[string]int{}
-	for _, e := range s.level.Entities {
-		if e.HasComponent(rlcomponents.Dead) {
-			continue
+	accumulate := func(e *ecs.Entity) {
+		if e == nil || e.HasComponent(rlcomponents.Dead) {
+			return
 		}
 		if e.HasComponent(components.Worker) {
 			colonistPop++
@@ -1793,6 +1793,15 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 				}
 			}
 		}
+	}
+	// Built structures (research lab, workbenches, storage lockers) live in
+	// StaticEntities — scan both so structure_built / resource objectives see
+	// them.
+	for _, e := range s.level.Entities {
+		accumulate(e)
+	}
+	for _, e := range s.level.StaticEntities {
+		accumulate(e)
 	}
 	var knownTechs []string
 	if s.MainSettlement != nil {
@@ -1833,8 +1842,37 @@ func (s *MainState) evaluateQuests() {
 		if s.wm != nil {
 			s.wm.applyQuestReward(q)
 		}
-		message.AddMessage("Quest complete: " + q.Name)
+		msg := "Quest complete: " + q.Name
+		if r := questRewardText(q); r != "" {
+			msg += "  (reward: " + r + ")"
+		}
+		message.PostMessage("Mission", msg)
 	}
+	s.checkTotalWipe()
+}
+
+// checkTotalWipe ends the run in defeat if no colonists remain anywhere — none
+// on the live level, none in the ship roster, none left on any frozen system.
+func (s *MainState) checkTotalWipe() {
+	c := s.campaign
+	if c == nil || c.Lost || c.Won {
+		return
+	}
+	stored := c.StoredColonists()
+	if cur := c.CurrentLocation(); cur != nil {
+		stored -= cur.Colonists // replace this location's stale tally with live
+	}
+	if stored < 0 {
+		stored = 0
+	}
+	if stored+countLevelColonists(s.level) > 0 {
+		return
+	}
+	c.Lost = true
+	message.PostMessage("Mission", "All colonists are lost. The expedition ends here.")
+	s.teardown()
+	s.next = NewCampaignEndState(false, "No colonists remained to carry on.")
+	s.done = true
 }
 
 func (s *MainState) drawTasks(screen *ebiten.Image) {

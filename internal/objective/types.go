@@ -32,8 +32,8 @@ type EntityCount struct {
 	Value     int    `json:"value"`
 }
 
-// Rule is a single objective condition. (The former Result/Outcome win/lose
-// fields were removed; an optional Message can still annotate a rule.)
+// Rule is a single objective condition. (The former Result/Outcome/Message
+// win-condition fields were removed; quests carry their own Name/Description.)
 type Rule struct {
 	ID         string      `json:"id"`
 	Trigger    TriggerType `json:"trigger"`
@@ -49,7 +49,6 @@ type Rule struct {
 	Threshold  int         `json:"threshold,omitempty"`
 	Op         string      `json:"op,omitempty"`
 	When       []Condition `json:"when,omitempty"`
-	Message    string      `json:"message,omitempty"`
 }
 
 type RuleSet struct {

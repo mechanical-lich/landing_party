@@ -99,5 +99,25 @@ Active quests and a completed count also show in the in-game **Goals** tab.
 Objectives are evaluated continuously while you play a location, so a quest
 completes within moments of you meeting it.
 
-> The bio-printer (growing new colonists from biomass) and procedural
-> lore/location variety are still planned but not yet implemented.
+## The journey home
+
+Every expedition is **procedurally generated** from its seed. You start
+stranded at a random system with a couple of nearby systems and **Home**
+visible far across the map — its fuel cost is enormous because it's so distant.
+
+There is no fixed length. Completing certain quests **charts new systems**
+(closer to Home), and **every jump has a chance to turn up fresh contracts**
+(for known systems or newly charted ones) — so simply keeping on the move
+keeps work and progress flowing. The loop:
+
+1. Work the systems you can reach — quests pay **fuel** and resources.
+2. Hop outward; each system you reach is a new staging point, and the
+   remaining jump to Home shrinks as you close the distance.
+3. When you can finally afford the Home jump, **Travel** there to win.
+
+Lose condition: a **total wipe** — no colonists left anywhere (none planetside,
+none in the ship roster, none on any established system). Until the bio-printer
+exists, the starting crew is all you get, so don't lose them all.
+
+> Still planned: the bio-printer (growing new colonists from biomass) and
+> deeper authored lore on top of the generator.

@@ -16,35 +16,52 @@ type Campaign struct {
 	Locations         map[string]*Location `json:"locations"`
 	Ship              *ShipState           `json:"ship"`
 	Day               int                  `json:"day"`
-	// Quests holds per-quest progress (status). Quest definitions themselves
-	// are data-driven and re-attached each session (see AttachQuestDefs).
+	// Quests holds per-quest progress (status).
 	Quests map[string]*QuestProgress `json:"quests,omitempty"`
+	// QuestDefs are the campaign's generated quest definitions, persisted here
+	// (the procedural overworld is not re-derivable from a static file).
+	// Bound at session start via BindQuests.
+	QuestDefs []Quest `json:"quest_defs,omitempty"`
+	// GenSeq counts dynamic-generation events; combined with Seed it makes
+	// every expansion deterministic and reproducible across save/load.
+	GenSeq int `json:"gen_seq,omitempty"`
+	// TravelSeq counts jumps; it advances the per-travel quest roll every
+	// jump (even on a miss) so the 1d6 chance actually varies, while staying
+	// deterministic and persisted.
+	TravelSeq int `json:"travel_seq,omitempty"`
+	// Won/Lost are terminal campaign states (reached Home / total wipe).
+	Won  bool `json:"won,omitempty"`
+	Lost bool `json:"lost,omitempty"`
 
-	questDefs []Quest                              `json:"-"`
-	questByID map[string]*Quest                    `json:"-"`
-	questEval map[string]*objective.Evaluator   `json:"-"`
+	questByID map[string]*Quest               `json:"-"`
+	questEval map[string]*objective.Evaluator `json:"-"`
 }
 
-// NewCampaign builds a fresh campaign from the data-driven overworld
-// definition. The first discovered location is the starting location.
-func NewCampaign(name string, seed int64, defs []Location, rosterCap int) *Campaign {
-	c := &Campaign{
-		Name:      name,
-		Seed:      seed,
-		Locations: make(map[string]*Location, len(defs)),
-		Ship:      NewShipState(rosterCap),
-	}
-	for i := range defs {
-		loc := defs[i]
-		if loc.Seed == 0 {
-			loc.Seed = seed + int64(i+1)
-		}
-		c.Locations[loc.ID] = &loc
-		if c.CurrentLocationID == "" && loc.Discovered {
-			c.CurrentLocationID = loc.ID
+// HomeKind marks the single "Home" destination; travelling there wins the run.
+const HomeKind = "home"
+
+// HomeLocation returns the Home destination descriptor, or nil.
+func (c *Campaign) HomeLocation() *Location {
+	for _, loc := range c.Locations {
+		if loc.Kind == HomeKind {
+			return loc
 		}
 	}
-	return c
+	return nil
+}
+
+// StoredColonists totals colonists not on the live level: the ship roster plus
+// the recorded count left on every (frozen) location. The caller adds live
+// colonists on the active level to decide a total wipe.
+func (c *Campaign) StoredColonists() int {
+	n := 0
+	if c.Ship != nil {
+		n += len(c.Ship.Roster)
+	}
+	for _, loc := range c.Locations {
+		n += loc.Colonists
+	}
+	return n
 }
 
 // CurrentLocation returns the descriptor for the location the landing party is
@@ -57,22 +74,18 @@ func (c *Campaign) CurrentLocation() *Location {
 }
 
 // FuelCost returns the fuel needed to travel from the ship's current location
-// to toID: zero if it is the current location, otherwise the star-map distance
-// (rounded). Falls back to the static FuelCost when coordinates are absent.
+// to toID: zero if it is the current location, otherwise the rounded star-map
+// distance between them.
 func (c *Campaign) FuelCost(toID string) int {
 	to := c.Locations[toID]
-	if to == nil {
-		return 0
-	}
-	if toID == c.CurrentLocationID {
+	if to == nil || toID == c.CurrentLocationID {
 		return 0
 	}
 	from := c.Locations[c.CurrentLocationID]
-	if from == nil || (from.X == 0 && from.Y == 0 && to.X == 0 && to.Y == 0) {
-		return to.FuelCost
+	if from == nil {
+		return 0
 	}
-	d := math.Hypot(to.X-from.X, to.Y-from.Y)
-	return int(math.Round(d))
+	return int(math.Round(math.Hypot(to.X-from.X, to.Y-from.Y)))
 }
 
 // DiscoveredLocations returns all locations the player can currently see on the

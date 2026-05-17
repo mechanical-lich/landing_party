@@ -247,6 +247,11 @@ func (o *OverworldState) travel() {
 			map[string]int{"fuel": cost},
 		)
 	}
+	if o.campaign.Won {
+		o.next = NewCampaignEndState(true, fmt.Sprintf("The colonists are home at last. (Day %d)", o.campaign.Day))
+		o.done = true
+		return
+	}
 	if relocating {
 		o.status = fmt.Sprintf("In orbit over %s. Beam colonists down, then Resume / Land.", loc.Name)
 	}

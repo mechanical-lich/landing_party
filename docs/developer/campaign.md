@@ -13,26 +13,26 @@ rest are paused (serialized to disk or parked in memory).
 | Shared stockpile accessor | `internal/storage/` |
 | Level swap / lifecycle | `internal/game/world_manager.go` |
 | Star Map UI | `internal/game/overworld_state.go` |
-| Overworld data | `data/overworld.json` |
+| Generation templates | `data/location_templates.json`, `data/quest_templates.json` |
+| Generation tuning | `data/generation.json` |
 
 ### `internal/campaign`
 
 - `Campaign` — `Name`, `Seed`, `CurrentLocationID`, `Locations map[string]*Location`,
-  `Ship *ShipState`, `Day`. `NewCampaign` builds it from the loaded overworld
-  defs; `FuelCost(toID)` returns the rounded star-map distance from the current
-  location (0 if it *is* current; falls back to the static `FuelCost` only when
-  coordinates are absent).
+  `Ship *ShipState`, `Day`, persisted `QuestDefs`, `GenSeq`, `TravelSeq`,
+  `Won`/`Lost`. Built by `GenerateCampaign` (procedural; there is no static
+  constructor). `FuelCost(toID)` is the rounded star-map distance from the
+  current location (0 if it *is* current).
 - `Location` — a **descriptor**, never holds a `*world.Level`. Holds the
   generation recipe (`MapID`, `ScenarioID`, `Seed`), star-map `X`/`Y`,
-  discovery/visited flags, the per-location `SaveFile` (set once frozen), and
-  cached view state (`CameraX/Y/Z`, `BuildMode`).
+  discovery/visited flags, `QuestTag`, `Colonists` (frozen-wipe tally), the
+  per-location `SaveFile` (set once frozen), and cached view state
+  (`CameraX/Y/Z`, `BuildMode`).
 - `ShipState` — `Hold []*world.SaveEntity` (a `StorageComponent` container
   owned by the synthetic `ShipSettlementName` = `"ship"`), `Roster
   []*world.SaveEntity` (aboard colonists), `RosterCap`. `LiveHold()` lazily
   rebuilds the hold into mutable entities; `Sync()` flushes them back before a
   save. The hold/roster never enter a per-location level save.
-- `LoadOverworldDefs(path)` — reads `data/overworld.json` (mirrors the
-  `mapdef`/`scenario` loaders).
 - `BeamUp` / `OpenToSky` — roster transfer + the "no beaming through ground"
   rule (clear column above, no ceiling).
 
@@ -115,74 +115,78 @@ live component structs, which plain `RebuildEntity` cannot decode. Use
 `world.RebuildLiveEntity` (JSON marshal → unmarshal → rebuild) for anything
 reconstructed from the ship — beaming and `LiveHold` both do.
 
-## `data/overworld.json`
-
-```json
-{
-  "locations": [
-    {
-      "id": "wreck_site",
-      "name": "Crash Site",
-      "kind": "planet",
-      "map_id": "earth_like",      // reuses data/maps/*.json
-      "scenario_id": "survival",   // reuses data/scenarios/*.json
-      "x": 0, "y": 0,              // star-map position (drives fuel cost)
-      "fuel_cost": 0,              // legacy fallback when x/y absent
-      "discovered": true,          // false = hidden until a quest reveals it
-      "summary": "...",
-      "reveal_quest": "decode_signal" // optional: quest whose completion reveals this
-    }
-  ]
-}
-```
-
-`map_id`/`scenario_id` flow through the unchanged `generation.BuildWorld`
-pipeline. The first `discovered` location is the campaign start.
-
 ## Quests / objectives
 
-The old scenario win/loss system was removed. The generic condition engine
-(`TriggerType`, `Rule`, `Evaluator`, `EvalContext`) now lives in
-`internal/objective` (no win/lose framing). Quests are the only consumer.
+The generic condition engine (`TriggerType`, `Rule`, `Evaluator`,
+`EvalContext`) lives in `internal/objective` (no win/lose framing). Quests are
+the only consumer.
 
-- `internal/campaign/quest.go` — `Quest` (data-driven, its `Objective` is one
-  `objective.Rule`), `QuestReward`, `QuestProgress` (serialized status:
-  hidden/available/active/completed), `QuestStatus`. `LoadQuestDefs` reads
-  `data/quests.json`; `AttachQuestDefs` binds defs each session and reconciles
-  saved progress (a persistent per-quest `objective.Evaluator` is kept so
-  "kill all" objectives retain their seen-entity history).
-- Lifecycle: `AcceptQuest` (available→active), `EvaluateQuests(ctx)` (active
-  objectives → completed, unlocks `requires_quest` dependents, `auto_accept`).
-- Evaluation is driven from `MainState.evaluateQuests` on the periodic
-  `tick%30` refresh (decoupled from the old day-tick), building the shared
-  `buildEvalContext` and merging ship-hold resource counts so
-  gather/deliver objectives see the campaign-wide stockpile.
+- `internal/campaign/quest.go` — `Quest` (its `Objective` is one
+  `objective.Rule`; `Reward` = fuel/resources/`spawn_systems`; optional
+  `RequiresQuest`, `Location`, `AutoAccept`), `QuestProgress` (serialized
+  status: hidden/available/active/completed). `BindQuests` rebuilds runtime
+  indices each session from the persisted `QuestDefs` and reconciles saved
+  progress (a persistent per-quest `objective.Evaluator` is kept so "kill all"
+  objectives retain their seen-entity history).
+- Lifecycle: `AcceptQuest` (available→active, reveals a bound `Location`),
+  `EvaluateQuests(ctx)` (active objectives → completed, unlocks
+  `requires_quest` dependents, `auto_accept`).
+- Evaluation runs from `MainState.evaluateQuests` on the periodic `tick%30`
+  refresh, building the shared `buildEvalContext` and merging ship-hold
+  resource counts so gather/deliver objectives see the campaign-wide stockpile.
 - Rewards: `WorldManager.applyQuestReward` adds fuel/resources to the ship
-  hold and reveals locations (explicit `reward.reveal_locations` or any
-  location whose `reveal_quest` names the quest).
+  hold and charts new systems for `spawn_systems`.
 - UI: `QuestLogState` (opened from the Star Map) lists offered/active/
   completed with an Accept action; active quests also surface in the in-game
   Goals tab.
 
-`data/quests.json`:
+## Procedural campaign generation
 
-```json
-{
-  "quests": [
-    {
-      "id": "decode_signal",
-      "name": "Decode the Distress Signal",
-      "description": "Build a research lab ...",
-      "requires_quest": "study_metallurgy",
-      "auto_accept": true,
-      "objective": { "trigger": "structure_built", "structure": "research_lab" },
-      "reward": { "fuel": 25, "reveal_locations": ["derelict_station"] }
-    }
-  ]
-}
-```
+Campaigns are **fully procedural** — there is no static overworld/quest file
+and no static fallback. Generation (`internal/campaign/generate.go`) is driven
+by data templates + a tuning file:
 
-## Not yet implemented (Phase 2)
+- **Templates:** `data/location_templates.json` (archetypes: kind, candidate
+  `map_id`/`scenario_id` pools, tags, name prefix/suffix pools, summary; plus a
+  `home` block) and `data/quest_templates.json` (parameterised objectives with
+  amount ranges, reward formulas, `requires_tag`, `spawn_systems`, and
+  `spawn_archetype` for self-locating "contract" quests).
+- **Tuning:** `data/generation.json` → `campaign.GenConfig` (`genConfig()`,
+  cached; defaults if the file/fields are absent). Holds `home_radius`,
+  `start_fuel`/`start_colonists`/`roster_cap`, nearby count/radius,
+  `travel_quest_one_in`/`_max`, `contract_one_in`, `new_system_one_in`, and
+  expansion placement knobs. `campaign.GenerationConfig()` exposes it.
+- **`GenerateCampaign(name, seed)`** builds: a far, **visible `Home`**
+  (`Kind == HomeKind`) at `home_radius` so its distance-priced fuel cost is
+  huge; a **start** system at the origin; `nearby_min..max` nearby systems;
+  1–2 quests per system from tag-compatible templates; and one opening
+  contract. Everything derives from `seed`.
+- **Persistence:** generated quests live in `Campaign.QuestDefs` (serialized);
+  generated locations are in `Campaign.Locations`. `GenSeq`/`TravelSeq` count
+  generation/jump events. Loading a save **replays** the persisted data and
+  `BindQuests()` rebuilds runtime indices/evaluators — content is never
+  re-derived.
+- **Progressive expansion:** a quest reward with `spawn_systems > 0` calls
+  `Campaign.Expand(n)` on completion — seeded by `Seed + GenSeq`, it charts new
+  systems marching the frontier toward Home (`placeTowardHome`), appends their
+  quests, bumps `GenSeq`, and re-binds. The overworld grows as you play.
+- **Travel roll:** every actual jump (`WorldManager.Travel` to a non-Home
+  system) calls `Campaign.MaybeTravelQuests` — a **1-in-6** chance to generate
+  **1d4** quests, each bound to a random discovered system or a freshly charted
+  one. `TravelSeq` (persisted, incremented every jump) feeds the RNG so the
+  roll varies per jump even on a miss while staying deterministic. This keeps
+  the run from stalling as long as the player keeps moving, independent of
+  `spawn_systems` quests.
+- **Win:** `WorldManager.Travel` to the Home location sets `Campaign.Won`
+  (no level is generated/landed); `OverworldState` shows the victory screen.
+- **Lose:** `MainState.checkTotalWipe` (each quest tick) ends the run if no
+  colonists remain anywhere — none live on the level, none in the ship roster,
+  none recorded on any frozen system (`Location.Colonists`, written on Freeze;
+  `Campaign.StoredColonists`). Both end states route to `CampaignEndState`.
 
-- Bio-printer (grow new roster colonists from biomass).
-- Procedural lore / location variety.
+## Not yet implemented
+
+- Bio-printer (grow new roster colonists from biomass) — until then the
+  total-wipe loss is the only fail state and there's no way to replenish crew
+  beyond the starting roster.
+- Richer lore / quest-chain authoring on top of the generator.

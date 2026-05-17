@@ -1,10 +1,6 @@
 package campaign
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
 
@@ -19,11 +15,14 @@ const (
 )
 
 // QuestReward is granted when a quest completes. Fuel and Resources are added
-// to the ship hold; RevealLocations are made visible on the star map.
+// to the ship hold.
 type QuestReward struct {
-	Fuel            int            `json:"fuel,omitempty"`
-	Resources       map[string]int `json:"resources,omitempty"`
-	RevealLocations []string       `json:"reveal_locations,omitempty"`
+	Fuel      int            `json:"fuel,omitempty"`
+	Resources map[string]int `json:"resources,omitempty"`
+	// SpawnSystems, when > 0, procedurally generates that many new systems
+	// (each with its own quests) on completion — the campaign expands as the
+	// player explores. Deterministic via Campaign.GenSeq.
+	SpawnSystems int `json:"spawn_systems,omitempty"`
 }
 
 // Quest is a data-driven objective. Objective reuses the internal/objective
@@ -48,40 +47,24 @@ type QuestProgress struct {
 	Status QuestStatus `json:"status"`
 }
 
-type questFile struct {
-	Quests []Quest `json:"quests"`
-}
-
-// LoadQuestDefs reads the data-driven quest definitions.
-func LoadQuestDefs(path string) ([]Quest, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("campaign.LoadQuestDefs: %w", err)
-	}
-	var f questFile
-	if err := json.Unmarshal(data, &f); err != nil {
-		return nil, fmt.Errorf("campaign.LoadQuestDefs: %w", err)
-	}
-	return f.Quests, nil
-}
-
-// AttachQuestDefs binds runtime quest definitions to the campaign and
-// reconciles the (serialized) progress map: new quests are added at their
-// starting status, existing progress is preserved.
-func (c *Campaign) AttachQuestDefs(defs []Quest) {
-	c.questDefs = defs
-	c.questByID = make(map[string]*Quest, len(defs))
-	c.questEval = make(map[string]*objective.Evaluator, len(defs))
-	for i := range c.questDefs {
-		q := &c.questDefs[i]
+// BindQuests (re)builds the runtime quest indices/evaluators from
+// c.QuestDefs and reconciles the serialized progress map: new quests get
+// their starting status, existing progress is preserved, prerequisite gating
+// is re-validated, and accepted/active quests keep their location revealed.
+// Call once per session after QuestDefs is populated (generated or loaded).
+func (c *Campaign) BindQuests() {
+	c.questByID = make(map[string]*Quest, len(c.QuestDefs))
+	c.questEval = make(map[string]*objective.Evaluator, len(c.QuestDefs))
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
 		c.questByID[q.ID] = q
 		c.questEval[q.ID] = objective.New(objective.RuleSet{Rules: []objective.Rule{q.Objective}})
 	}
 	if c.Quests == nil {
-		c.Quests = make(map[string]*QuestProgress, len(defs))
+		c.Quests = make(map[string]*QuestProgress, len(c.QuestDefs))
 	}
-	for i := range defs {
-		q := &defs[i]
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
 		if _, ok := c.Quests[q.ID]; ok {
 			continue
 		}
@@ -91,10 +74,9 @@ func (c *Campaign) AttachQuestDefs(defs []Quest) {
 	// progress and current definitions — a quest may have gained/changed a
 	// requires_quest, or a save predates it.
 	c.reconcileQuestGates()
-	// Any quest already accepted/active keeps its location revealed (e.g.
-	// loading a save, or auto-accepted located quests).
-	for i := range c.questDefs {
-		q := &c.questDefs[i]
+	// Any quest already accepted/active keeps its location revealed.
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
 		if p := c.Quests[q.ID]; p != nil && (p.Status == QuestActive || p.Status == QuestCompleted) {
 			c.revealQuestLocation(q)
 		}
@@ -110,10 +92,10 @@ func (c *Campaign) AttachQuestDefs(defs []Quest) {
 //
 // Completed quests are never downgraded.
 func (c *Campaign) reconcileQuestGates() {
-	for pass := 0; pass < len(c.questDefs)+1; pass++ {
+	for pass := 0; pass < len(c.QuestDefs)+1; pass++ {
 		changed := false
-		for i := range c.questDefs {
-			q := &c.questDefs[i]
+		for i := range c.QuestDefs {
+			q := &c.QuestDefs[i]
 			if q.RequiresQuest == "" {
 				continue
 			}
@@ -172,8 +154,8 @@ func (c *Campaign) QuestDef(id string) *Quest {
 
 func (c *Campaign) questsByStatus(status QuestStatus) []*Quest {
 	var out []*Quest
-	for i := range c.questDefs {
-		q := &c.questDefs[i]
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
 		if p := c.Quests[q.ID]; p != nil && p.Status == status {
 			out = append(out, q)
 		}
@@ -230,8 +212,8 @@ func (c *Campaign) EvaluateQuests(ctx objective.EvalContext) []*Quest {
 		return nil
 	}
 	// Unlock quests gated on the ones that just completed.
-	for i := range c.questDefs {
-		q := &c.questDefs[i]
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
 		p := c.Quests[q.ID]
 		if p == nil || p.Status != QuestHidden || q.RequiresQuest == "" {
 			continue

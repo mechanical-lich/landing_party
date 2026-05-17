@@ -156,7 +156,7 @@ func (ts *TitleState) confirmLoad() {
 		ts.screen = screenMain
 		return
 	}
-	attachQuests(c)
+	c.BindQuests()
 	wm := NewWorldManager(c)
 	ts.next = NewOverworldState(c, wm)
 	ts.done = true
@@ -347,33 +347,20 @@ func (ts *TitleState) startNewSettlement() {
 	ts.done = true
 }
 
-const overworldDefPath = "data/overworld.json"
-const questDefPath = "data/quests.json"
-const defaultRosterCap = 12
-
-// attachQuests loads quest definitions and binds them to the campaign,
-// reconciling against any saved progress. Best-effort: a missing/invalid
-// quests file just means no quests.
-func attachQuests(c *campaign.Campaign) {
-	if defs, err := campaign.LoadQuestDefs(questDefPath); err == nil {
-		c.AttachQuestDefs(defs)
-	}
-}
-
-// StartNewExpedition builds a fresh campaign from the data-driven overworld and
-// opens the Star Map — the colonists begin aboard the ship in space, not on a
-// planet. The player picks where to make planetfall.
+// StartNewExpedition generates a fully procedural campaign (start system,
+// nearby systems, a far-off visible Home) and opens the Star Map — the
+// colonists begin aboard the ship in space.
 func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
-	defs, err := campaign.LoadOverworldDefs(overworldDefPath)
+	c, err := campaign.GenerateCampaign(name, seed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("generate campaign: %w", err)
 	}
-	c := campaign.NewCampaign(name, seed, defs, defaultRosterCap)
 	if c.CurrentLocationID == "" {
-		return nil, fmt.Errorf("overworld has no starting (discovered) location")
+		return nil, fmt.Errorf("campaign has no starting location")
 	}
-	SeedNewCampaign(c, 6, 40)
-	attachQuests(c)
+	cfg := campaign.GenerationConfig()
+	SeedNewCampaign(c, cfg.StartColonists, cfg.StartFuel)
+	c.BindQuests()
 	wm := NewWorldManager(c)
 	return NewOverworldState(c, wm), nil
 }
