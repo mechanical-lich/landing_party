@@ -1,41 +1,29 @@
 {
-    "id": "earth_like",
-    "name": "Earth-like Colony",
-    "description": "An Earth-like world of forests, plains, deserts, and tundra. Establish a colony and survive the local fauna.",
-    "enabled": true,
-    "setup_scripts": ["data/scripts/scenarios/earth_setup.basic"],
-    "hostile_max": 80,
-    "supported_maps": ["earth_like"],
-    "spawn_rules": {
-        "critter": {
-            "spawn_rate": 70,
-            "light_min": 0,
-            "tiles": ["grass", "dirt_floor", "regolith"],
-            "min_z": 4,
-            "max_z": 6
-        }
-    },
-    "lighting": { "mode": "day_night" },
-    "win_conditions": {
-        "rules": [
-            {
-                "id": "survive_30_days",
-                "trigger": "days_survived",
-                "threshold": 30,
-                "op": "gte",
-                "result": "win",
-                "outcome": "victory",
-                "message": "Your colony has thrived for 30 days. Victory!"
-            },
-            {
-                "id": "all_colonists_dead",
-                "trigger": "colonist_eliminated",
-                "threshold": 0,
-                "op": "eq",
-                "result": "lose",
-                "outcome": "defeat",
-                "message": "All colonists have perished."
-            }
-        ]
+  "id": "earth_like",
+  "name": "Earth-like Colony",
+  "description": "An Earth-like world of forests, plains, deserts, and tundra. Establish a colony and survive the local fauna.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/earth_setup.basic"
+  ],
+  "hostile_max": 80,
+  "supported_maps": [
+    "earth_like"
+  ],
+  "spawn_rules": {
+    "critter": {
+      "spawn_rate": 70,
+      "light_min": 0,
+      "tiles": [
+        "grass",
+        "dirt_floor",
+        "regolith"
+      ],
+      "min_z": 4,
+      "max_z": 6
     }
+  },
+  "lighting": {
+    "mode": "day_night"
+  }
 }

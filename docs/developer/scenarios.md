@@ -1,6 +1,6 @@
 # Scenarios — Developer Guide
 
-Scenarios are defined as JSON files in `data/scenarios/`. Each file configures spawn rules, win/loss conditions, and world parameters for one game mode. The scenario is selected at game start.
+Scenarios are defined as JSON files in `data/scenarios/`. Each file configures spawn rules, win/loss conditions, and world parameters for one game mode. Scenarios are no longer selected at game start — each overworld location binds a `scenario_id` (and `map_id`); travelling there loads that scenario. See [Campaign & Overworld](campaign.md) and `data/overworld.json`.
 
 ---
 
@@ -16,8 +16,7 @@ Scenarios are defined as JSON files in `data/scenarios/`. Each file configures s
     "hostile_max": 20,
     "lighting": { "mode": "day_night" },
     "spawn_rules": { ... },
-    "world": { ... },
-    "win_conditions": { "rules": [ ... ] }
+    "world": { ... }
 }
 ```
 
@@ -32,7 +31,11 @@ Scenarios are defined as JSON files in `data/scenarios/`. Each file configures s
 | `lighting.mode` | string | Lighting mode: `"day_night"`, `"fixed"`, or `"pitch_dark"` |
 | `spawn_rules` | object | Spawn rules keyed by blueprint ID (see below) |
 | `world` | object | Optional world generation config: biome map and feature placement (see below) |
-| `win_conditions.rules` | []Rule | Ordered list of win/loss rules evaluated each turn |
+
+> Scenarios no longer define win/loss conditions. The old `win_conditions`
+> block was removed; objectives now live in `data/quests.json` and use the
+> shared condition engine in `internal/objective` (see
+> [Campaign & Overworld](campaign.md)).
 
 ---
 
@@ -111,31 +114,15 @@ Features can also be defined per-biome inside the biome JSON; those run for any 
 
 ---
 
-## Win and Loss Conditions
+## Objectives (formerly win/loss conditions)
 
-Rules are evaluated each turn in order. The first rule whose condition is satisfied determines the outcome.
-
-```json
-{
-    "id": "survive_30_days",
-    "trigger": "days_survived",
-    "threshold": 30,
-    "op": "gte",
-    "result": "win",
-    "outcome": "victory",
-    "message": "Your colony survived 30 days on this hostile world. Victory!"
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique rule identifier |
-| `trigger` | string | Event or counter to evaluate (`"days_survived"`, `"colonist_eliminated"`) |
-| `threshold` | int | Value to compare against |
-| `op` | string | Comparison operator: `"gte"`, `"lte"`, `"eq"` |
-| `result` | string | `"win"` or `"lose"` |
-| `outcome` | string | Outcome label (`"victory"`, `"defeat"`) |
-| `message` | string | Message shown to the player on scenario end |
+Scenarios no longer carry win/loss rules. The rule engine that used to live in
+`internal/wincondition` is now `internal/objective` (a generic condition
+engine, no win/lose framing) and is consumed by **quests** in
+`data/quests.json`. A quest's `objective` is one `objective.Rule` using the
+same triggers (`days_survived`, `resource_gathered`, `entity_killed`,
+`tech_researched`, `structure_built`, …). See
+[Campaign & Overworld](campaign.md) for the quest schema and lifecycle.
 
 ---
 
@@ -188,6 +175,5 @@ endfunction
 2. Set a unique `id` and `enabled: true`.
 3. Add entries to `spawn_rules` for each entity type you want to appear during gameplay.
 4. (Optional) Add a `world` block selecting biomes and listing one-time features.
-5. Define at least one win rule and one loss rule in `win_conditions.rules`.
-6. Add a setup script in `data/scripts/scenarios/<id>_setup.basic` for starting structures and colonists, then list it in `setup_scripts`.
-7. The scenario picker will include it on next load.
+5. Add a setup script in `data/scripts/scenarios/<id>_setup.basic` for starting structures and colonists, then list it in `setup_scripts`.
+6. Bind the scenario to a Star Map location in `data/overworld.json` (`scenario_id`); add quests in `data/quests.json` for any objectives.

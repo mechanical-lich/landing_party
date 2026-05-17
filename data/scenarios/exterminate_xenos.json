@@ -1,39 +1,21 @@
 {
-    "id": "exterminate_xenos",
-    "name": "Exterminate Xenos",
-    "description": "A xeno infestation has spread across the region. Hunt down and destroy every egg and xenomorph to win.",
-    "enabled": true,
-    "setup_scripts": ["data/scripts/scenarios/xeno_purge_setup.basic"],
-    "hostile_max": 200,
-    "supported_maps": ["earth_like", "alien", "moon", "asteroid", "abandoned_station"],
-    "spawn_rules": {},
-    "lighting": { "mode": "day_night" },
-    "win_conditions": {
-        "rules": [
-            {
-                "id": "all_xenos_exterminated",
-                "trigger": "entity_killed",
-                "blueprint": "xeno_egg",
-                "op": "lte",
-                "threshold": 0,
-                "when": [
-                    { "entity_count": { "blueprint": "xeno_hatchling", "op": "eq", "value": 0 } },
-                    { "entity_count": { "blueprint": "xeno_stage2", "op": "eq", "value": 0 } },
-                    { "entity_count": { "blueprint": "xeno_stage3", "op": "eq", "value": 0 } }
-                ],
-                "result": "win",
-                "outcome": "victory",
-                "message": "Every xenomorph has been exterminated. The region is clean."
-            },
-            {
-                "id": "all_colonists_dead",
-                "trigger": "colonist_eliminated",
-                "threshold": 0,
-                "op": "eq",
-                "result": "lose",
-                "outcome": "defeat",
-                "message": "The colony was consumed by the infestation."
-            }
-        ]
-    }
+  "id": "exterminate_xenos",
+  "name": "Exterminate Xenos",
+  "description": "A xeno infestation has spread across the region. Hunt down and destroy every egg and xenomorph to win.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/xeno_purge_setup.basic"
+  ],
+  "hostile_max": 200,
+  "supported_maps": [
+    "earth_like",
+    "alien",
+    "moon",
+    "asteroid",
+    "abandoned_station"
+  ],
+  "spawn_rules": {},
+  "lighting": {
+    "mode": "day_night"
+  }
 }

@@ -9,9 +9,10 @@ Architecture notes, system references, and guides for extending the game.
 - [Buildings](buildings.md) — adding buildable structures
 - [Crafting](crafting.md) — workbenches, recipes, and items
 - [Research](research.md) — adding technologies to the tech tree
-- [Scenarios](scenarios.md) — scenario configuration, biome maps, spawn rules, win conditions, and setup scripts
+- [Scenarios](scenarios.md) — scenario configuration, biome maps, spawn rules, and setup scripts
 - [Biomes](biomes.md) — biome definitions, terrain rules, and biome-specific features
 - [World Generation](world_generation.md) — Z-levels, terrain, and lighting
+- [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
 
 ---
 
@@ -25,6 +26,10 @@ The game uses an **ECS (Entity-Component-System)** architecture provided by `mlg
 | Systems | `internal/systems/` |
 | AI state handlers | `internal/ai/` |
 | Game loop & state machine | `internal/game/` |
+| Campaign / overworld model | `internal/campaign/` |
+| Shared stockpile accessor | `internal/storage/` |
+| Level swap / lifecycle | `internal/game/world_manager.go` |
+| Overworld data | `data/overworld.json` |
 | Entity blueprints | `data/blueprints/` (entities, items, structures) |
 | Build data | `data/build.json` |
 | Crafting recipes | `data/crafting_recipes.json` |

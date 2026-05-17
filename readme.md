@@ -1,7 +1,18 @@
 # Landing Party
-Play as a group of intergalatic travelers trying to form a settlement in a harsh new land.   This is an indirect control style RTS.   Each colonist has its own needs that need to be met in order to get them to perform their tasks to build the settlement.   
+Lead a group of alien colonists aboard a space life-raft. From the **Star Map**
+you choose where to make planetfall, spend **fuel** to travel between planets,
+moons, asteroid fields and stations, and beam a landing party down to gather
+resources, build, and refine more fuel to keep exploring. Locations you
+establish are paused when you leave and resumed exactly as you left them.
 
-Sanity must be maintained, meaning in addition to basic survival, expansion, and resource gathering; you will need to ensure your colonists interests are met and explored.   They could also see things that impact their sanity leading to them potentially going crazy and hurting others and go rogue. 
+On the ground it is an indirect-control RTS: each colonist has its own needs
+that must be met for them to carry out the tasks that build the settlement.
+Hostiles and hazards probe your colony; keep your people alive and supplied.
+
+See the [Player Guide](docs/player/README.md) (start with
+[The Ship & the Star Map](docs/player/star_map.md)) and the
+[Developer Guide](docs/developer/README.md)
+([Campaign & Overworld](docs/developer/campaign.md)).
 
 
 ## Setup
@@ -31,7 +42,11 @@ To test with a local copy of the mlge library add this to the mod file.  It assu
 - **Q/E**: Up/Down Z Level
 - **Scroll Wheel/Pinch**: Zoom in/out
 - **M**: Minimap hotkey
+- **O** / Star Map button: Open the Star Map (ship / overworld)
+- **B**: Beam the selected colonist up to the ship
 - **Esc**: Open pause menu
+
+See [docs/player/controls.md](docs/player/controls.md) for the full reference.
 
 **Default mode**
 - **Left Click**: Select entity / escalate task at tile

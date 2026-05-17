@@ -35,6 +35,7 @@ type OverworldState struct {
 	travelBtn   *minui.Button
 	resumeBtn   *minui.Button
 	saveBtn     *minui.Button
+	questBtn    *minui.Button
 
 	status string
 	done   bool
@@ -90,6 +91,14 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 		} else {
 			o.status = "Expedition saved."
 		}
+	}
+
+	o.questBtn = minui.NewButton("ow_quests", "Quest Log")
+	o.questBtn.SetPosition(cx+170, 142)
+	o.questBtn.SetSize(130, 30)
+	o.questBtn.OnClick = func() {
+		o.next = NewQuestLogState(o.campaign, o.wm)
+		o.done = true
 	}
 
 	o.refreshLocations()
@@ -268,6 +277,7 @@ func (o *OverworldState) Update() state.StateInterface {
 	o.travelBtn.Update()
 	o.resumeBtn.Update()
 	o.saveBtn.Update()
+	o.questBtn.Update()
 	return o.next
 }
 
@@ -303,6 +313,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.travelBtn.Draw(screen)
 	o.resumeBtn.Draw(screen)
 	o.saveBtn.Draw(screen)
+	o.questBtn.Draw(screen)
 
 	if o.status != "" {
 		mlge_text.Draw(screen, o.status, 13, cx-300, cfg.ScreenHeight-40, color.RGBA{230, 160, 90, 255})

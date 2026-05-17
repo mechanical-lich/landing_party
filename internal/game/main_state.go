@@ -33,7 +33,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
-	"github.com/mechanical-lich/landing_party/internal/wincondition"
+	"github.com/mechanical-lich/landing_party/internal/objective"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
@@ -88,7 +88,6 @@ type MainState struct {
 	tick             int
 	day              int
 	lastDay          int
-	winEval          *wincondition.Evaluator
 	mouseDragging    bool
 	lastDragTileX    int
 	lastDragTileY    int
@@ -319,7 +318,6 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 		if cfg.ScenarioID != "" {
 			_ = scenario.SelectByID(cfg.ScenarioID)
 		}
-		s.winEval = wincondition.New(scenario.Active().WinConditions)
 		s.applyScenarioLighting(level)
 	}
 	return s, nil
@@ -504,7 +502,6 @@ func (s *MainState) newGame() {
 	}
 
 	if activeScenario != nil {
-		s.winEval = wincondition.New(activeScenario.WinConditions)
 		s.applyScenarioLighting(s.level)
 		if sc := activeScenario; len(sc.SetupScripts) > 0 {
 			s.level.Flags["start_x"] = float64(x)
@@ -626,6 +623,9 @@ func (s *MainState) Update() state.StateInterface {
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
 		s.refreshHUD()
+		if !s.Paused {
+			s.evaluateQuests()
+		}
 	}
 
 	if !s.Paused && s.tick%750 == 0 && s.tick > 0 {
@@ -639,7 +639,6 @@ func (s *MainState) Update() state.StateInterface {
 			if s.level.Day != s.lastDay {
 				s.lastDay = s.level.Day
 				s.day = s.level.Day
-				s.checkWinConditions()
 			}
 		}
 	}
@@ -1706,11 +1705,17 @@ func (s *MainState) refreshHUD() {
 
 	var goalLines []string
 	goalLines = append(goalLines, fmt.Sprintf("Day: %d", s.day))
-	if len(scenario.AllEnabled()) > 0 {
-		sc := scenario.Active()
-		goalLines = append(goalLines, sc.Name)
-		for _, rule := range sc.WinConditions.Rules {
-			goalLines = append(goalLines, fmt.Sprintf("  %s", rule.Message))
+	if s.campaign != nil {
+		active := s.campaign.ActiveQuests()
+		if len(active) > 0 {
+			goalLines = append(goalLines, "Quests:")
+			for _, q := range active {
+				goalLines = append(goalLines, fmt.Sprintf("  %s", q.Name))
+				goalLines = append(goalLines, fmt.Sprintf("    %s", q.Description))
+			}
+		}
+		if done := s.campaign.CompletedQuests(); len(done) > 0 {
+			goalLines = append(goalLines, fmt.Sprintf("Completed quests: %d", len(done)))
 		}
 	}
 	s.guiManager.RefreshGoalsTab(goalLines)
@@ -1761,11 +1766,9 @@ func (s *MainState) refreshCraftQueue() {
 	s.guiManager.RefreshCraftQueue(entries)
 }
 
-func (s *MainState) checkWinConditions() {
-	if s.winEval == nil {
-		return
-	}
-
+// buildEvalContext snapshots the live level into the shared win/quest
+// evaluation context.
+func (s *MainState) buildEvalContext() objective.EvalContext {
 	colonistPop := 0
 	entityCounts := map[string]int{}
 	resourceCounts := map[string]int{}
@@ -1791,12 +1794,11 @@ func (s *MainState) checkWinConditions() {
 			}
 		}
 	}
-
 	var knownTechs []string
 	if s.MainSettlement != nil {
 		knownTechs = s.MainSettlement.KnownTechs
 	}
-	ctx := wincondition.EvalContext{
+	return objective.EvalContext{
 		Entities:        s.level.Entities,
 		Flags:           s.level.Flags,
 		SettlementPop:   map[string]int{"colony": colonistPop},
@@ -1806,10 +1808,32 @@ func (s *MainState) checkWinConditions() {
 		KnownTechs:      knownTechs,
 		Day:             s.day,
 	}
+}
 
-	if rule, ok := s.winEval.Evaluate(ctx); ok {
-		message.AddMessage(rule.Message)
-		s.Paused = true
+// evaluateQuests progresses campaign quests against the shared eval context,
+// additionally counting the ship hold so "deliver/gather"
+// objectives recognise the campaign-wide stockpile.
+func (s *MainState) evaluateQuests() {
+	if s.campaign == nil {
+		return
+	}
+	ctx := s.buildEvalContext()
+	merged := make(map[string]int, len(ctx.ResourceCounts)+4)
+	for k, v := range ctx.ResourceCounts {
+		merged[k] = v
+	}
+	holdP := storage.ShipProvider{Ship: s.campaign.Ship}
+	owners := []string{campaign.ShipSettlementName}
+	for _, id := range []string{"metal_ore", "crystal", "biomass", "fuel", "stone", "radioactive_material"} {
+		merged[id] += storage.CountResource(holdP, owners, id)
+	}
+	ctx.ResourceCounts = merged
+
+	for _, q := range s.campaign.EvaluateQuests(ctx) {
+		if s.wm != nil {
+			s.wm.applyQuestReward(q)
+		}
+		message.AddMessage("Quest complete: " + q.Name)
 	}
 }
 

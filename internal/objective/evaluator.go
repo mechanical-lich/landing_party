@@ -1,4 +1,4 @@
-package wincondition
+package objective
 
 import "github.com/mechanical-lich/mlge/ecs"
 
@@ -59,9 +59,10 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 			}
 			actual = ctx.StructuresBuilt[r.Structure]
 		case TriggerEntityEliminated:
-			// Satisfied when none of Blueprint remain — but only once it has
-			// existed, so the rule doesn't trip before any ever spawn.
-			if e.seenEntities[r.Blueprint] && ctx.EntityCounts[r.Blueprint] == 0 && checkConditions(r.When, ctx) {
+			// Satisfied when none of the target blueprint(s) remain — but only
+			// once at least one has existed, so it can't trip before any spawn.
+			bps := ruleBlueprints(r)
+			if e.anySeen(bps) && sumCounts(ctx.EntityCounts, bps) == 0 && checkConditions(r.When, ctx) {
 				return r, true
 			}
 			continue
@@ -73,11 +74,12 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 			}
 			continue
 		case TriggerEntityKilled:
+			bps := ruleBlueprints(r)
 			// "Kill all" (threshold 0) requires the entity to have existed.
-			if r.Threshold == 0 && !e.seenEntities[r.Blueprint] {
+			if r.Threshold == 0 && !e.anySeen(bps) {
 				continue
 			}
-			actual = ctx.EntityCounts[r.Blueprint]
+			actual = sumCounts(ctx.EntityCounts, bps)
 		case TriggerResourceGathered:
 			actual = ctx.ResourceCounts[r.Resource]
 		default:
@@ -88,6 +90,32 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 		}
 	}
 	return nil, false
+}
+
+// ruleBlueprints returns the blueprint set a rule targets: Blueprints if
+// given, else the single Blueprint.
+func ruleBlueprints(r *Rule) []string {
+	if len(r.Blueprints) > 0 {
+		return r.Blueprints
+	}
+	return []string{r.Blueprint}
+}
+
+func (e *Evaluator) anySeen(bps []string) bool {
+	for _, bp := range bps {
+		if e.seenEntities[bp] {
+			return true
+		}
+	}
+	return false
+}
+
+func sumCounts(counts map[string]int, bps []string) int {
+	total := 0
+	for _, bp := range bps {
+		total += counts[bp]
+	}
+	return total
 }
 
 func checkConditions(conds []Condition, ctx EvalContext) bool {

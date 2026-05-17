@@ -5,13 +5,14 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 ## Sections
 
 - [Getting Started](#getting-started) — what the game is and how it works
+- [The Ship & the Star Map](star_map.md) — expeditions, fuel travel, and beaming colonists
 - [Controls](controls.md) — keyboard and camera reference
 - [Colonists](colonists.md) — stats, needs, and how workers behave
 - [Buildings](buildings.md) — what you can build and what each structure does
 - [Crafting](crafting.md) — workbenches, recipes, and gear
 - [Research](research.md) — the tech tree and how to unlock new structures
-- [Scenarios](scenarios.md) — the available game modes and how each one starts
-- [Win Conditions](win_conditions.md) — how to win (and lose)
+- [Scenarios](scenarios.md) — the world types a location can use
+- [Quests](star_map.md#quests) — objectives, rewards, and unlocking new locations
 
 ---
 
@@ -21,15 +22,24 @@ Landing Party is an **indirect-control RTS**. You do not directly control indivi
 
 If you want to, you can also take **direct control** of a single colonist (Rogue mode) and pilot them around like a roguelike — see [Controls](controls.md#rogue-mode).
 
+### Expeditions
+
+You command an expedition, not a single colony. Your colonists begin aboard a
+ship in space; you choose where to make planetfall from the **Star Map**, spend
+fuel to travel, and beam a landing party down. Locations you establish are
+paused when you leave and resumed exactly as you left them. See
+[The Ship & the Star Map](star_map.md) for the full loop.
+
 ### The Colony
 
-Your colony starts with a small group of colonists on an alien world. They will:
+Once a landing party beams down, your colony on that location works the same
+way it always has. Colonists will:
 
 - Automatically seek out and complete queued tasks
 - Eat food when hungry, or starve if none is available
 - Defend themselves when attacked, but they are not fighters
 
-Hostile alien creatures will spawn outside and attempt to push into your colony. Your goal is to survive long enough to meet the scenario's win condition.
+Hostile alien creatures will spawn outside and attempt to push into your colony. There is no per-planet "win" — your objectives come from [quests](star_map.md#quests) accepted at the ship. Keep your landing party alive; if everyone planetside dies you simply lose that party until you beam more down.
 
 ### The World
 

@@ -36,6 +36,20 @@ Entity dots on the minimap use the following color coding:
 | Red | Hostile creature |
 | Yellow | Other entity |
 
+## Expedition / Star Map
+
+| Input | Action |
+|-------|--------|
+| O | Open the Star Map (parks the current location; nothing is lost) |
+| Star Map button | Same as O — top-right of the screen, just left of Follow |
+| B | Beam the selected colonist up to the ship roster (must be open to the sky) |
+
+On the Star Map: select a location and **Travel Here** to move the ship there
+(spends fuel), **Beam Down >** / **< Beam Up** to move the selected colonist
+between the ship and the loaded location, **Resume / Land** (or `Esc`) to enter
+the location and play, and **Save Expedition** to save. See
+[The Ship & the Star Map](star_map.md).
+
 ## Default Mode
 
 When no order is selected the cursor is in Default mode.
@@ -90,7 +104,9 @@ Press **Escape** when no modal is open to bring up the pause menu.
 
 | Option | What it does |
 |--------|-------------|
-| Save | Manually save the current game |
-| Load | Load a saved game |
+| Save | Save the whole expedition (freezes the current location, then writes the campaign) |
+| Load | Load a saved expedition |
 | New Game | Return to the title screen |
 | Quit | Exit the application |
+
+You can also save from the Star Map via **Save Expedition**.

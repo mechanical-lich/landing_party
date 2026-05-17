@@ -1,52 +1,42 @@
 {
-    "id": "alien_world",
-    "name": "Alien World",
-    "description": "A vivid alien planet of strange flora and crystal fields. The fauna is hostile.",
-    "enabled": true,
-    "setup_scripts": ["data/scripts/scenarios/alien_setup.basic"],
-    "hostile_max": 200,
-    "supported_maps": ["alien"],
-    "spawn_rules": {
-        "mutant_grunt": {
-            "spawn_rate": 60,
-            "light_min": 0,
-            "tiles": ["grass", "regolith"],
-            "min_z": 5,
-            "max_z": 5,
-            "starting_equipment": {
-                "knife": 0.5,
-                "laser_pistol": 0.5
-            }
-        },
-        "mutant_brute": {
-            "spawn_rate": 15,
-            "light_min": 0,
-            "tiles": ["grass", "regolith"],
-            "min_z": 5,
-            "max_z": 5
-        }
+  "id": "alien_world",
+  "name": "Alien World",
+  "description": "A vivid alien planet of strange flora and crystal fields. The fauna is hostile.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/alien_setup.basic"
+  ],
+  "hostile_max": 200,
+  "supported_maps": [
+    "alien"
+  ],
+  "spawn_rules": {
+    "mutant_grunt": {
+      "spawn_rate": 60,
+      "light_min": 0,
+      "tiles": [
+        "grass",
+        "regolith"
+      ],
+      "min_z": 5,
+      "max_z": 5,
+      "starting_equipment": {
+        "knife": 0.5,
+        "laser_pistol": 0.5
+      }
     },
-    "lighting": { "mode": "day_night" },
-    "win_conditions": {
-        "rules": [
-            {
-                "id": "survive_30_days",
-                "trigger": "days_survived",
-                "threshold": 30,
-                "op": "gte",
-                "result": "win",
-                "outcome": "victory",
-                "message": "You have survived 30 days on the alien world."
-            },
-            {
-                "id": "all_colonists_dead",
-                "trigger": "colonist_eliminated",
-                "threshold": 0,
-                "op": "eq",
-                "result": "lose",
-                "outcome": "defeat",
-                "message": "The colony has been overrun."
-            }
-        ]
+    "mutant_brute": {
+      "spawn_rate": 15,
+      "light_min": 0,
+      "tiles": [
+        "grass",
+        "regolith"
+      ],
+      "min_z": 5,
+      "max_z": 5
     }
+  },
+  "lighting": {
+    "mode": "day_night"
+  }
 }

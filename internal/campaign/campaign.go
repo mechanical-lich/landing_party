@@ -1,6 +1,10 @@
 package campaign
 
-import "math"
+import (
+	"math"
+
+	"github.com/mechanical-lich/landing_party/internal/objective"
+)
 
 // Campaign is the persistent root of a landing_party game: the ship hub, the
 // space overworld (Locations), and campaign-wide progress. Only one location's
@@ -12,6 +16,13 @@ type Campaign struct {
 	Locations         map[string]*Location `json:"locations"`
 	Ship              *ShipState           `json:"ship"`
 	Day               int                  `json:"day"`
+	// Quests holds per-quest progress (status). Quest definitions themselves
+	// are data-driven and re-attached each session (see AttachQuestDefs).
+	Quests map[string]*QuestProgress `json:"quests,omitempty"`
+
+	questDefs []Quest                              `json:"-"`
+	questByID map[string]*Quest                    `json:"-"`
+	questEval map[string]*objective.Evaluator   `json:"-"`
 }
 
 // NewCampaign builds a fresh campaign from the data-driven overworld

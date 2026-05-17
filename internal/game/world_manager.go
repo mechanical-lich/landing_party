@@ -19,6 +19,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/message"
 )
 
 // installCampaignStorageHook makes worker crafting/fuel draw from both the live
@@ -137,6 +138,49 @@ func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
 		}
 	}
 	c.Ship.Sync()
+}
+
+// addToHold drops `qty` of a resource blueprint into the ship hold.
+func addToHold(c *campaign.Campaign, blueprint string, qty int) {
+	if qty <= 0 {
+		return
+	}
+	hold := c.Ship.LiveHold()
+	if len(hold) == 0 {
+		return
+	}
+	sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
+	if e, err := factory.Create(blueprint, 0, 0, 0); err == nil {
+		if e.HasComponent(components.ResourceItem) {
+			e.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = qty
+		}
+		sc.AddItem(e)
+	}
+}
+
+// applyQuestReward grants a completed quest's reward: fuel/resources into the
+// ship hold, and reveals any locations (explicit reward list or a location
+// whose RevealQuest names this quest).
+func (wm *WorldManager) applyQuestReward(q *campaign.Quest) {
+	c := wm.Campaign
+	addToHold(c, "fuel", q.Reward.Fuel)
+	for bp, n := range q.Reward.Resources {
+		addToHold(c, bp, n)
+	}
+	reveal := func(id string) {
+		if loc := c.Locations[id]; loc != nil && !loc.Discovered {
+			loc.Discovered = true
+			message.AddMessage("New location discovered: " + loc.Name)
+		}
+	}
+	for _, id := range q.Reward.RevealLocations {
+		reveal(id)
+	}
+	for id, loc := range c.Locations {
+		if loc.RevealQuest == q.ID {
+			reveal(id)
+		}
+	}
 }
 
 // beamPartyOntoLevel rebuilds roster colonists and places them at the plaza,

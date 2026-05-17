@@ -156,6 +156,7 @@ func (ts *TitleState) confirmLoad() {
 		ts.screen = screenMain
 		return
 	}
+	attachQuests(c)
 	wm := NewWorldManager(c)
 	ts.next = NewOverworldState(c, wm)
 	ts.done = true
@@ -347,7 +348,17 @@ func (ts *TitleState) startNewSettlement() {
 }
 
 const overworldDefPath = "data/overworld.json"
+const questDefPath = "data/quests.json"
 const defaultRosterCap = 12
+
+// attachQuests loads quest definitions and binds them to the campaign,
+// reconciling against any saved progress. Best-effort: a missing/invalid
+// quests file just means no quests.
+func attachQuests(c *campaign.Campaign) {
+	if defs, err := campaign.LoadQuestDefs(questDefPath); err == nil {
+		c.AttachQuestDefs(defs)
+	}
+}
 
 // StartNewExpedition builds a fresh campaign from the data-driven overworld and
 // opens the Star Map — the colonists begin aboard the ship in space, not on a
@@ -362,6 +373,7 @@ func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
 		return nil, fmt.Errorf("overworld has no starting (discovered) location")
 	}
 	SeedNewCampaign(c, 6, 40)
+	attachQuests(c)
 	wm := NewWorldManager(c)
 	return NewOverworldState(c, wm), nil
 }

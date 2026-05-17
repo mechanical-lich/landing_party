@@ -1,61 +1,54 @@
 {
-    "id": "survival",
-    "name": "Survival",
-    "description": "Survive 30 days on a hostile alien world. Fend off alien attacks and keep your colonists alive.",
-    "enabled": true,
-    "setup_scripts": ["data/scripts/scenarios/survival_setup.basic"],
-    "hostile_max": 200,
-    "supported_maps": ["earth_like", "alien", "moon"],
-    "spawn_rules": {
-        "mutant_grunt": {
-            "spawn_rate": 50,
-            "light_min": 0,
-            "tiles": ["regolith", "dirt_floor"],
-            "min_z": 5,
-            "max_z": 5,
-            "starting_equipment": {
-                "knife": 0.5,
-                "laser_pistol": 0.5
-            }
-        },
-        "mutant_brute": {
-            "spawn_rate": 10,
-            "light_min": 0,
-            "tiles": ["regolith", "dirt_floor"],
-            "min_z": 5,
-            "max_z": 5
-        },
-        "critter": {
-            "spawn_rate": 70,
-            "light_min": 0,
-            "tiles": ["regolith", "dirt_floor"],
-            "min_z": 4,
-            "max_z": 6
-        }
+  "id": "survival",
+  "name": "Survival",
+  "description": "Survive 30 days on a hostile alien world. Fend off alien attacks and keep your colonists alive.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/survival_setup.basic"
+  ],
+  "hostile_max": 200,
+  "supported_maps": [
+    "earth_like",
+    "alien",
+    "moon"
+  ],
+  "spawn_rules": {
+    "mutant_grunt": {
+      "spawn_rate": 50,
+      "light_min": 0,
+      "tiles": [
+        "regolith",
+        "dirt_floor"
+      ],
+      "min_z": 5,
+      "max_z": 5,
+      "starting_equipment": {
+        "knife": 0.5,
+        "laser_pistol": 0.5
+      }
     },
-    "lighting": {
-        "mode": "day_night"
+    "mutant_brute": {
+      "spawn_rate": 10,
+      "light_min": 0,
+      "tiles": [
+        "regolith",
+        "dirt_floor"
+      ],
+      "min_z": 5,
+      "max_z": 5
     },
-    "win_conditions": {
-        "rules": [
-            {
-                "id": "survive_30_days",
-                "trigger": "days_survived",
-                "threshold": 30,
-                "op": "gte",
-                "result": "win",
-                "outcome": "victory",
-                "message": "Your colony survived 30 days on this hostile world. Victory!"
-            },
-            {
-                "id": "all_colonists_dead",
-                "trigger": "colonist_eliminated",
-                "threshold": 0,
-                "op": "eq",
-                "result": "lose",
-                "outcome": "defeat",
-                "message": "All colonists have been eliminated. The colony has fallen."
-            }
-        ]
+    "critter": {
+      "spawn_rate": 70,
+      "light_min": 0,
+      "tiles": [
+        "regolith",
+        "dirt_floor"
+      ],
+      "min_z": 4,
+      "max_z": 6
     }
+  },
+  "lighting": {
+    "mode": "day_night"
+  }
 }

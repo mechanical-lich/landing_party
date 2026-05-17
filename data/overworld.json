@@ -37,6 +37,18 @@
       "summary": "A slow-tumbling belt of metal-rich rock. Hard to reach, but dense with ore."
     },
     {
+      "id": "hive_world",
+      "name": "Infested World",
+      "kind": "planet",
+      "map_id": "alien",
+      "scenario_id": "exterminate_xenos",
+      "x": -14,
+      "y": 10,
+      "fuel_cost": 16,
+      "discovered": false,
+      "summary": "A world overrun by a xeno hive. Accepting the purge contract pinpoints its location."
+    },
+    {
       "id": "derelict_station",
       "name": "Derelict Station",
       "kind": "station",

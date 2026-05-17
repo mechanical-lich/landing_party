@@ -1,33 +1,17 @@
 {
-    "id": "moon",
-    "name": "Moon Colony",
-    "description": "Airless regolith and crater fields. Watch your radiation exposure and bring rad gear.",
-    "enabled": true,
-    "setup_scripts": ["data/scripts/scenarios/moon_setup.basic"],
-    "hostile_max": 30,
-    "supported_maps": ["moon"],
-    "spawn_rules": {},
-    "lighting": { "mode": "day_night" },
-    "win_conditions": {
-        "rules": [
-            {
-                "id": "survive_30_days",
-                "trigger": "days_survived",
-                "threshold": 30,
-                "op": "gte",
-                "result": "win",
-                "outcome": "victory",
-                "message": "Your lunar colony has held out for 30 days."
-            },
-            {
-                "id": "all_colonists_dead",
-                "trigger": "colonist_eliminated",
-                "threshold": 0,
-                "op": "eq",
-                "result": "lose",
-                "outcome": "defeat",
-                "message": "The lunar colony has fallen silent."
-            }
-        ]
-    }
+  "id": "moon",
+  "name": "Moon Colony",
+  "description": "Airless regolith and crater fields. Watch your radiation exposure and bring rad gear.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/moon_setup.basic"
+  ],
+  "hostile_max": 30,
+  "supported_maps": [
+    "moon"
+  ],
+  "spawn_rules": {},
+  "lighting": {
+    "mode": "day_night"
+  }
 }

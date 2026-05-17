@@ -1,0 +1,48 @@
+{
+  "quests": [
+    {
+      "id": "first_fuel",
+      "name": "Top Off the Tanks",
+      "description": "Refine and stockpile at least 25 fuel so the ship can keep jumping.",
+      "auto_accept": true,
+      "objective": { "trigger": "resource_gathered", "resource": "fuel", "op": "gte", "threshold": 25 },
+      "reward": { "resources": { "biomass": 10 } }
+    },
+    {
+      "id": "ore_quota",
+      "name": "Ore Quota",
+      "description": "Mine and stockpile 30 metal ore for the ship's foundry.",
+      "auto_accept": true,
+      "objective": { "trigger": "resource_gathered", "resource": "metal_ore", "op": "gte", "threshold": 30 },
+      "reward": { "fuel": 15 }
+    },
+    {
+      "id": "study_metallurgy",
+      "name": "Study Metallurgy",
+      "description": "Research Basic Metallurgy at a research lab.",
+      "requires_quest": "decode_signal",
+      "objective": { "trigger": "tech_researched", "tech_key": "basic_metallurgy" },
+      "reward": { "fuel": 20 }
+    },
+    {
+      "id": "decode_signal",
+      "name": "Decode the Distress Signal",
+      "description": "Build a research lab to triangulate the derelict station's beacon.",
+      "objective": { "trigger": "structure_built", "structure": "research_lab" },
+      "reward": { "fuel": 25, "reveal_locations": ["derelict_station"] }
+    },
+    {
+      "id": "purge_xenos",
+      "name": "Purge the Hive",
+      "description": "Accept to locate the Infested World, then destroy every xeno egg there.",
+      "location": "hive_world",
+      "objective": {
+        "trigger": "entity_killed",
+        "blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3"],
+        "op": "lte",
+        "threshold": 0
+      },
+      "reward": { "fuel": 30, "resources": { "crystal": 5 } }
+    }
+  ]
+}

@@ -1,27 +1,24 @@
-package wincondition
+// Package objective is the data-driven condition engine: a Rule with a
+// TriggerType is evaluated against an EvalContext. It powers campaign quests.
+// It has no notion of "winning" or "losing" — that framing was removed along
+// with the old scenario win-condition concept.
+package objective
 
 type TriggerType string
 
 const (
-	TriggerDaysSurvived        TriggerType = "days_survived"
-	TriggerStructureBuilt      TriggerType = "structure_built"
-	TriggerTechResearched      TriggerType = "tech_researched"
+	TriggerDaysSurvived         TriggerType = "days_survived"
+	TriggerStructureBuilt       TriggerType = "structure_built"
+	TriggerTechResearched       TriggerType = "tech_researched"
 	TriggerSettlementPopulation TriggerType = "settlement_population"
-	TriggerEntityEliminated    TriggerType = "entity_eliminated"
-	TriggerColonistEliminated  TriggerType = "colonist_eliminated"
+	TriggerEntityEliminated     TriggerType = "entity_eliminated"
+	TriggerColonistEliminated   TriggerType = "colonist_eliminated"
 	// TriggerResourceGathered fires when the colony's stored count of Resource
 	// satisfies Op/Threshold (e.g. gather 200 metal_ore).
 	TriggerResourceGathered TriggerType = "resource_gathered"
 	// TriggerEntityKilled fires when the live count of Blueprint satisfies
 	// Op/Threshold. "Kill all of X" is op "lte", threshold 0.
 	TriggerEntityKilled TriggerType = "entity_killed"
-)
-
-type ResultType string
-
-const (
-	ResultWin  ResultType = "win"
-	ResultLose ResultType = "lose"
 )
 
 type Condition struct {
@@ -35,10 +32,16 @@ type EntityCount struct {
 	Value     int    `json:"value"`
 }
 
+// Rule is a single objective condition. (The former Result/Outcome win/lose
+// fields were removed; an optional Message can still annotate a rule.)
 type Rule struct {
 	ID         string      `json:"id"`
 	Trigger    TriggerType `json:"trigger"`
 	Blueprint  string      `json:"blueprint,omitempty"`
+	// Blueprints, when set, makes entity_killed / entity_eliminated act on the
+	// combined count of every listed blueprint (e.g. all xeno life stages).
+	// Takes precedence over Blueprint.
+	Blueprints []string `json:"blueprints,omitempty"`
 	Structure  string      `json:"structure,omitempty"`
 	Settlement string      `json:"settlement,omitempty"`
 	TechKey    string      `json:"tech_key,omitempty"`
@@ -46,9 +49,7 @@ type Rule struct {
 	Threshold  int         `json:"threshold,omitempty"`
 	Op         string      `json:"op,omitempty"`
 	When       []Condition `json:"when,omitempty"`
-	Result     ResultType  `json:"result"`
-	Outcome    string      `json:"outcome"`
-	Message    string      `json:"message"`
+	Message    string      `json:"message,omitempty"`
 }
 
 type RuleSet struct {

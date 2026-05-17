@@ -1,7 +1,5 @@
 package scenario
 
-import "github.com/mechanical-lich/landing_party/internal/wincondition"
-
 type SpawnRule struct {
 	SpawnRate         int                `json:"spawn_rate"`
 	LightMin          int                `json:"light_min"`
@@ -28,7 +26,6 @@ type Scenario struct {
 	HostileMax    int                  `json:"hostile_max"`
 	SpawnRules    map[string]SpawnRule `json:"spawn_rules"`
 	SetupScripts  []string             `json:"setup_scripts"`
-	WinConditions wincondition.RuleSet `json:"win_conditions"`
 	Lighting      LightingConfig       `json:"lighting"`
 	// SupportedMaps lists the map IDs (data/maps/*.json) this scenario can run
 	// on. Empty means "any map". Terrain generation is driven by the chosen

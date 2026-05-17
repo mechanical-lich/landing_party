@@ -1,6 +1,6 @@
 # Scenarios
 
-A scenario sets the world type, starting equipment, hostile pressure, and win/loss conditions. Pick one from the scenario menu before starting a new game.
+A scenario sets the world type, starting equipment, hostile pressure, and win/loss conditions. Scenarios are no longer chosen from a menu — each **Star Map location** is bound to a map + scenario (see `data/overworld.json` and [The Ship & the Star Map](star_map.md)). Travel to a location to play its scenario; the descriptions below cover the scenarios the default overworld uses.
 
 ---
 
@@ -8,8 +8,6 @@ A scenario sets the world type, starting equipment, hostile pressure, and win/lo
 
 A hostile alien world. You start with a small colony pod, walls, an airlock, a storage locker, and a basic workbench. Aliens spawn from outside the perimeter and probe for weaknesses.
 
-- **Win:** Survive 30 days.
-- **Lose:** All colonists dead.
 - **Lighting:** Day/night cycle.
 - **Tone:** Defensive — fortify, stockpile food, hold the line.
 
@@ -17,8 +15,6 @@ A hostile alien world. You start with a small colony pod, walls, an airlock, a s
 
 An Earth-like world of mixed biomes — forests, plains, deserts, and tundra. Local fauna is mostly ambient critters; pressure is much lower than Survival. Ore and crystal veins are scattered across the map; deserts hide radiation pockets you'll want to avoid.
 
-- **Win:** Survive 30 days.
-- **Lose:** All colonists dead.
 - **Lighting:** Day/night cycle.
 - **Tone:** Exploration and expansion.
 
@@ -50,6 +46,8 @@ When you pick a scenario, it sets:
 - **Spawn rules** — what hostile and ambient creatures show up, how often, and on which tiles.
 - **World features** — ore veins, crystal veins, radiation pockets, scatter flora, station prefabs.
 - **Lighting mode** — day/night, fixed, or pitch-dark.
-- **Win and loss conditions** — see [Win Conditions](win_conditions.md).
+
+Scenarios no longer carry win/lose rules — objectives come from
+[quests](star_map.md#quests) accepted at the ship.
 
 Restarting the same scenario gives you a freshly generated map but the same rules.
