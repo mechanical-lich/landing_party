@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/mechanical-lich/mlge/state"
 	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ui/minui"
+	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
 	"github.com/mechanical-lich/scifi_settlements/internal/generation"
 	"github.com/mechanical-lich/scifi_settlements/internal/lore"
@@ -60,8 +62,9 @@ type TitleState struct {
 	cancelBtn   *minui.Button
 
 	// Load screen
-	saveMetas    []SaveMeta
-	saveListBox  *minui.ListBox
+	saveMetas     []SaveMeta
+	campaignNames []string
+	saveListBox   *minui.ListBox
 	loadConfirm  *minui.Button
 	loadCancel   *minui.Button
 
@@ -89,7 +92,7 @@ func (ts *TitleState) buildMainMenu() {
 	btnW, btnH := 220, 36
 	x := cx - btnW/2
 
-	ts.newBtn = minui.NewButton("title_new", "New Settlement")
+	ts.newBtn = minui.NewButton("title_new", "New Expedition")
 	ts.newBtn.SetPosition(x, 320)
 	ts.newBtn.SetSize(btnW, btnH)
 	ts.newBtn.OnClick = func() {
@@ -98,7 +101,7 @@ func (ts *TitleState) buildMainMenu() {
 		ts.screen = screenNewSettlement
 	}
 
-	ts.loadBtn = minui.NewButton("title_load", "Load Save")
+	ts.loadBtn = minui.NewButton("title_load", "Load Expedition")
 	ts.loadBtn.SetPosition(x, 320+btnH+12)
 	ts.loadBtn.SetSize(btnW, btnH)
 	ts.loadBtn.OnClick = func() {
@@ -131,33 +134,30 @@ func (ts *TitleState) buildLoadScreen() {
 }
 
 func (ts *TitleState) openLoadScreen() {
-	metas, err := ListSaves()
-	if err != nil || len(metas) == 0 {
-		ts.errMsg = "No saves found."
+	names := ListCampaigns()
+	if len(names) == 0 {
+		ts.errMsg = "No expeditions found."
 		return
 	}
-	ts.saveMetas = metas
-	labels := make([]string, len(metas))
-	for i, m := range metas {
-		labels[i] = m.Name + "  (" + m.SavedAt.Format("2006-01-02 15:04") + ")"
-	}
-	ts.saveListBox.SetItems(labels)
+	ts.campaignNames = names
+	ts.saveListBox.SetItems(names)
 	ts.saveListBox.SelectedIndex = 0
 	ts.screen = screenLoad
 }
 
 func (ts *TitleState) confirmLoad() {
 	idx := ts.saveListBox.SelectedIndex
-	if idx < 0 || idx >= len(ts.saveMetas) {
+	if idx < 0 || idx >= len(ts.campaignNames) {
 		return
 	}
-	ms, err := LoadSave(ts.saveMetas[idx].Name)
+	c, err := LoadCampaign(ts.campaignNames[idx])
 	if err != nil {
 		ts.errMsg = "Load failed: " + err.Error()
 		ts.screen = screenMain
 		return
 	}
-	ts.next = ms
+	wm := NewWorldManager(c)
+	ts.next = NewOverworldState(c, wm)
 	ts.done = true
 }
 
@@ -230,12 +230,12 @@ func (ts *TitleState) buildNewSettlementScreen() {
 	ts.ambientInput.SetSize(80, 28)
 	ts.ambientInput.SetVisible(false)
 
-	ts.generateBtn = minui.NewButton("generate", "Generate")
-	ts.generateBtn.SetPosition(cx-80, 600)
+	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
+	ts.generateBtn.SetPosition(cx-80, 372)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 644)
+	ts.cancelBtn.SetPosition(cx-80, 416)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 
@@ -329,24 +329,41 @@ func (ts *TitleState) startNewSettlement() {
 		}
 	}
 
-	cfg := SettlementConfig{
-		Name:            name,
-		ScenarioID:      scenarioID,
-		MapID:           mapID,
-		Seed:            seed,
-		MapW:            mapW,
-		MapH:            mapH,
-		MapZ:            mapZ,
-		LightingMode:    lightMode,
-		LightingAmbient: ambient,
-	}
-	ms, err := NewMainState(cfg)
+	_ = mapID
+	_ = scenarioID
+	_ = mapW
+	_ = mapH
+	_ = mapZ
+	_ = lightMode
+	_ = ambient
+
+	ms, err := StartNewExpedition(name, seed)
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
 		return
 	}
 	ts.next = ms
 	ts.done = true
+}
+
+const overworldDefPath = "data/overworld.json"
+const defaultRosterCap = 12
+
+// StartNewExpedition builds a fresh campaign from the data-driven overworld and
+// opens the Star Map — the colonists begin aboard the ship in space, not on a
+// planet. The player picks where to make planetfall.
+func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
+	defs, err := campaign.LoadOverworldDefs(overworldDefPath)
+	if err != nil {
+		return nil, err
+	}
+	c := campaign.NewCampaign(name, seed, defs, defaultRosterCap)
+	if c.CurrentLocationID == "" {
+		return nil, fmt.Errorf("overworld has no starting (discovered) location")
+	}
+	SeedNewCampaign(c, 6, 40)
+	wm := NewWorldManager(c)
+	return NewOverworldState(c, wm), nil
 }
 
 func (ts *TitleState) Update() state.StateInterface {
@@ -367,21 +384,10 @@ func (ts *TitleState) Update() state.StateInterface {
 			ts.startNewSettlement()
 			return ts.next
 		}
-		// Block clicks on widgets behind an expanded SelectBox dropdown.
-		minui.PrepareInputClaims(ts.mapPicker, ts.scenarioPicker, ts.lightingPicker)
 		ts.nameInput.Update()
 		ts.randomNameBtn.Update()
 		ts.seedInput.Update()
 		ts.randomSeedBtn.Update()
-		ts.widthInput.Update()
-		ts.heightInput.Update()
-		ts.depthInput.Update()
-		ts.mapPicker.Update()
-		ts.scenarioPicker.Update()
-		ts.lightingPicker.Update()
-		if ts.ambientInput.IsVisible() {
-			ts.ambientInput.Update()
-		}
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
 	case screenLoad:
@@ -422,26 +428,12 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	case screenNewSettlement:
 		lx := cfg.ScreenWidth/2 - 150
 		lblCol := color.RGBA{180, 210, 255, 255}
-		mlge_text.Draw(screen, "Colony Name:", 14, lx, 253, lblCol)
+		mlge_text.Draw(screen, "Expedition Name:", 14, lx, 253, lblCol)
 		ts.nameInput.Draw(screen)
 		ts.randomNameBtn.Draw(screen)
 		mlge_text.Draw(screen, "Seed (blank = random):", 14, lx, 295, lblCol)
 		ts.seedInput.Draw(screen)
 		ts.randomSeedBtn.Draw(screen)
-		mlge_text.Draw(screen, "Map Size (W  H  D):", 14, lx, 339, lblCol)
-		ts.widthInput.Draw(screen)
-		ts.heightInput.Draw(screen)
-		ts.depthInput.Draw(screen)
-		mlge_text.Draw(screen, "Map:", 14, lx, 383, lblCol)
-		ts.mapPicker.Draw(screen)
-		mlge_text.Draw(screen, "Scenario:", 14, lx, 427, lblCol)
-		ts.scenarioPicker.Draw(screen)
-		mlge_text.Draw(screen, "Lighting:", 14, lx, 471, lblCol)
-		ts.lightingPicker.Draw(screen)
-		if ts.ambientInput.IsVisible() {
-			ts.ambientLabel.Draw(screen)
-			ts.ambientInput.Draw(screen)
-		}
 		ts.generateBtn.Draw(screen)
 		ts.cancelBtn.Draw(screen)
 	}

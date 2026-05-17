@@ -21,6 +21,7 @@ import (
 	"github.com/mechanical-lich/scifi_settlements/internal/factory"
 	"github.com/mechanical-lich/scifi_settlements/internal/research"
 	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
+	"github.com/mechanical-lich/scifi_settlements/internal/storage"
 	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
@@ -726,74 +727,23 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 }
 
+// StorageProviderFor resolves which storage a settlement may draw from. The
+// default scans only the live level; MainState overrides this to also include
+// the campaign ship hold (so a landing party crafts from ship + on-planet
+// stock). settlementName is the colony; the ship hold ("ship") is always
+// included so its entities match too.
+var StorageProviderFor = func(level *world.Level, settlementName string) (storage.Provider, []string) {
+	return storage.LevelProvider{Level: level}, []string{settlementName}
+}
+
 func checkSettlementStorageForCraft(level *world.Level, settlementName string, cost map[string]int) bool {
-	totals := make(map[string]int, len(cost))
-	for _, e := range level.Entities {
-		if !e.HasComponent(components.Storage) {
-			continue
-		}
-		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-		if sc.OwnedBy != settlementName {
-			continue
-		}
-		for name := range cost {
-			totals[name] += sc.CountResource(name)
-		}
-	}
-	for _, e := range level.StaticEntities {
-		if !e.HasComponent(components.Storage) {
-			continue
-		}
-		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-		if sc.OwnedBy != settlementName {
-			continue
-		}
-		for name := range cost {
-			totals[name] += sc.CountResource(name)
-		}
-	}
-	for name, required := range cost {
-		if totals[name] < required {
-			return false
-		}
-	}
-	return true
+	p, owners := StorageProviderFor(level, settlementName)
+	return storage.Check(p, owners, cost)
 }
 
 func deductFromSettlementStorage(level *world.Level, settlementName string, cost map[string]int) {
-	remaining := make(map[string]int, len(cost))
-	for k, v := range cost {
-		remaining[k] = v
-	}
-	deductFromStorageList(level.Entities, settlementName, remaining)
-	deductFromStorageList(level.StaticEntities, settlementName, remaining)
-}
-
-func deductFromStorageList(entities []*ecs.Entity, settlementName string, remaining map[string]int) {
-	for _, e := range entities {
-		if !e.HasComponent(components.Storage) {
-			continue
-		}
-		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-		if sc.OwnedBy != settlementName {
-			continue
-		}
-		for name, needed := range remaining {
-			if needed <= 0 {
-				continue
-			}
-			have := sc.CountResource(name)
-			if have <= 0 {
-				continue
-			}
-			deduct := needed
-			if have < deduct {
-				deduct = have
-			}
-			sc.DeductResource(name, deduct)
-			remaining[name] -= deduct
-		}
-	}
+	p, owners := StorageProviderFor(level, settlementName)
+	storage.Deduct(p, owners, cost)
 }
 
 // HandleGatherMaterialsCraftState is no longer used — crafting deducts ingredients

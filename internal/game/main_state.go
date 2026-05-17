@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"image"
@@ -23,8 +24,11 @@ import (
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/task"
+	"github.com/mechanical-lich/mlge/ui/minui"
+	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
 	"github.com/mechanical-lich/scifi_settlements/internal/components"
 	"github.com/mechanical-lich/scifi_settlements/internal/config"
+	"github.com/mechanical-lich/scifi_settlements/internal/storage"
 	"github.com/mechanical-lich/scifi_settlements/internal/construction"
 	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
 	"github.com/mechanical-lich/scifi_settlements/internal/effect"
@@ -52,6 +56,14 @@ type SettlementConfig struct {
 	MapW, MapH, MapZ int   // 0 = use config.json defaults
 	LightingMode    string // "" = use scenario default
 	LightingAmbient int    // only used when LightingMode == "fixed"
+
+	// Campaign integration: when PartyEntities is non-empty, newGame beams
+	// those colonists in at the plaza instead of spawning the default squad.
+	PartyEntities []*world.SaveEntity
+	ColonyName    string // settlement name to reuse across the campaign
+	// CampaignMode suppresses the legacy 5-colonist auto-spawn; colonists
+	// arrive only via the landing-party beam-down.
+	CampaignMode bool
 }
 
 type MainState struct {
@@ -90,9 +102,60 @@ type MainState struct {
 	smallMap         *SmallMapWidget
 	followEntity     *ecs.Entity
 	rogueEntity      *ecs.Entity
+	campaign         *campaign.Campaign
+	wm               *WorldManager
+	starMapBtn       *minui.Button
 }
 
+const (
+	starMapBtnW = 120
+	starMapBtnH = 26
+)
+
 var _ state.StateInterface = (*MainState)(nil)
+
+// sharedListenersOnce guards process-wide singleton listeners against being
+// re-registered on every campaign level swap.
+var sharedListenersOnce sync.Once
+
+// teardown unregisters this MainState's per-instance listeners so a swapped-out
+// or parked level's state no longer receives input/gui events.
+func (s *MainState) teardown() {
+	event.GetQueuedInstance().UnregisterListenerFromAll(s)
+}
+
+// reattach re-registers listeners for a parked MainState being resumed.
+func (s *MainState) reattach() {
+	s.registerListeners()
+}
+
+// registerListeners wires this MainState to the input/gui event types it
+// handles. Split out so a parked location can be re-attached on Resume.
+func (s *MainState) registerListeners() {
+	eq := event.GetQueuedInstance()
+	eq.RegisterListener(s, input.MouseClickEventType)
+	eq.RegisterListener(s, input.MouseReleasedEventType)
+	eq.RegisterListener(s, input.KeyPressEventType)
+	eq.RegisterListener(s, input.MouseWheelEventType)
+	eq.RegisterListener(s, gui.BuildOptionChangedEventType)
+	eq.RegisterListener(s, gui.CursorModeChangedEventType)
+	eq.RegisterListener(s, gui.MainMenuEventType)
+	eq.RegisterListener(s, gui.SaveGameEventType)
+	eq.RegisterListener(s, gui.LoadGameEventType)
+	eq.RegisterListener(s, gui.CraftRequestedEventType)
+	eq.RegisterListener(s, gui.StationClickedEventType)
+	eq.RegisterListener(s, gui.ResearchStationClickedEventType)
+	eq.RegisterListener(s, gui.ResearchRequestedEventType)
+	eq.RegisterListener(s, gui.ColonistSelectedEventType)
+	eq.RegisterListener(s, eventsystem.ResearchDone)
+	eq.RegisterListener(s, gui.EquipItemRequestedEventType)
+	eq.RegisterListener(s, gui.UnequipItemRequestedEventType)
+	eq.RegisterListener(s, gui.SetTaskFilterEventType)
+	eq.RegisterListener(s, gui.DropOffRequestedEventType)
+	eq.RegisterListener(s, gui.SetSelfDefendEventType)
+	eq.RegisterListener(s, gui.EnterRogueModeEventType)
+	eq.RegisterListener(s, gui.ExitRogueModeEventType)
+}
 
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s := &MainState{
@@ -190,34 +253,25 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
 
 	eq := event.GetQueuedInstance()
-	eq.RegisterListener(&listeners.MessageListener{}, message.MessageEventType)
-	eq.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
-	eq.RegisterListener(&listeners.TaskListener{}, eventsystem.TaskCompleted)
-	eq.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
-	eq.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
+	// Shared singleton listeners must be registered exactly once for the
+	// process — newMainStateBase runs again on every campaign level swap, so
+	// guard them or messages/kills get dispatched N times.
+	sharedListenersOnce.Do(func() {
+		eq.RegisterListener(&listeners.MessageListener{}, message.MessageEventType)
+		eq.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
+		eq.RegisterListener(&listeners.TaskListener{}, eventsystem.TaskCompleted)
+		eq.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
+		eq.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
+	})
 
-	event.GetQueuedInstance().RegisterListener(s, input.MouseClickEventType)
-	event.GetQueuedInstance().RegisterListener(s, input.MouseReleasedEventType)
-	event.GetQueuedInstance().RegisterListener(s, input.KeyPressEventType)
-	event.GetQueuedInstance().RegisterListener(s, input.MouseWheelEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.BuildOptionChangedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.CursorModeChangedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.MainMenuEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.SaveGameEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.LoadGameEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.CraftRequestedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.StationClickedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.ResearchStationClickedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.ResearchRequestedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.ColonistSelectedEventType)
-	event.GetQueuedInstance().RegisterListener(s, eventsystem.ResearchDone)
-	event.GetQueuedInstance().RegisterListener(s, gui.EquipItemRequestedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.UnequipItemRequestedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.SetTaskFilterEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.DropOffRequestedEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.SetSelfDefendEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.EnterRogueModeEventType)
-	event.GetQueuedInstance().RegisterListener(s, gui.ExitRogueModeEventType)
+	s.registerListeners()
+
+	// Sit just left of the minimap's "Follow" button, top-aligned with it.
+	s.starMapBtn = minui.NewButton("star_map_btn", "Star Map")
+	followBtnX := (config.Global().ScreenWidth - smallMapSize - smallMapMargin) - followBtnW - 2
+	s.starMapBtn.SetPosition(followBtnX-starMapBtnW-6, smallMapMargin)
+	s.starMapBtn.SetSize(starMapBtnW, starMapBtnH)
+	s.starMapBtn.OnClick = func() { s.openStarMap() }
 
 	return s, nil
 }
@@ -426,7 +480,10 @@ func (s *MainState) newGame() {
 	// will carve the room, so we re-search after the script for colonist spawn.
 	x, y, startingZ := findStartingPlaza(s.level, startingZ, 5)
 
-	name := s.settlementCfg.Name
+	name := s.settlementCfg.ColonyName
+	if name == "" {
+		name = s.settlementCfg.Name
+	}
 	if name == "" {
 		name = "Colony Alpha"
 	}
@@ -476,12 +533,18 @@ func (s *MainState) newGame() {
 		s.CameraX = spawnX - sidebarTiles - (viewW-sidebarTiles)/2
 		s.CameraY = spawnY - viewH/2
 		s.CameraZ = spawnZ
-		for i := 0; i < 5; i++ {
-			colonist, err := factory.Create("colonist", spawnX+i-2, spawnY, spawnZ)
-			if err == nil {
-				colonist.AddComponent(&components.SettlementComponent{Name: name})
-				colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
-				s.level.AddEntity(colonist)
+		if len(s.settlementCfg.PartyEntities) > 0 {
+			beamPartyOntoLevel(s.level, s.settlementCfg.PartyEntities, name, spawnX, spawnY, spawnZ)
+		} else if s.settlementCfg.CampaignMode {
+			// Campaign: no auto-spawn — colonists beam down from the ship.
+		} else {
+			for i := 0; i < 5; i++ {
+				colonist, err := factory.Create("colonist", spawnX+i-2, spawnY, spawnZ)
+				if err == nil {
+					colonist.AddComponent(&components.SettlementComponent{Name: name})
+					colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
+					s.level.AddEntity(colonist)
+				}
 			}
 		}
 	}
@@ -539,6 +602,9 @@ func (s *MainState) Update() state.StateInterface {
 	s.smallMap.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
 	if !s.mapModal.Visible {
 		s.smallMap.Update()
+	}
+	if s.wm != nil && !s.mapModal.Visible && !s.guiManager.GetInputFocused() {
+		s.starMapBtn.Update()
 	}
 	s.mapModal.Update()
 	s.updateHovered()
@@ -606,6 +672,9 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	if !s.mapModal.Visible {
 		s.smallMap.Draw(screen)
 	}
+	if s.wm != nil && !s.mapModal.Visible {
+		s.starMapBtn.Draw(screen)
+	}
 	s.mapModal.Draw(screen)
 }
 
@@ -638,10 +707,19 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		case "quit":
 			os.Exit(0)
 		case "newgame":
+			s.teardown()
 			s.next = NewTitleState()
 			s.done = true
 		}
 	case gui.SaveGameEvent:
+		if s.wm != nil {
+			if err := s.wm.SaveCampaign(s); err != nil {
+				log.Printf("campaign save failed: %v", err)
+			} else {
+				message.AddMessage("Expedition saved.")
+			}
+			return nil
+		}
 		name := s.settlementCfg.Name
 		if name == "" {
 			name = "colony"
@@ -664,6 +742,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		if err != nil {
 			log.Printf("load failed: %v", err)
 		} else {
+			s.teardown()
 			s.next = loaded
 			s.done = true
 		}
@@ -1045,6 +1124,16 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		return
 	}
 
+	// Closing the map modal must be handled independently of e.JustPressed
+	// (which only reflects the first held key, so it can mask Esc/M when a
+	// camera key is also down) — otherwise the modal can't be dismissed.
+	if s.mapModal.Visible {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyM) {
+			s.mapModal.Visible = false
+		}
+		return
+	}
+
 	for _, k := range e.Keys {
 		switch k.String() {
 		case "W":
@@ -1094,6 +1183,50 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 			s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY)
 		}
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyO) && s.wm != nil {
+		s.openStarMap()
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyB) && s.campaign != nil {
+		s.beamUpSelected()
+	}
+}
+
+// beamUpSelected sends the currently selected colonist up to the ship roster.
+func (s *MainState) beamUpSelected() {
+	e := s.selectedEntity
+	if e == nil || !e.HasComponent(components.Worker) {
+		message.AddMessage("Select a colonist to beam up.")
+		return
+	}
+	if e.HasComponent(components.Worker) {
+		wc := e.GetComponent(components.Worker).(*components.WorkerComponent)
+		if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+			wc.CurrentTask.Stop()
+		}
+		wc.CurrentTask = nil
+	}
+	if err := campaign.BeamUp(s.level, s.campaign.Ship, e); err != nil {
+		message.AddMessage(err.Error())
+		return
+	}
+	if s.selectedEntity == e {
+		s.selectedEntity = nil
+	}
+	message.AddMessage("Colonist beamed up to the ship.")
+}
+
+// openStarMap parks the live location (keeps it in memory, detaches its event
+// listeners) and switches to the Star Map. The level is not serialized here —
+// it stays loaded so colonists can be shuffled, and is only frozen to disk on
+// Travel-away or Save.
+func (s *MainState) openStarMap() {
+	if s.wm == nil {
+		return
+	}
+	s.teardown()
+	s.wm.current = s
+	s.next = NewOverworldState(s.campaign, s.wm)
+	s.done = true
 }
 
 func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
@@ -1133,6 +1266,14 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	cXg, cYg := ebiten.CursorPosition()
 	if s.smallMap.WithinBounds(cXg, cYg) {
 		return
+	}
+	if s.wm != nil {
+		fx := (config.Global().ScreenWidth - smallMapSize - smallMapMargin) - followBtnW - 2
+		bx := fx - starMapBtnW - 6
+		by := smallMapMargin
+		if cXg >= bx && cXg <= bx+starMapBtnW && cYg >= by && cYg <= by+starMapBtnH {
+			return // Star Map button
+		}
 	}
 
 	cX, cY := ebiten.CursorPosition()
@@ -1509,7 +1650,15 @@ func (s *MainState) refreshHUD() {
 	}
 
 	// Count resources across all storage lockers
-	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0}
+	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0}
+	if s.campaign != nil {
+		// Surface the campaign-wide ship hold alongside on-planet stock.
+		p := storage.ShipProvider{Ship: s.campaign.Ship}
+		owners := []string{campaign.ShipSettlementName}
+		for _, id := range []string{"metal_ore", "crystal", "biomass", "fuel"} {
+			resources[id] += storage.CountResource(p, owners, id)
+		}
+	}
 	var popEntries []gui.PopulationEntry
 	for _, entity := range s.level.Entities {
 		if entity.HasComponent(components.Storage) {

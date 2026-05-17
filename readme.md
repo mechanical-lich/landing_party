@@ -1,4 +1,4 @@
-# Scifi Settlements
+# Landing Party
 Play as a group of intergalatic travelers trying to form a settlement in a harsh new land.   This is an indirect control style RTS.   Each colonist has its own needs that need to be met in order to get them to perform their tasks to build the settlement.   
 
 Sanity must be maintained, meaning in addition to basic survival, expansion, and resource gathering; you will need to ensure your colonists interests are met and explored.   They could also see things that impact their sanity leading to them potentially going crazy and hurting others and go rogue. 

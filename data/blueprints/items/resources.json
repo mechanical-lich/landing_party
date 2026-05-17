@@ -38,6 +38,25 @@
             "Type": "crystal"
         }
     },
+    "fuel": {
+        "Appearance": {
+            "R": 120,
+            "G": 230,
+            "B": 180,
+            "Resource": "scifi_items",
+            "SpriteX": 224,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Fuel Cell",
+            "Faction": ""
+        },
+        "Item": {},
+        "ResourceItem": {
+            "Type": "fuel"
+        }
+    },
     "metal_ore": {
         "Appearance": {
             "R": 255,

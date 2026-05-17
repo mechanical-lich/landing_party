@@ -1,0 +1,8 @@
+- Update the colonist detail modal to allow us to put on gear that is in our inventory as well as what's in storage. 
+- Fix storage so that all storage is unified and colonists can just go to the closest one to get what they need.  (Lorewise it's a hyper dimensional storage network and the chests act as portals to it)
+- Fix resource tracker 
+- Update spawn rates for various resources and the amounts they contain.  IE there's more than just 1 iron in a block, it could be deposits of 100 or more that take awhile to fully mine out.
+- Add scenario where you must hunt down an "ancient" version of an entitiy.  (Like the yetti)
+- Go through and balance all the resource costs for building
+- Fix gear items to better match what they are
+- Make it so that some resources "glow" to make it easier to find them.  Kind of like how stairs glow 

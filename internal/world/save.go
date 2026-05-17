@@ -199,35 +199,35 @@ func rebuildSaveEntityFromMap(m map[string]any) *ecs.Entity {
 	return RebuildEntity(se)
 }
 
+// EntityToSaveEntity converts a live entity into its serializable form,
+// applying the same component-specific handling SaveLevel uses (Inventory is
+// flattened, HostileAI paths are dropped). Safe for entities not on any level
+// (ship hold/roster, beaming).
+func EntityToSaveEntity(entity *ecs.Entity) *SaveEntity {
+	se := &SaveEntity{Blueprint: entity.Blueprint, Components: make(map[ecs.ComponentType]any)}
+	for compType, comp := range entity.Components {
+		switch compType {
+		case rlcomponents.HostileAI:
+			comp.(*rlcomponents.HostileAIComponent).Path = nil
+			se.Components[compType] = comp
+		case rlcomponents.Inventory:
+			se.Components[compType] = inventoryToSave(comp.(*rlcomponents.InventoryComponent))
+		default:
+			se.Components[compType] = comp
+		}
+	}
+	return se
+}
+
 func SaveLevel(level *Level) SaveData {
 	saveEntities := make([]*SaveEntity, 0, len(level.Entities))
 	for _, entity := range level.Entities {
-		se := &SaveEntity{Blueprint: entity.Blueprint, Components: make(map[ecs.ComponentType]any)}
-		for compType, comp := range entity.Components {
-			switch compType {
-			case rlcomponents.HostileAI:
-				comp.(*rlcomponents.HostileAIComponent).Path = nil
-				se.Components[compType] = comp
-			case rlcomponents.Inventory:
-				se.Components[compType] = inventoryToSave(comp.(*rlcomponents.InventoryComponent))
-			default:
-				se.Components[compType] = comp
-			}
-		}
-		saveEntities = append(saveEntities, se)
+		saveEntities = append(saveEntities, EntityToSaveEntity(entity))
 	}
 
 	staticSaveEntities := make([]*SaveEntity, 0, len(level.StaticEntities))
 	for _, entity := range level.StaticEntities {
-		se := &SaveEntity{Blueprint: entity.Blueprint, Components: make(map[ecs.ComponentType]any)}
-		for compType, comp := range entity.Components {
-			if compType == rlcomponents.Inventory {
-				se.Components[compType] = inventoryToSave(comp.(*rlcomponents.InventoryComponent))
-			} else {
-				se.Components[compType] = comp
-			}
-		}
-		staticSaveEntities = append(staticSaveEntities, se)
+		staticSaveEntities = append(staticSaveEntities, EntityToSaveEntity(entity))
 	}
 
 	return SaveData{
@@ -294,6 +294,26 @@ func LoadLevelFromFile(filename string) (*Level, error) {
 		return nil, err
 	}
 	return LoadSaveData(saveData), nil
+}
+
+// RebuildLiveEntity reconstructs an entity from a SaveEntity that may still
+// hold live component *structs* (as produced by EntityToSaveEntity in memory)
+// rather than the map[string]any form RebuildEntity expects. It JSON
+// round-trips the SaveEntity so component values become generic maps, then
+// rebuilds. Use this for ship hold / roster / beaming.
+func RebuildLiveEntity(entity *SaveEntity) *ecs.Entity {
+	if entity == nil {
+		return nil
+	}
+	raw, err := json.Marshal(entity)
+	if err != nil {
+		return RebuildEntity(entity)
+	}
+	var norm SaveEntity
+	if err := json.Unmarshal(raw, &norm); err != nil {
+		return RebuildEntity(entity)
+	}
+	return RebuildEntity(&norm)
 }
 
 func RebuildEntity(entity *SaveEntity) *ecs.Entity {

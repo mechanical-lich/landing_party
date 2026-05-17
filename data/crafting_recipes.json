@@ -31,6 +31,14 @@
         "cost": {},
         "station": "basic_armor_bench"
     },
+    "refine_fuel": {
+        "name": "Refine Fuel Cell",
+        "description": "Process raw biomass and ore into a fuel cell for the ship's drive.",
+        "output": "fuel",
+        "build_time": 30,
+        "cost": { "biomass": 2, "metal_ore": 1 },
+        "station": "basic_workbench"
+    },
     "medkit": {
         "name": "Medkit",
         "description": "Emergency medical supplies. Restores health when used.",
