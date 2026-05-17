@@ -1,14 +1,14 @@
 package scenario
 
-import "github.com/mechanical-lich/scifi_settlements/internal/wincondition"
+import "github.com/mechanical-lich/landing_party/internal/wincondition"
 
 type SpawnRule struct {
-	SpawnRate        int                `json:"spawn_rate"`
-	LightMin         int                `json:"light_min"`
-	LightMax         int                `json:"light_max"`
-	Tiles            []string           `json:"tiles"`
-	MinZ             int                `json:"min_z"`
-	MaxZ             int                `json:"max_z"`
+	SpawnRate         int                `json:"spawn_rate"`
+	LightMin          int                `json:"light_min"`
+	LightMax          int                `json:"light_max"`
+	Tiles             []string           `json:"tiles"`
+	MinZ              int                `json:"min_z"`
+	MaxZ              int                `json:"max_z"`
 	StartingEquipment map[string]float64 `json:"starting_equipment,omitempty"`
 }
 
@@ -21,19 +21,19 @@ type LightingConfig struct {
 }
 
 type Scenario struct {
-	ID            string                  `json:"id"`
-	Name          string                  `json:"name"`
-	Description   string                  `json:"description"`
-	Enabled       bool                    `json:"enabled"`
-	HostileMax    int                     `json:"hostile_max"`
-	SpawnRules    map[string]SpawnRule    `json:"spawn_rules"`
-	SetupScripts  []string                `json:"setup_scripts"`
-	WinConditions wincondition.RuleSet    `json:"win_conditions"`
-	Lighting      LightingConfig          `json:"lighting"`
+	ID            string               `json:"id"`
+	Name          string               `json:"name"`
+	Description   string               `json:"description"`
+	Enabled       bool                 `json:"enabled"`
+	HostileMax    int                  `json:"hostile_max"`
+	SpawnRules    map[string]SpawnRule `json:"spawn_rules"`
+	SetupScripts  []string             `json:"setup_scripts"`
+	WinConditions wincondition.RuleSet `json:"win_conditions"`
+	Lighting      LightingConfig       `json:"lighting"`
 	// SupportedMaps lists the map IDs (data/maps/*.json) this scenario can run
 	// on. Empty means "any map". Terrain generation is driven by the chosen
 	// map, not by the scenario.
-	SupportedMaps []string                `json:"supported_maps,omitempty"`
+	SupportedMaps []string `json:"supported_maps,omitempty"`
 }
 
 // SupportsMap reports whether this scenario can run on the given map ID. An

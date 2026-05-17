@@ -1,9 +1,9 @@
 package systems
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // isFactionMember reports whether the entity belongs to a faction the door

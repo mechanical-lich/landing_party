@@ -3,19 +3,19 @@ package game
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/ai"
+	"github.com/mechanical-lich/landing_party/internal/combat"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/effect"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/gui"
+	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
-	"github.com/mechanical-lich/scifi_settlements/internal/ai"
-	"github.com/mechanical-lich/scifi_settlements/internal/combat"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/effect"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/gui"
-	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // stepWorld advances the simulation by exactly one round. It is the body that

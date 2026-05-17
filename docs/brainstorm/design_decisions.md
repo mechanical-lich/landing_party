@@ -1,6 +1,6 @@
 # Design Decisions
 
-Early design decisions and rationale for scifi_settlements.
+Early design decisions and rationale for landing_party.
 
 ---
 
@@ -28,7 +28,7 @@ World generates as a planet surface. Scenarios (like fantasy_settlements and spa
 
 **Decision: Data-driven races, not per-race AI systems**
 
-fantasy_settlements has GoblinAISystem, ElfAISystem, HumanAISystem — near-identical files, one per race. scifi_settlements uses a single worker AI system driven by a faction/behavior profile defined in blueprint data. A `BehaviorKey` on the AI component looks up state machine rules from data rather than dispatching to a hardcoded struct.
+fantasy_settlements has GoblinAISystem, ElfAISystem, HumanAISystem — near-identical files, one per race. landing_party uses a single worker AI system driven by a faction/behavior profile defined in blueprint data. A `BehaviorKey` on the AI component looks up state machine rules from data rather than dispatching to a hardcoded struct.
 
 This allows multiple species (native primitives, colonists, hostile aliens, etc.) without adding Go files per race. Visual variation — sprite coords, tilesheet key, color tints — is entirely blueprint data.
 
@@ -55,7 +55,7 @@ Stat scaling applied as a multiplier at task execution time (e.g. base_duration 
 
 **Decision: Progress lives on the task, not the worker**
 
-Currently in fantasy_settlements, task progress (e.g. `buildRequest.BuildTime`) is stored in `workerComponent.CurrentTask.Data` — it's worker-local and lost if the worker stops. In scifi_settlements, progress is a field on the Task object itself:
+Currently in fantasy_settlements, task progress (e.g. `buildRequest.BuildTime`) is stored in `workerComponent.CurrentTask.Data` — it's worker-local and lost if the worker stops. In landing_party, progress is a field on the Task object itself:
 
 - `Progress int` — current accumulated ticks
 - `Required int` — total ticks to complete

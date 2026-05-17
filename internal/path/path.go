@@ -1,12 +1,12 @@
 package path
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/skills"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/path"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/skills"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // VacuumResistSkill grants the ability to traverse space tiles. Granted by
@@ -14,9 +14,9 @@ import (
 const VacuumResistSkill = "vacuum_resist"
 
 const (
-	FlyingSkill     = "flying"     // 3D movement through air tiles, no stair requirement
+	FlyingSkill      = "flying"      // 3D movement through air tiles, no stair requirement
 	SpacefaringSkill = "spacefaring" // 3D movement through air or space tiles
-	ClimbingSkill   = "climbing"   // 3D movement only when adjacent solid wall exists
+	ClimbingSkill    = "climbing"    // 3D movement only when adjacent solid wall exists
 )
 
 // pathOffsets mirrors the six cardinal directions used in rllayered.
@@ -27,9 +27,9 @@ var pathOffsets = [6][3]int{
 // flyingGraph wraps world.Level and allows z-transitions through non-solid,
 // non-space tiles (i.e. air/empty middles), no stairs required.
 type flyingGraph struct {
-	level        *world.Level
-	faction      string
-	allowSpace   bool
+	level      *world.Level
+	faction    string
+	allowSpace bool
 }
 
 func (g *flyingGraph) PathNeighborIDs(tileIdx int, buf []int) []int {

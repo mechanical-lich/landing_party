@@ -1,7 +1,7 @@
 package generation
 
 import (
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // ApplyBiomes walks every (x,y,z), looks up the column's biome, finds the

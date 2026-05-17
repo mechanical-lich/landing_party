@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/game"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/game"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // If a data/ directory sits next to the executable (release archive layout),

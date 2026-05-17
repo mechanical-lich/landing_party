@@ -2,15 +2,15 @@ package generation
 
 import (
 	"github.com/aquilax/go-perlin"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // BiomeMapConfig controls how the per-column biome map is built.
 type BiomeMapConfig struct {
 	// Type: "perlin_temp_humidity" (default) — two noise channels feed a
 	// matcher; "uniform" — single biome ID for the whole map.
-	Type   string  `json:"type"`
-	Scale  float64 `json:"scale"`  // perlin scale (default 200)
+	Type   string   `json:"type"`
+	Scale  float64  `json:"scale"`  // perlin scale (default 200)
 	Biomes []string `json:"biomes"` // candidate biome IDs to consider
 	Single string   `json:"single"` // for "uniform"
 }

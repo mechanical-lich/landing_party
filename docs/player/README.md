@@ -1,6 +1,6 @@
 # Player Guide
 
-Welcome to Scifi Settlements. Build a colony. Keep your colonists alive. Try not to die.
+Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to die.
 
 ## Sections
 
@@ -17,7 +17,7 @@ Welcome to Scifi Settlements. Build a colony. Keep your colonists alive. Try not
 
 ## Getting Started
 
-Scifi Settlements is an **indirect-control RTS**. You do not directly control individual colonists — you build structures, issue tasks, and your colonists figure out how to execute them. The game is turn-based and tile-based.
+Landing Party is an **indirect-control RTS**. You do not directly control individual colonists — you build structures, issue tasks, and your colonists figure out how to execute them. The game is turn-based and tile-based.
 
 If you want to, you can also take **direct control** of a single colonist (Rogue mode) and pilot them around like a roguelike — see [Controls](controls.md#rogue-mode).
 

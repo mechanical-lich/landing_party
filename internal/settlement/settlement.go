@@ -3,19 +3,19 @@ package settlement
 import (
 	"image/color"
 
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/mlge/task"
-	"github.com/mechanical-lich/scifi_settlements/internal/lore"
 )
 
 var Settlements map[string]*Settlement = make(map[string]*Settlement)
 
 type Settlement struct {
-	Name      string
-	Color     color.Color
-	CenterX   int
-	CenterY   int
-	CenterZ   int
-	Tasks     task.TaskScheduler
+	Name       string
+	Color      color.Color
+	CenterX    int
+	CenterY    int
+	CenterZ    int
+	Tasks      task.TaskScheduler
 	KnownTechs []string
 }
 

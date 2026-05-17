@@ -1,4 +1,4 @@
-module github.com/mechanical-lich/scifi_settlements
+module github.com/mechanical-lich/landing_party
 
 go 1.25.5
 

@@ -1,4 +1,4 @@
-name = "scifi_settlements"
+name = "landing_party"
 
 bin:
 	mkdir bin

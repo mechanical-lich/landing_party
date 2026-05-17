@@ -5,7 +5,7 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // BuildWorldOptions describes a world to build. It deliberately mirrors the
@@ -16,14 +16,14 @@ type BuildWorldOptions struct {
 	// Seed makes terrain generation reproducible: primers and the biome map
 	// derive their noise from it, and math/rand is seeded for incidental
 	// generation variance (best-effort — not every rand call is audited).
-	Seed                 int64
-	Terrain              string
-	TerrainParams        map[string]any
-	BiomeMapType         string
-	BiomeMapScale        float64
-	BiomeIDs             []string
-	BiomeSingle          string
-	Features             []FeatureSpec
+	Seed          int64
+	Terrain       string
+	TerrainParams map[string]any
+	BiomeMapType  string
+	BiomeMapScale float64
+	BiomeIDs      []string
+	BiomeSingle   string
+	Features      []FeatureSpec
 }
 
 // BuildWorld constructs a level by running primer → biome map → biome apply

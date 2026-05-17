@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 const savesDir = "saves"

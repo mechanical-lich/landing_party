@@ -3,10 +3,10 @@ package factory
 import (
 	"fmt"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/lore"
 )
 
 var jsonFactory = ecs.NewJSONFactory()

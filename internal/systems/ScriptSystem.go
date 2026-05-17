@@ -6,12 +6,12 @@ import (
 	"math/rand"
 	"os"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mechanical-basic/pkg/basic"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 type ScriptSystem struct {

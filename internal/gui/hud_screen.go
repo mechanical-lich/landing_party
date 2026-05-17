@@ -7,19 +7,19 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/construction"
+	"github.com/mechanical-lich/landing_party/internal/crafting"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/research"
+	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/message"
 	minui "github.com/mechanical-lich/mlge/ui/minui"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/construction"
-	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/research"
-	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // scrollingVBox pairs a ScrollPanel with an inner VBox so that children
@@ -50,10 +50,10 @@ func (s *scrollingVBox) GetContent() []minui.Element       { return s.vbox.GetCh
 
 // HUDScreen is the main in-game HUD: sidebar, messages, resource bar, entity detail.
 type HUDScreen struct {
-	uiGUI        *minui.GUI
-	op           *ebiten.DrawImageOptions
-	inputBlocked      bool
-	detailsTopOffset  int
+	uiGUI            *minui.GUI
+	op               *ebiten.DrawImageOptions
+	inputBlocked     bool
+	detailsTopOffset int
 
 	// Sidebar
 	sidebarTabPanel    *minui.TabPanel
@@ -67,13 +67,13 @@ type HUDScreen struct {
 	currentSubTypes    []string
 
 	// Population tab
-	populationVBox    *minui.VBox
-	populationPanel   *minui.Panel
-	populationHeader  *minui.Label
-	rogueExitButton   *minui.Button
-	populationItems   []*minui.MenuItem
-	populationCtrl    []*minui.MenuItem
-	lastPopEntries    []PopulationEntry
+	populationVBox   *minui.VBox
+	populationPanel  *minui.Panel
+	populationHeader *minui.Label
+	rogueExitButton  *minui.Button
+	populationItems  []*minui.MenuItem
+	populationCtrl   []*minui.MenuItem
+	lastPopEntries   []PopulationEntry
 
 	// Colonist modal
 	colonistModal         *minui.Modal
@@ -90,11 +90,11 @@ type HUDScreen struct {
 	lastGoalLines []string
 
 	// Crafting station modal
-	craftingModal       *minui.Modal
-	craftingRecipeList  *minui.ListBox
-	craftingQueueList   *minui.ListBox
-	craftingRecipeIDs   []string
-	craftingStationEnt  *ecs.Entity
+	craftingModal      *minui.Modal
+	craftingRecipeList *minui.ListBox
+	craftingQueueList  *minui.ListBox
+	craftingRecipeIDs  []string
+	craftingStationEnt *ecs.Entity
 
 	// Research station modal
 	researchModal      *minui.Modal
@@ -111,10 +111,10 @@ type HUDScreen struct {
 	mainMenuModal *minui.Modal
 
 	// Save/Load modals
-	saveModal     *minui.Modal
-	loadModal     *minui.Modal
-	loadListBox   *minui.ListBox
-	saveNames     []string
+	saveModal   *minui.Modal
+	loadModal   *minui.Modal
+	loadListBox *minui.ListBox
+	saveNames   []string
 
 	// Entity detail panel
 	detailsPanel   *minui.Panel
@@ -126,9 +126,9 @@ type HUDScreen struct {
 	CursorImage *ebiten.Image
 
 	// Tooltips
-	tooltipManager    *minui.TooltipManager
-	listTooltip       *minui.Tooltip
-	craftTooltipDescs []string
+	tooltipManager       *minui.TooltipManager
+	listTooltip          *minui.Tooltip
+	craftTooltipDescs    []string
 	researchTooltipDescs []string
 	storageTooltipDescs  []string
 
@@ -1279,9 +1279,9 @@ func (h *HUDScreen) ClearHover() {
 	h.detailsPanel.SetVisible(false)
 }
 
-func (h *HUDScreen) GetInputFocused() bool            { return h.uiGUI.GetKeyboardFocused() }
-func (h *HUDScreen) GetMouseFocused() bool            { return h.uiGUI.GetMouseFocused() }
-func (h *HUDScreen) WithinModalBounds(x, y int) bool  { return h.uiGUI.WithinModalBounds(x, y) }
+func (h *HUDScreen) GetInputFocused() bool           { return h.uiGUI.GetKeyboardFocused() }
+func (h *HUDScreen) GetMouseFocused() bool           { return h.uiGUI.GetMouseFocused() }
+func (h *HUDScreen) WithinModalBounds(x, y int) bool { return h.uiGUI.WithinModalBounds(x, y) }
 
 func (h *HUDScreen) openLoadModal() {
 	h.loadModal.SetVisible(true)

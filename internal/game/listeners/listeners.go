@@ -3,9 +3,9 @@ package listeners
 import (
 	"fmt"
 
+	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/message"
-	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
 )
 
 type MessageListener struct{}

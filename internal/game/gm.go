@@ -3,14 +3,14 @@ package game
 import (
 	"math/rand"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/scenario"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/utility"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 func giveStartingEquipment(entity *ecs.Entity, equipment map[string]float64) {

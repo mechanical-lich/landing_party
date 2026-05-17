@@ -5,7 +5,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // AbandonedStationPrimer draws a hub-and-spokes station per floor: a circular
@@ -28,6 +28,7 @@ func init() {
 //	bud_attempts     int (default 60)
 //	min_room         int (default 4)
 //	max_room         int (default 8)
+//
 // Prime ignores seed directly — it uses the package global rand, which
 // BuildWorld seeds for reproducibility before priming.
 func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {

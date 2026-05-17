@@ -5,18 +5,18 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // Minimap flat colors — chosen for readability at small scale.
 var (
-	colUnseen  = color.RGBA{0, 0, 0, 255}
-	colGhost   = color.RGBA{30, 35, 40, 255}   // seen tile that exists but not currently visible
-	colSolid   = color.RGBA{70, 75, 85, 255}   // rock / wall
-	colFloor   = color.RGBA{140, 148, 160, 255} // walkable floor
-	colWater   = color.RGBA{40, 90, 160, 255}   // water
-	colSpace   = color.RGBA{5, 5, 12, 255}      // space / vacuum
+	colUnseen = color.RGBA{0, 0, 0, 255}
+	colGhost  = color.RGBA{30, 35, 40, 255}    // seen tile that exists but not currently visible
+	colSolid  = color.RGBA{70, 75, 85, 255}    // rock / wall
+	colFloor  = color.RGBA{140, 148, 160, 255} // walkable floor
+	colWater  = color.RGBA{40, 90, 160, 255}   // water
+	colSpace  = color.RGBA{5, 5, 12, 255}      // space / vacuum
 )
 
 type Minimap struct {

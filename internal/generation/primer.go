@@ -3,7 +3,7 @@ package generation
 import (
 	"fmt"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // TerrainPrimer produces the terrain skeleton for a level: it allocates the

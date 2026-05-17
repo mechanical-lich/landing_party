@@ -10,15 +10,15 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mechanical-lich/landing_party/internal/ai"
+	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
+	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/ai"
-	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
-	"github.com/mechanical-lich/scifi_settlements/internal/storage"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // installCampaignStorageHook makes worker crafting/fuel draw from both the live
@@ -59,7 +59,7 @@ type WorldManager struct {
 
 	// Cached landing zone for the loaded location so every beam-down arrives
 	// at the same plaza (recomputed on Travel).
-	landSet          bool
+	landSet             bool
 	landX, landY, landZ int
 }
 

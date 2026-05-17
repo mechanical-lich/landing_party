@@ -5,9 +5,8 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
-
 
 // FeatureSpec is the JSON shape for a feature placement directive.
 type FeatureSpec struct {

@@ -11,7 +11,7 @@
     "startingZ": 5,
     "screenWidth": 1152,
     "screenHeight": 800,
-    "title": "Scifi Settlements",
+    "title": "Landing Party",
     "blueprintPath": "data/blueprints",
     "dpi": 72,
     "renderPathfindingSteps": false,

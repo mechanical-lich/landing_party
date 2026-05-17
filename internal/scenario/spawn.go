@@ -1,8 +1,8 @@
 package scenario
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/utility"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 const maxZUnset = 0

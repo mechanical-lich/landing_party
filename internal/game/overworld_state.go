@@ -6,15 +6,15 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/state"
 	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ui/minui"
-	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/storage"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // OverworldState is the space "star map": pick a destination, load it, and

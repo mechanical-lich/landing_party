@@ -7,9 +7,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/minimap"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/minimap"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 const (
@@ -22,15 +22,14 @@ const (
 	smallMapMargin = 8
 )
 
-
 type SmallMapWidget struct {
-	level      *world.Level
-	mm         *minimap.Minimap
+	level              *world.Level
+	mm                 *minimap.Minimap
 	camX, camY, camZ   int
 	camViewW, camViewH int
-	OnClick       func()
-	OnFollowClick func()
-	FollowActive  bool
+	OnClick            func()
+	OnFollowClick      func()
+	FollowActive       bool
 
 	lastZ int
 

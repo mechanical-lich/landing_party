@@ -4,11 +4,11 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/input"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/state"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
 )
 
 type Game struct {

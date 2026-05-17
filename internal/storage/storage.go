@@ -5,10 +5,10 @@
 package storage
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // Provider yields the entity slices that may contain storage containers.

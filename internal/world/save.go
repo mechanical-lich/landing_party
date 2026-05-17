@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
 )
 
 type SaveEntity struct {
@@ -36,9 +36,9 @@ type TileRun struct {
 }
 
 type SaveData struct {
-	FloorRuns      []TileRun  `json:"FloorRuns,omitempty"`
-	MiddleRuns     []TileRun  `json:"MiddleRuns,omitempty"`
-	CeilingRuns    []TileRun  `json:"CeilingRuns,omitempty"`
+	FloorRuns      []TileRun `json:"FloorRuns,omitempty"`
+	MiddleRuns     []TileRun `json:"MiddleRuns,omitempty"`
+	CeilingRuns    []TileRun `json:"CeilingRuns,omitempty"`
 	Entities       []*SaveEntity
 	StaticEntities []*SaveEntity
 	Settlements    map[string]*settlement.Settlement

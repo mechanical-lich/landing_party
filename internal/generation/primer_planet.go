@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/aquilax/go-perlin"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // PlanetPrimer paints a layered planet: bedrock at z=0, underground rock with

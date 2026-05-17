@@ -10,22 +10,22 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/lore"
+	"github.com/mechanical-lich/landing_party/internal/mapdef"
+	"github.com/mechanical-lich/landing_party/internal/scenario"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/state"
 	mlge_text "github.com/mechanical-lich/mlge/text"
 	"github.com/mechanical-lich/mlge/ui/minui"
-	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/generation"
-	"github.com/mechanical-lich/scifi_settlements/internal/lore"
-	"github.com/mechanical-lich/scifi_settlements/internal/mapdef"
-	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 type titleScreen int
 
 const (
-	screenMain          titleScreen = iota
+	screenMain titleScreen = iota
 	screenNewSettlement
 	screenLoad
 )
@@ -37,8 +37,8 @@ type TitleState struct {
 	loadBtn *minui.Button
 	quitBtn *minui.Button
 
-	nameInput      *minui.TextInput
-	randomNameBtn  *minui.Button
+	nameInput     *minui.TextInput
+	randomNameBtn *minui.Button
 
 	seedInput     *minui.TextInput
 	randomSeedBtn *minui.Button
@@ -53,10 +53,10 @@ type TitleState struct {
 	scenarioPicker *minui.SelectBox
 	scenarioIDs    []string
 
-	lightingPicker    *minui.SelectBox
-	lightingModes     []string // internal mode strings
-	ambientLabel      *minui.Label
-	ambientInput      *minui.TextInput
+	lightingPicker *minui.SelectBox
+	lightingModes  []string // internal mode strings
+	ambientLabel   *minui.Label
+	ambientInput   *minui.TextInput
 
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
@@ -65,8 +65,8 @@ type TitleState struct {
 	saveMetas     []SaveMeta
 	campaignNames []string
 	saveListBox   *minui.ListBox
-	loadConfirm  *minui.Button
-	loadCancel   *minui.Button
+	loadConfirm   *minui.Button
+	loadCancel    *minui.Button
 
 	errMsg string
 	done   bool
@@ -410,8 +410,8 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	cfg := config.Global()
 	screen.Fill(color.RGBA{8, 10, 18, 255})
 
-	title := "Scifi Settlements"
-	mlge_text.Draw(screen, title, 48, cfg.ScreenWidth/2-len(title)*48*3/10/2, 160, color.RGBA{100, 200, 255, 255})
+	title := "Landing Party"
+	mlge_text.Draw(screen, title, 48, cfg.ScreenWidth/2-50-len(title)*48*3/10/2, 160, color.RGBA{100, 200, 255, 255})
 	sub := "A Colony Sim"
 	mlge_text.Draw(screen, sub, 18, cfg.ScreenWidth/2-len(sub)*18*3/10/2, 230, color.RGBA{70, 140, 180, 255})
 

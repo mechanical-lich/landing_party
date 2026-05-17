@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/aquilax/go-perlin"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // AsteroidFieldPrimer fills the level with vacuum, then carves N asteroids

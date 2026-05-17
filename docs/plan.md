@@ -1,4 +1,4 @@
-# scifi_settlements — Feature Plan
+# landing_party — Feature Plan
 
 ## Status key
 - `[ ]` not started

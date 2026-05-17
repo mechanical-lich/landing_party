@@ -14,6 +14,27 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/construction"
+	"github.com/mechanical-lich/landing_party/internal/crafting"
+	"github.com/mechanical-lich/landing_party/internal/effect"
+	"github.com/mechanical-lich/landing_party/internal/eventsystem"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/game/listeners"
+	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/gui"
+	"github.com/mechanical-lich/landing_party/internal/mapdef"
+	fspath "github.com/mechanical-lich/landing_party/internal/path"
+	"github.com/mechanical-lich/landing_party/internal/research"
+	"github.com/mechanical-lich/landing_party/internal/scenario"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
+	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/landing_party/internal/systems"
+	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/wincondition"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlworld"
@@ -25,37 +46,16 @@ import (
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/ui/minui"
-	"github.com/mechanical-lich/scifi_settlements/internal/campaign"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/storage"
-	"github.com/mechanical-lich/scifi_settlements/internal/construction"
-	"github.com/mechanical-lich/scifi_settlements/internal/crafting"
-	"github.com/mechanical-lich/scifi_settlements/internal/effect"
-	"github.com/mechanical-lich/scifi_settlements/internal/eventsystem"
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/game/listeners"
-	"github.com/mechanical-lich/scifi_settlements/internal/generation"
-	"github.com/mechanical-lich/scifi_settlements/internal/gui"
-	"github.com/mechanical-lich/scifi_settlements/internal/mapdef"
-	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
-	"github.com/mechanical-lich/scifi_settlements/internal/research"
-	"github.com/mechanical-lich/scifi_settlements/internal/scenario"
-	"github.com/mechanical-lich/scifi_settlements/internal/settlement"
-	"github.com/mechanical-lich/scifi_settlements/internal/systems"
-	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
-	"github.com/mechanical-lich/scifi_settlements/internal/wincondition"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 type SettlementConfig struct {
-	Name            string
-	ScenarioID      string
-	MapID           string // "" = random map
-	Seed            int64  // 0 = pick a random seed at generation time
-	MapW, MapH, MapZ int   // 0 = use config.json defaults
-	LightingMode    string // "" = use scenario default
-	LightingAmbient int    // only used when LightingMode == "fixed"
+	Name             string
+	ScenarioID       string
+	MapID            string // "" = random map
+	Seed             int64  // 0 = pick a random seed at generation time
+	MapW, MapH, MapZ int    // 0 = use config.json defaults
+	LightingMode     string // "" = use scenario default
+	LightingAmbient  int    // only used when LightingMode == "fixed"
 
 	// Campaign integration: when PartyEntities is non-empty, newGame beams
 	// those colonists in at the plaza instead of spawning the default squad.

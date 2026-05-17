@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/factory"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 func init() {
@@ -24,7 +24,8 @@ func init() {
 // scatter_entity — sparse single-entity decoration on surface tiles matching
 // a kind. Spawns via the entity factory; failures (missing blueprint) skip
 // silently after a one-time warning.
-//   params: blueprint (string, required), kind (string, default "surface")
+//
+//	params: blueprint (string, required), kind (string, default "surface")
 func placeScatterEntity(level *world.Level, s FeatureSpec) error {
 	bp := featureParamString(s, "blueprint", "")
 	if bp == "" {
@@ -68,7 +69,8 @@ func placeScatterEntity(level *world.Level, s FeatureSpec) error {
 }
 
 // scatter_tile — sparse single-tile decoration matching by terrain kind.
-//   params: tile (string), kind (string, default "surface")
+//
+//	params: tile (string), kind (string, default "surface")
 func placeScatterTile(level *world.Level, s FeatureSpec) error {
 	tile := featureParamString(s, "tile", "")
 	if tile == "" {
@@ -108,7 +110,8 @@ func placeScatterTile(level *world.Level, s FeatureSpec) error {
 }
 
 // ore_vein — cluster of ore tiles underground.
-//   params: tile (default "ore_deposit"), radius (default 3)
+//
+//	params: tile (default "ore_deposit"), radius (default 3)
 func placeOreVein(level *world.Level, s FeatureSpec) error {
 	tile := featureParamString(s, "tile", "ore_deposit")
 	if !requireTile(tile) {
@@ -166,7 +169,8 @@ func placeOreVein(level *world.Level, s FeatureSpec) error {
 }
 
 // radiation_pocket — circular blob of radiation + 1-3 radioactive_ore seeds.
-//   params: peak (default 180), radius (default 4), ore_tile (default "radioactive_ore")
+//
+//	params: peak (default 180), radius (default 4), ore_tile (default "radioactive_ore")
 func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 	peak := featureParamInt(s, "peak", 180)
 	if peak > 255 {
@@ -245,7 +249,8 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 }
 
 // crystal_grove — surface cluster of crystal entities (spawned via factory).
-//   params: blueprint (default "alien_crystal"), radius (default 4)
+//
+//	params: blueprint (default "alien_crystal"), radius (default 4)
 func placeCrystalGrove(level *world.Level, s FeatureSpec) error {
 	bp := featureParamString(s, "blueprint", "alien_crystal")
 	radius := featureParamInt(s, "radius", 4)
@@ -299,7 +304,8 @@ func placeCrystalGrove(level *world.Level, s FeatureSpec) error {
 }
 
 // lava_lake — replace surface tiles in a circle with lava.
-//   params: tile (default "lava"), radius (default 5)
+//
+//	params: tile (default "lava"), radius (default 5)
 func placeLavaLake(level *world.Level, s FeatureSpec) error {
 	tile := featureParamString(s, "tile", "lava")
 	if !requireTile(tile) {
@@ -349,7 +355,8 @@ func placeLavaLake(level *world.Level, s FeatureSpec) error {
 // loaded; if a blueprint is missing the placer silently no-ops the instance.
 
 // derelict_pod — single entity at a random surface location.
-//   params: blueprint (required)
+//
+//	params: blueprint (required)
 func placeDerelictPod(level *world.Level, s FeatureSpec) error {
 	bp := featureParamString(s, "blueprint", "")
 	if bp == "" {
@@ -391,7 +398,8 @@ func placeDerelictPod(level *world.Level, s FeatureSpec) error {
 }
 
 // fauna_spawner — repeated entity creation at random open tiles.
-//   params: blueprint (required), z (optional, default surface+1)
+//
+//	params: blueprint (required), z (optional, default surface+1)
 func placeFaunaSpawner(level *world.Level, s FeatureSpec) error {
 	bp := featureParamString(s, "blueprint", "")
 	if bp == "" {
@@ -435,7 +443,8 @@ func placeFaunaSpawner(level *world.Level, s FeatureSpec) error {
 // botany_bay — stamps a small "garden plot" of soil tiles + plant entities at
 // a random region tagged station_room_large (if present), else any surface
 // tile in the matching biome. Placeholder until blueprint stamper exists.
-//   params: tile (default "dirt"), plant_blueprint (optional), radius (default 3)
+//
+//	params: tile (default "dirt"), plant_blueprint (optional), radius (default 3)
 func placeBotanyBay(level *world.Level, s FeatureSpec) error {
 	tile := featureParamString(s, "tile", "dirt")
 	if !requireTile(tile) {
@@ -480,7 +489,8 @@ func placeBotanyBay(level *world.Level, s FeatureSpec) error {
 }
 
 // structure — generic entity placer at a region tag or random open tile.
-//   params: blueprint (required), region (optional, e.g. "starting_floor")
+//
+//	params: blueprint (required), region (optional, e.g. "starting_floor")
 func placeStructure(level *world.Level, s FeatureSpec) error {
 	bp := featureParamString(s, "blueprint", "")
 	if bp == "" {

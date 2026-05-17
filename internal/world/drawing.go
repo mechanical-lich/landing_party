@@ -12,15 +12,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/task"
 	mlge_text "github.com/mechanical-lich/mlge/text"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
-	"github.com/mechanical-lich/scifi_settlements/internal/task_requests"
 )
 
 var drawOp = &ebiten.DrawImageOptions{}
@@ -348,7 +348,6 @@ func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slo
 	drawOp.GeoM.Translate(float64(screenX*tileSizeW+def.SpriteOffsetX), float64(screenY*tileSizeH+def.SpriteOffsetY))
 	screen.DrawImage(src, drawOp)
 }
-
 
 // DrawRadiationOverlay paints a green tint over tiles with nonzero Radiation.
 // Intensity scales with the tile's Radiation byte (0..255).

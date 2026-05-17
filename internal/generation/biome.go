@@ -6,17 +6,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 // BiomeRule maps a TerrainKind (and optional Z offset from surface) to a
 // concrete tile type, plus optional baseline tile properties.
 //
 // Match order:
-//   1. TerrainKind must equal Kind (string form).
-//   2. If YOffset is non-nil, the tile's z relative to its column surface
-//      must equal it. Negative = below surface, positive = above.
-//   3. Otherwise the rule matches any z with that kind.
+//  1. TerrainKind must equal Kind (string form).
+//  2. If YOffset is non-nil, the tile's z relative to its column surface
+//     must equal it. Negative = below surface, positive = above.
+//  3. Otherwise the rule matches any z with that kind.
 //
 // Rules are evaluated in order; first match wins.
 type BiomeRule struct {
@@ -30,11 +30,11 @@ type BiomeRule struct {
 
 // Biome describes one biome's appearance + features.
 type Biome struct {
-	ID            string         `json:"id"`
-	TempRange     [2]float64     `json:"temp_range"`     // 0..1, inclusive
-	HumidityRange [2]float64     `json:"humidity_range"` // 0..1, inclusive
-	Rules         []BiomeRule    `json:"rules"`
-	Features      []FeatureSpec  `json:"features,omitempty"` // biome-specific features
+	ID            string        `json:"id"`
+	TempRange     [2]float64    `json:"temp_range"`     // 0..1, inclusive
+	HumidityRange [2]float64    `json:"humidity_range"` // 0..1, inclusive
+	Rules         []BiomeRule   `json:"rules"`
+	Features      []FeatureSpec `json:"features,omitempty"` // biome-specific features
 }
 
 var biomes = map[string]*Biome{}

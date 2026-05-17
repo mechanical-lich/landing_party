@@ -4,16 +4,16 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/mlge/resource"
-	"github.com/mechanical-lich/scifi_settlements/internal/config"
 )
 
 type ArrowEffect struct {
-	X, Y, Z         float64
+	X, Y, Z                   float64
 	TargetX, TargetY, TargetZ float64
-	Resource        string
-	SX, SY          int
-	op              ebiten.DrawImageOptions
+	Resource                  string
+	SX, SY                    int
+	op                        ebiten.DrawImageOptions
 }
 
 func NewArrowEffect(x, y, z, targetX, targetY, targetZ int, res string, sx, sy int) *ArrowEffect {

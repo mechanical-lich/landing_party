@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/landing_party/internal/components"
+	fspath "github.com/mechanical-lich/landing_party/internal/path"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	fspath "github.com/mechanical-lich/scifi_settlements/internal/path"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

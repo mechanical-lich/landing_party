@@ -1,8 +1,8 @@
 package campaign
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 // ShipSettlementName is the synthetic settlement that owns everything in the

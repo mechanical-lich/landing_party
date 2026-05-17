@@ -3,10 +3,10 @@ package systems
 import (
 	"math"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/scifi_settlements/internal/components"
-	"github.com/mechanical-lich/scifi_settlements/internal/world"
 )
 
 const DefaultSightRadius = 12
@@ -53,7 +53,6 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 }
 
 func (s *FOVSystem) UpdateEntity(data interface{}, entity *ecs.Entity) error { return nil }
-
 
 // updateFOV marks all tiles within radius of (ox,oy,oz) as visible + seen if
 // they have line of sight to the origin. Uses Bresenham ray casting.

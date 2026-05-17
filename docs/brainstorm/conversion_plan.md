@@ -2,9 +2,9 @@ Ready for review
 Select text to add comments on the plan
 landing_party — Campaign / Overworld Foundation
 Context
-landing_party is a fork of scifi_settlements (currently a byte-identical copy at /Users/johngodsey/repos/mechanical-lich-repos/landing_party). The goal is to turn the single-map colony sim into a procedurally-generated, story-driven game: you lead alien colonists from a space life-raft, spend fuel to travel a space overworld between planets/moons/asteroids, establish bases, gather/process materials (to make more fuel), and pursue quests (the repurposed win-condition system).
+landing_party is a fork of landing_party (currently a byte-identical copy at /Users/johngodsey/repos/mechanical-lich-repos/landing_party). The goal is to turn the single-map colony sim into a procedurally-generated, story-driven game: you lead alien colonists from a space life-raft, spend fuel to travel a space overworld between planets/moons/asteroids, establish bases, gather/process materials (to make more fuel), and pursue quests (the repurposed win-condition system).
 
-scifi_settlements today is single-level: one world.Level held as MainState.level, no level stack. Resources are not global — they are scanned on the fly from StorageComponent entities on the live level. Win conditions are declarative JSON per scenario. There is no overworld, no global ship stockpile, no colonist-spawn mechanic.
+landing_party today is single-level: one world.Level held as MainState.level, no level stack. Resources are not global — they are scanned on the fly from StorageComponent entities on the live level. Win conditions are declarative JSON per scenario. There is no overworld, no global ship stockpile, no colonist-spawn mechanic.
 
 This plan covers Phase 1 (foundation) in executable detail and outlines Phase 2+.
 
@@ -14,7 +14,7 @@ Locations persist (paused): each visited location's full Level is serialized to 
 Resource model = ship-storage entities: keep the StorageComponent/entity model; the ship hold is a persistent collection of StorageComponent-bearing entities owned by a synthetic "ship" settlement living at the campaign level (not on any Level).
 Logistics = ship hold + local: a landing party on a planet draws crafting/build materials from BOTH on-planet storage and the global ship hold (MultiProvider).
 Replace legacy fully: campaign mode is the only mode; the single-level "New Settlement" start/save paths are removed.
-Module path stays github.com/mechanical-lich/scifi_settlements in Phase 1 (a module rename is orthogonal churn; defer).
+Module path stays github.com/mechanical-lich/landing_party in Phase 1 (a module rename is orthogonal churn; defer).
 All paths below are relative to the landing_party repo root.
 
 Phase 1 — Ordered implementation
