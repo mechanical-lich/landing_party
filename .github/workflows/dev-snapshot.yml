@@ -60,34 +60,34 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 1
-        run: go build -ldflags="-s -w" -o dist/scifi-settlements${{ matrix.suffix }} ./cmd/game
+        run: go build -ldflags="-s -w" -o dist/landing-party${{ matrix.suffix }} ./cmd/game
 
       - name: Stage release archive
         shell: bash
         run: |
-          ARCHIVE=scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          ARCHIVE=landing-party-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
           mkdir -p staging/$ARCHIVE
-          cp dist/scifi-settlements${{ matrix.suffix }} staging/$ARCHIVE/
+          cp dist/landing-party${{ matrix.suffix }} staging/$ARCHIVE/
           cp -r data staging/$ARCHIVE/
           cp -r assets staging/$ARCHIVE/
 
       - name: Zip (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          ARCHIVE=scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          ARCHIVE=landing-party-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
           cd staging && zip -r ../$ARCHIVE.zip $ARCHIVE/
 
       - name: Zip (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $archive = "scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}"
+          $archive = "landing-party-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}"
           Compress-Archive -Path "staging/$archive" -DestinationPath "$archive.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
-          path: scifi-settlements-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}.zip
+          name: landing-party-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          path: landing-party-${{ needs.prepare.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}.zip
 
   release:
     needs: [prepare, build]
