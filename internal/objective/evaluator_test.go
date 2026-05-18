@@ -58,3 +58,23 @@ func TestEvaluateKillAllNeedsPriorExistence(t *testing.T) {
 		t.Fatalf("expected purge after eggs cleared, got ok=%v rule=%v", ok, r)
 	}
 }
+
+// target_killed fires only once the specific tagged target's quest id is in
+// KilledTargets — independent of any blueprint counts.
+func TestEvaluateTargetKilled(t *testing.T) {
+	e := New(RuleSet{Rules: []Rule{
+		{ID: "hunt", Trigger: TriggerTargetKilled, Target: "q_boss_7"},
+	}})
+
+	if _, ok := e.Evaluate(EvalContext{}); ok {
+		t.Fatal("fired before the target was killed")
+	}
+	// An unrelated target dying must not satisfy it.
+	if _, ok := e.Evaluate(EvalContext{KilledTargets: map[string]bool{"q_other": true}}); ok {
+		t.Fatal("fired for the wrong target")
+	}
+	r, ok := e.Evaluate(EvalContext{KilledTargets: map[string]bool{"q_boss_7": true}})
+	if !ok || r.ID != "hunt" {
+		t.Fatalf("expected hunt after target killed, got ok=%v rule=%v", ok, r)
+	}
+}

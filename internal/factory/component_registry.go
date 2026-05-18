@@ -48,4 +48,6 @@ func registerComponents() {
 	jsonFactory.RegisterComponent("Script", func() ecs.Component { return &components.ScriptComponent{} })
 	jsonFactory.RegisterComponent("ScriptedAI", func() ecs.Component { return &components.ScriptedAIComponent{} })
 	jsonFactory.RegisterComponent("LaserBeam", func() ecs.Component { return &components.LaserBeamComponent{} })
+	jsonFactory.RegisterComponent("QuestTarget", func() ecs.Component { return &components.QuestTargetComponent{} })
+	jsonFactory.RegisterComponent("Datapad", func() ecs.Component { return &components.DatapadComponent{} })
 }

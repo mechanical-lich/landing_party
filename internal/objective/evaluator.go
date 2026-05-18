@@ -14,7 +14,9 @@ type EvalContext struct {
 	EntityCounts map[string]int
 	// KnownTechs is the list of tech keys the colony has researched.
 	KnownTechs []string
-	Day        int
+	// KilledTargets is the set of quest IDs whose tagged target has died.
+	KilledTargets map[string]bool
+	Day           int
 }
 
 type Evaluator struct {
@@ -82,6 +84,11 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 			actual = sumCounts(ctx.EntityCounts, bps)
 		case TriggerResourceGathered:
 			actual = ctx.ResourceCounts[r.Resource]
+		case TriggerTargetKilled:
+			if ctx.KilledTargets[r.Target] && checkConditions(r.When, ctx) {
+				return r, true
+			}
+			continue
 		default:
 			continue
 		}

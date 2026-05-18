@@ -40,6 +40,9 @@ type Quest struct {
 	// the quest reveals that location, and the objective is only evaluated
 	// while the landing party is actually there.
 	Location string `json:"location,omitempty"`
+	// Delivery is how the quest reaches the player: "" = offered in the pool,
+	// "datapad" = hidden until its datapad clue is recovered at Location.
+	Delivery string `json:"delivery,omitempty"`
 }
 
 // QuestProgress is the serialized per-campaign state for one quest.
@@ -135,21 +138,13 @@ func (c *Campaign) revealQuestLocation(q *Quest) {
 }
 
 func startingStatus(q *Quest) QuestStatus {
-	if q.RequiresQuest != "" {
+	if q.RequiresQuest != "" || q.Delivery == "datapad" {
 		return QuestHidden
 	}
 	if q.AutoAccept {
 		return QuestActive
 	}
 	return QuestAvailable
-}
-
-// QuestDef returns the runtime definition for id (or nil).
-func (c *Campaign) QuestDef(id string) *Quest {
-	if c.questByID == nil {
-		return nil
-	}
-	return c.questByID[id]
 }
 
 func (c *Campaign) questsByStatus(status QuestStatus) []*Quest {
@@ -178,6 +173,19 @@ func (c *Campaign) AcceptQuest(id string) bool {
 		c.revealQuestLocation(q)
 	}
 	return true
+}
+
+// UnlockQuest moves a hidden datapad quest into the available pool (NOT
+// accepted) when its clue is recovered. Returns the quest definition (for the
+// "new lead" message), or nil if it can't be unlocked.
+func (c *Campaign) UnlockQuest(id string) *Quest {
+	p := c.Quests[id]
+	q := c.questByID[id]
+	if p == nil || q == nil || p.Status != QuestHidden {
+		return nil
+	}
+	p.Status = QuestAvailable
+	return q
 }
 
 // EvaluateQuests checks every active quest's objective against ctx and returns

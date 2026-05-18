@@ -41,4 +41,30 @@ type Location struct {
 	// Colonists is the number of living colonists left here, recorded on
 	// Freeze. Used for campaign-wide total-wipe detection.
 	Colonists int `json:"colonists,omitempty"`
+
+	// Fixtures are quest-placed things (named bosses, bounty creatures, loot)
+	// to materialize into this location's level. Spawned idempotently on every
+	// level load (see the game-side spawn hook); persisted so a fixture added
+	// after the location was first visited still appears on the next trip.
+	Fixtures []QuestFixture `json:"fixtures,omitempty"`
+}
+
+// QuestFixture describes one quest-placed entity for a location.
+type QuestFixture struct {
+	QuestID   string `json:"quest_id"`
+	Blueprint string `json:"blueprint"`
+	Name      string `json:"name,omitempty"`
+	Kind      string `json:"kind,omitempty"` // "boss" | "loot" | ...
+	Spawned   bool   `json:"spawned,omitempty"`
+}
+
+// AddFixture appends a fixture for this location unless one already exists for
+// the same quest.
+func (l *Location) AddFixture(f QuestFixture) {
+	for i := range l.Fixtures {
+		if l.Fixtures[i].QuestID == f.QuestID {
+			return
+		}
+	}
+	l.Fixtures = append(l.Fixtures, f)
 }

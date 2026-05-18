@@ -98,12 +98,17 @@ type MainState struct {
 	done             bool
 	next             state.StateInterface
 	mapModal         *MapModal
+	cheatModal       *CheatModal
 	smallMap         *SmallMapWidget
 	followEntity     *ecs.Entity
 	rogueEntity      *ecs.Entity
 	campaign         *campaign.Campaign
 	wm               *WorldManager
 	starMapBtn       *minui.Button
+	// forceQuestEval requests an immediate quest re-check next Update (set when
+	// a quest target dies) so completion isn't delayed by the periodic tick —
+	// important in Rogue mode where ticks only advance per player action.
+	forceQuestEval bool
 }
 
 const (
@@ -184,6 +189,11 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.cleanUpSystem = &rlsystems.CleanUpSystem{
 		OnEntityDead: func(levelInterface rlworld.LevelInterface, entity *ecs.Entity) {
 			level := levelInterface.(*world.Level)
+			if s.campaign != nil && entity.HasComponent(components.QuestTarget) {
+				qt := entity.GetComponent(components.QuestTarget).(*components.QuestTargetComponent)
+				s.campaign.MarkTargetKilled(qt.QuestID)
+				s.forceQuestEval = true
+			}
 			if entity.HasComponent(components.Worker) {
 				wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 				if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
@@ -283,6 +293,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.level = level
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(level)
+	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
@@ -451,6 +462,7 @@ func (s *MainState) newGame() {
 	}
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level)
+	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
@@ -573,7 +585,7 @@ func (s *MainState) Update() state.StateInterface {
 	if s.MainSettlement != nil {
 		s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
 	}
-	s.guiManager.SetInputBlocked(s.mapModal.Visible)
+	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible)
 	s.guiManager.Update()
 	cfg2 := config.Global()
 	viewW2 := cfg2.WorldWidth / s.TileSizeW
@@ -604,6 +616,7 @@ func (s *MainState) Update() state.StateInterface {
 		s.starMapBtn.Update()
 	}
 	s.mapModal.Update()
+	s.cheatModal.Update()
 	s.updateHovered()
 
 	fps := ebiten.ActualFPS()
@@ -624,7 +637,7 @@ func (s *MainState) Update() state.StateInterface {
 		s.purgeCompletedTasks()
 		s.refreshHUD()
 		if !s.Paused {
-			s.evaluateQuests()
+			s.evaluateQuests() // periodic catch-all; target kills resolve in stepWorld
 		}
 	}
 
@@ -675,6 +688,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 		s.starMapBtn.Draw(screen)
 	}
 	s.mapModal.Draw(screen)
+	s.cheatModal.Draw(screen)
 }
 
 func (s *MainState) Done() bool { return s.done }
@@ -1118,6 +1132,20 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		return
 	}
 
+	// Developer console: Shift+ESC opens it; while open it swallows all keys
+	// except Esc (close) so typing doesn't drive the camera.
+	if s.cheatModal.Visible {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			s.cheatModal.Visible = false
+		}
+		return
+	}
+	shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+	if shift && inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		s.cheatModal.Open()
+		return
+	}
+
 	if s.rogueEntity != nil {
 		s.handleRogueKeys()
 		return
@@ -1229,6 +1257,9 @@ func (s *MainState) openStarMap() {
 }
 
 func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
+	if s.mapModal.Visible || s.cheatModal.Visible {
+		return
+	}
 	if s.guiManager.GetMouseFocused() {
 		return
 	}
@@ -1256,7 +1287,7 @@ func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
 }
 
 func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
-	if s.mapModal.Visible {
+	if s.mapModal.Visible || s.cheatModal.Visible {
 		return
 	}
 	if s.guiManager.GetMouseFocused() || s.guiManager.WithinModalBounds(ebiten.CursorPosition()) {
@@ -1819,6 +1850,45 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 	}
 }
 
+// collectDatapads recovers any datapad a colonist is standing on: it consumes
+// the item and unlocks its (hidden) quest into the available pool, with a
+// "new lead" message. Runs every world step so it works in both real-time and
+// Rogue mode.
+func (s *MainState) collectDatapads() {
+	if s.campaign == nil || s.level == nil {
+		return
+	}
+	// Tiles occupied by living colony colonists.
+	occupied := map[[3]int]bool{}
+	for _, e := range s.level.Entities {
+		if e == nil || e.HasComponent(rlcomponents.Dead) || !e.HasComponent(components.Worker) {
+			continue
+		}
+		if !e.HasComponent(rlcomponents.Position) {
+			continue
+		}
+		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		occupied[[3]int{pc.GetX(), pc.GetY(), pc.GetZ()}] = true
+	}
+	if len(occupied) == 0 {
+		return
+	}
+	for _, e := range s.level.Entities {
+		if e == nil || !e.HasComponent(components.Datapad) || !e.HasComponent(rlcomponents.Position) {
+			continue
+		}
+		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if !occupied[[3]int{pc.GetX(), pc.GetY(), pc.GetZ()}] {
+			continue
+		}
+		dp := e.GetComponent(components.Datapad).(*components.DatapadComponent)
+		s.level.RemoveEntity(e)
+		if q := s.campaign.UnlockQuest(dp.QuestID); q != nil {
+			message.PostMessage("Datapad", fmt.Sprintf("Recovered a datapad — new lead: %s. %s", q.Name, q.Description))
+		}
+	}
+}
+
 // evaluateQuests progresses campaign quests against the shared eval context,
 // additionally counting the ship hold so "deliver/gather"
 // objectives recognise the campaign-wide stockpile.
@@ -1837,6 +1907,7 @@ func (s *MainState) evaluateQuests() {
 		merged[id] += storage.CountResource(holdP, owners, id)
 	}
 	ctx.ResourceCounts = merged
+	ctx.KilledTargets = s.campaign.KilledTargets
 
 	for _, q := range s.campaign.EvaluateQuests(ctx) {
 		if s.wm != nil {

@@ -26,6 +26,8 @@ const (
 	Script           ecs.ComponentType = "Script"
 	ScriptedAI       ecs.ComponentType = "ScriptedAI"
 	LaserBeam        ecs.ComponentType = "LaserBeam"
+	QuestTarget      ecs.ComponentType = "QuestTarget"
+	Datapad          ecs.ComponentType = "Datapad"
 )
 
 

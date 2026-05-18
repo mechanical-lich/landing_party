@@ -56,6 +56,11 @@ type questTemplate struct {
 	RewardFuelFlat int           `json:"reward_fuel_flat"`
 	RewardRes     map[string]int `json:"reward_resources"`
 	SpawnSystems  int            `json:"spawn_systems"`
+	// TargetBlueprints / TargetNames drive a target_killed "bounty" quest: a
+	// named entity (random blueprint + name from these pools) is spawned as a
+	// location fixture and must be killed.
+	TargetBlueprints []string `json:"target_blueprints"`
+	TargetNames      []string `json:"target_names"`
 	// SpawnArchetype, when set, makes this a "contract": instead of attaching
 	// to an existing system's tags, generating the quest also charts a new
 	// (hidden) location of that archetype and binds the quest to it. Accepting
@@ -219,6 +224,7 @@ func (c *Campaign) MaybeTravelQuests() ([]*Location, int) {
 			x, y := c.placeTowardHome(rng)
 			target = c.newLocation(rng, lt, a, x, y, "")
 			target.Discovered = true
+			c.addDatapadQuests(rng, qt, a, target)
 			newLocs = append(newLocs, target)
 			existing = append(existing, target)
 		} else {
@@ -305,7 +311,32 @@ func (c *Campaign) newSystem(rng *rand.Rand, lt *locTemplates, qt *questTemplate
 			c.QuestDefs = append(c.QuestDefs, *qd)
 		}
 	}
+	c.addDatapadQuests(rng, qt, a, loc)
 	return loc
+}
+
+// addDatapadQuests gives a location 1..datapad_quests_max hidden quests, each
+// recoverable only by finding its datapad clue spawned at the location. They
+// stay out of the quest log until the datapad is picked up.
+func (c *Campaign) addDatapadQuests(rng *rand.Rand, qt *questTemplates, a locArchetype, loc *Location) {
+	max := genConfig().DatapadQuestsMax
+	if max <= 0 {
+		return
+	}
+	n := 1 + rng.Intn(max)
+	for i := 0; i < n; i++ {
+		q := c.makeQuest(rng, qt, a, loc)
+		if q == nil {
+			continue
+		}
+		q.Delivery = "datapad"
+		c.QuestDefs = append(c.QuestDefs, *q)
+		loc.AddFixture(QuestFixture{
+			QuestID:   q.ID,
+			Blueprint: "datapad",
+			Kind:      "datapad",
+		})
+	}
 }
 
 // makeQuest instantiates a concrete Quest from a tag-compatible, non-contract
@@ -334,7 +365,9 @@ func (c *Campaign) makeContract(rng *rand.Rand, lt *locTemplates, qt *questTempl
 	x, y := c.placeTowardHome(rng)
 	loc := c.newLocation(rng, lt, a, x, y, "")
 	loc.Discovered = false // hidden until the contract is accepted
-	return c.buildQuestFromTemplate(rng, t, loc)
+	q := c.buildQuestFromTemplate(rng, t, loc)
+	c.addDatapadQuests(rng, qt, a, loc)
+	return q
 }
 
 // buildQuestFromTemplate constructs a concrete Quest from a chosen template,
@@ -374,6 +407,23 @@ func (c *Campaign) buildQuestFromTemplate(rng *rand.Rand, t *questTemplate, loc 
 		q.Description = t.Desc
 		q.Objective = objective.Rule{Trigger: objective.TriggerStructureBuilt, Structure: t.Structure}
 		q.Reward.Fuel = t.RewardFuelFlat
+	case "target_killed":
+		blueprint := pick(rng, t.TargetBlueprints)
+		if blueprint == "" {
+			return nil
+		}
+		name := pick(rng, t.TargetNames)
+		q.Name = fmt.Sprintf("%s: %s — %s", t.Name, name, loc.Name)
+		q.Description = t.Desc
+		q.Objective = objective.Rule{Trigger: objective.TriggerTargetKilled, Target: q.ID}
+		q.Reward.Fuel = t.RewardFuelFlat
+		// Register the in-world fixture so the target spawns on arrival.
+		loc.AddFixture(QuestFixture{
+			QuestID:   q.ID,
+			Blueprint: blueprint,
+			Name:      name,
+			Kind:      "boss",
+		})
 	default:
 		return nil
 	}

@@ -9,6 +9,7 @@
   "nearby_max": 3,
   "nearby_radius_min": 9,
   "nearby_radius_max": 27,
+  "datapad_quests_max": 10,
 
   "travel_quest_one_in": 6,
   "travel_quest_max": 4,

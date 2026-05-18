@@ -35,7 +35,15 @@ func (s *MainState) stepWorld() {
 		s.systemManager.UpdateSystemsForEntity(s.level, entity)
 	}
 	s.cleanUpSystem.Update(s.level)
+	s.collectDatapads()
 	effect.GetEffectManager().Update()
+	// A quest target may have just died during cleanup — resolve immediately
+	// rather than waiting for the periodic tick (which barely advances in
+	// Rogue mode), so the quest completes the moment the kill lands.
+	if s.forceQuestEval {
+		s.forceQuestEval = false
+		s.evaluateQuests()
+	}
 }
 
 // advancePlayerTurn is called after the player commits an action in Rogue

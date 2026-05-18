@@ -87,6 +87,73 @@ func TestPrerequisiteChainResolvesInOrder(t *testing.T) {
 	}
 }
 
+// A target_killed quest completes only after its tagged target is marked
+// killed (MarkTargetKilled), and only for the matching quest id.
+func TestTargetKilledQuestCompletes(t *testing.T) {
+	c := &Campaign{
+		Locations: map[string]*Location{},
+		QuestDefs: []Quest{
+			{ID: "hunt", AutoAccept: true, Objective: objective.Rule{
+				Trigger: objective.TriggerTargetKilled, Target: "hunt",
+			}},
+		},
+	}
+	c.BindQuests()
+
+	ctx := func() objective.EvalContext {
+		return objective.EvalContext{KilledTargets: c.KilledTargets}
+	}
+	if d := c.EvaluateQuests(ctx()); len(d) != 0 {
+		t.Fatal("hunt completed before target killed")
+	}
+	c.MarkTargetKilled("someone_else")
+	if d := c.EvaluateQuests(ctx()); len(d) != 0 {
+		t.Fatal("hunt completed for the wrong target")
+	}
+	c.MarkTargetKilled("hunt")
+	if d := c.EvaluateQuests(ctx()); len(d) != 1 || d[0].ID != "hunt" {
+		t.Fatalf("hunt should complete after its target died, got %v", d)
+	}
+	if c.Quests["hunt"].Status != QuestCompleted {
+		t.Fatalf("status = %s, want completed", c.Quests["hunt"].Status)
+	}
+}
+
+// A datapad-delivery quest starts hidden, is not offered/active, and only
+// UnlockQuest moves it to available (never straight to active).
+func TestDatapadQuestUnlock(t *testing.T) {
+	c := &Campaign{
+		Locations: map[string]*Location{},
+		QuestDefs: []Quest{
+			{ID: "dp", Delivery: "datapad", Objective: techRule("t1")},
+		},
+	}
+	c.BindQuests()
+
+	if got := c.Quests["dp"].Status; got != QuestHidden {
+		t.Fatalf("datapad quest should start hidden, got %s", got)
+	}
+	if len(c.AvailableQuests()) != 0 || len(c.ActiveQuests()) != 0 {
+		t.Fatal("hidden datapad quest must not be offered or active")
+	}
+	if c.AcceptQuest("dp") {
+		t.Fatal("a hidden quest can't be accepted directly")
+	}
+	q := c.UnlockQuest("dp")
+	if q == nil || q.ID != "dp" {
+		t.Fatalf("UnlockQuest should return the quest, got %v", q)
+	}
+	if c.Quests["dp"].Status != QuestAvailable {
+		t.Fatalf("unlocked quest should be available (not active), got %s", c.Quests["dp"].Status)
+	}
+	if c.UnlockQuest("dp") != nil {
+		t.Fatal("re-unlocking a non-hidden quest should be a no-op")
+	}
+	if !c.AcceptQuest("dp") {
+		t.Fatal("unlocked quest should now be acceptable")
+	}
+}
+
 func TestAcceptQuestOnlyFromAvailable(t *testing.T) {
 	c := &Campaign{
 		Locations: map[string]*Location{},

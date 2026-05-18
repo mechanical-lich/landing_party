@@ -49,6 +49,18 @@
       "spawn_systems": 1
     },
     {
+      "id": "bounty",
+      "weight": 2,
+      "spawn_archetype": "alien",
+      "name": "Bounty",
+      "desc": "A marked killer lairs on this world. Hunt it down and put it in the ground.",
+      "trigger": "target_killed",
+      "target_blueprints": ["mutant_brute", "radiation_mutant"],
+      "target_names": ["Warlord Grask", "The Pale Matron", "Old Tusk", "Bs'thar the Ravager", "Hollow-Eye", "The Rust Saint"],
+      "reward_fuel_flat": 45,
+      "reward_resources": { "crystal": 4 }
+    },
+    {
       "id": "research",
       "weight": 1,
       "name": "Field Research",

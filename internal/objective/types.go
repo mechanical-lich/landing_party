@@ -19,6 +19,10 @@ const (
 	// TriggerEntityKilled fires when the live count of Blueprint satisfies
 	// Op/Threshold. "Kill all of X" is op "lte", threshold 0.
 	TriggerEntityKilled TriggerType = "entity_killed"
+	// TriggerTargetKilled fires once the specific quest target identified by
+	// Rule.Target has been killed (a named boss / bounty creature). Unlike
+	// entity_killed it tracks one tagged entity, not a blueprint count.
+	TriggerTargetKilled TriggerType = "target_killed"
 )
 
 type Condition struct {
@@ -46,6 +50,8 @@ type Rule struct {
 	Settlement string      `json:"settlement,omitempty"`
 	TechKey    string      `json:"tech_key,omitempty"`
 	Resource   string      `json:"resource,omitempty"`
+	// Target identifies the tagged quest target for target_killed.
+	Target     string      `json:"target,omitempty"`
 	Threshold  int         `json:"threshold,omitempty"`
 	Op         string      `json:"op,omitempty"`
 	When       []Condition `json:"when,omitempty"`

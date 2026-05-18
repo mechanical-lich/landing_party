@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -31,16 +32,6 @@ func installCampaignStorageHook(c *campaign.Campaign) {
 			storage.ShipProvider{Ship: c.Ship},
 		}}, []string{settlementName, campaign.ShipSettlementName}
 	}
-}
-
-// campaignFuelProvider returns a provider+owners for reading/spending fuel from
-// the ship hold (and, when a level is live, on-planet colony stock too).
-func campaignFuelProvider(c *campaign.Campaign, level *world.Level, colony string) (storage.Provider, []string) {
-	providers := []storage.Provider{storage.ShipProvider{Ship: c.Ship}}
-	if level != nil {
-		providers = append(providers, storage.LevelProvider{Level: level})
-	}
-	return storage.MultiProvider{Providers: providers}, []string{colony, campaign.ShipSettlementName}
 }
 
 const campaignDir = "saves/campaign"
@@ -347,10 +338,75 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	ms.campaign = c
 	ms.wm = wm
 	loc.Visited = true
+	spawnLocationFixtures(loc, ms.level)
 	installCampaignStorageHook(c)
 	// Park it: detach listeners until the player Resumes.
 	ms.teardown()
 	return ms, nil
+}
+
+// spawnLocationFixtures materializes this location's quest fixtures (named
+// bosses / bounty creatures / loot) into the level. Idempotent: only fixtures
+// not yet Spawned are created, so re-entering never duplicates them and a
+// fixture added after the first visit appears on the next trip.
+func spawnLocationFixtures(loc *campaign.Location, level *world.Level) {
+	if loc == nil || level == nil {
+		return
+	}
+	ax, ay, az := findStartingPlaza(level, level.SurfaceZ, 5)
+	if ax == -1 {
+		ax, ay, az = level.GetWidth()/2, level.GetHeight()/2, level.SurfaceZ
+	}
+	for i := range loc.Fixtures {
+		f := &loc.Fixtures[i]
+		if f.Spawned || f.Blueprint == "" {
+			continue
+		}
+		// Scatter fixtures around the plaza (datapads widely, so finding them
+		// means exploring); freeLandingTile spirals to the nearest standable,
+		// unoccupied tile from there.
+		h := fixtureHash(f.QuestID, i)
+		var ox, oy int
+		if f.Kind == "datapad" {
+			ox = (h%81 - 40) * 3 // roughly ±120 tiles
+			oy = ((h/81)%81 - 40) * 3
+		} else {
+			ox = h%25 - 12
+			oy = (h/25)%25 - 12
+		}
+		x, y, z := freeLandingTile(level, ax+ox, ay+oy, az)
+		e, err := factory.Create(f.Blueprint, x, y, z)
+		if err != nil {
+			continue
+		}
+		if f.Name != "" {
+			if e.HasComponent(rlcomponents.Description) {
+				e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name = f.Name
+			} else {
+				e.AddComponent(&rlcomponents.DescriptionComponent{Name: f.Name})
+			}
+		}
+		if f.Kind == "datapad" {
+			e.AddComponent(&components.DatapadComponent{QuestID: f.QuestID})
+		} else {
+			e.AddComponent(&components.QuestTargetComponent{QuestID: f.QuestID})
+		}
+		level.AddEntity(e)
+		f.Spawned = true
+		log.Printf("[fixture] spawned %s %q (%s) for quest %s at %s [%d,%d,%d]",
+			f.Kind, f.Name, f.Blueprint, f.QuestID, loc.Name, x, y, z)
+	}
+}
+
+func fixtureHash(id string, i int) int {
+	h := i*2654435761 + 1
+	for _, r := range id {
+		h = h*16777619 + int(r)
+	}
+	if h < 0 {
+		h = -h
+	}
+	return h
 }
 
 // Travel makes locID the current location, loading/generating it (parked). Any

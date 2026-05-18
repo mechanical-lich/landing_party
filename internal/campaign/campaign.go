@@ -32,6 +32,10 @@ type Campaign struct {
 	// Won/Lost are terminal campaign states (reached Home / total wipe).
 	Won  bool `json:"won,omitempty"`
 	Lost bool `json:"lost,omitempty"`
+	// KilledTargets is the set of quest IDs whose tagged target entity has
+	// died (named bosses / bounty creatures). Persisted so completion
+	// survives freeze/thaw and save/load.
+	KilledTargets map[string]bool `json:"killed_targets,omitempty"`
 
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
@@ -48,6 +52,17 @@ func (c *Campaign) HomeLocation() *Location {
 		}
 	}
 	return nil
+}
+
+// MarkTargetKilled records that the tagged target for questID has died.
+func (c *Campaign) MarkTargetKilled(questID string) {
+	if questID == "" {
+		return
+	}
+	if c.KilledTargets == nil {
+		c.KilledTargets = map[string]bool{}
+	}
+	c.KilledTargets[questID] = true
 }
 
 // StoredColonists totals colonists not on the live level: the ship roster plus

@@ -1,0 +1,18 @@
+{
+    "datapad": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 128,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Datapad",
+            "Faction": ""
+        },
+        "Item": {}
+    }
+}

@@ -111,18 +111,24 @@ func TestLocationBoundQuestRevealAndScope(t *testing.T) {
 	useRepoData(t)
 	c := genCampaign(t, 3)
 
-	// Find a generated contract (location-bound, target hidden until accepted).
+	// Find a generated contract: location-bound, available, its location
+	// hidden until accepted (datapad quests are excluded — they start hidden).
 	var q *Quest
 	for i := range c.QuestDefs {
-		if d := &c.QuestDefs[i]; d.Location != "" {
-			if loc := c.Locations[d.Location]; loc != nil && !loc.Discovered {
-				q = d
-				break
-			}
+		d := &c.QuestDefs[i]
+		if d.Location == "" || d.Delivery == "datapad" {
+			continue
+		}
+		if c.Quests[d.ID].Status != QuestAvailable {
+			continue
+		}
+		if loc := c.Locations[d.Location]; loc != nil && !loc.Discovered {
+			q = d
+			break
 		}
 	}
 	if q == nil {
-		t.Skip("no hidden location-bound quest in this seed")
+		t.Skip("no hidden contract quest in this seed")
 	}
 	loc := c.Locations[q.Location]
 
@@ -147,6 +153,91 @@ func TestLocationBoundQuestRevealAndScope(t *testing.T) {
 	if c.Quests[q.ID].Status == QuestCompleted {
 		t.Fatal("location-bound quest completed while off-site")
 	}
+}
+
+func TestBountyQuestRegistersFixture(t *testing.T) {
+	useRepoData(t)
+	c := genCampaign(t, 3)
+	// Roll a lot of travel quests so a bounty contract is very likely.
+	for i := 0; i < 200; i++ {
+		c.MaybeTravelQuests()
+	}
+	found := false
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
+		if q.Objective.Trigger != objective.TriggerTargetKilled {
+			continue
+		}
+		found = true
+		if q.Objective.Target != q.ID {
+			t.Fatalf("bounty %s objective target = %q, want its own id", q.ID, q.Objective.Target)
+		}
+		loc := c.Locations[q.Location]
+		if loc == nil {
+			t.Fatalf("bounty %s bound to missing location %q", q.ID, q.Location)
+		}
+		var fx *QuestFixture
+		for j := range loc.Fixtures {
+			if loc.Fixtures[j].QuestID == q.ID {
+				fx = &loc.Fixtures[j]
+			}
+		}
+		if fx == nil {
+			t.Fatalf("bounty %s has no fixture on its location", q.ID)
+		}
+		if fx.Blueprint == "" || fx.Spawned {
+			t.Fatalf("fixture for %s invalid: %+v", q.ID, *fx)
+		}
+	}
+	if !found {
+		t.Skip("no bounty quest generated for this seed/run")
+	}
+
+	// AddFixture must dedupe by quest id.
+	loc := &Location{}
+	loc.AddFixture(QuestFixture{QuestID: "z", Blueprint: "a"})
+	loc.AddFixture(QuestFixture{QuestID: "z", Blueprint: "b"})
+	if len(loc.Fixtures) != 1 || loc.Fixtures[0].Blueprint != "a" {
+		t.Fatalf("AddFixture should dedupe by quest id, got %+v", loc.Fixtures)
+	}
+}
+
+func TestDatapadQuestsGenerated(t *testing.T) {
+	useRepoData(t)
+	c := genCampaign(t, 11)
+
+	dpQuests := 0
+	for i := range c.QuestDefs {
+		q := &c.QuestDefs[i]
+		if q.Delivery != "datapad" {
+			continue
+		}
+		dpQuests++
+		// Hidden until its datapad is recovered.
+		if c.Quests[q.ID].Status != QuestHidden {
+			t.Fatalf("datapad quest %s should be hidden, got %s", q.ID, c.Quests[q.ID].Status)
+		}
+		loc := c.Locations[q.Location]
+		if loc == nil {
+			t.Fatalf("datapad quest %s bound to missing location %q", q.ID, q.Location)
+		}
+		found := false
+		for _, fx := range loc.Fixtures {
+			if fx.QuestID == q.ID {
+				if fx.Kind != "datapad" || fx.Blueprint != "datapad" {
+					t.Fatalf("fixture for %s wrong: %+v", q.ID, fx)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("datapad quest %s has no datapad fixture on its location", q.ID)
+		}
+	}
+	if dpQuests == 0 {
+		t.Fatal("no datapad quests generated")
+	}
+	t.Logf("generated %d datapad quests across %d locations", dpQuests, len(c.Locations))
 }
 
 func TestTravelRollRateAndProgression(t *testing.T) {

@@ -23,6 +23,8 @@ type GenConfig struct {
 	NearbyRadiusMin float64 `json:"nearby_radius_min"`
 	NearbyRadiusMax float64 `json:"nearby_radius_max"`
 
+	DatapadQuestsMax int `json:"datapad_quests_max"` // hidden datapad quests per location (1..N)
+
 	TravelQuestOneIn int `json:"travel_quest_one_in"` // 1-in-N chance per jump
 	TravelQuestMax   int `json:"travel_quest_max"`    // up to this many (1..N)
 	ContractOneIn    int `json:"contract_one_in"`     // chance a rolled quest is a contract
@@ -44,6 +46,7 @@ func defaultGenConfig() GenConfig {
 		NearbyMax:        3,
 		NearbyRadiusMin:  9,
 		NearbyRadiusMax:  27,
+		DatapadQuestsMax: 20,
 		TravelQuestOneIn: 6,
 		TravelQuestMax:   4,
 		ContractOneIn:    3,
