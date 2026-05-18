@@ -1,4 +1,12 @@
 {
+    "print_colonist": {
+        "name": "Print Colonist",
+        "description": "Synthesize a new colonist from stored biomass. Slow and costly, but the only way to grow the crew.",
+        "output": "colonist",
+        "build_time": 150,
+        "cost": { "biomass": 25 },
+        "station": "bio_printer"
+    },
     "laser_pistol": {
         "name": "Laser Pistol",
         "description": "A compact sidearm firing concentrated light pulses. Reliable at close range.",

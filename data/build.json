@@ -7,6 +7,13 @@
         "allow_multiple": true,
         "cost": {}
     },
+    "bio_printer": {
+        "name": "Bio-Printer",
+        "description": "Prints new colonists from biomass.",
+        "build_time": 40,
+        "is_entity": true,
+        "cost": {}
+    },
     "hull_floor": {
         "name": "Hull Floor",
         "type": "hull_floor",

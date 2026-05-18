@@ -719,8 +719,22 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		deductFromSettlementStorage(level, sc.Name, recipe.Cost)
 		output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
 		if err == nil {
-			inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-			inv.AddItem(output)
+			if recipe.Output == "colonist" {
+				// Bio-printed colonists join the colony at the printer rather
+				// than going into the crafter's inventory.
+				if output.HasComponent(components.Settlement) {
+					output.GetComponent(components.Settlement).(*components.SettlementComponent).Name = sc.Name
+				} else {
+					output.AddComponent(&components.SettlementComponent{Name: sc.Name})
+				}
+				if !output.HasComponent(components.Worker) {
+					output.AddComponent(&components.WorkerComponent{SelfDefend: true})
+				}
+				level.AddEntity(output)
+			} else {
+				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+				inv.AddItem(output)
+			}
 		}
 		CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
 		aiMemory.State = "idle"

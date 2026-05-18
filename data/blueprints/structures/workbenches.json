@@ -1,4 +1,23 @@
 {
+    "bio_printer": {
+        "Appearance": {
+            "R": 140,
+            "G": 240,
+            "B": 180,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Bio-Printer",
+            "Faction": ""
+        },
+        "CraftingStation": {
+            "StationID": "bio_printer"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
     "basic_workbench": {
         "Appearance": {
             "R": 255,
