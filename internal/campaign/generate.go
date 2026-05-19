@@ -61,6 +61,11 @@ type questTemplate struct {
 	// location fixture and must be killed.
 	TargetBlueprints []string `json:"target_blueprints"`
 	TargetNames      []string `json:"target_names"`
+	// FixtureStructure, when set, names a gen_structure script that builds a
+	// lair around the quest's fixture entity on arrival (see QuestFixture).
+	FixtureStructure string `json:"fixture_structure"`
+	FixtureStructW   int    `json:"fixture_struct_w"`
+	FixtureStructH   int    `json:"fixture_struct_h"`
 	// SpawnArchetype, when set, makes this a "contract": instead of attaching
 	// to an existing system's tags, generating the quest also charts a new
 	// (hidden) location of that archetype and binds the quest to it. Accepting
@@ -408,22 +413,38 @@ func (c *Campaign) buildQuestFromTemplate(rng *rand.Rand, t *questTemplate, loc 
 		q.Objective = objective.Rule{Trigger: objective.TriggerStructureBuilt, Structure: t.Structure}
 		q.Reward.Fuel = t.RewardFuelFlat
 	case "target_killed":
-		blueprint := pick(rng, t.TargetBlueprints)
-		if blueprint == "" {
-			return nil
-		}
-		name := pick(rng, t.TargetNames)
-		q.Name = fmt.Sprintf("%s: %s — %s", t.Name, name, loc.Name)
 		q.Description = t.Desc
 		q.Objective = objective.Rule{Trigger: objective.TriggerTargetKilled, Target: q.ID}
 		q.Reward.Fuel = t.RewardFuelFlat
-		// Register the in-world fixture so the target spawns on arrival.
-		loc.AddFixture(QuestFixture{
-			QuestID:   q.ID,
-			Blueprint: blueprint,
-			Name:      name,
-			Kind:      "boss",
-		})
+		if t.FixtureStructure != "" {
+			// Structure-backed bounty: the generator script decides who the
+			// target is and what it's called, then flags it via
+			// mark_quest_target. The template carries no target info at all.
+			q.TitlePrefix = t.Name
+			q.Name = fmt.Sprintf("%s — %s", t.Name, loc.Name)
+			loc.AddFixture(QuestFixture{
+				QuestID:   q.ID,
+				Kind:      "boss",
+				Structure: t.FixtureStructure,
+				StructW:   t.FixtureStructW,
+				StructH:   t.FixtureStructH,
+			})
+		} else {
+			// Legacy bounty: the template names a creature + bounty name and
+			// the fixture spawns it in the open.
+			blueprint := pick(rng, t.TargetBlueprints)
+			if blueprint == "" {
+				return nil
+			}
+			name := pick(rng, t.TargetNames)
+			q.Name = fmt.Sprintf("%s: %s — %s", t.Name, name, loc.Name)
+			loc.AddFixture(QuestFixture{
+				QuestID:   q.ID,
+				Blueprint: blueprint,
+				Name:      name,
+				Kind:      "boss",
+			})
+		}
 	default:
 		return nil
 	}

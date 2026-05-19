@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"path/filepath"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
@@ -18,6 +19,84 @@ import (
 
 type setupContext struct {
 	Level *world.Level
+
+	// paramStack holds one frame per active gen_structure call. set_param/
+	// get_param operate on the top frame; gen_structure pushes a copy of the
+	// caller's frame so seeded params flow down without children leaking up.
+	paramStack []map[string]any
+
+	// genDepth guards against runaway recursion (a structure that calls
+	// itself, directly or via a cycle).
+	genDepth int
+
+	// bindTarget, when set, lets mark_quest_target push the script-chosen NPC
+	// name back into the campaign quest. nil for plain setup scripts.
+	bindTarget func(questID, npc string)
+}
+
+const maxGenDepth = 8
+
+func (c *setupContext) topParams() map[string]any {
+	if len(c.paramStack) == 0 {
+		c.paramStack = append(c.paramStack, map[string]any{})
+	}
+	return c.paramStack[len(c.paramStack)-1]
+}
+
+func (c *setupContext) pushParamsCopy() {
+	src := c.topParams()
+	dst := make(map[string]any, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	c.paramStack = append(c.paramStack, dst)
+}
+
+func (c *setupContext) popParams() {
+	if len(c.paramStack) > 0 {
+		c.paramStack = c.paramStack[:len(c.paramStack)-1]
+	}
+}
+
+// structScriptCache memoizes structure script source by name so repeated
+// stamping reads each file once (the interpreter still re-parses per call —
+// fresh interp per invocation — but file I/O is amortized).
+var structScriptCache = map[string]string{}
+
+// runGenStructure resolves name → data/scripts/structures/<name>.basic, builds
+// a fresh interpreter with the full builtin set (including gen_structure
+// itself, so structures compose), and calls its generate(x,y,w,h) entrypoint.
+func runGenStructure(ctx *setupContext, name string, x, y, w, h int) error {
+	if ctx.genDepth >= maxGenDepth {
+		return fmt.Errorf("gen_structure %q: max recursion depth %d exceeded", name, maxGenDepth)
+	}
+	code, ok := structScriptCache[name]
+	if !ok {
+		path := filepath.Join("data", "scripts", "structures", name+".basic")
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("gen_structure %q: %w", name, err)
+		}
+		code = string(b)
+		structScriptCache[name] = code
+	}
+	interp := basic.NewMechanicalBasic()
+	registerSetupFuncs(interp, ctx)
+	if err := interp.Load(code); err != nil {
+		return fmt.Errorf("gen_structure %q load: %w", name, err)
+	}
+	if !interp.HasFunction("generate") {
+		return fmt.Errorf("gen_structure %q: missing function generate(x,y,w,h)", name)
+	}
+	ctx.pushParamsCopy()
+	ctx.genDepth++
+	_, err := interp.Call("generate", float64(x), float64(y), float64(w), float64(h))
+	ctx.genDepth--
+	ctx.popParams()
+	if err != nil {
+		return fmt.Errorf("gen_structure %q: %w", name, err)
+	}
+	return nil
 }
 
 // RunSetupScripts executes each .basic file listed in the scenario's setup_scripts.
@@ -145,6 +224,66 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 
 		level.AddEntity(e)
 		return nil, nil
+	})
+
+	// spawn_entity_named(blueprint, x, y, z, name) — spawn and set its display
+	// name. For guards / flavor NPCs a structure wants to customize.
+	interp.RegisterFunc("spawn_entity_named", func(args ...any) (any, error) {
+		if len(args) < 5 {
+			return float64(0), nil
+		}
+		bp := fmt.Sprint(args[0])
+		x := int(toSetupFloat(args[1]))
+		y := int(toSetupFloat(args[2]))
+		z := int(toSetupFloat(args[3]))
+		name := fmt.Sprint(args[4])
+		e, err := factory.Create(bp, x, y, z)
+		if err != nil {
+			return float64(0), nil
+		}
+		if name != "" {
+			if e.HasComponent(rlcomponents.Description) {
+				e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name = name
+			} else {
+				e.AddComponent(&rlcomponents.DescriptionComponent{Name: name})
+			}
+		}
+		level.AddEntity(e)
+		return float64(1), nil
+	})
+
+	// mark_quest_target(x, y, z) — designate the entity already standing at
+	// (x,y,z) as this structure's quest target. Tags it with the param
+	// "quest_id" so target_killed fires, and feeds its display name back into
+	// the campaign so the quest title adopts the script-chosen name.
+	interp.RegisterFunc("mark_quest_target", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		e := level.GetEntityAt(x, y, z)
+		if e == nil {
+			log.Printf("mark_quest_target: no entity at [%d,%d,%d]", x, y, z)
+			return float64(0), nil
+		}
+		qid := ""
+		if v, ok := ctx.topParams()["quest_id"]; ok {
+			qid = fmt.Sprint(v)
+		}
+		if qid == "" {
+			return float64(0), nil
+		}
+		e.AddComponent(&components.QuestTargetComponent{QuestID: qid})
+		npc := ""
+		if e.HasComponent(rlcomponents.Description) {
+			npc = e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+		}
+		if ctx.bindTarget != nil {
+			ctx.bindTarget(qid, npc)
+		}
+		return float64(1), nil
 	})
 
 	var lastOpenX, lastOpenY int
@@ -477,6 +616,20 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return nil, nil
 	})
 
+	// clear_middle(x, y, z) — remove whatever occupies the blocking Middle
+	// slot (wall/ore), leaving the Floor intact. Use to knock a hole in a
+	// wall or open a passage; the cell becomes walkable if it has a floor.
+	interp.RegisterFunc("clear_middle", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return nil, nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		level.ClearMiddle(x, y, z)
+		return nil, nil
+	})
+
 	// carve_circle(cx, cy, z, radius, tile) — disc fill.
 	interp.RegisterFunc("carve_circle", func(args ...any) (any, error) {
 		if len(args) < 5 {
@@ -511,6 +664,46 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			_ = p(level, spec)
 		}
 		return nil, nil
+	})
+
+	// set_param(key, value) — stage a parameter for the next gen_structure
+	// call. Children inherit a copy of the current frame.
+	interp.RegisterFunc("set_param", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return nil, nil
+		}
+		ctx.topParams()[fmt.Sprint(args[0])] = args[1]
+		return nil, nil
+	})
+	// get_param(key) — read a parameter seeded by the caller. Returns "" if
+	// unset (callers comparing numerically should add +0).
+	interp.RegisterFunc("get_param", func(args ...any) (any, error) {
+		if len(args) < 1 {
+			return "", nil
+		}
+		if v, ok := ctx.topParams()[fmt.Sprint(args[0])]; ok {
+			return v, nil
+		}
+		return "", nil
+	})
+
+	// gen_structure(name, x, y, w, h) — stamp a structure script. Reentrant:
+	// a structure may call gen_structure to compose sub-structures. Returns 1
+	// on success, 0 on failure (logged).
+	interp.RegisterFunc("gen_structure", func(args ...any) (any, error) {
+		if len(args) < 5 {
+			return float64(0), nil
+		}
+		name := fmt.Sprint(args[0])
+		x := int(toSetupFloat(args[1]))
+		y := int(toSetupFloat(args[2]))
+		w := int(toSetupFloat(args[3]))
+		h := int(toSetupFloat(args[4]))
+		if err := runGenStructure(ctx, name, x, y, w, h); err != nil {
+			log.Printf("gen_structure: %v", err)
+			return float64(0), nil
+		}
+		return float64(1), nil
 	})
 }
 

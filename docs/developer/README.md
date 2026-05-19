@@ -12,6 +12,7 @@ Architecture notes, system references, and guides for extending the game.
 - [Scenarios](scenarios.md) — scenario configuration, biome maps, spawn rules, and setup scripts
 - [Biomes](biomes.md) — biome definitions, terrain rules, and biome-specific features
 - [World Generation](world_generation.md) — Z-levels, terrain, and lighting
+- [Structure Scripts](structure_scripts.md) — procedural structure generation via mechanical-basic scripts; quest-target binding
 - [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
 
 ---
@@ -36,12 +37,13 @@ The game uses an **ECS (Entity-Component-System)** architecture provided by `mlg
 | Research data | `data/research.json` |
 | Scenario data | `data/scenarios/` |
 | Scenario setup scripts | `data/scripts/scenarios/*.basic` |
+| Structure generation scripts | `data/scripts/structures/*.basic` |
 | Biome definitions | `data/biomes/` |
 | Tile definitions | `data/tile_definitions.json` |
 | Asset references | `data/assets.json` |
 | Engine config | `data/config.json` |
 
-All content (entities, buildings, crafting, research, scenarios, biomes) is **data-driven via JSON**. Adding new content typically requires only a JSON edit (and possibly a `.basic` setup script for scenarios) — no Go code change.
+All content (entities, buildings, crafting, research, scenarios, biomes) is **data-driven via JSON**. Adding new content typically requires only a JSON edit (and possibly a `.basic` script for scenarios or structure generation) — no Go code change.
 
 ### Blueprint Loading
 

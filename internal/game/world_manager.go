@@ -338,7 +338,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	ms.campaign = c
 	ms.wm = wm
 	loc.Visited = true
-	spawnLocationFixtures(loc, ms.level)
+	spawnLocationFixtures(c, loc, ms.level)
 	installCampaignStorageHook(c)
 	// Park it: detach listeners until the player Resumes.
 	ms.teardown()
@@ -349,7 +349,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 // bosses / bounty creatures / loot) into the level. Idempotent: only fixtures
 // not yet Spawned are created, so re-entering never duplicates them and a
 // fixture added after the first visit appears on the next trip.
-func spawnLocationFixtures(loc *campaign.Location, level *world.Level) {
+func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *world.Level) {
 	if loc == nil || level == nil {
 		return
 	}
@@ -359,7 +359,7 @@ func spawnLocationFixtures(loc *campaign.Location, level *world.Level) {
 	}
 	for i := range loc.Fixtures {
 		f := &loc.Fixtures[i]
-		if f.Spawned || f.Blueprint == "" {
+		if f.Spawned || (f.Blueprint == "" && f.Structure == "") {
 			continue
 		}
 		// Scatter fixtures around the plaza (datapads widely, so finding them
@@ -375,6 +375,34 @@ func spawnLocationFixtures(loc *campaign.Location, level *world.Level) {
 			oy = (h/25)%25 - 12
 		}
 		x, y, z := freeLandingTile(level, ax+ox, ay+oy, az)
+
+		// Structure fixtures delegate everything to the generator script: it
+		// builds the structure AND spawns/names the quest target (and any
+		// guards) inside it via spawn_quest_target / spawn_entity_named. We
+		// only feed it the quest context as params.
+		if f.Structure != "" {
+			sw, sh := f.StructW, f.StructH
+			if sw <= 0 {
+				sw = 9
+			}
+			if sh <= 0 {
+				sh = 7
+			}
+			ctx := &setupContext{
+				Level:      level,
+				bindTarget: func(qid, npc string) { c.BindQuestTargetName(qid, npc) },
+			}
+			p := ctx.topParams()
+			p["quest_id"] = f.QuestID
+			if err := runGenStructure(ctx, f.Structure, x-sw/2, y-sh/2, sw, sh); err != nil {
+				log.Printf("[fixture] structure %q for quest %s: %v", f.Structure, f.QuestID, err)
+			}
+			f.Spawned = true
+			log.Printf("[fixture] generated structure %q for quest %s at %s [%d,%d,%d]",
+				f.Structure, f.QuestID, loc.Name, x, y, z)
+			continue
+		}
+
 		e, err := factory.Create(f.Blueprint, x, y, z)
 		if err != nil {
 			continue

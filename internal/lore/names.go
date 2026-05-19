@@ -22,3 +22,14 @@ var colonistNames = []string{
 func RandomColonistName() string {
 	return colonistNames[rand.Intn(len(colonistNames))]
 }
+
+func RandomName(nameType string) string {
+	switch nameType {
+	case "settlement":
+		return RandomSettlementName()
+	case "colonist":
+		return RandomColonistName()
+	default:
+		return "Unknown"
+	}
+}

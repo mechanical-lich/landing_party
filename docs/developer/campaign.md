@@ -123,11 +123,18 @@ the only consumer.
 
 - `internal/campaign/quest.go` — `Quest` (its `Objective` is one
   `objective.Rule`; `Reward` = fuel/resources/`spawn_systems`; optional
-  `RequiresQuest`, `Location`, `AutoAccept`), `QuestProgress` (serialized
-  status: hidden/available/active/completed). `BindQuests` rebuilds runtime
-  indices each session from the persisted `QuestDefs` and reconciles saved
-  progress (a persistent per-quest `objective.Evaluator` is kept so "kill all"
-  objectives retain their seen-entity history).
+  `RequiresQuest`, `Location`, `AutoAccept`, `TitlePrefix`), `QuestProgress`
+  (serialized status: hidden/available/active/completed). `BindQuests` rebuilds
+  runtime indices each session from the persisted `QuestDefs` and reconciles
+  saved progress (a persistent per-quest `objective.Evaluator` is kept so
+  "kill all" objectives retain their seen-entity history).
+  - **Deferred quest naming**: quests whose target is identified by a structure
+    script (see [Structure Scripts](structure_scripts.md)) carry a `TitlePrefix`
+    (e.g., `"Bounty"`). The title starts as `"Bounty — <location>"`. When the
+    player lands and the structure script calls `mark_quest_target`, it invokes
+    `Campaign.BindQuestTargetName(questID, npcName)` which rewrites the title to
+    `"Bounty: <npc> — <location>"`. This is intentional — the full name is only
+    known once the structure has been generated.
 - Lifecycle: `AcceptQuest` (available→active, reveals a bound `Location`),
   `EvaluateQuests(ctx)` (active objectives → completed, unlocks
   `requires_quest` dependents, `auto_accept`).
@@ -150,7 +157,12 @@ by data templates + a tuning file:
   `map_id`/`scenario_id` pools, tags, name prefix/suffix pools, summary; plus a
   `home` block) and `data/quest_templates.json` (parameterised objectives with
   amount ranges, reward formulas, `requires_tag`, `spawn_systems`, and
-  `spawn_archetype` for self-locating "contract" quests).
+  `spawn_archetype` for self-locating "contract" quests). Templates with
+  `trigger: "target_killed"` support either a legacy entity list
+  (`target_blueprints` / `target_names`) or a **structure script**
+  (`fixture_structure`, `fixture_struct_w`, `fixture_struct_h`) — not both.
+  When a structure script is specified the script is the sole authority on what
+  spawns and who the target is; see [Structure Scripts](structure_scripts.md).
 - **Tuning:** `data/generation.json` → `campaign.GenConfig` (`genConfig()`,
   cached; defaults if the file/fields are absent). Holds `home_radius`,
   `start_fuel`/`start_colonists`/`roster_cap`, nearby count/radius,

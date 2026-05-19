@@ -185,7 +185,10 @@ func TestBountyQuestRegistersFixture(t *testing.T) {
 		if fx == nil {
 			t.Fatalf("bounty %s has no fixture on its location", q.ID)
 		}
-		if fx.Blueprint == "" || fx.Spawned {
+		// Valid if it either names a creature (legacy: spawned in the
+		// open) or names a structure (the generator script spawns and
+		// flags the target). Must not be pre-Spawned.
+		if (fx.Blueprint == "" && fx.Structure == "") || fx.Spawned {
 			t.Fatalf("fixture for %s invalid: %+v", q.ID, *fx)
 		}
 	}

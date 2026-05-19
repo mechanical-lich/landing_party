@@ -56,6 +56,14 @@ type QuestFixture struct {
 	Name      string `json:"name,omitempty"`
 	Kind      string `json:"kind,omitempty"` // "boss" | "loot" | ...
 	Spawned   bool   `json:"spawned,omitempty"`
+
+	// Structure, when set, names a generator script run via gen_structure at
+	// the fixture's chosen tile before the entity spawns — the boss/loot lands
+	// inside a generated building instead of in the open. A fixture with a
+	// Structure but no Blueprint is flavor: it builds the structure only.
+	Structure string `json:"structure,omitempty"`
+	StructW   int    `json:"struct_w,omitempty"`
+	StructH   int    `json:"struct_h,omitempty"`
 }
 
 // AddFixture appends a fixture for this location unless one already exists for

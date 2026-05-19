@@ -1,6 +1,8 @@
 package campaign
 
 import (
+	"fmt"
+
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
 
@@ -43,6 +45,11 @@ type Quest struct {
 	// Delivery is how the quest reaches the player: "" = offered in the pool,
 	// "datapad" = hidden until its datapad clue is recovered at Location.
 	Delivery string `json:"delivery,omitempty"`
+	// TitlePrefix is set for quests whose target is named by a generation
+	// script (see Campaign.BindQuestTargetName). Until the structure runs the
+	// title reads "<prefix> — <loc>"; once the script marks its NPC it
+	// becomes "<prefix>: <npc> — <loc>".
+	TitlePrefix string `json:"title_prefix,omitempty"`
 }
 
 // QuestProgress is the serialized per-campaign state for one quest.
@@ -161,6 +168,21 @@ func (c *Campaign) questsByStatus(status QuestStatus) []*Quest {
 func (c *Campaign) AvailableQuests() []*Quest { return c.questsByStatus(QuestAvailable) }
 func (c *Campaign) ActiveQuests() []*Quest    { return c.questsByStatus(QuestActive) }
 func (c *Campaign) CompletedQuests() []*Quest { return c.questsByStatus(QuestCompleted) }
+
+// BindQuestTargetName finalizes a structure-spawned quest's title once the
+// generation script names and marks its target NPC. No-op if the quest has no
+// TitlePrefix (i.e. it wasn't a script-named quest).
+func (c *Campaign) BindQuestTargetName(questID, npc string) {
+	q := c.questByID[questID]
+	if q == nil || q.TitlePrefix == "" || npc == "" {
+		return
+	}
+	locName := ""
+	if loc := c.Locations[q.Location]; loc != nil {
+		locName = loc.Name
+	}
+	q.Name = fmt.Sprintf("%s: %s — %s", q.TitlePrefix, npc, locName)
+}
 
 // AcceptQuest moves an available quest to active.
 func (c *Campaign) AcceptQuest(id string) bool {
