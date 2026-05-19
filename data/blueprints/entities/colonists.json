@@ -12,7 +12,7 @@
             "SpriteY": 192
         },
         "Description": {
-            "Name": "\u003cColonistName\u003e",
+            "Name": "<colonist>",
             "Faction": "colony"
         },
         "EquipmentAppearance": {

@@ -1,6 +1,4 @@
 {
-  "name_prefixes": ["Veil", "Ashen", "Cinder", "Hollow", "Drift", "Pale", "Umbral", "Verdant", "Iron", "Glass", "Storm", "Quiet", "Far", "Lost", "Saffron", "Gleaming", "Sable", "Wether"],
-  "name_suffixes": ["Reach", "Expanse", "Hollow", "Drift", "Verge", "Shoals", "Mire", "Steppe", "Basin", "Spire", "Hold", "Wastes", "Cradle", "Fold", "Threshold"],
   "archetypes": [
     {
       "id": "temperate",

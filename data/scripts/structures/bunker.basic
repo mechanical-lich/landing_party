@@ -44,7 +44,11 @@ function generate(x, y, w, h)
 
     # The structure alone decides who lairs here and what they're called.
     # A bunker always has a warden, quest or not.
-    spawn_entity_named("mutant_brute", cx, cy, sz, "Warden of the Sealed Bunker")
+    # The brute rolls its own mutant name from the blueprint; add a boss
+    # epithet before it's marked so the quest title adopts the full name
+    # (e.g. "Grosk the Destroyer, mauler of cities").
+    spawn_entity("mutant_brute", cx, cy, sz)
+    add_epithet(cx, cy, sz)
     # Flag that NPC as the quest target — the quest is told who the target
     # is from here. No-ops harmlessly when there's no associated quest; the
     # warden still exists, it just isn't a bounty.

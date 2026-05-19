@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
 
@@ -14,6 +15,7 @@ func useRepoData(t *testing.T) {
 	LocationTemplatePath = "../../data/location_templates.json"
 	QuestTemplatePath = "../../data/quest_templates.json"
 	GenerationConfigPath = "../../data/generation.json"
+	lore.NamesPath = "../../data/names.json"
 	genCfgCache = nil // force reload against the repo config
 }
 

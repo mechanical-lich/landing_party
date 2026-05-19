@@ -11,7 +11,7 @@
             "SpriteY": 360
         },
         "Description": {
-            "Name": "Mutant Brute",
+            "Name": "<mutant>",
             "Faction": "mutant"
         },
         "FactionAI": {
@@ -38,7 +38,7 @@
     "mutant_grunt": {
         "AIMemory": {},
         "Description": {
-            "Name": "Mutant Grunt",
+            "Name": "<mutant>",
             "Faction": "mutant"
         },
         "EquipmentAppearance": {
@@ -90,7 +90,7 @@
             "SpriteY": 360
         },
         "Description": {
-            "Name": "Mutant Scout",
+            "Name": "<mutant>",
             "Faction": "mutant"
         },
         "FactionAI": {
@@ -125,7 +125,7 @@
             "SpriteY": 336
         },
         "Description": {
-            "Name": "Radiation Mutant",
+            "Name": "<mutant>",
             "Faction": "mutant"
         },
         "Health": {

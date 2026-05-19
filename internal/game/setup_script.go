@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mechanical-basic/pkg/basic"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -249,6 +250,30 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			}
 		}
 		level.AddEntity(e)
+		return float64(1), nil
+	})
+
+	// add_epithet(x, y, z) — decorate the name of the entity at (x,y,z) with a
+	// random epithet, e.g. "Warden of the Sealed Bunker the Destroyer". Call
+	// before mark_quest_target so the quest title adopts the boss name.
+	interp.RegisterFunc("add_epithet", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x := int(toSetupFloat(args[0]))
+		y := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		e := level.GetEntityAt(x, y, z)
+		if e == nil {
+			log.Printf("add_epithet: no entity at [%d,%d,%d]", x, y, z)
+			return float64(0), nil
+		}
+		if e.HasComponent(rlcomponents.Description) {
+			dc := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+			dc.Name = lore.NameWithEpithet(dc.Name)
+		} else {
+			e.AddComponent(&rlcomponents.DescriptionComponent{Name: lore.NameWithEpithet("")})
+		}
 		return float64(1), nil
 	})
 

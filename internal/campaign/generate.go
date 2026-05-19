@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
 
@@ -29,9 +30,7 @@ type locArchetype struct {
 }
 
 type locTemplates struct {
-	NamePrefixes []string       `json:"name_prefixes"`
-	NameSuffixes []string       `json:"name_suffixes"`
-	Archetypes   []locArchetype `json:"archetypes"`
+	Archetypes []locArchetype `json:"archetypes"`
 	Home         struct {
 		Maps      []string `json:"maps"`
 		Scenarios []string `json:"scenarios"`
@@ -227,7 +226,7 @@ func (c *Campaign) MaybeTravelQuests() ([]*Location, int) {
 		var target *Location
 		if len(existing) == 0 || rng.Intn(cfg.NewSystemOneIn) == 0 {
 			x, y := c.placeTowardHome(rng)
-			target = c.newLocation(rng, lt, a, x, y, "")
+			target = c.newLocation(rng, a, x, y, "")
 			target.Discovered = true
 			c.addDatapadQuests(rng, qt, a, target)
 			newLocs = append(newLocs, target)
@@ -284,7 +283,7 @@ func (c *Campaign) placeTowardHome(rng *rand.Rand) (float64, float64) {
 
 // newLocation creates one location from an archetype (no quests) and appends
 // it to the campaign.
-func (c *Campaign) newLocation(rng *rand.Rand, lt *locTemplates, a locArchetype, x, y float64, idHint string) *Location {
+func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idHint string) *Location {
 	c.GenSeq++
 	id := fmt.Sprintf("sys_%d", c.GenSeq)
 	if idHint != "" {
@@ -292,7 +291,7 @@ func (c *Campaign) newLocation(rng *rand.Rand, lt *locTemplates, a locArchetype,
 	}
 	loc := &Location{
 		ID:         id,
-		Name:       genName(rng, lt),
+		Name:       genName(rng),
 		Kind:       a.Kind,
 		MapID:      pick(rng, a.Maps),
 		ScenarioID: pick(rng, a.Scenarios),
@@ -309,7 +308,7 @@ func (c *Campaign) newLocation(rng *rand.Rand, lt *locTemplates, a locArchetype,
 // newSystem creates one location from an archetype plus 1–2 quests, appends
 // them to the campaign, and returns the location.
 func (c *Campaign) newSystem(rng *rand.Rand, lt *locTemplates, qt *questTemplates, a locArchetype, x, y float64, idHint string) *Location {
-	loc := c.newLocation(rng, lt, a, x, y, idHint)
+	loc := c.newLocation(rng, a, x, y, idHint)
 	nq := 1 + rng.Intn(2)
 	for i := 0; i < nq; i++ {
 		if qd := c.makeQuest(rng, qt, a, loc); qd != nil {
@@ -368,7 +367,7 @@ func (c *Campaign) makeContract(rng *rand.Rand, lt *locTemplates, qt *questTempl
 		return nil
 	}
 	x, y := c.placeTowardHome(rng)
-	loc := c.newLocation(rng, lt, a, x, y, "")
+	loc := c.newLocation(rng, a, x, y, "")
 	loc.Discovered = false // hidden until the contract is accepted
 	q := c.buildQuestFromTemplate(rng, t, loc)
 	c.addDatapadQuests(rng, qt, a, loc)
@@ -532,13 +531,12 @@ func pickQuestTemplate(rng *rand.Rand, qt *questTemplates, tags []string) *quest
 	return pool[rng.Intn(len(pool))]
 }
 
-func genName(rng *rand.Rand, lt *locTemplates) string {
-	p := pick(rng, lt.NamePrefixes)
-	s := pick(rng, lt.NameSuffixes)
-	if p == "" || s == "" {
+func genName(rng *rand.Rand) string {
+	n := lore.RandomNameSeeded(rng, "location")
+	if n == "" || n == "Unknown" {
 		return fmt.Sprintf("System %d", rng.Intn(900)+100)
 	}
-	return p + " " + s
+	return n
 }
 
 func pick(rng *rand.Rand, s []string) string {

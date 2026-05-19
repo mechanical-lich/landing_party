@@ -1,0 +1,36 @@
+{
+  "settlement": {
+    "kind": "combined",
+    "prefixes": ["New", "Fort", "Colony", "Station", "Camp", "Base", "Outpost"],
+    "suffixes": ["Alpha", "Prime", "One", "Hope", "Dawn", "Point", "Haven"]
+  },
+  "colonist": {
+    "kind": "flat",
+    "names": [
+      "Vera", "Dax", "Kira", "Oren", "Sable", "Ryn", "Mace", "Tova",
+      "Lev", "Nira", "Cael", "Zara", "Brix", "Asha", "Thorn", "Elsi"
+    ]
+  },
+  "mutant": {
+    "kind": "flat",
+    "names": [
+      "Grosk", "Vrall", "Sludge", "Korbo", "Hask", "Nargle", "Drud",
+      "Skarn", "Glub", "Ratch", "Morv", "Thrak", "Bilge", "Crud", "Vesh"
+    ]
+  },
+  "location": {
+    "kind": "combined",
+    "prefixes": ["Veil", "Ashen", "Cinder", "Hollow", "Drift", "Pale", "Umbral", "Verdant", "Iron", "Glass", "Storm", "Quiet", "Far", "Lost", "Saffron", "Gleaming", "Sable", "Wether"],
+    "suffixes": ["Reach", "Expanse", "Hollow", "Drift", "Verge", "Shoals", "Mire", "Steppe", "Basin", "Spire", "Hold", "Wastes", "Cradle", "Fold", "Threshold"]
+  },
+  "epithets": {
+    "title": [
+      "the Destroyer", "the Merciless", "the Undying", "the Scarred",
+      "the Hollow", "the Forsaken", "the Relentless", "the Grim"
+    ],
+    "suffix": [
+      "mauler of cities", "eater of worlds", "breaker of lines",
+      "devourer of hope", "ender of things", "walker of ruin"
+    ]
+  }
+}

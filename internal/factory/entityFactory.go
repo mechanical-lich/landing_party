@@ -35,9 +35,9 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 			}
 		}
 		if dc, ok := comp.(*rlcomponents.DescriptionComponent); ok {
-			if dc.Name == "<ColonistName>" {
-				dc.Name = lore.RandomColonistName()
-			}
+			// A blueprint name wrapped like "<mutant>" or "<ColonistName>"
+			// is a request to roll a random name of that type.
+			dc.Name = lore.ResolveName(dc.Name)
 		}
 		if ic, ok := comp.(*rlcomponents.InventoryComponent); ok {
 			if ic.StartingInventory != nil {
