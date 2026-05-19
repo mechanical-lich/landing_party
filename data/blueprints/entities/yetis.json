@@ -1,4 +1,72 @@
 {
+    "ancient_yeti": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 528,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Ancient Yeti",
+            "Faction": "wildlife"
+        },
+        "Health": {
+            "MaxHealth": 65
+        },
+        "Initiative": {
+            "DefaultValue": 15,
+            "Ticks": 1
+        },
+        "NeverSleep": {},
+        "ScriptedAI": {
+            "script": "data/scripts/yeti/behavior.basic"
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 22,
+            "Int": 5,
+            "Dex": 12,
+            "AC": 16,
+            "BasicAttackDice": "3d8"
+        }
+    },
+    "elder_yeti": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 480,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Elder Yeti",
+            "Faction": "wildlife"
+        },
+        "Health": {
+            "MaxHealth": 55
+        },
+        "Initiative": {
+            "DefaultValue": 15,
+            "Ticks": 1
+        },
+        "NeverSleep": {},
+        "ScriptedAI": {
+            "script": "data/scripts/yeti/behavior.basic"
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 20,
+            "Int": 4,
+            "Dex": 10,
+            "AC": 14,
+            "BasicAttackDice": "2d8"
+        }
+    },
     "yeti": {
         "Appearance": {
             "R": 255,

@@ -14,9 +14,9 @@
             "Name": "<mutant>",
             "Faction": "mutant"
         },
-        "FactionAI": {
-            "BehaviorKey": "hostile",
-            "Faction": "mutant"
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": { "ignored_factions": "wildlife" }
         },
         "Health": {
             "MaxHealth": 30
@@ -56,9 +56,9 @@
                 "laser_sword": 3
             }
         },
-        "FactionAI": {
-            "BehaviorKey": "hostile",
-            "Faction": "mutant"
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": { "ignored_factions": "wildlife" }
         },
         "Health": {
             "MaxHealth": 12
@@ -93,9 +93,9 @@
             "Name": "<mutant>",
             "Faction": "mutant"
         },
-        "FactionAI": {
-            "BehaviorKey": "hostile",
-            "Faction": "mutant"
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": { "ignored_factions": "wildlife" }
         },
         "Health": {
             "MaxHealth": 8

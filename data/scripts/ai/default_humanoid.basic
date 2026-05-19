@@ -1,0 +1,59 @@
+function on_turn()
+    # Randomise hostility on first turn (1-10). Persists for this entity's life.
+    hostility = get_var("hostility") + 0
+    if hostility = 0 then
+        hostility = rnd_int(10) + 1
+        set_var("hostility", hostility)
+    endif
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+
+    ranged = has_ranged_weapon()
+
+    # High hostility (7-10): actively hunt workers
+    if hostility >= 7 then
+        if find_nearest_worker(14) = 1 then
+            nx = get_nearest_x()
+            ny = get_nearest_y()
+            nz = get_nearest_z()
+            if ranged = 1 then
+                if ranged_attack_at(nx, ny, nz) = 1 then
+                    return
+                endif
+            endif
+            if dist(sx, sy, nx, ny) <= 1.5 then
+                attack_at(nx, ny, nz)
+            else
+                pathfind_step(nx, ny, nz)
+            endif
+            return
+        endif
+    endif
+
+    # Medium hostility (4-6): attack workers that stray within range 6
+    if hostility >= 4 then
+        if find_nearest_worker(6) = 1 then
+            nx = get_nearest_x()
+            ny = get_nearest_y()
+            nz = get_nearest_z()
+            if ranged = 1 then
+                if ranged_attack_at(nx, ny, nz) = 1 then
+                    return
+                endif
+            endif
+            if dist(sx, sy, nx, ny) <= 1.5 then
+                attack_at(nx, ny, nz)
+            else
+                pathfind_step(nx, ny, nz)
+            endif
+            return
+        endif
+    endif
+
+    # Wander when nothing better to do
+    dx = rnd_int(3) - 1
+    dy = rnd_int(3) - 1
+    move_by(dx, dy)
+endfunction

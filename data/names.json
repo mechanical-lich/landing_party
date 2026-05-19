@@ -1,36 +1,76 @@
 {
   "settlement": {
     "kind": "combined",
-    "prefixes": ["New", "Fort", "Colony", "Station", "Camp", "Base", "Outpost"],
-    "suffixes": ["Alpha", "Prime", "One", "Hope", "Dawn", "Point", "Haven"]
+    "prefixes": [
+      "New", "Fort", "Colony", "Station", "Camp", "Base", "Outpost",
+      "Port", "Depot", "Relay", "Silo", "Bunker", "Waypoint", "Enclave",
+      "Refuge", "Sanctuary", "Terminal", "Beacon", "Haven", "Redoubt"
+    ],
+    "suffixes": [
+      "Alpha", "Prime", "One", "Hope", "Dawn", "Point", "Haven",
+      "Seven", "Terminus", "Anchorage", "Landing", "Rise", "Watch",
+      "Gate", "Crossing", "Rest", "End", "Reach", "Mark", "Hold"
+    ]
   },
   "colonist": {
     "kind": "flat",
     "names": [
       "Vera", "Dax", "Kira", "Oren", "Sable", "Ryn", "Mace", "Tova",
-      "Lev", "Nira", "Cael", "Zara", "Brix", "Asha", "Thorn", "Elsi"
+      "Lev", "Nira", "Cael", "Zara", "Brix", "Asha", "Thorn", "Elsi",
+      "Jova", "Cress", "Wren", "Tam", "Idris", "Soren", "Lysa", "Brek",
+      "Fenn", "Sera", "Holt", "Mira", "Dael", "Trix", "Quill", "Evra",
+      "Nox", "Pell", "Corda", "Ysel", "Bryn", "Tolek", "Essa", "Garv"
     ]
   },
   "mutant": {
     "kind": "flat",
     "names": [
       "Grosk", "Vrall", "Sludge", "Korbo", "Hask", "Nargle", "Drud",
-      "Skarn", "Glub", "Ratch", "Morv", "Thrak", "Bilge", "Crud", "Vesh"
+      "Skarn", "Glub", "Ratch", "Morv", "Thrak", "Bilge", "Crud", "Vesh",
+      "Grib", "Mulch", "Vrak", "Snarg", "Torv", "Blat", "Gunk", "Dreg",
+      "Wubb", "Krot", "Slurk", "Fesh", "Gnub", "Vreck", "Murg", "Skag",
+      "Blight", "Clench", "Festor", "Ooze", "Wretch", "Plagk", "Gorm"
+    ]
+  },
+  "greyish": {
+    "kind": "flat",
+    "names": [
+      "Glorp", "Blip", "Zorp", "Gribble", "Sprocket", "Mibble", "Wobble",
+      "Fribble", "Zibble", "Gribble", "Sprocket", "Mibble", "Wobble", "Fribble", "Zibble", "Gribble",
+      "Sprocket", "Mibble", "Wobble", "Fribble", "Zibble", "Gribble", "Sprocket", "Mibble", "Wobble", "Fribble", "Zibble", "Gribble", "Sprocket"
     ]
   },
   "location": {
     "kind": "combined",
-    "prefixes": ["Veil", "Ashen", "Cinder", "Hollow", "Drift", "Pale", "Umbral", "Verdant", "Iron", "Glass", "Storm", "Quiet", "Far", "Lost", "Saffron", "Gleaming", "Sable", "Wether"],
-    "suffixes": ["Reach", "Expanse", "Hollow", "Drift", "Verge", "Shoals", "Mire", "Steppe", "Basin", "Spire", "Hold", "Wastes", "Cradle", "Fold", "Threshold"]
+    "prefixes": [
+      "Veil", "Ashen", "Cinder", "Hollow", "Drift", "Pale", "Umbral",
+      "Verdant", "Iron", "Glass", "Storm", "Quiet", "Far", "Lost",
+      "Saffron", "Gleaming", "Sable", "Wether", "Blighted", "Crimson",
+      "Bone", "Ember", "Frost", "Rust", "Salt", "Slag", "Tallow",
+      "Sunken", "Shroud", "Dust", "Gaunt", "Leaden", "Murk", "Scorch"
+    ],
+    "suffixes": [
+      "Reach", "Expanse", "Hollow", "Drift", "Verge", "Shoals", "Mire",
+      "Steppe", "Basin", "Spire", "Hold", "Wastes", "Cradle", "Fold",
+      "Threshold", "Flats", "Canyon", "Ridge", "Breach", "Sink", "Scar",
+      "Vale", "Gulch", "Rift", "Fields", "Shelf", "Tract", "Narrows",
+      "Gap", "Run", "Pit", "Shelf", "Strand", "Tangle", "Wound"
+    ]
   },
   "epithets": {
     "title": [
       "the Destroyer", "the Merciless", "the Undying", "the Scarred",
-      "the Hollow", "the Forsaken", "the Relentless", "the Grim"
+      "the Hollow", "the Forsaken", "the Relentless", "the Grim",
+      "the Wretched", "the Unyielding", "the Rotting", "the Blind",
+      "the Hungerless", "the Damned", "the Twice-Killed", "the Sleepless",
+      "the Flayed", "the Ruinous", "the Endless", "the Unbroken"
     ],
     "suffix": [
       "mauler of cities", "eater of worlds", "breaker of lines",
-      "devourer of hope", "ender of things", "walker of ruin"
+      "devourer of hope", "ender of things", "walker of ruin",
+      "crusher of bones", "render of flesh", "singer of screams",
+      "drinker of ash", "keeper of wounds", "herald of nothing",
+      "mother of plagues", "father of silence", "child of collapse"
     ]
   }
 }

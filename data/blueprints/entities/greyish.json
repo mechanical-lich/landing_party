@@ -1,0 +1,180 @@
+{
+    "greenish": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "\u003cgreyish\u003e",
+            "Faction": "greyish"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 336,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1,
+                "tentacles": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": ["tentacles"]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "greyish": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "\u003cgreyish\u003e",
+            "Faction": "greyish"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 0,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "pinkish": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "\u003cgreyish\u003e",
+            "Faction": "greyish"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 192,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1,
+                "tentacles": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": ["tentacles"]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "whitish": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "\u003cgreyish\u003e",
+            "Faction": "greyish"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 96,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic"
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    }
+}

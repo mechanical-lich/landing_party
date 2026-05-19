@@ -6,7 +6,9 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"strings"
 
+	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
@@ -325,6 +327,64 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	interp.RegisterFunc("get_nearest_y", func(args ...any) (any, error) { return float64(lastNearY), nil })
 	interp.RegisterFunc("get_nearest_z", func(args ...any) (any, error) { return float64(lastNearZ), nil })
 
+	// get_self_faction() — returns this entity's faction string.
+	interp.RegisterFunc("get_self_faction", func(args ...any) (any, error) {
+		if !entity.HasComponent(rlcomponents.Description) {
+			return "", nil
+		}
+		dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+		return dc.Faction, nil
+	})
+	// find_nearest_enemy(radius) — finds the nearest entity not in this entity's
+	// faction and not in the "ignored_factions" var (comma-separated list).
+	// Returns 1 on success and populates get_nearest_x/y/z.
+	interp.RegisterFunc("find_nearest_enemy", func(args ...any) (any, error) {
+		radius := 12
+		if len(args) >= 1 {
+			radius = int(toAIFloat(args[0]))
+		}
+		selfFaction := ""
+		if entity.HasComponent(rlcomponents.Description) {
+			selfFaction = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+		}
+		ignored := map[string]bool{}
+		if selfFaction != "" {
+			ignored[selfFaction] = true
+		}
+		if raw, ok := ai.Vars["ignored_factions"]; ok {
+			for _, f := range strings.Split(fmt.Sprint(raw), ",") {
+				if t := strings.TrimSpace(f); t != "" {
+					ignored[t] = true
+				}
+			}
+		}
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		found := level.GetClosestEntityMatching(
+			pc.GetX(), pc.GetY(), pc.GetZ(),
+			radius*2, radius*2,
+			entity,
+			func(c *ecs.Entity) bool {
+				if c.HasComponent(rlcomponents.Dead) {
+					return false
+				}
+				if !c.HasComponent(rlcomponents.Health) {
+					return false
+				}
+				if !c.HasComponent(rlcomponents.Description) {
+					return true
+				}
+				cf := c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+				return !ignored[cf]
+			},
+		)
+		if found == nil {
+			return float64(0), nil
+		}
+		fp := found.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		lastNearX, lastNearY, lastNearZ = fp.GetX(), fp.GetY(), fp.GetZ()
+		return float64(1), nil
+	})
+
 	// --- movement ---
 	// pathfind_step(tx, ty, tz) — move one step along the path to (tx,ty,tz).
 	// Returns 1 if a step was taken, 0 if already adjacent/there or no path.
@@ -415,6 +475,51 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 				rlcombat.Hit(level, entity, e, true)
 				return float64(1), nil
 			}
+		}
+		return float64(0), nil
+	})
+
+	// has_ranged_weapon() — returns 1 if the entity has a ranged weapon equipped.
+	findRangedWeapon := func() *ecs.Entity {
+		if !entity.HasComponent(rlcomponents.Inventory) {
+			return nil
+		}
+		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+		for _, item := range []*ecs.Entity{inv.LeftHand, inv.RightHand} {
+			if item != nil && item.HasComponent(rlcomponents.Weapon) {
+				if item.GetComponent(rlcomponents.Weapon).(*rlcomponents.WeaponComponent).Ranged {
+					return item
+				}
+			}
+		}
+		return nil
+	}
+	interp.RegisterFunc("has_ranged_weapon", func(args ...any) (any, error) {
+		if findRangedWeapon() != nil {
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	// ranged_attack_at(x, y, z) — fire the equipped ranged weapon at the given tile.
+	// Returns 1 if in range, line of sight is clear, and a shot was fired; 0 otherwise.
+	interp.RegisterFunc("ranged_attack_at", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		weapon := findRangedWeapon()
+		if weapon == nil {
+			return float64(0), nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if !losCheck(level, pc.GetX(), pc.GetY(), x, y, z) {
+			return float64(0), nil
+		}
+		rlentity.Face(entity, x-pc.GetX(), y-pc.GetY())
+		if combat.Shoot(level, entity, x, y, z, weapon) {
+			return float64(1), nil
 		}
 		return float64(0), nil
 	})

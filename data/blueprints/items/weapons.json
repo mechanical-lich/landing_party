@@ -371,6 +371,25 @@
             "TwoHanded": true
         }
     },
+    "tentacles": {
+        "Description": {
+            "Name": "Tentacles",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 1
+        },
+        "Weapon": {
+            "Display": "tentacles",
+            "AttackBonus": 2,
+            "AttackDice": "1d8",
+            "DamageType": "physical",
+            "Range": 0,
+            "Ranged": false
+        }
+    },
     "flamethrower": {
         "Appearance": {
             "R": 255,

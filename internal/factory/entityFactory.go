@@ -35,7 +35,7 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 			}
 		}
 		if dc, ok := comp.(*rlcomponents.DescriptionComponent); ok {
-			// A blueprint name wrapped like "<mutant>" or "<ColonistName>"
+			// A blueprint name wrapped like "<mutant>" or "<colonist>"
 			// is a request to roll a random name of that type.
 			dc.Name = lore.ResolveName(dc.Name)
 		}
