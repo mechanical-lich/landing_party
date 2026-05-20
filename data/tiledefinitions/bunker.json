@@ -1,0 +1,112 @@
+[
+    {
+        "name": "bunker_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 144
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 144
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 144
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "bunker_wall",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 144,
+                "spriteY": 144
+            },
+            {
+                "variant": 1,
+                "spriteX": 288,
+                "spriteY": 144
+            },
+            {
+                "variant": 2,
+                "spriteX": 240,
+                "spriteY": 144
+            },
+            {
+                "variant": 3,
+                "spriteX": 264,
+                "spriteY": 144
+            },
+            {
+                "variant": 4,
+                "spriteX": 216,
+                "spriteY": 144
+            },
+            {
+                "variant": 5,
+                "spriteX": 384,
+                "spriteY": 144
+            },
+            {
+                "variant": 6,
+                "spriteX": 336,
+                "spriteY": 144
+            },
+            {
+                "variant": 7,
+                "spriteX": 456,
+                "spriteY": 144
+            },
+            {
+                "variant": 8,
+                "spriteX": 168,
+                "spriteY": 144
+            },
+            {
+                "variant": 9,
+                "spriteX": 360,
+                "spriteY": 144
+            },
+            {
+                "variant": 10,
+                "spriteX": 312,
+                "spriteY": 144
+            },
+            {
+                "variant": 11,
+                "spriteX": 480,
+                "spriteY": 144
+            },
+            {
+                "variant": 12,
+                "spriteX": 192,
+                "spriteY": 144
+            },
+            {
+                "variant": 13,
+                "spriteX": 504,
+                "spriteY": 144
+            },
+            {
+                "variant": 14,
+                "spriteX": 432,
+                "spriteY": 144
+            },
+            {
+                "variant": 15,
+                "spriteX": 408,
+                "spriteY": 144
+            }
+        ],
+        "resource": "scifi_world"
+    }
+]

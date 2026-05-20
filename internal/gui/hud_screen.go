@@ -61,10 +61,10 @@ type HUDScreen struct {
 	buildCategoryPanel *minui.Panel
 	buildSubPanel      *minui.Panel
 	knownTechs         map[string]bool
-	showSubMenuFn      func(title string, items []hudBuildOrderItem, types []string)
+	showSubMenuFn      func(title string, items []hudBuildOrderItem, categoryID string)
 	currentSubTitle    string
 	currentSubItems    []hudBuildOrderItem
-	currentSubTypes    []string
+	currentSubCategory string
 
 	// Population tab
 	populationVBox   *minui.VBox
@@ -292,11 +292,14 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	const itemH = 24
 	const panelW = 192
 
+	// Each category's `items` (cursor-mode pseudo-buildables) stays in code
+	// because it binds to CursorMode constants. Buildables themselves are
+	// pulled from build.json by category — adding a new wall/floor/door is a
+	// pure JSON edit (set "category" + optional "order").
 	type buildCategory struct {
 		id    string
 		label string
 		items []hudBuildOrderItem
-		types []string
 	}
 
 	categories := []buildCategory{
@@ -311,11 +314,11 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
 			},
 		},
-		{id: "walls", label: "Walls", types: []string{"hull_wall"}},
-		{id: "floors", label: "Floors", types: []string{"hull_floor"}},
-		{id: "stairs", label: "Stairs", types: []string{"stairs_up", "stairs_down"}},
-		{id: "structures", label: "Structures", types: []string{"storage_locker", "research_lab", "work_light", "basic_workbench", "gun_bench", "basic_armor_bench", "advanced_armor_bench"}},
-		{id: "doors", label: "Doors", types: []string{"airlock", "blast_door"}},
+		{id: "walls", label: "Walls"},
+		{id: "floors", label: "Floors"},
+		{id: "stairs", label: "Stairs"},
+		{id: "structures", label: "Structures"},
+		{id: "doors", label: "Doors"},
 	}
 
 	h.buildCategoryPanel = minui.NewPanel("buildCategories")
@@ -325,10 +328,13 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	h.buildSubPanel.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: 600})
 	h.buildSubPanel.SetVisible(false)
 
-	showSubMenu := func(title string, items []hudBuildOrderItem, types []string) {
+	showSubMenu := func(title string, items []hudBuildOrderItem, categoryID string) {
+		// Buildables are looked up by category at render time, so changes to
+		// build.json (after a restart) flow through without code edits.
+		types := construction.BuildableTypesInCategory(categoryID)
 		h.currentSubTitle = title
 		h.currentSubItems = items
-		h.currentSubTypes = types
+		h.currentSubCategory = categoryID
 
 		snapshot := make([]minui.Element, len(h.buildSubPanel.GetChildren()))
 		copy(snapshot, h.buildSubPanel.GetChildren())
@@ -423,7 +429,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 		mi := minui.NewMenuItem("cat_"+cat.id, cat.label+" >")
 		mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
 		mi.OnClick = func() {
-			showSubMenu(catCopy.label, catCopy.items, catCopy.types)
+			showSubMenu(catCopy.label, catCopy.items, catCopy.id)
 		}
 		h.buildCategoryPanel.AddChild(mi)
 		y += itemH
@@ -1303,7 +1309,7 @@ func (h *HUDScreen) SetKnownTechs(techs []string) {
 	}
 	h.knownTechs = newSet
 	if changed && h.buildSubPanel != nil && h.buildSubPanel.IsVisible() && h.showSubMenuFn != nil {
-		h.showSubMenuFn(h.currentSubTitle, h.currentSubItems, h.currentSubTypes)
+		h.showSubMenuFn(h.currentSubTitle, h.currentSubItems, h.currentSubCategory)
 	}
 }
 

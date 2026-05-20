@@ -40,7 +40,7 @@ The loader is `internal/generation/biome.go`: every `.json` file in `data/biomes
 |-------|------|-------------|
 | `kind` | string | Terrain kind: `space`, `atmosphere`, `surface`, `subsurface`, `underground`, `cavern`, `bedrock`, `water` |
 | `y_offset` | int? | Optional Z offset relative to that column's surface. Negative = below, positive = above. If omitted the rule matches any Z of that kind. |
-| `tile` | string | Tile type ID from `data/tile_definitions.json` |
+| `tile` | string | Tile type ID from `data/tiledefinitions/tile_definitions.json` |
 | `radiation` | int | Optional baseline radiation level for tiles painted by this rule |
 
 Rules are evaluated in order; the first rule whose `kind` (and optional `y_offset`) matches is applied. This lets you, for example, paint the topmost subsurface tile differently from deeper subsurface.
@@ -92,6 +92,6 @@ If no listed biome covers a column's (T, H), the primer's default tiles remain â
 1. Create a new file in `data/biomes/` (e.g. `swamp.json`). The filename is for humans only â€” `id` is what matters.
 2. Set a unique `id` and the `temp_range` / `humidity_range` covering where this biome should appear.
 3. Define one `rules` entry per `kind` you care about. Always include `surface`, `subsurface`, `underground`, `cavern`, `atmosphere`, `space`, and `bedrock` so the entire vertical column has tiles.
-4. Reference any new tile types in `data/tile_definitions.json` first.
+4. Reference any new tile types in `data/tiledefinitions/tile_definitions.json` first.
 5. Add the new biome ID to the `biomes` array of any scenario's `world.biome_map` that should include it. Make sure the new biome's (T, H) range overlaps the scenario's noise output.
 6. (Optional) Add `features` for biome-scoped feature spawning. Scenario-level `world.features` can also target biomes via the `biome` field.

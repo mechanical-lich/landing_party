@@ -100,8 +100,14 @@ type MainState struct {
 	mapModal         *MapModal
 	cheatModal       *CheatModal
 	smallMap         *SmallMapWidget
-	followEntity     *ecs.Entity
-	rogueEntity      *ecs.Entity
+	followEntity        *ecs.Entity
+	rogueEntity         *ecs.Entity
+	rogueMoveTargetX    int
+	rogueMoveTargetY    int
+	rogueMoveTargetZ    int
+	rogueMoveActive     bool
+	rogueAutoMoveTick   int
+	roguePath           [][2]int
 	campaign         *campaign.Campaign
 	wm               *WorldManager
 	starMapBtn       *minui.Button
@@ -1125,6 +1131,25 @@ func (s *MainState) handleInput() {
 			s.lastDragTileY = tY
 		}
 	}
+
+	if s.rogueEntity != nil && s.rogueMoveActive {
+		wasdHeld := ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyS) ||
+			ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyD)
+		if wasdHeld {
+			s.rogueMoveActive = false
+			s.rogueAutoMoveTick = 0
+		} else {
+			interval := config.Global().RogueAutoMoveInterval
+			if interval <= 0 {
+				interval = 8
+			}
+			s.rogueAutoMoveTick++
+			if s.rogueAutoMoveTick >= interval {
+				s.rogueAutoMoveTick = 0
+				s.rogueStepToward(s.rogueMoveTargetX, s.rogueMoveTargetY, s.rogueMoveTargetZ)
+			}
+		}
+	}
 }
 
 func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
@@ -1312,6 +1337,14 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 
 	if s.rogueEntity != nil {
 		if e.Button == ebiten.MouseButtonLeft {
+			pc := s.rogueEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			s.rogueMoveTargetX = tX
+			s.rogueMoveTargetY = tY
+			s.rogueMoveTargetZ = pc.GetZ()
+			s.rogueMoveActive = true
+			s.rogueComputePath()
+		} else if e.Button == ebiten.MouseButtonRight {
+			s.rogueMoveActive = false
 			s.rogueFire(tX, tY)
 		}
 		return
@@ -1979,6 +2012,19 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 			vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
 			vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
 		}
+	}
+
+	for i, p := range s.roguePath {
+		sx := float32((p[0] - s.CameraX) * s.TileSizeW)
+		sy := float32((p[1] - s.CameraY) * s.TileSizeH)
+		tw := float32(s.TileSizeW)
+		th := float32(s.TileSizeH)
+		alpha := uint8(60)
+		if i == len(s.roguePath)-1 {
+			alpha = 100 // destination tile slightly brighter
+		}
+		vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{R: 80, G: 200, B: 255, A: alpha}, false)
+		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.RGBA{R: 80, G: 200, B: 255, A: 180}, false)
 	}
 
 	if s.hoverActive {

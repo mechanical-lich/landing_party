@@ -9,7 +9,7 @@ function generate(x, y, w, h)
         return
     endif
 
-    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    carve_room(x, y, sz, w, h, "bunker_wall", "bunker_floor")
 
     # Punch a 2-wide breach in a random wall — someone broke in. Pick a
     # side, then a position along it clear of the corners.

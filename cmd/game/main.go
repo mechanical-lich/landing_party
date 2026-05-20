@@ -48,7 +48,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if err := world.LoadTileDefinitions("data/tile_definitions.json"); err != nil {
+	if err := world.LoadTileDefinitionsDir("data/tiledefinitions"); err != nil {
 		log.Fatalf("Failed to load tile definitions: %v", err)
 	}
 	if err := factory.FactoryLoadDir(cfg.BlueprintPath); err != nil {

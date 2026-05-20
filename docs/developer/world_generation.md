@@ -21,7 +21,7 @@ Z-level metadata is stored in `internal/world/level.go`. Each `Level` struct car
 
 ## Tile Definitions
 
-Tile types are defined in `data/tile_definitions.json`.
+Tile types are defined in `data/tiledefinitions/tile_definitions.json`.
 
 ```json
 "regolith": {
@@ -81,7 +81,7 @@ Visibility range for colonists and the player camera is derived from ambient int
 
 ## Adding a New Tile Type
 
-1. Add an entry to `data/tile_definitions.json` with a unique key.
+1. Add an entry to `data/tiledefinitions/tile_definitions.json` with a unique key.
 2. Set `Passable`, `Opaque`, and optionally `ResourceRef`.
 3. Add sprite variants to the tileset and reference them in `Variants`.
 4. Reference the tile type in generation code (`internal/generation/`) or scenario spawn constraints (`TileConstraints`) as needed.

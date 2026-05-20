@@ -12,13 +12,13 @@ function on_setup()
     top    = sy - 5
     bottom = sy + 1
 
-    carve_room(left, top, sz, 9, 7, "hull_wall", "hull_floor")
+    carve_room(left, top, sz, 9, 7, "bunker_wall", "bunker_floor")
     spawn_entity_owned("airlock", sx, bottom, sz, faction)
     spawn_entity_owned("storage_locker", left + 1, sy - 2, sz, sname)
     spawn_entity_owned("basic_workbench", right - 1, sy - 2, sz, sname)
 
     # 2nd floor — same footprint, enclosed, connected by stairs along the back wall
-    carve_room(left, top, sz + 1, 9, 7, "hull_wall", "hull_floor")
+    carve_room(left, top, sz + 1, 9, 7, "bunker_wall", "bunker_floor")
     set_tile(sx, top + 1, sz, "stairs_up")
     set_tile(sx, top + 1, sz + 1, "stairs_down")
 

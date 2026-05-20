@@ -1,0 +1,75 @@
+[
+     {
+        "name": "empty",
+        "description": "Sentinel for an unfilled layer slot. Never painted, never rendered.",
+        "variants": null,
+        "resource": ""
+    },
+    {
+        "name": "space",
+        "space": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 768
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 768
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 768
+            },
+            {
+                "variant": 3,
+                "spriteX": 72,
+                "spriteY": 768
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "air",
+        "air": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 768
+            }
+        ],
+        "resource": "scifi_world"
+    },
+      {
+        "name": "stairs_up",
+        "stairsUp": true,
+        "lightLevel": 40,
+        "lightRange": 5,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 384,
+                "spriteY": 120
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "stairs_down",
+        "stairsDown": true,
+        "lightLevel": 40,
+        "lightRange": 5,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 408,
+                "spriteY": 120
+            }
+        ],
+        "resource": "scifi_world"
+    }
+]

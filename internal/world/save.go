@@ -36,9 +36,15 @@ type TileRun struct {
 }
 
 type SaveData struct {
-	FloorRuns      []TileRun `json:"FloorRuns,omitempty"`
-	MiddleRuns     []TileRun `json:"MiddleRuns,omitempty"`
-	CeilingRuns    []TileRun `json:"CeilingRuns,omitempty"`
+	FloorRuns   []TileRun `json:"FloorRuns,omitempty"`
+	MiddleRuns  []TileRun `json:"MiddleRuns,omitempty"`
+	CeilingRuns []TileRun `json:"CeilingRuns,omitempty"`
+	// TileCatalog is a snapshot of TileIndexToName at save time. On load we
+	// rebuild an old-index -> current-index remap by name so re-ordering or
+	// splitting tile_definitions/*.json (which shifts indices) doesn't
+	// silently rewrite the world. Absent on legacy saves -> indices are used
+	// raw (graceful degradation, matches old behavior).
+	TileCatalog    []string `json:"TileCatalog,omitempty"`
 	Entities       []*SaveEntity
 	StaticEntities []*SaveEntity
 	Settlements    map[string]*settlement.Settlement
@@ -78,9 +84,31 @@ func encodeCeilingRuns(tiles []Tile) []TileRun {
 	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Ceiling.Type, t.Ceiling.Variant })
 }
 
+// buildTileRemap returns a slice where remap[savedIdx] gives the current tile
+// index for the tile that lived at savedIdx in the saved catalog. Names absent
+// from the current catalog map to 0 (the empty sentinel) and are logged so a
+// removed-tile save degrades to empty space instead of a wrong tile. Returns
+// nil if the saved catalog is empty — callers should then use indices raw.
+func buildTileRemap(savedCatalog []string) []int {
+	if len(savedCatalog) == 0 {
+		return nil
+	}
+	remap := make([]int, len(savedCatalog))
+	for i, name := range savedCatalog {
+		if idx, ok := TileNameToIndex[name]; ok {
+			remap[i] = idx
+			continue
+		}
+		log.Printf("save: tile %q (saved index %d) not in current catalog, falling back to empty", name, i)
+		remap[i] = 0
+	}
+	return remap
+}
+
 // decodeLayeredTiles rebuilds a tile array from three parallel RLE streams.
 // Any stream may be empty (POC-era saves where ceilings were never painted).
-func decodeLayeredTiles(floor, middle, ceiling []TileRun) []Tile {
+// remap, when non-nil, translates saved tile indices to current indices.
+func decodeLayeredTiles(floor, middle, ceiling []TileRun, remap []int) []Tile {
 	total := 0
 	for _, r := range middle {
 		total += r.C
@@ -91,11 +119,18 @@ func decodeLayeredTiles(floor, middle, ceiling []TileRun) []Tile {
 		}
 	}
 	tiles := make([]Tile, total)
+	translate := func(t int) int {
+		if remap == nil || t < 0 || t >= len(remap) {
+			return t
+		}
+		return remap[t]
+	}
 	apply := func(runs []TileRun, set func(t *Tile, typ, variant int)) {
 		i := 0
 		for _, r := range runs {
+			typ := translate(r.T)
 			for j := 0; j < r.C && i < total; j++ {
-				set(&tiles[i], r.T, r.V)
+				set(&tiles[i], typ, r.V)
 				i++
 			}
 		}
@@ -230,10 +265,17 @@ func SaveLevel(level *Level) SaveData {
 		staticSaveEntities = append(staticSaveEntities, EntityToSaveEntity(entity))
 	}
 
+	// Snapshot the catalog so a future load can remap by name if the order
+	// changes (file split, rename, additions). Copy so later loads can't
+	// alias and mutate this slice.
+	catalog := make([]string, len(TileIndexToName))
+	copy(catalog, TileIndexToName)
+
 	return SaveData{
 		FloorRuns:      encodeFloorRuns(level.Data),
 		MiddleRuns:     encodeMiddleRuns(level.Data),
 		CeilingRuns:    encodeCeilingRuns(level.Data),
+		TileCatalog:    catalog,
 		Entities:       saveEntities,
 		StaticEntities: staticSaveEntities,
 		Settlements:    settlement.Settlements,
@@ -265,7 +307,8 @@ func LoadSaveData(data SaveData) *Level {
 	}
 	level := NewLevel(w, h, d)
 
-	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, data.CeilingRuns)
+	remap := buildTileRemap(data.TileCatalog)
+	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, data.CeilingRuns, remap)
 	for i, tile := range tiles {
 		if i >= len(level.Data) {
 			break

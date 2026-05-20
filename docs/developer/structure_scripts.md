@@ -61,6 +61,14 @@ Spawns an entity by blueprint ID at the given position.
 
 Spawns an entity and sets its `DescriptionComponent.Name`. Use for unique characters — quest targets, named guards, boss creatures.
 
+### `add_epithet(x, y, z)`
+
+Decorates the name of the entity at `(x, y, z)` with a random epithet from `data/names.json` — e.g. `"Grosk"` → `"Grosk the Destroyer, mauler of cities"`. A title epithet is always added; a suffix epithet is added about half the time.
+
+Use it to promote a generic NPC into a boss name without hardcoding text. Call it before `mark_quest_target` so the rewritten quest title adopts the full boss name. If the entity has no `DescriptionComponent`, one is added with an empty base name.
+
+The epithet pools live under `"epithets": { "title": [...], "suffix": [...] }` in `names.json`; edit them there.
+
 ### `mark_quest_target(x, y, z)`
 
 Finds the entity at `(x, y, z)`, attaches a `QuestTargetComponent` linking it to the active quest, and rewrites the quest's title to include the NPC's name.
@@ -113,7 +121,7 @@ Example — the bounty template:
 
 When a structure-backed bounty is first generated, the quest title is set to `"<template_name> — <location_name>"` (e.g., `"Bounty — Sigma Outpost"`). The NPC's identity is not known until the player lands and the structure script runs.
 
-When `mark_quest_target` fires inside the script it calls `Campaign.BindQuestTargetName`, which rewrites the title to `"<template_name>: <npc_name> — <location_name>"` (e.g., `"Bounty: Warden of the Sealed Bunker — Sigma Outpost"`). This is intentional — the full name surfaces only after landing.
+When `mark_quest_target` fires inside the script it calls `Campaign.BindQuestTargetName`, which rewrites the title to `"<template_name>: <npc_name> — <location_name>"` (e.g., `"Bounty: Grosk the Destroyer, mauler of cities — Sigma Outpost"`). This is intentional — the full name surfaces only after landing.
 
 ### `QuestFixture` struct fields
 
@@ -144,7 +152,7 @@ function generate(x, y, w, h)
         return
     endif
 
-    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    carve_room(x, y, sz, w, h, "bunker_wall", "bunker_floor")
 
     # Punch a 2-wide breach in a random wall.
     side = rnd_int(4)
@@ -171,9 +179,12 @@ function generate(x, y, w, h)
 
     spawn_entity("storage_locker", x + 1, y + 1, sz)
 
-    # The script owns who lairs here. mark_quest_target no-ops when
-    # there's no associated quest, so the warden exists either way.
-    spawn_entity_named("mutant_brute", cx, cy, sz, "Warden of the Sealed Bunker")
+    # The brute rolls its own mutant name from the blueprint (which uses
+    # the "<mutant>" name placeholder). add_epithet promotes it to a boss
+    # name before mark_quest_target picks it up. mark_quest_target no-ops
+    # when there's no associated quest, so the warden exists either way.
+    spawn_entity("mutant_brute", cx, cy, sz)
+    add_epithet(cx, cy, sz)
     mark_quest_target(cx, cy, sz)
 
     spawn_entity_named("mutant_grunt", cx - 2, cy, sz, "Bunker Sentry")
@@ -188,5 +199,5 @@ endfunction
 1. Create `data/scripts/structures/<name>.basic`.
 2. Define `function generate(x, y, w, h)`. Use `get_surface_z(cx, cy)` to find the surface Z and bail if it returns `< 0` (off-map or underground-only).
 3. Use `carve_room` + `clear_middle` to carve the layout, then `spawn_entity` / `spawn_entity_named` to populate it.
-4. If the structure can host a quest target, call `mark_quest_target(x, y, z)` immediately after spawning the target NPC.
+4. If the structure can host a quest target, call `mark_quest_target(x, y, z)` immediately after spawning the target NPC. Use `add_epithet(x, y, z)` first (before `mark_quest_target`) if you want a boss name; pairs naturally with blueprints that already use a `<type>` name placeholder.
 5. Reference the script name in a quest template (`fixture_structure`) or add a `QuestFixture{Structure: "<name>"}` directly to a `Location`.

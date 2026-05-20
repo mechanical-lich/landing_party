@@ -1,0 +1,38 @@
+[
+     {
+        "name": "ore_deposit",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 648
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "crystal_vein",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 624
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "radioactive_ore",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 24,
+                "spriteY": 648
+            }
+        ],
+        "resource": "scifi_world"
+    }
+]

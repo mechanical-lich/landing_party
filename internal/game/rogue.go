@@ -6,9 +6,11 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/ai"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/effect"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/gui"
+	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -72,6 +74,86 @@ func (s *MainState) advancePlayerTurn() {
 	}
 }
 
+// rogueKeyActive returns true on the first frame a key is pressed and again
+// after RogueKeyRepeatDelay frames, then every RogueKeyRepeatInterval frames.
+func (s *MainState) rogueKeyActive(key ebiten.Key) bool {
+	d := inpututil.KeyPressDuration(key)
+	if d == 1 {
+		return true
+	}
+	delay := config.Global().RogueKeyRepeatDelay
+	interval := config.Global().RogueKeyRepeatInterval
+	if delay <= 0 {
+		delay = 20
+	}
+	if interval <= 0 {
+		interval = 4
+	}
+	return d >= delay && (d-delay)%interval == 0
+}
+
+// rogueComputePath recomputes roguePath from the colonist's current position
+// to the move target and stores the tile coordinates for rendering.
+func (s *MainState) rogueComputePath() {
+	s.roguePath = s.roguePath[:0]
+	if s.rogueEntity == nil {
+		return
+	}
+	pc := s.rogueEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
+	fromTile := s.level.GetTilePtr(sx, sy, sz)
+	toTile := s.level.GetTilePtr(s.rogueMoveTargetX, s.rogueMoveTargetY, s.rogueMoveTargetZ)
+	if fromTile == nil || toTile == nil {
+		return
+	}
+	steps := fspath.GetPossiblePathForEntity(s.level, s.rogueEntity, fromTile, toTile, nil)
+	if len(steps) < 2 {
+		return
+	}
+	for _, idx := range steps[1:] { // skip index 0 (current tile)
+		t := s.level.Level.GetTilePtrIndex(idx)
+		x, y, _ := t.Coords()
+		s.roguePath = append(s.roguePath, [2]int{x, y})
+	}
+}
+
+// rogueStepToward takes one pathfound step toward (tx,ty,tz) and advances
+// the player turn. Clears the move target if arrived or no path exists.
+func (s *MainState) rogueStepToward(tx, ty, tz int) {
+	ent := s.rogueEntity
+	pc := ent.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
+	if sx == tx && sy == ty && sz == tz {
+		s.rogueMoveActive = false
+		return
+	}
+	fromTile := s.level.GetTilePtr(sx, sy, sz)
+	toTile := s.level.GetTilePtr(tx, ty, tz)
+	if fromTile == nil || toTile == nil {
+		s.rogueMoveActive = false
+		return
+	}
+	steps := fspath.GetPossiblePathForEntity(s.level, ent, fromTile, toTile, nil)
+	if len(steps) < 2 {
+		s.rogueMoveActive = false
+		return
+	}
+	next := s.level.Level.GetTilePtrIndex(steps[1])
+	nx, ny, _ := next.Coords()
+	dx, dy := nx-sx, ny-sy
+	if s.rogueAct(dx, dy) {
+		s.advancePlayerTurn()
+	}
+	// Re-read position after move; clear target if arrived, otherwise refresh path.
+	pc2 := ent.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if pc2.GetX() == tx && pc2.GetY() == ty {
+		s.rogueMoveActive = false
+		s.roguePath = s.roguePath[:0]
+	} else {
+		s.rogueComputePath()
+	}
+}
+
 // enterRogueMode hands direct control of the given colonist to the player.
 func (s *MainState) enterRogueMode(ent *ecs.Entity) {
 	if ent == nil || !ent.HasComponent(components.Worker) || !ent.HasComponent(rlcomponents.Position) {
@@ -112,6 +194,8 @@ func (s *MainState) exitRogueMode() {
 	}
 	s.rogueEntity = nil
 	s.followEntity = nil
+	s.rogueMoveActive = false
+	s.roguePath = s.roguePath[:0]
 	s.CursorMode = gui.CursorModeDefault
 	s.guiManager.SetSidebarVisible(true)
 	s.guiManager.HideRogueExit()
@@ -147,20 +231,20 @@ func (s *MainState) handleRogueKeys() {
 	}
 	dx, dy := 0, 0
 	switch {
-	case inpututil.IsKeyJustPressed(ebiten.KeyW):
+	case s.rogueKeyActive(ebiten.KeyW):
 		dy = -1
-	case inpututil.IsKeyJustPressed(ebiten.KeyS):
+	case s.rogueKeyActive(ebiten.KeyS):
 		dy = 1
-	case inpututil.IsKeyJustPressed(ebiten.KeyA):
+	case s.rogueKeyActive(ebiten.KeyA):
 		dx = -1
-	case inpututil.IsKeyJustPressed(ebiten.KeyD):
+	case s.rogueKeyActive(ebiten.KeyD):
 		dx = 1
 	}
-	if dx == 0 && dy == 0 {
-		return
-	}
-	if s.rogueAct(dx, dy) {
-		s.advancePlayerTurn()
+	if dx != 0 || dy != 0 {
+		s.rogueMoveActive = false
+		if s.rogueAct(dx, dy) {
+			s.advancePlayerTurn()
+		}
 	}
 }
 

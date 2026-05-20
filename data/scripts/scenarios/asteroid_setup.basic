@@ -16,7 +16,7 @@ function on_setup()
     sname = get_flag("settlement_name")
     faction = get_flag("colonist_faction")
 
-    carve_room(sx - 3, sy - 3, sz, 7, 7, "hull_wall", "hull_floor")
+    carve_room(sx - 3, sy - 3, sz, 7, 7, "bunker_wall", "bunker_floor")
     spawn_entity_owned("airlock", sx, sy + 3, sz, faction)
     spawn_entity_owned("storage_locker", sx - 2, sy - 2, sz, sname)
     spawn_entity_owned("basic_workbench", sx + 2, sy - 2, sz, sname)

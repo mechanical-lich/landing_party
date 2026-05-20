@@ -18,6 +18,12 @@ type Buildable struct {
 	RequiredTech  string         `json:"required_tech"`
 	AllowMultiple bool           `json:"allow_multiple"`
 	Cost          map[string]int `json:"cost"`
+	// Category groups this buildable in the build menu (e.g. "walls", "floors",
+	// "doors"). Empty = not menu-listed. Order sorts within a category; ties
+	// fall back to Name. Together they make new buildables show up in the
+	// menu by editing build.json alone, no Go change required.
+	Category string `json:"category,omitempty"`
+	Order    int    `json:"order,omitempty"`
 }
 
 var buildables map[string]Buildable
@@ -50,6 +56,36 @@ func GetBuildable(key string) Buildable {
 
 func ListBuildables() map[string]Buildable {
 	return buildables
+}
+
+// BuildableTypesInCategory returns the build-type keys (map keys, i.e. the
+// build IDs callers pass to GetBuildable) for every non-hidden buildable in
+// category, sorted by Order ascending and Name as tiebreaker. Build-menu code
+// uses this to render a category's items without listing them in Go.
+func BuildableTypesInCategory(category string) []string {
+	type entry struct {
+		key      string
+		order    int
+		name     string
+	}
+	var in []entry
+	for key, b := range buildables {
+		if b.Hidden || b.Category != category {
+			continue
+		}
+		in = append(in, entry{key: key, order: b.Order, name: b.Name})
+	}
+	sort.Slice(in, func(i, j int) bool {
+		if in[i].order != in[j].order {
+			return in[i].order < in[j].order
+		}
+		return in[i].name < in[j].name
+	})
+	out := make([]string, len(in))
+	for i, e := range in {
+		out[i] = e.key
+	}
+	return out
 }
 
 // ListBuildablesForTechs returns buildables that are available given the known tech keys.

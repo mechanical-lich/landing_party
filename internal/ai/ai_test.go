@@ -14,7 +14,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	if err := world.LoadTileDefinitions("../../data/tile_definitions.json"); err != nil {
+	if err := world.LoadTileDefinitionsDir("../../data/tiledefinitions"); err != nil {
 		panic("failed to load tile definitions: " + err.Error())
 	}
 	os.Exit(m.Run())

@@ -29,6 +29,11 @@ type Config struct {
 	ProfileCPU             bool   `json:"profileCPU"`
 	ProfileMemory          bool   `json:"profileMemory"`
 	OverrideGCMemoryLimit  int64  `json:"overrideGCMemoryLimit"`
+	// Rogue mode key-repeat: frames before held WASD starts repeating, and the
+	// interval between repeated moves. At 60 fps, 20 delay ≈ 333 ms, 4 interval ≈ 67 ms.
+	RogueKeyRepeatDelay    int `json:"rogueKeyRepeatDelay"`
+	RogueKeyRepeatInterval int `json:"rogueKeyRepeatInterval"`
+	RogueAutoMoveInterval  int `json:"rogueAutoMoveInterval"`
 }
 
 func LoadConfig(filePath string) (*Config, error) {

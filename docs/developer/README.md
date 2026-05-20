@@ -13,6 +13,8 @@ Architecture notes, system references, and guides for extending the game.
 - [Biomes](biomes.md) — biome definitions, terrain rules, and biome-specific features
 - [World Generation](world_generation.md) — Z-levels, terrain, and lighting
 - [Structure Scripts](structure_scripts.md) — procedural structure generation via mechanical-basic scripts; quest-target binding
+- [Tile Definitions](tile_definitions.md) — the `data/tiledefinitions/` catalog, load order, the `empty` sentinel invariant, and save portability
+- [Names](names.md) — `data/names.json`, the `<type>` placeholder pattern for blueprints, seeded vs unseeded generation, and epithets
 - [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
 
 ---
@@ -39,7 +41,8 @@ The game uses an **ECS (Entity-Component-System)** architecture provided by `mlg
 | Scenario setup scripts | `data/scripts/scenarios/*.basic` |
 | Structure generation scripts | `data/scripts/structures/*.basic` |
 | Biome definitions | `data/biomes/` |
-| Tile definitions | `data/tile_definitions.json` |
+| Tile definitions | `data/tiledefinitions/*.json` |
+| Name pools | `data/names.json` |
 | Asset references | `data/assets.json` |
 | Engine config | `data/config.json` |
 

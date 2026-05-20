@@ -19,5 +19,8 @@
     "debugDisableLookdown": false,
     "debugShowAutotileMask": false,
     "profileCPU": false,
-    "profileMemory": false
+    "profileMemory": false,
+    "rogueKeyRepeatDelay": 20,
+    "rogueKeyRepeatInterval": 4,
+    "rogueAutoMoveInterval": 10
 }
