@@ -1,0 +1,107 @@
+# abandoned_reactor — a derelict reactor complex: central core room with four
+# wing rooms branching off in a cross layout. Recommended footprint: 21x19.
+# Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
+# corner of the footprint the dispatcher allocated.
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    # Divide the footprint into thirds for the cross layout.
+    # rw/rh = wing thickness; cw/ch = central room dimensions.
+    rw = w / 3
+    rh = h / 3
+    cw = w - rw * 2
+    ch = h - rh * 2
+
+    # Top-left corner of the central room.
+    crx = x + rw
+    cry = y + rh
+
+    # Carve central reactor room as a round chamber inscribed in the cw×ch
+    # rect. With the recommended 21×19 footprint cw=ch=7, so radius=3 puts the
+    # perimeter exactly on the columns/rows the wing doorways punch through.
+    cr = cw / 2
+    if ch / 2 < cr then
+        cr = ch / 2
+    endif
+    carve_round_room(cx, cy, sz, cr, "hull_wall", "hull_floor")
+
+    # Carve four wing rooms. Each overlaps the central room by 1 tile so the
+    # shared wall column/row is carved by both sides — punch it open below.
+    carve_room(x,             cry, sz, rw + 1, ch,     "hull_wall", "hull_floor")  # west
+    carve_room(crx + cw - 1, cry, sz, rw + 1, ch,     "hull_wall", "hull_floor")  # east
+    carve_room(crx,           y,   sz, cw,     rh + 1, "hull_wall", "hull_floor")  # north
+    carve_room(crx, cry + ch - 1, sz, cw,     rh + 1, "hull_wall", "hull_floor")  # south
+
+    # Open 2-wide doorways through each shared wall.
+    # West doorway (shared column crx)
+    set_tile(crx, cy,     sz, "hull_floor")
+    set_tile(crx, cy - 1, sz, "hull_floor")
+    # East doorway (shared column crx + cw - 1)
+    set_tile(crx + cw - 1, cy,     sz, "hull_floor")
+    set_tile(crx + cw - 1, cy - 1, sz, "hull_floor")
+    # North doorway (shared row cry)
+    set_tile(cx,     cry, sz, "hull_floor")
+    set_tile(cx - 1, cry, sz, "hull_floor")
+    # South doorway (shared row cry + ch - 1)
+    set_tile(cx,     cry + ch - 1, sz, "hull_floor")
+    set_tile(cx - 1, cry + ch - 1, sz, "hull_floor")
+
+    # Blast a 2-wide breach in the outer wall of a random wing.
+    side = rnd_int(4)
+    if side = 0 then
+        # North wing outer wall
+        bx = crx + 1 + rnd_int(cw - 3)
+        clear_middle(bx, y, sz)
+        clear_middle(bx + 1, y, sz)
+    endif
+    if side = 1 then
+        # South wing outer wall
+        bx = crx + 1 + rnd_int(cw - 3)
+        clear_middle(bx, y + h - 1, sz)
+        clear_middle(bx + 1, y + h - 1, sz)
+    endif
+    if side = 2 then
+        # West wing outer wall
+        by = cry + 1 + rnd_int(ch - 3)
+        clear_middle(x, by, sz)
+        clear_middle(x, by + 1, sz)
+    endif
+    if side = 3 then
+        # East wing outer wall
+        by = cry + 1 + rnd_int(ch - 3)
+        clear_middle(x + w - 1, by, sz)
+        clear_middle(x + w - 1, by + 1, sz)
+    endif
+
+    # Reactor core — ring of radioactive ore surrounding the center floor tile.
+    set_tile(cx - 1, cy - 1, sz, "radioactive_ore")
+    set_tile(cx,     cy - 1, sz, "radioactive_ore")
+    set_tile(cx + 1, cy - 1, sz, "radioactive_ore")
+    set_tile(cx - 1, cy,     sz, "radioactive_ore")
+    set_tile(cx + 1, cy,     sz, "radioactive_ore")
+    set_tile(cx - 1, cy + 1, sz, "radioactive_ore")
+    set_tile(cx,     cy + 1, sz, "radioactive_ore")
+    set_tile(cx + 1, cy + 1, sz, "radioactive_ore")
+
+    # Storage lockers in the wing rooms for flavor.
+    spawn_entity("storage_locker", x + 1,         cry + 1,     sz)  # west wing
+    spawn_entity("storage_locker", x + w - 2,     cry + 1,     sz)  # east wing
+    spawn_entity("storage_locker", crx + 1,       y + 1,       sz)  # north wing
+    spawn_entity("storage_locker", crx + 1,       y + h - 2,   sz)  # south wing
+
+    # The overseer lairs at the reactor core.
+    spawn_entity("mutant_brute", cx, cy, sz)
+    add_epithet(cx, cy, sz)
+    mark_quest_target(cx, cy, sz)
+
+    # One grunt per wing room.
+    spawn_entity_named("mutant_grunt", x + 1 + rnd_int(rw - 2),             cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # west
+    spawn_entity_named("mutant_grunt", crx + cw + rnd_int(rw - 1),          cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # east
+    spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2),           y + 1 + rnd_int(rh - 1),   sz, "Reactor Guard")  # north
+    spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2), cry + ch + rnd_int(rh - 1),          sz, "Reactor Guard")  # south
+endfunction

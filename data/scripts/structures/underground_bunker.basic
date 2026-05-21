@@ -1,0 +1,109 @@
+# underground_bunker — small surface entry room with a staircase shaft
+# descending 1–3 levels to a sealed chamber where the warden and loot are.
+#
+# Shaft layout (each intermediate level):
+#   ####
+#   #^V#    ^ = stairs_up   V = stairs_down
+#   ####
+#
+# The active stair column alternates between cx and cx+1 each level so
+# up and down tiles never share the same xy position.
+#
+# Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
+# corner of the footprint the dispatcher allocated.
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    # Top floor: half the footprint, minimum 5x5, centered.
+    tw = w / 2
+    th = h / 2
+    if tw < 5 then
+        tw = 5
+    endif
+    if th < 5 then
+        th = 5
+    endif
+    tx = x + (w - tw) / 2
+    ty = y + (h - th) / 2
+
+    # Staircase depth: 1–3 levels underground.
+    depth = get_param("depth")
+    if depth = "" then
+        depth = 1 + rnd_int(3)
+    endif
+
+    # ── Surface level (sz) ──────────────────────────────────────────────────
+    carve_room(tx, ty, sz, tw, th, "bunker_wall", "bunker_floor")
+
+    # Breach in a random outer wall of the top room.
+    side = rnd_int(4)
+    if side = 0 then
+        bx = tx + 1 + rnd_int(tw - 3)
+        clear_middle(bx, ty, sz)
+        clear_middle(bx + 1, ty, sz)
+    endif
+    if side = 1 then
+        bx = tx + 1 + rnd_int(tw - 3)
+        clear_middle(bx, ty + th - 1, sz)
+        clear_middle(bx + 1, ty + th - 1, sz)
+    endif
+    if side = 2 then
+        by = ty + 1 + rnd_int(th - 3)
+        clear_middle(tx, by, sz)
+        clear_middle(tx, by + 1, sz)
+    endif
+    if side = 3 then
+        by = ty + 1 + rnd_int(th - 3)
+        clear_middle(tx + tw - 1, by, sz)
+        clear_middle(tx + tw - 1, by + 1, sz)
+    endif
+
+    # First descent from the surface — always starts at (cx, cy).
+    set_tile(cx, cy, sz, "stairs_down")
+
+    # ── Intermediate shaft levels ────────────────────────────────────────────
+    # flip tracks which column (0=cx, 1=cx+1) the arriving stair is on.
+    # Each shaft level places stairs_up on the arriving column and
+    # stairs_down on the other, then flips for the next level.
+    flip = 0
+    for level = 1 to depth - 1
+        carve_room(cx - 1, cy - 1, sz - level, 4, 3, "bunker_wall", "bunker_floor")
+        if flip = 0 then
+            set_tile(cx,     cy, sz - level, "stairs_up")
+            set_tile(cx + 1, cy, sz - level, "stairs_down")
+        endif
+        if flip = 1 then
+            set_tile(cx + 1, cy, sz - level, "stairs_up")
+            set_tile(cx,     cy, sz - level, "stairs_down")
+        endif
+        flip = 1 - flip
+    next level
+
+    # ── Underground chamber (sz-depth) ──────────────────────────────────────
+    carve_room(x, y, sz - depth, w, h, "bunker_wall", "bunker_floor")
+
+    # stairs_up on whichever column the last descent arrived at.
+    if flip = 0 then
+        set_tile(cx,     cy, sz - depth, "stairs_up")
+    endif
+    if flip = 1 then
+        set_tile(cx + 1, cy, sz - depth, "stairs_up")
+    endif
+
+    # Loot in a corner.
+    spawn_entity("storage_locker", x + 1, y + 1, sz - depth)
+
+    # The warden — quest target with a boss epithet.
+    spawn_entity("mutant_brute", cx, cy + 2, sz - depth)
+    add_epithet(cx, cy + 2, sz - depth)
+    mark_quest_target(cx, cy + 2, sz - depth)
+
+    # A pair of guards flanking the warden.
+    spawn_entity_named("mutant_grunt", cx - 2, cy + 2, sz - depth, "Bunker Sentry")
+    spawn_entity_named("mutant_grunt", cx + 2, cy + 2, sz - depth, "Bunker Sentry")
+endfunction

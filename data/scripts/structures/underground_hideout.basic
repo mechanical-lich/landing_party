@@ -1,0 +1,125 @@
+# underground_hideout — a hidden compound: 5x5 surface entry hatch above a
+# multi-room underground network. Each level is a 2x2 grid of rooms sharing
+# walls at the footprint centre. Doorways are punched through the shared walls,
+# so rooms always connect regardless of footprint size.
+#
+# Layout per underground level:
+#   [NW | NE]    dividing column = cx, dividing row = cy
+#   [SW | SE]
+#
+# Stair anchors sit just inside the NW and SE rooms so they never land on a
+# shared wall:
+#   Anchor A = (cx-1, cy-1)  — NW room, bottom-right interior corner
+#   Anchor B = (cx+1, cy+1)  — SE room, top-left interior corner
+#
+# The surface 5x5 hatch is centred on anchor A; level 1 always arrives there.
+# Stairs flip between A and B each level. Boss hides in NE or SW (random).
+#
+# Recommended footprint: 21x17 or larger.
+# Entrypoint contract: generate(x, y, w, h)
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    depth = get_param("depth")
+    if depth = "" then
+        depth = 1 + rnd_int(3)
+    endif
+
+    # Stair anchors — one tile inside NW and SE rooms respectively.
+    ax = cx - 1
+    ay = cy - 1
+    bx = cx + 1
+    by = cy + 1
+
+    # Room quarter-centres for doorways, boss, and guard placement.
+    nw_cx = x + w / 4
+    nw_cy = y + h / 4
+    se_cx = cx + w / 4
+    se_cy = cy + h / 4
+
+    # ── Surface: fixed 5x5 entry hatch centred on anchor A ──────────────────
+    carve_room(ax - 2, ay - 2, sz, 5, 5, "bunker_wall", "bunker_floor")
+
+    side = rnd_int(4)
+    if side = 0 then
+        clear_middle(ax, ay - 2, sz)
+    endif
+    if side = 1 then
+        clear_middle(ax, ay + 2, sz)
+    endif
+    if side = 2 then
+        clear_middle(ax - 2, ay, sz)
+    endif
+    if side = 3 then
+        clear_middle(ax + 2, ay, sz)
+    endif
+
+    set_tile(ax, ay, sz, "stairs_down")
+
+    # ── Underground levels ───────────────────────────────────────────────────
+    flip = 0
+    for level = 1 to depth
+        # Four quadrant rooms sharing walls at (cx, cy).
+        # Each pair of adjacent rooms has a wall column (cx) or wall row (cy)
+        # in common; punching floor tiles there opens a doorway.
+        carve_room(x + 1, y + 1, sz - level, cx - x,         cy - y,         "bunker_wall", "bunker_floor")  # NW
+        carve_room(cx,    y + 1, sz - level, x + w - 1 - cx, cy - y,         "bunker_wall", "bunker_floor")  # NE
+        carve_room(x + 1, cy,   sz - level, cx - x,          y + h - 1 - cy, "bunker_wall", "bunker_floor")  # SW
+        carve_room(cx,    cy,   sz - level, x + w - 1 - cx,  y + h - 1 - cy, "bunker_wall", "bunker_floor")  # SE
+
+        # Punch one doorway tile through each shared wall.
+        # Quarter-centre positions are always safely in each sub-room's interior;
+        # the +1 second tile is omitted because for smaller footprints it can
+        # land on an outer wall and open into dirt.
+        clear_middle(cx,    nw_cy, sz - level)  # NW ↔ NE
+        clear_middle(cx,    se_cy, sz - level)  # SW ↔ SE
+        clear_middle(nw_cx, cy,   sz - level)   # NW ↔ SW
+        clear_middle(se_cx, cy,   sz - level)   # NE ↔ SE
+
+        # Stairs: alternate between anchor A (NW) and anchor B (SE).
+        if flip = 0 then
+            set_tile(ax, ay, sz - level, "stairs_up")
+            if level < depth then
+                set_tile(bx, by, sz - level, "stairs_down")
+            endif
+        endif
+        if flip = 1 then
+            set_tile(bx, by, sz - level, "stairs_up")
+            if level < depth then
+                set_tile(ax, ay, sz - level, "stairs_down")
+            endif
+        endif
+
+        # Deepest level: boss hides in NE or SW (neither is a stair room).
+        if level = depth then
+            boss_room = rnd_int(2)
+            if boss_room = 0 then
+                # NE room
+                spawn_entity("mutant_brute",   se_cx, nw_cy, sz - level)
+                add_epithet(se_cx, nw_cy, sz - level)
+                mark_quest_target(se_cx, nw_cy, sz - level)
+                spawn_entity("storage_locker", nw_cx, se_cy, sz - level)
+            endif
+            if boss_room = 1 then
+                # SW room
+                spawn_entity("mutant_brute",   nw_cx, se_cy, sz - level)
+                add_epithet(nw_cx, se_cy, sz - level)
+                mark_quest_target(nw_cx, se_cy, sz - level)
+                spawn_entity("storage_locker", se_cx, nw_cy, sz - level)
+            endif
+
+            # Guards scattered across all four rooms
+            spawn_entity_named("mutant_grunt", ax - 2, ay,     sz - level, "Hideout Guard")
+            spawn_entity_named("mutant_grunt", bx + 2, by,     sz - level, "Hideout Guard")
+            spawn_entity_named("mutant_grunt", se_cx,  nw_cy + 2, sz - level, "Hideout Guard")
+            spawn_entity_named("mutant_grunt", nw_cx,  se_cy - 2, sz - level, "Hideout Guard")
+        endif
+
+        flip = 1 - flip
+    next level
+endfunction

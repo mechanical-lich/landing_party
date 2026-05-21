@@ -112,7 +112,21 @@ func ClearStructureScriptCache() {
 // to invoke the same script dispatch the runtime generator uses, without a
 // surrounding scenario / quest context.
 func RunStructureScript(level *world.Level, name string, x, y, w, h int) error {
+	return RunStructureScriptWithParams(level, name, x, y, w, h, nil)
+}
+
+// RunStructureScriptWithParams is like RunStructureScript but seeds the
+// top param frame with the given key/value pairs so the script can read them
+// via get_param(...). Mirrors the way the runtime dispatcher seeds quest_id
+// before calling runGenStructure.
+func RunStructureScriptWithParams(level *world.Level, name string, x, y, w, h int, params map[string]any) error {
 	ctx := &setupContext{Level: level}
+	if len(params) > 0 {
+		top := ctx.topParams()
+		for k, val := range params {
+			top[k] = val
+		}
+	}
 	return runGenStructure(ctx, name, x, y, w, h)
 }
 
@@ -668,6 +682,45 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		y := int(toSetupFloat(args[1]))
 		z := int(toSetupFloat(args[2]))
 		level.ClearMiddle(x, y, z)
+		return nil, nil
+	})
+
+	// carve_round_room(cx, cy, z, r, wall_tile, floor_tile) — bordered disc.
+	// The interior (cells whose distance from center is < r) gets the floor
+	// tile stamped on the Floor slot with the Middle cleared; the perimeter
+	// ring (cells whose squared distance falls in ((r-1)², r²]) gets the same
+	// floor stamped beneath the wall so a destroyed wall leaves a walkable
+	// cell, matching the behavior of carve_room.
+	interp.RegisterFunc("carve_round_room", func(args ...any) (any, error) {
+		if len(args) < 6 {
+			return nil, nil
+		}
+		cx := int(toSetupFloat(args[0]))
+		cy := int(toSetupFloat(args[1]))
+		z := int(toSetupFloat(args[2]))
+		r := int(toSetupFloat(args[3]))
+		wallTile := fmt.Sprint(args[4])
+		floorTile := fmt.Sprint(args[5])
+		if r < 1 {
+			return nil, nil
+		}
+		rr := r * r
+		inner := (r - 1) * (r - 1)
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				d2 := dx*dx + dy*dy
+				if d2 > rr {
+					continue
+				}
+				x, y := cx+dx, cy+dy
+				level.SetFloor(x, y, z, floorTile, world.RandomTileVariant(floorTile))
+				if d2 > inner {
+					level.SetMiddle(x, y, z, wallTile, world.RandomTileVariant(wallTile))
+				} else {
+					level.ClearMiddle(x, y, z)
+				}
+			}
+		}
 		return nil, nil
 	})
 
