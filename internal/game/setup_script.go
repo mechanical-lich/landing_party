@@ -100,6 +100,22 @@ func runGenStructure(ctx *setupContext, name string, x, y, w, h int) error {
 	return nil
 }
 
+// ClearStructureScriptCache drops cached structure-script source. Tools that
+// edit and reload a script while running (e.g. structure-viewer) call this
+// between stamps so changes on disk take effect.
+func ClearStructureScriptCache() {
+	structScriptCache = map[string]string{}
+}
+
+// RunStructureScript stamps a named structure script onto level at (x,y) with
+// the given width and height. Used by tools (e.g. structure-viewer) that want
+// to invoke the same script dispatch the runtime generator uses, without a
+// surrounding scenario / quest context.
+func RunStructureScript(level *world.Level, name string, x, y, w, h int) error {
+	ctx := &setupContext{Level: level}
+	return runGenStructure(ctx, name, x, y, w, h)
+}
+
 // RunSetupScripts executes each .basic file listed in the scenario's setup_scripts.
 // Each script must define function on_setup().
 func RunSetupScripts(scripts []string, level *world.Level) {

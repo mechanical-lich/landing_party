@@ -1,6 +1,7 @@
 .DS_Store
-entity-editor
-tile-editor
+/entity-editor
+/tile-editor
+/structure-viewer
 /game
 saves/
 bin/
