@@ -349,23 +349,40 @@ func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slo
 	screen.DrawImage(src, drawOp)
 }
 
-// DrawRadiationOverlay paints a green tint over tiles with nonzero Radiation.
-// Intensity scales with the tile's Radiation byte (0..255).
+// DrawRadiationOverlay draws a tinted checkerboard sprite over tiles with nonzero
+// Radiation. Two frames at (408,960) and (432,960) on the scifi_world sheet alternate
+// at ~2 Hz to give a shimmering hazard look without a solid color wash.
 func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, viewW, viewH int) {
+	tex := resource.Textures["scifi_world"]
+	if tex == nil {
+		return
+	}
+	const spriteSize = 24
+	frame := int(time.Now().UnixMilli()/500) % 2
+	fx := 96 + frame*spriteSize
+	src := tex.SubImage(image.Rect(fx, 960, fx+spriteSize, 960+spriteSize)).(*ebiten.Image)
+
+	scaleX := float64(tileSizeW) / spriteSize
+	scaleY := float64(tileSizeH) / spriteSize
+
+	op := &ebiten.DrawImageOptions{}
+	op.Blend = ebiten.BlendSourceOver
 	for sx := 0; sx < viewW; sx++ {
 		for sy := 0; sy < viewH; sy++ {
 			tile := level.GetTilePtr(cameraX+sx, cameraY+sy, cameraZ)
 			if tile == nil || tile.Radiation == 0 {
 				continue
 			}
-			// Cap alpha low so colonists/items on radioactive tiles stay readable.
-			alpha := uint8(int(tile.Radiation) * 70 / 255)
-			tint := color.RGBA{60, 220, 80, alpha}
-			vector.DrawFilledRect(screen,
-				float32(sx*tileSizeW), float32(sy*tileSizeH),
-				float32(tileSizeW), float32(tileSizeH),
-				tint, false,
-			)
+			if !level.GetVisible(cameraX+sx, cameraY+sy, cameraZ) {
+				continue
+			}
+			a := uint8(int(tile.Radiation) * 40 / 255) // max ~16% on checker pixels
+			op.GeoM.Reset()
+			op.GeoM.Scale(scaleX, scaleY)
+			op.GeoM.Translate(float64(sx*tileSizeW), float64(sy*tileSizeH))
+			op.ColorScale.Reset()
+			op.ColorScale.ScaleWithColor(color.RGBA{120, 255, 120, a})
+			screen.DrawImage(src, op)
 		}
 	}
 }

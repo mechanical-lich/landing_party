@@ -1,5 +1,5 @@
 [
-     {
+    {
         "name": "empty",
         "description": "Sentinel for an unfilled layer slot. Never painted, never rendered.",
         "variants": null,
@@ -44,7 +44,7 @@
         ],
         "resource": "scifi_world"
     },
-      {
+    {
         "name": "stairs_up",
         "stairsUp": true,
         "lightLevel": 40,

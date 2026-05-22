@@ -114,6 +114,7 @@
         "name": "rock",
         "description": "Solid rock wall (47-blob autotile, GMS2-style).",
         "layer": "middle",
+        "mixId": 1,
         "solid": true,
         "autoTile": 3,
         "variants": [
@@ -353,8 +354,7 @@
                 "spriteY": 24
             }
         ],
-        "resource": "rock_blob47",
-        "mixId": 1
+        "resource": "rock_blob47"
     },
     {
         "name": "rock_floor",
@@ -416,6 +416,7 @@
     {
         "name": "dirt",
         "layer": "middle",
+        "mixId": 1,
         "solid": true,
         "autoTile": 3,
         "variants": [
@@ -655,8 +656,7 @@
                 "spriteY": 24
             }
         ],
-        "resource": "dirt_blob47",
-        "mixId": 1
+        "resource": "dirt_blob47"
     },
     {
         "name": "grass",
@@ -712,6 +712,7 @@
     {
         "name": "ice",
         "layer": "middle",
+        "mixId": 1,
         "solid": true,
         "autoTile": 3,
         "variants": [
@@ -951,8 +952,7 @@
                 "spriteY": 24
             }
         ],
-        "resource": "ice_blob47",
-        "mixId": 1
+        "resource": "ice_blob47"
     },
     {
         "name": "lava",

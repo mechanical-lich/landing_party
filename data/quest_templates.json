@@ -62,6 +62,45 @@
       "reward_resources": { "crystal": 4 }
     },
     {
+      "id": "reactor_clear",
+      "weight": 2,
+      "spawn_archetype": "moon",
+      "name": "Reactor Purge",
+      "desc": "A failed reactor on this moon has become a mutant nest. Eliminate the overseer before the radiation does the rest.",
+      "trigger": "target_killed",
+      "fixture_structure": "abandoned_reactor",
+      "fixture_struct_w": 21,
+      "fixture_struct_h": 19,
+      "reward_fuel_flat": 50,
+      "reward_resources": { "crystal": 5 }
+    },
+    {
+      "id": "underground_bounty",
+      "weight": 2,
+      "spawn_archetype": "temperate",
+      "name": "Buried Threat",
+      "desc": "A warden has gone to ground. Find the bunker entrance and dig it out — floor by floor.",
+      "trigger": "target_killed",
+      "fixture_structure": "underground_bunker",
+      "fixture_struct_w": 15,
+      "fixture_struct_h": 13,
+      "reward_fuel_flat": 40,
+      "reward_resources": { "crystal": 3 }
+    },
+    {
+      "id": "hideout_raid",
+      "weight": 1,
+      "spawn_archetype": "alien",
+      "name": "Root Them Out",
+      "desc": "A mutant operation runs out of a buried compound on this world. Hunt the leader down through the compound.",
+      "trigger": "target_killed",
+      "fixture_structure": "underground_hideout",
+      "fixture_struct_w": 21,
+      "fixture_struct_h": 17,
+      "reward_fuel_flat": 55,
+      "reward_resources": { "crystal": 6 }
+    },
+    {
       "id": "research",
       "weight": 1,
       "name": "Field Research",

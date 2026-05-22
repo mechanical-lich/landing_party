@@ -1,0 +1,683 @@
+[
+    {
+        "name": "stone_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 264
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 264
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 264
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 264
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 264
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 264
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 264
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 264
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 264
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 264
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 264
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 264
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 264
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 264
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 264
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 264
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "overgrown_stone_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 288
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 288
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 288
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 288
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 288
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 288
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 288
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 288
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 288
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 288
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 288
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 288
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 288
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 288
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 288
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 288
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "dungeon_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 240
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 240
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 240
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 240
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 240
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 240
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 240
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 240
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 240
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 240
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 240
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 240
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 240
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 240
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 240
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 240
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "temple_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 120
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 120
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 120
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 120
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 120
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 120
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 120
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 120
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 120
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 120
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 120
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 120
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 120
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 120
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 120
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 120
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "ancient_temple_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 144
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 144
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 144
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 144
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 144
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 144
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 144
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 144
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 144
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 144
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 144
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 144
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 144
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 144
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 144
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 144
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "eldritch_wall",
+        "layer": "middle",
+        "solid": true,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 0,
+                "spriteY": 168
+            },
+            {
+                "variant": 1,
+                "spriteX": 360,
+                "spriteY": 168
+            },
+            {
+                "variant": 2,
+                "spriteX": 312,
+                "spriteY": 168
+            },
+            {
+                "variant": 3,
+                "spriteX": 336,
+                "spriteY": 168
+            },
+            {
+                "variant": 4,
+                "spriteX": 288,
+                "spriteY": 168
+            },
+            {
+                "variant": 5,
+                "spriteX": 456,
+                "spriteY": 168
+            },
+            {
+                "variant": 6,
+                "spriteX": 408,
+                "spriteY": 168
+            },
+            {
+                "variant": 7,
+                "spriteX": 528,
+                "spriteY": 168
+            },
+            {
+                "variant": 8,
+                "spriteX": 240,
+                "spriteY": 168
+            },
+            {
+                "variant": 9,
+                "spriteX": 432,
+                "spriteY": 168
+            },
+            {
+                "variant": 10,
+                "spriteX": 384,
+                "spriteY": 168
+            },
+            {
+                "variant": 11,
+                "spriteX": 552,
+                "spriteY": 168
+            },
+            {
+                "variant": 12,
+                "spriteX": 264,
+                "spriteY": 168
+            },
+            {
+                "variant": 13,
+                "spriteX": 576,
+                "spriteY": 168
+            },
+            {
+                "variant": 14,
+                "spriteX": 504,
+                "spriteY": 168
+            },
+            {
+                "variant": 15,
+                "spriteX": 480,
+                "spriteY": 168
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "stone_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 264
+            },
+            {
+                "variant": 1,
+                "spriteX": 72,
+                "spriteY": 264
+            },
+            {
+                "variant": 2,
+                "spriteX": 72,
+                "spriteY": 264
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "overgrown_stone_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 288
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 288
+            },
+            {
+                "variant": 2,
+                "spriteX": 72,
+                "spriteY": 264
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "temple_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 216
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 216
+            },
+            {
+                "variant": 2,
+                "spriteX": 144,
+                "spriteY": 216
+            },
+            {
+                "variant": 3,
+                "spriteX": 120,
+                "spriteY": 216
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "ancient_temple_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 144
+            },
+            {
+                "variant": 1,
+                "spriteX": 120,
+                "spriteY": 144
+            },
+            {
+                "variant": 2,
+                "spriteX": 144,
+                "spriteY": 144
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "eldritch_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 168
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 168
+            },
+            {
+                "variant": 2,
+                "spriteX": 120,
+                "spriteY": 168
+            },
+            {
+                "variant": 3,
+                "spriteX": 144,
+                "spriteY": 168
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "dungeon_floor",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 72,
+                "spriteY": 168
+            },
+            {
+                "variant": 1,
+                "spriteX": 96,
+                "spriteY": 168
+            },
+            {
+                "variant": 2,
+                "spriteX": 120,
+                "spriteY": 168
+            },
+            {
+                "variant": 3,
+                "spriteX": 144,
+                "spriteY": 168
+            }
+        ],
+        "resource": "fantasy_world"
+    }
+]

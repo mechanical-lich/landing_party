@@ -26,6 +26,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/generation"
 	"github.com/mechanical-lich/landing_party/internal/gui"
 	"github.com/mechanical-lich/landing_party/internal/mapdef"
+	"github.com/mechanical-lich/landing_party/internal/objective"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
@@ -33,7 +34,6 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
-	"github.com/mechanical-lich/landing_party/internal/objective"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
@@ -67,50 +67,50 @@ type SettlementConfig struct {
 }
 
 type MainState struct {
-	level            *world.Level
-	CameraX          int
-	CameraY          int
-	CameraZ          int
-	CursorMode       gui.CursorModeType
-	guiManager       *gui.GUIManager
-	systemManager    *ecs.SystemManager
-	gm               *GameMaster
-	selectedEntity   *ecs.Entity
-	TileSizeW        int
-	TileSizeH        int
-	Paused           bool
-	MainSettlement   *settlement.Settlement
-	op               *ebiten.DrawImageOptions
-	initiativeSystem *rlsystems.InitiativeSystem
-	cleanUpSystem    *rlsystems.CleanUpSystem
-	worldImage       *ebiten.Image
-	buildMode        string
-	tick             int
-	day              int
-	lastDay          int
-	mouseDragging    bool
-	lastDragTileX    int
-	lastDragTileY    int
-	hoverTileX       int
-	hoverTileY       int
-	hoverActive      bool
-	settlementCfg    SettlementConfig
-	done             bool
-	next             state.StateInterface
-	mapModal         *MapModal
-	cheatModal       *CheatModal
-	smallMap         *SmallMapWidget
-	followEntity        *ecs.Entity
-	rogueEntity         *ecs.Entity
-	rogueMoveTargetX    int
-	rogueMoveTargetY    int
-	rogueMoveTargetZ    int
-	rogueMoveActive     bool
-	rogueAutoMoveTick   int
-	roguePath           [][2]int
-	campaign         *campaign.Campaign
-	wm               *WorldManager
-	starMapBtn       *minui.Button
+	level             *world.Level
+	CameraX           int
+	CameraY           int
+	CameraZ           int
+	CursorMode        gui.CursorModeType
+	guiManager        *gui.GUIManager
+	systemManager     *ecs.SystemManager
+	gm                *GameMaster
+	selectedEntity    *ecs.Entity
+	TileSizeW         int
+	TileSizeH         int
+	Paused            bool
+	MainSettlement    *settlement.Settlement
+	op                *ebiten.DrawImageOptions
+	initiativeSystem  *rlsystems.InitiativeSystem
+	cleanUpSystem     *rlsystems.CleanUpSystem
+	worldImage        *ebiten.Image
+	buildMode         string
+	tick              int
+	day               int
+	lastDay           int
+	mouseDragging     bool
+	lastDragTileX     int
+	lastDragTileY     int
+	hoverTileX        int
+	hoverTileY        int
+	hoverActive       bool
+	settlementCfg     SettlementConfig
+	done              bool
+	next              state.StateInterface
+	mapModal          *MapModal
+	cheatModal        *CheatModal
+	smallMap          *SmallMapWidget
+	followEntity      *ecs.Entity
+	rogueEntity       *ecs.Entity
+	rogueMoveTargetX  int
+	rogueMoveTargetY  int
+	rogueMoveTargetZ  int
+	rogueMoveActive   bool
+	rogueAutoMoveTick int
+	roguePath         [][2]int
+	campaign          *campaign.Campaign
+	wm                *WorldManager
+	starMapBtn        *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
