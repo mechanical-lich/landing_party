@@ -1384,6 +1384,8 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					Data:   task_requests.RetrieveRequest{Item: ent},
 					X:      tX, Y: tY, Z: s.CameraZ, Escalated: true,
 				})
+			} else if ent != nil && ent.HasComponent(components.Bed) && s.MainSettlement != nil {
+				s.addSleepTask(tX, tY)
 			} else {
 				// Select entity (colonist, building, etc.)
 				for _, e := range s.level.Entities {
@@ -1454,6 +1456,8 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 						s.MainSettlement.Tasks.RemoveTask(t)
 					}
 				}
+			case gui.CursorModeSleep:
+				s.addSleepTask(tX, tY)
 			case gui.CursorModeAttack:
 				target := s.level.GetEntityAt(tX, tY, s.CameraZ)
 				if target != nil && target.HasComponent(components.FactionAI) {
@@ -1517,12 +1521,21 @@ func (s *MainState) addBuildTask(x, y int) {
 	if s.MainSettlement == nil {
 		return
 	}
+	// For multi-tile entities, offset position so the click lands on the top-left
+	// corner. entityFootprint centers on the stored position using startX = x - w/2,
+	// startY = y - h/2, so adding w/2 and h/2 back makes the click tile the origin.
+	buildable := construction.GetBuildable(s.buildMode)
+	if buildable.IsEntity {
+		if sc := factory.GetSize(s.buildMode); sc != nil {
+			x += sc.Width / 2
+			y += sc.Height / 2
+		}
+	}
 	for _, t := range s.MainSettlement.Tasks.GetTasks() {
 		if t.X == x && t.Y == y && t.Z == s.CameraZ && t.Action == task_requests.BuildAction {
 			return
 		}
 	}
-	buildable := construction.GetBuildable(s.buildMode)
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.BuildAction,
 		Data:   task_requests.BuildRequest{X: x, Y: y, Z: s.CameraZ, Type: s.buildMode, Required: buildable.BuildTime},
@@ -1531,6 +1544,73 @@ func (s *MainState) addBuildTask(x, y int) {
 	if !buildable.AllowMultiple {
 		s.CursorMode = gui.CursorModeDefault
 	}
+}
+
+func (s *MainState) addSleepTask(x, y int) {
+	if s.MainSettlement == nil {
+		return
+	}
+	bed := s.level.GetEntityAt(x, y, s.CameraZ)
+	if bed == nil || !bed.HasComponent(components.Bed) {
+		return
+	}
+	pc := bed.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	bx, by, bz := pc.GetX(), pc.GetY(), pc.GetZ()
+	// Dedup: one sleep task per bed, whether queued or already assigned.
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Action == task_requests.SleepAction && t.X == bx && t.Y == by && t.Z == bz {
+			return
+		}
+	}
+	for _, colonist := range s.level.Entities {
+		if !colonist.HasComponent(components.Worker) {
+			continue
+		}
+		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+		if wc.CurrentTask == nil || wc.CurrentTask.Completed {
+			continue
+		}
+		if wc.CurrentTask.Action == task_requests.SleepAction &&
+			wc.CurrentTask.X == bx && wc.CurrentTask.Y == by && wc.CurrentTask.Z == bz {
+			return
+		}
+	}
+	// Find the idle worker in this settlement with the lowest current health.
+	var bestWorker *ecs.Entity
+	var bestHealth int
+	for _, colonist := range s.level.Entities {
+		if !colonist.HasComponents(components.Worker, components.Settlement, rlcomponents.Health) {
+			continue
+		}
+		if colonist.HasComponent(rlcomponents.Dead) {
+			continue
+		}
+		csc := colonist.GetComponent(components.Settlement).(*components.SettlementComponent)
+		if csc.Name != s.MainSettlement.Name {
+			continue
+		}
+		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+		if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+			continue
+		}
+		hc := colonist.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
+		if bestWorker == nil || hc.Health < bestHealth {
+			bestWorker = colonist
+			bestHealth = hc.Health
+		}
+	}
+	sleepTask := &task.Task{
+		Action: task_requests.SleepAction,
+		Data:   &task_requests.SleepRequest{X: bx, Y: by, Z: bz, Required: 10},
+		X:      bx, Y: by, Z: bz,
+	}
+	if bestWorker != nil {
+		sleepTask.Start()
+		bestWorker.GetComponent(components.Worker).(*components.WorkerComponent).CurrentTask = sleepTask
+		return
+	}
+	// No idle workers — fall back to the settlement queue so the next free worker picks it up.
+	s.MainSettlement.Tasks.AddTask(sleepTask)
 }
 
 func (s *MainState) addDigTask(x, y int) {
@@ -1681,6 +1761,14 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
 			s.guiManager.SetDefaultContext("Retrieve: "+name, "Order colonists to pick this up.", entity.Blueprint)
+			return
+		}
+		if entity.HasComponent(components.Bed) {
+			name := "Bed"
+			if entity.HasComponent(rlcomponents.Description) {
+				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
+			}
+			s.guiManager.SetDefaultContext("Sleep: "+name, "Order the most wounded idle colonist to rest here.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(components.Worker) {
@@ -1989,11 +2077,6 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 			if t.Completed || t.Z != s.CameraZ {
 				continue
 			}
-			if t.X < s.CameraX || t.X >= s.CameraX+viewW || t.Y < s.CameraY || t.Y >= s.CameraY+viewH {
-				continue
-			}
-			sx := float32((t.X - s.CameraX) * s.TileSizeW)
-			sy := float32((t.Y - s.CameraY) * s.TileSizeH)
 			var fill, border color.RGBA
 			switch t.Action {
 			case task_requests.BuildAction:
@@ -2009,8 +2092,31 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 				fill = color.RGBA{R: 255, G: 200, B: 0, A: 40}
 				border = color.RGBA{R: 255, G: 200, B: 0, A: 200}
 			}
-			vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
-			vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
+			// For multi-tile build tasks, highlight the full footprint.
+			// t.X/Y is the offset position; startX = t.X - Width/2, startY = t.Y - Height/2.
+			fpW, fpH := 1, 1
+			if t.Action == task_requests.BuildAction {
+				if br, ok := t.Data.(task_requests.BuildRequest); ok {
+					if sc := factory.GetSize(br.Type); sc != nil && sc.Width > 0 && sc.Height > 0 {
+						fpW, fpH = sc.Width, sc.Height
+					}
+				}
+			}
+			startX := t.X - fpW/2
+			startY := t.Y - fpH/2
+			for dx := 0; dx < fpW; dx++ {
+				for dy := 0; dy < fpH; dy++ {
+					tx := startX + dx
+					ty := startY + dy
+					if tx < s.CameraX || tx >= s.CameraX+viewW || ty < s.CameraY || ty >= s.CameraY+viewH {
+						continue
+					}
+					sx := float32((tx - s.CameraX) * s.TileSizeW)
+					sy := float32((ty - s.CameraY) * s.TileSizeH)
+					vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
+					vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
+				}
+			}
 		}
 	}
 
@@ -2028,12 +2134,26 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 	}
 
 	if s.hoverActive {
-		sx := float32((s.hoverTileX - s.CameraX) * s.TileSizeW)
-		sy := float32((s.hoverTileY - s.CameraY) * s.TileSizeH)
-		vector.DrawFilledRect(screen, sx, sy, float32(s.TileSizeW), float32(s.TileSizeH),
-			color.RGBA{R: 255, G: 255, B: 255, A: 40}, false)
-		vector.StrokeRect(screen, sx, sy, float32(s.TileSizeW), float32(s.TileSizeH),
-			1, color.RGBA{R: 255, G: 255, B: 255, A: 120}, false)
+		tw := float32(s.TileSizeW)
+		th := float32(s.TileSizeH)
+		footprintW, footprintH := 1, 1
+		if s.CursorMode == gui.CursorModeBuild {
+			if sc := factory.GetSize(s.buildMode); sc != nil && sc.Width > 0 && sc.Height > 0 {
+				footprintW = sc.Width
+				footprintH = sc.Height
+			}
+		}
+		// hoverTileX/Y is the top-left corner of the footprint, matching addBuildTask.
+		for dx := 0; dx < footprintW; dx++ {
+			for dy := 0; dy < footprintH; dy++ {
+				sx := float32((s.hoverTileX+dx-s.CameraX)*s.TileSizeW)
+				sy := float32((s.hoverTileY+dy-s.CameraY)*s.TileSizeH)
+				vector.DrawFilledRect(screen, sx, sy, tw, th,
+					color.RGBA{R: 255, G: 255, B: 255, A: 40}, false)
+				vector.StrokeRect(screen, sx, sy, tw, th,
+					1, color.RGBA{R: 255, G: 255, B: 255, A: 120}, false)
+			}
+		}
 	}
 }
 

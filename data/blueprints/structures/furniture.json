@@ -1,20 +1,23 @@
 {
-    "storage_locker": {
+    "bed": {
         "Appearance": {
             "R": 255,
             "G": 255,
             "B": 255,
-            "Bounces": false,
             "Resource": "scifi_world",
-            "SpriteX": 624,
-            "SpriteY": 504
+            "SpriteX": 672,
+            "SpriteY": 432
         },
+        "Bed": {},
         "Description": {
-            "Name": "Storage Locker",
+            "Name": "Bed",
             "Faction": ""
         },
-        "Solid": {},
-        "Storage": {}
+        "Size": {
+            "Width": 1,
+            "Height": 2
+        },
+        "Solid": {}
     },
     "research_lab": {
         "Appearance": {
@@ -34,6 +37,23 @@
             "Type": "research_lab"
         },
         "Solid": {}
+    },
+    "storage_locker": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Storage Locker",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {}
     },
     "work_light": {
         "Appearance": {

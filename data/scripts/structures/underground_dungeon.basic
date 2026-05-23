@@ -1,0 +1,380 @@
+# underground_dungeon — a BSP dungeon at the bottom of a stair shaft. The
+# dungeon is planned first (room rects computed but not yet carved); a
+# stair tile is chosen inside room 0; the surface Z is then queried at THAT
+# tile so the whole structure (bottom → shaft → surface entry) is anchored
+# to the actual terrain at the stair location. Everything is then carved.
+#
+# Bottom level: 4-room BSP (two recursive splits along the longer axis,
+# random room sizes, L-shape corridors between siblings).
+# Shaft: 4×3 chambers stacked at the chosen (stair_x, stair_y), with the
+# stair column alternating each level so up/down tiles never collide.
+# Surface: half-footprint room centred on the surface stair tile, breach
+# in a random outer wall.
+#
+# Recommended footprint: 25×21 or larger.
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+
+    depth = get_param("depth")
+    if depth = "" then
+        depth = 1 + rnd_int(3)
+    endif
+
+    # ── Phase 1: BSP planning — compute leaf and room rects, no carving ────
+    DIM lx(4)
+    DIM ly(4)
+    DIM lw(4)
+    DIM lh(4)
+    DIM rx(4)
+    DIM ry(4)
+    DIM rw(4)
+    DIM rh(4)
+
+    lx[0] = x + 1
+    ly[0] = y + 1
+    lw[0] = w - 2
+    lh[0] = h - 2
+
+    n = 1
+    for s = 1 to 2
+        base = n
+        for i = 0 to base - 1
+            wi = lw[i]
+            hi = lh[i]
+            xi = lx[i]
+            yi = ly[i]
+
+            vert = 0
+            if wi >= hi then
+                vert = 1
+            endif
+
+            if vert = 1 then
+                sat = wi * 4 / 10 + rnd_int(wi * 2 / 10 + 1)
+                if sat < 4 then
+                    sat = 4
+                endif
+                if sat > wi - 4 then
+                    sat = wi - 4
+                endif
+                lx[n] = xi + sat
+                ly[n] = yi
+                lw[n] = wi - sat
+                lh[n] = hi
+                lw[i] = sat
+            endif
+            if vert = 0 then
+                sat = hi * 4 / 10 + rnd_int(hi * 2 / 10 + 1)
+                if sat < 4 then
+                    sat = 4
+                endif
+                if sat > hi - 4 then
+                    sat = hi - 4
+                endif
+                lx[n] = xi
+                ly[n] = yi + sat
+                lw[n] = wi
+                lh[n] = hi - sat
+                lh[i] = sat
+            endif
+            n = n + 1
+        next i
+    next s
+
+    for i = 0 to 3
+        room_w = lw[i] - 4 - rnd_int(3)
+        room_h = lh[i] - 4 - rnd_int(3)
+        if room_w < 5 then
+            room_w = 5
+        endif
+        if room_h < 5 then
+            room_h = 5
+        endif
+        if room_w > lw[i] - 2 then
+            room_w = lw[i] - 2
+        endif
+        if room_h > lh[i] - 2 then
+            room_h = lh[i] - 2
+        endif
+        slack_x = lw[i] - 2 - room_w
+        slack_y = lh[i] - 2 - room_h
+        off_x = 0
+        off_y = 0
+        if slack_x > 0 then
+            off_x = rnd_int(slack_x + 1)
+        endif
+        if slack_y > 0 then
+            off_y = rnd_int(slack_y + 1)
+        endif
+        rx[i] = lx[i] + 1 + off_x
+        ry[i] = ly[i] + 1 + off_y
+        rw[i] = room_w
+        rh[i] = room_h
+    next i
+
+    # ── Phase 2: pick stair tile inside room 0 ─────────────────────────────
+    # Drop the stair tile inside room 0. Guarantee stair_x and stair_x+1 are
+    # both interior so the alternating-column shaft fits.
+    stair_x = rx[0] + rw[0] / 2
+    stair_y = ry[0] + rh[0] / 2
+    if stair_x + 1 > rx[0] + rw[0] - 2 then
+        stair_x = rx[0] + rw[0] - 3
+    endif
+    col_a = stair_x
+    col_b = stair_x + 1
+
+    # Anchor the Z axis to the actual surface at the stair tile. The dungeon,
+    # shaft, and surface room are all derived from THIS sz so they line up
+    # with the terrain right where the player will see the entrance.
+    sz = get_surface_z(stair_x, stair_y)
+    if sz < 0 then
+        sz = get_surface_z(cx, cy)
+    endif
+    if sz < 0 then
+        return
+    endif
+    dz = sz - depth
+
+    # ── Phase 3: carve dungeon rooms at dz ─────────────────────────────────
+    for i = 0 to 3
+        carve_room(rx[i], ry[i], dz, rw[i], rh[i], "dungeon_wall", "dungeon_floor")
+    next i
+
+    # ── Phase 4: corridors between BSP sibling pairs ───────────────────────
+    DIM pa(3)
+    DIM pb(3)
+    pa[0] = 0
+    pb[0] = 1
+    pa[1] = 0
+    pb[1] = 2
+    pa[2] = 1
+    pb[2] = 3
+
+    for p = 0 to 2
+        a = pa[p]
+        b = pb[p]
+
+        al = rx[a]
+        ar = rx[a] + rw[a] - 1
+        at = ry[a]
+        ab = ry[a] + rh[a] - 1
+        bl = rx[b]
+        br = rx[b] + rw[b] - 1
+        bt = ry[b]
+        bb = ry[b] + rh[b] - 1
+
+        sep_x = 0
+        if ar < bl then
+            sep_x = 1
+        endif
+        if al > br then
+            sep_x = 1
+        endif
+        sep_y = 0
+        if ab < bt then
+            sep_y = 1
+        endif
+        if at > bb then
+            sep_y = 1
+        endif
+
+        if sep_x = 1 then
+            if sep_y = 0 then
+                yo_top = at + 1
+                if bt + 1 > yo_top then
+                    yo_top = bt + 1
+                endif
+                yo_bot = ab - 1
+                if bb - 1 < yo_bot then
+                    yo_bot = bb - 1
+                endif
+                if yo_top <= yo_bot then
+                    Y = (yo_top + yo_bot) / 2
+                    h_start = 0
+                    h_end = -1
+                    a_exit = 0
+                    b_entry = 0
+                    if ar < bl then
+                        h_start = ar + 1
+                        h_end = bl - 1
+                        a_exit = ar
+                        b_entry = bl
+                    endif
+                    if al > br then
+                        h_start = br + 1
+                        h_end = al - 1
+                        a_exit = al
+                        b_entry = br
+                    endif
+                    if h_start <= h_end then
+                        carve_room(h_start, Y - 1, dz, h_end - h_start + 1, 3, "dungeon_wall", "dungeon_floor")
+                        clear_middle(h_start, Y, dz)
+                        clear_middle(h_end, Y, dz)
+                    endif
+                    clear_middle(a_exit, Y, dz)
+                    clear_middle(b_entry, Y, dz)
+                endif
+            endif
+        endif
+
+        if sep_y = 1 then
+            if sep_x = 0 then
+                xo_lt = al + 1
+                if bl + 1 > xo_lt then
+                    xo_lt = bl + 1
+                endif
+                xo_rt = ar - 1
+                if br - 1 < xo_rt then
+                    xo_rt = br - 1
+                endif
+                if xo_lt <= xo_rt then
+                    X = (xo_lt + xo_rt) / 2
+                    v_start = 0
+                    v_end = -1
+                    a_exit = 0
+                    b_entry = 0
+                    if ab < bt then
+                        v_start = ab + 1
+                        v_end = bt - 1
+                        a_exit = ab
+                        b_entry = bt
+                    endif
+                    if at > bb then
+                        v_start = bb + 1
+                        v_end = at - 1
+                        a_exit = at
+                        b_entry = bb
+                    endif
+                    if v_start <= v_end then
+                        carve_room(X - 1, v_start, dz, 3, v_end - v_start + 1, "dungeon_wall", "dungeon_floor")
+                        clear_middle(X, v_start, dz)
+                        clear_middle(X, v_end, dz)
+                    endif
+                    clear_middle(X, a_exit, dz)
+                    clear_middle(X, b_entry, dz)
+                endif
+            endif
+        endif
+
+        if sep_x = 1 then
+            if sep_y = 1 then
+                Y = (at + ab) / 2
+                X = (bl + br) / 2
+
+                h_start = 0
+                h_end = -1
+                a_exit_col = 0
+                if X > ar then
+                    h_start = ar + 1
+                    h_end = X
+                    a_exit_col = ar
+                endif
+                if X < al then
+                    h_start = X
+                    h_end = al - 1
+                    a_exit_col = al
+                endif
+                if h_start <= h_end then
+                    carve_room(h_start, Y - 1, dz, h_end - h_start + 1, 3, "dungeon_wall", "dungeon_floor")
+                    clear_middle(h_start, Y, dz)
+                    clear_middle(h_end, Y, dz)
+                endif
+                clear_middle(a_exit_col, Y, dz)
+
+                v_start = 0
+                v_end = -1
+                b_entry_row = 0
+                if Y < bt then
+                    v_start = Y
+                    v_end = bt - 1
+                    b_entry_row = bt
+                endif
+                if Y > bb then
+                    v_start = bb + 1
+                    v_end = Y
+                    b_entry_row = bb
+                endif
+                if v_start <= v_end then
+                    carve_room(X - 1, v_start, dz, 3, v_end - v_start + 1, "dungeon_wall", "dungeon_floor")
+                    clear_middle(X, v_start, dz)
+                    clear_middle(X, v_end, dz)
+                endif
+                clear_middle(X, b_entry_row, dz)
+                clear_middle(X, Y, dz)
+            endif
+        endif
+    next p
+
+    # ── Phase 5: stairs_up at the bottom ───────────────────────────────────
+    set_tile(col_a, stair_y, dz, "stairs_up")
+
+    # ── Phase 6: intermediate shaft levels ─────────────────────────────────
+    # Stair column alternates each level. Distance k above the bottom:
+    #   k=1: down at col_a (matches bottom up), up at col_b
+    #   k=2: down at col_b, up at col_a
+    # → parity of (depth - level) selects which column is down vs up.
+    for level = 1 to depth - 1
+        dist = depth - level
+        half = dist / 2
+        parity = dist - half * 2
+
+        carve_room(col_a - 1, stair_y - 1, sz - level, 4, 3, "dungeon_wall", "dungeon_floor")
+        if parity = 1 then
+            set_tile(col_a, stair_y, sz - level, "stairs_down")
+            set_tile(col_b, stair_y, sz - level, "stairs_up")
+        endif
+        if parity = 0 then
+            set_tile(col_b, stair_y, sz - level, "stairs_down")
+            set_tile(col_a, stair_y, sz - level, "stairs_up")
+        endif
+    next level
+
+    # The surface stairs_down column matches the topmost intermediate's
+    # stairs_up. depth=1 → directly above the bottom → col_a. Otherwise:
+    #   depth even → surface col = col_b
+    #   depth odd  → surface col = col_a
+    surface_col = col_a
+    half_d = depth / 2
+    parity_d = depth - half_d * 2
+    if parity_d = 0 then
+        surface_col = col_b
+    endif
+
+    # ── Phase 7: surface entrance — fixed-size room around the stair tile.
+    # 9×9 with the stair tile at its exact centre (cell 4,4 of the room).
+    # Odd dimensions make the centre unambiguous, no clamping needed.
+    sr_tx = surface_col - 4
+    sr_ty = stair_y - 4
+    carve_room(sr_tx, sr_ty, sz, 9, 9, "dungeon_wall", "dungeon_floor")
+
+    # Breach in a random outer wall (single tile is fine for a 9×9 room).
+    side = rnd_int(4)
+    if side = 0 then
+        clear_middle(surface_col, sr_ty, sz)
+    endif
+    if side = 1 then
+        clear_middle(surface_col, sr_ty + 8, sz)
+    endif
+    if side = 2 then
+        clear_middle(sr_tx, stair_y, sz)
+    endif
+    if side = 3 then
+        clear_middle(sr_tx + 8, stair_y, sz)
+    endif
+
+    set_tile(surface_col, stair_y, sz, "stairs_down")
+
+    # ── Phase 8: spawns at the bottom ──────────────────────────────────────
+    boss_cx = rx[3] + rw[3] / 2
+    boss_cy = ry[3] + rh[3] / 2
+    spawn_entity("mutant_brute", boss_cx, boss_cy, dz)
+    add_epithet(boss_cx, boss_cy, dz)
+    mark_quest_target(boss_cx, boss_cy, dz)
+
+    spawn_entity("storage_locker", rx[2] + 1, ry[2] + 1, dz)
+
+    spawn_entity_named("mutant_grunt", rx[1] + rw[1] / 2, ry[1] + rh[1] / 2, dz, "Dungeon Guard")
+    spawn_entity_named("mutant_grunt", rx[2] + rw[2] - 2, ry[2] + rh[2] / 2, dz, "Dungeon Guard")
+    spawn_entity_named("mutant_grunt", rx[3] + 1, ry[3] + rh[3] - 2, dz, "Dungeon Guard")
+endfunction

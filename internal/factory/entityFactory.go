@@ -82,6 +82,19 @@ func GetAppearance(name string) *components.AppearanceComponent {
 	return entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
 }
 
+// GetSize returns the SizeComponent for a blueprint without placing it.
+// Returns nil if the blueprint doesn't exist or has no Size.
+func GetSize(name string) *rlcomponents.SizeComponent {
+	entity, err := jsonFactory.Create(name)
+	if err != nil {
+		return nil
+	}
+	if !entity.HasComponent(rlcomponents.Size) {
+		return nil
+	}
+	return entity.GetComponent(rlcomponents.Size).(*rlcomponents.SizeComponent)
+}
+
 func CreateComponent(name string, data map[string]interface{}) (ecs.Component, error) {
 	return jsonFactory.CreateComponent(name, data)
 }

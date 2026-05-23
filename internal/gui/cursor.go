@@ -8,6 +8,7 @@ const (
 	CursorModeDig                   CursorModeType = "dig"
 	CursorModeMine                  CursorModeType = "mine"
 	CursorModeAttack                CursorModeType = "attack"
+	CursorModeSleep                 CursorModeType = "sleep"
 	CursorModeCancel                CursorModeType = "cancel"
 	CursorModeSetSettlementLocation CursorModeType = "setSettlementLocation"
 	CursorModeFollow                CursorModeType = "follow"

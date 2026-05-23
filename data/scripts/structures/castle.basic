@@ -1,0 +1,176 @@
+# castle — a single-floor fortified castle. Rectangular curtain wall with a
+# 2-tile gate on a random side; a smaller inner keep centred inside the
+# courtyard; 2–3 corner chambers inside the keep with doorways facing the
+# keep centre; boss + loot in the keep centre; guards in the courtyard.
+#
+# Layout:
+#   ┌───────────────────────────┐   curtain wall (stone)
+#   │  G                        │   2-tile gate (random side)
+#   │      ┌──────────┐         │   keep wall
+#   │      │ c      c │         │   c = corner chamber (random subset)
+#   │      │d  KEEP   │         │   d = chamber doorway (faces keep centre)
+#   │      │   ●      │         │   ● = boss + loot
+#   │      │ c      c │         │
+#   │      └──────────┘         │
+#   │  G                  G     │   G = courtyard guards
+#   └───────────────────────────┘
+#
+# Recommended footprint: 28×22 or larger (minimum 18×16).
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    # ── Curtain wall — full footprint with 1-tile padding ─────────────────
+    ox = x + 1
+    oy = y + 1
+    ow = w - 2
+    oh = h - 2
+    carve_room(ox, oy, sz, ow, oh, "stone_wall", "stone_floor")
+
+    # ── Gate — 2-tile breach on a random side ─────────────────────────────
+    gate_side = rnd_int(4)
+    if gate_side = 0 then
+        clear_middle(cx - 1, oy, sz)
+        clear_middle(cx, oy, sz)
+    endif
+    if gate_side = 1 then
+        clear_middle(cx - 1, oy + oh - 1, sz)
+        clear_middle(cx, oy + oh - 1, sz)
+    endif
+    if gate_side = 2 then
+        clear_middle(ox, cy - 1, sz)
+        clear_middle(ox, cy, sz)
+    endif
+    if gate_side = 3 then
+        clear_middle(ox + ow - 1, cy - 1, sz)
+        clear_middle(ox + ow - 1, cy, sz)
+    endif
+
+    # ── Inner keep — half the courtyard, centred, clamped to fit ──────────
+    kw = ow / 2 + 2
+    kh = oh / 2 + 2
+    if kw < 10 then
+        kw = 10
+    endif
+    if kh < 10 then
+        kh = 10
+    endif
+    if kw > ow - 2 then
+        kw = ow - 2
+    endif
+    if kh > oh - 2 then
+        kh = oh - 2
+    endif
+    kx = cx - kw / 2
+    ky = cy - kh / 2
+    carve_room(kx, ky, sz, kw, kh, "stone_wall", "stone_floor")
+
+    # ── 2–3 corner chambers inside the keep ───────────────────────────────
+    # Each chamber is 4×4 anchored to a keep corner so its outer walls
+    # coincide with the keep's outer walls (no double-wall artefact).
+    # Two-phase: carve all chambers first, then clear doorways so a later
+    # chamber's wall can't reseal an earlier doorway.
+    sw_room = 4
+    sh_room = 4
+    DIM sr_x(4)
+    DIM sr_y(4)
+    sr_x[0] = kx
+    sr_y[0] = ky
+    sr_x[1] = kx + kw - sw_room
+    sr_y[1] = ky
+    sr_x[2] = kx
+    sr_y[2] = ky + kh - sh_room
+    sr_x[3] = kx + kw - sw_room
+    sr_y[3] = ky + kh - sh_room
+
+    DIM chamber_used(4)
+    chamber_used[0] = 0
+    chamber_used[1] = 0
+    chamber_used[2] = 0
+    chamber_used[3] = 0
+
+    n_chambers = 2 + rnd_int(2)
+    placed = 0
+    for attempt = 0 to 20
+        if placed >= n_chambers then
+            break
+        endif
+        ci = rnd_int(4)
+        if chamber_used[ci] = 0 then
+            chamber_used[ci] = 1
+            placed = placed + 1
+            carve_room(sr_x[ci], sr_y[ci], sz, sw_room, sh_room, "stone_wall", "stone_floor")
+        endif
+    next attempt
+
+    # Chamber doorways on the side closest to the keep centre.
+    for ci = 0 to 3
+        if chamber_used[ci] = 1 then
+            rx_room = sr_x[ci]
+            ry_room = sr_y[ci]
+            room_cx = rx_room + sw_room / 2
+            room_cy = ry_room + sh_room / 2
+            dx_v = cx - room_cx
+            dy_v = cy - room_cy
+            abs_dx = dx_v
+            if abs_dx < 0 then
+                abs_dx = -abs_dx
+            endif
+            abs_dy = dy_v
+            if abs_dy < 0 then
+                abs_dy = -abs_dy
+            endif
+            if abs_dx >= abs_dy then
+                if dx_v > 0 then
+                    clear_middle(rx_room + sw_room - 1, ry_room + sh_room / 2, sz)
+                endif
+                if dx_v <= 0 then
+                    clear_middle(rx_room, ry_room + sh_room / 2, sz)
+                endif
+            endif
+            if abs_dy > abs_dx then
+                if dy_v > 0 then
+                    clear_middle(rx_room + sw_room / 2, ry_room + sh_room - 1, sz)
+                endif
+                if dy_v <= 0 then
+                    clear_middle(rx_room + sw_room / 2, ry_room, sz)
+                endif
+            endif
+        endif
+    next ci
+
+    # ── Keep doorway — 2-tile, facing the gate ─────────────────────────────
+    # Cleared after chambers so a corner chamber's wall can never reseal it.
+    if gate_side = 0 then
+        clear_middle(cx - 1, ky, sz)
+        clear_middle(cx, ky, sz)
+    endif
+    if gate_side = 1 then
+        clear_middle(cx - 1, ky + kh - 1, sz)
+        clear_middle(cx, ky + kh - 1, sz)
+    endif
+    if gate_side = 2 then
+        clear_middle(kx, cy - 1, sz)
+        clear_middle(kx, cy, sz)
+    endif
+    if gate_side = 3 then
+        clear_middle(kx + kw - 1, cy - 1, sz)
+        clear_middle(kx + kw - 1, cy, sz)
+    endif
+
+    # ── Boss + loot in keep centre ─────────────────────────────────────────
+    spawn_entity("mutant_brute", cx, cy, sz)
+    add_epithet(cx, cy, sz)
+    mark_quest_target(cx, cy, sz)
+    spawn_entity("storage_locker", cx - 1, cy, sz)
+
+    # ── Courtyard guards at the four inner corners ─────────────────────────
+    spawn_entity_named("mutant_grunt", ox + 3, oy + 3, sz, "Castle Guard")
+    spawn_entity_named("mutant_grunt", ox + ow - 4, oy + 3, sz, "Castle Guard")
+    spawn_entity_named("mutant_grunt", ox + 3, oy + oh - 4, sz, "Castle Guard")
+    spawn_entity_named("mutant_grunt", ox + ow - 4, oy + oh - 4, sz, "Castle Guard")
+endfunction

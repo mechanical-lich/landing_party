@@ -1,0 +1,233 @@
+# circle_tower — a stack of circular chambers connected by stairs.
+# Rises 4–8 floors from the surface upward. Each floor is a temple-stone
+# disc with 3–5 sub-rooms placed in a ring around the central stair area,
+# every doorway facing inward so all rooms are reachable from the stairs.
+# Stairs alternate columns each level so the up tile on floor N lines up
+# with the down tile on floor N+1 without ever colliding. Ground floor has
+# a breach for outside entry; the top floor holds a boss and loot. Guards
+# scatter through the upper floors.
+#
+# Layout per floor (centred on (cx, cy) at z = sz + floor):
+#   - Outer disc carved with carve_round_room (radius r)
+#   - 3–5 sub-rooms picked from 8 ring positions (N/NE/E/SE/S/SW/W/NW)
+#     with cardinals at distance ring_d, diagonals at ring_d * 0.7
+#   - Each sub-room's doorway is on the side closest to (cx, cy) so it
+#     opens onto the central floor space
+#   - 5-tile stair strip at row cy, cols col_a..col_b kept clear so the
+#     sub-rooms can never wall the stairs off
+#
+# Recommended footprint: 25×25 or larger.
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    height = get_param("height")
+    if height = "" then
+        height = 4 + rnd_int(5)
+    endif
+
+    # Tower radius — largest disc that fits the footprint with 1-tile pad.
+    # Min 7 so sub-rooms have room to sit on a ring without colliding with
+    # either the outer wall or the central stair strip.
+    r = w / 2 - 1
+    if h / 2 - 1 < r then
+        r = h / 2 - 1
+    endif
+    if r < 7 then
+        r = 7
+    endif
+
+    # Stair columns either side of centre. Alternating per-floor.
+    col_a = cx - 2
+    col_b = cx + 2
+
+    # Ring radius for sub-rooms — far enough from centre that rooms clear
+    # the stair strip, close enough that they stay inside the outer disc.
+    ring_d = r / 2
+    if ring_d < 5 then
+        ring_d = 5
+    endif
+    diag_d = ring_d * 7 / 10
+    if diag_d < 4 then
+        diag_d = 4
+    endif
+
+    # Eight ring offsets (N, NE, E, SE, S, SW, W, NW). Cardinals at ring_d,
+    # diagonals at diag_d so all eight points sit roughly the same distance
+    # from centre after the √2 factor cancels.
+    DIM ang_x(8)
+    DIM ang_y(8)
+    DIM used(8)
+    ang_x[0] = 0
+    ang_y[0] = -ring_d
+    ang_x[1] = diag_d
+    ang_y[1] = -diag_d
+    ang_x[2] = ring_d
+    ang_y[2] = 0
+    ang_x[3] = diag_d
+    ang_y[3] = diag_d
+    ang_x[4] = 0
+    ang_y[4] = ring_d
+    ang_x[5] = -diag_d
+    ang_y[5] = diag_d
+    ang_x[6] = -ring_d
+    ang_y[6] = 0
+    ang_x[7] = -diag_d
+    ang_y[7] = -diag_d
+
+    # Buffers for placed rooms — sized for the max of 5 rooms per floor.
+    # Per-floor placement is two-phase: carve every room first, then clear
+    # every doorway. Otherwise a room carved later can drop a wall on top
+    # of an earlier room's freshly-cleared doorway, leaving it sealed.
+    DIM placed_rx(8)
+    DIM placed_ry(8)
+    DIM placed_rw(8)
+    DIM placed_rh(8)
+
+    # ── Each floor ─────────────────────────────────────────────────────────
+    for floor = 0 to height - 1
+        fz = sz + floor
+
+        # Outer disc.
+        carve_round_room(cx, cy, fz, r, "temple_wall", "temple_floor")
+
+        # Reset which ring positions are taken this floor.
+        for ai = 0 to 7
+            used[ai] = 0
+        next ai
+
+        # Phase A — carve 3–5 sub-rooms at unique ring positions.
+        n_rooms = 3 + rnd_int(3)
+        n_placed = 0
+        for attempt = 0 to 30
+            if n_placed >= n_rooms then
+                break
+            endif
+            ang = rnd_int(8)
+            if used[ang] = 0 then
+                used[ang] = 1
+
+                room_w = 4 + rnd_int(2)
+                room_h = 4 + rnd_int(2)
+                room_cx = cx + ang_x[ang]
+                room_cy = cy + ang_y[ang]
+                rx_room = room_cx - room_w / 2
+                ry_room = room_cy - room_h / 2
+
+                placed_rx[n_placed] = rx_room
+                placed_ry[n_placed] = ry_room
+                placed_rw[n_placed] = room_w
+                placed_rh[n_placed] = room_h
+                n_placed = n_placed + 1
+
+                carve_room(rx_room, ry_room, fz, room_w, room_h, "temple_wall", "temple_floor")
+            endif
+        next attempt
+
+        # Phase B — now that every wall is final, punch every doorway on the
+        # side of its room closest to the tower centre.
+        if n_placed > 0 then
+            for ri = 0 to n_placed - 1
+                rx_room = placed_rx[ri]
+                ry_room = placed_ry[ri]
+                room_w = placed_rw[ri]
+                room_h = placed_rh[ri]
+                room_cx = rx_room + room_w / 2
+                room_cy = ry_room + room_h / 2
+                dx_v = cx - room_cx
+                dy_v = cy - room_cy
+                abs_dx_v = dx_v
+                if abs_dx_v < 0 then
+                    abs_dx_v = -abs_dx_v
+                endif
+                abs_dy_v = dy_v
+                if abs_dy_v < 0 then
+                    abs_dy_v = -abs_dy_v
+                endif
+                if abs_dx_v >= abs_dy_v then
+                    if dx_v > 0 then
+                        clear_middle(rx_room + room_w - 1, ry_room + room_h / 2, fz)
+                    endif
+                    if dx_v <= 0 then
+                        clear_middle(rx_room, ry_room + room_h / 2, fz)
+                    endif
+                endif
+                if abs_dy_v > abs_dx_v then
+                    if dy_v > 0 then
+                        clear_middle(rx_room + room_w / 2, ry_room + room_h - 1, fz)
+                    endif
+                    if dy_v <= 0 then
+                        clear_middle(rx_room + room_w / 2, ry_room, fz)
+                    endif
+                endif
+            next ri
+        endif
+
+        # Open a 5-tile strip along the stair row so the sub-rooms can never
+        # seal the stairs off from the rest of the floor.
+        clear_middle(col_a, cy, fz)
+        clear_middle(col_a + 1, cy, fz)
+        clear_middle(cx, cy, fz)
+        clear_middle(col_b - 1, cy, fz)
+        clear_middle(col_b, cy, fz)
+
+        # Stairs alternate columns by floor parity.
+        #   parity 0 floors: up at col_a, down at col_b
+        #   parity 1 floors: up at col_b, down at col_a
+        # → up tile at floor N aligns with down tile at floor N+1.
+        half_f = floor / 2
+        parity = floor - half_f * 2
+
+        if floor < height - 1 then
+            if parity = 0 then
+                set_tile(col_a, cy, fz, "stairs_up")
+            endif
+            if parity = 1 then
+                set_tile(col_b, cy, fz, "stairs_up")
+            endif
+        endif
+        if floor > 0 then
+            if parity = 0 then
+                set_tile(col_b, cy, fz, "stairs_down")
+            endif
+            if parity = 1 then
+                set_tile(col_a, cy, fz, "stairs_down")
+            endif
+        endif
+
+        # Guards on the upper floors — placed along the perimeter so they
+        # generally don't spawn inside a sub-room.
+        if floor > 0 then
+            spawn_entity_named("mutant_grunt", cx, cy + r - 2, fz, "Tower Guard")
+            if floor > 1 then
+                spawn_entity_named("mutant_grunt", cx, cy - r + 2, fz, "Tower Guard")
+            endif
+        endif
+    next floor
+
+    # ── Ground-floor breach for outside entry ─────────────────────────────
+    side = rnd_int(4)
+    if side = 0 then
+        clear_middle(cx, cy - r, sz)
+    endif
+    if side = 1 then
+        clear_middle(cx, cy + r, sz)
+    endif
+    if side = 2 then
+        clear_middle(cx - r, cy, sz)
+    endif
+    if side = 3 then
+        clear_middle(cx + r, cy, sz)
+    endif
+
+    # ── Top floor: boss + loot ────────────────────────────────────────────
+    top_z = sz + height - 1
+    spawn_entity("mutant_brute", cx, cy + 3, top_z)
+    add_epithet(cx, cy + 3, top_z)
+    mark_quest_target(cx, cy + 3, top_z)
+    spawn_entity("storage_locker", cx, cy - 3, top_z)
+endfunction

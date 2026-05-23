@@ -111,6 +111,58 @@
       "spawn_systems": 1
     },
     {
+      "id": "dungeon_delve",
+      "weight": 1,
+      "spawn_archetype": "temperate",
+      "name": "Dungeon Delve",
+      "desc": "An ancient complex runs deep beneath this world. Descend through every level and eliminate the creature that calls it home.",
+      "trigger": "target_killed",
+      "fixture_structure": "underground_dungeon",
+      "fixture_struct_w": 25,
+      "fixture_struct_h": 21,
+      "reward_fuel_flat": 60,
+      "reward_resources": { "crystal": 7 }
+    },
+    {
+      "id": "tower_ascent",
+      "weight": 1,
+      "spawn_archetype": "temperate",
+      "name": "Tower Ascent",
+      "desc": "A stacked temple-tower stands on this world. Climb every floor and put down whatever rules the top.",
+      "trigger": "target_killed",
+      "fixture_structure": "circle_tower",
+      "fixture_struct_w": 25,
+      "fixture_struct_h": 25,
+      "reward_fuel_flat": 55,
+      "reward_resources": { "crystal": 6 }
+    },
+    {
+      "id": "ruined_tower",
+      "weight": 2,
+      "spawn_archetype": "alien",
+      "name": "Crumbling Spire",
+      "desc": "A ruined tower leans against the sky on this world. Pick your way up through the rubble and finish what time started.",
+      "trigger": "target_killed",
+      "fixture_structure": "circle_ruined_tower",
+      "fixture_struct_w": 25,
+      "fixture_struct_h": 25,
+      "reward_fuel_flat": 45,
+      "reward_resources": { "crystal": 4 }
+    },
+    {
+      "id": "castle_siege",
+      "weight": 1,
+      "spawn_archetype": "temperate",
+      "name": "Storm the Castle",
+      "desc": "A fortified castle holds a warlord on this world. Breach the gate, cross the courtyard, and pull them out of the keep.",
+      "trigger": "target_killed",
+      "fixture_structure": "castle",
+      "fixture_struct_w": 28,
+      "fixture_struct_h": 22,
+      "reward_fuel_flat": 65,
+      "reward_resources": { "crystal": 8 }
+    },
+    {
       "id": "outpost",
       "weight": 1,
       "name": "Establish an Outpost",

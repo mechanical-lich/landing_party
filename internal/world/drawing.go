@@ -35,8 +35,9 @@ var emptyImage = func() *ebiten.Image {
 var emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 
 type pendingEntityDraw struct {
-	entity *ecs.Entity
-	tX, tY float64
+	entity         *ecs.Entity
+	tX, tY         float64
+	worldX, worldY int
 }
 
 var pendingEntities []pendingEntityDraw
@@ -141,7 +142,7 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 
 			if visible {
 				for _, entity := range level.entitiesBuffer {
-					pendingEntities = append(pendingEntities, pendingEntityDraw{entity: entity, tX: tX, tY: tY})
+					pendingEntities = append(pendingEntities, pendingEntityDraw{entity: entity, tX: tX, tY: tY, worldX: x, worldY: y})
 				}
 			}
 
@@ -163,7 +164,7 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 	// Second pass: draw all entities on top of every tile so an entity with a
 	// movement offset never gets clipped by tiles drawn after it.
 	for _, p := range pendingEntities {
-		drawEntity(screen, p.entity, p.tX, p.tY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+		drawEntity(screen, p.entity, p.tX, p.tY, p.worldX, p.worldY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 
 	// Third pass: shadow pass — entities at Z+1 cast an elliptical shadow on
@@ -387,7 +388,7 @@ func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, 
 	}
 }
 
-func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, tileWorldX, tileWorldY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	var resourceName string
 	var spriteX, spriteY, srcW, srcH int
 
@@ -415,6 +416,12 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 			srcW = ac.SpriteSize
 			srcH = ac.SpriteSize
 		}
+		if ac.SpriteWidth > 0 {
+			srcW = ac.SpriteWidth
+		}
+		if ac.SpriteHeight > 0 {
+			srcH = ac.SpriteHeight
+		}
 		resourceName = ac.Resource
 		colorR, colorG, colorB = ac.R, ac.G, ac.B
 		spriteX, spriteY = ac.SpriteX, ac.SpriteY
@@ -429,6 +436,22 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, camera
 				spriteY += srcH
 			} else {
 				spriteX += srcW
+			}
+		}
+		if entity.HasComponent(rlcomponents.Size) && entity.HasComponent(rlcomponents.Position) {
+			sc := entity.GetComponent(rlcomponents.Size).(*rlcomponents.SizeComponent)
+			pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if sc.Width > 0 && sc.Height > 0 {
+				startX := pc.GetX() - sc.Width/2
+				startY := pc.GetY() - sc.Height/2
+				subX := tileWorldX - startX
+				subY := tileWorldY - startY
+				// Per-tile slice is exactly one tile in screen pixels.
+				// The full sprite spans sc.Width × sc.Height tiles.
+				spriteX += subX * tileSizeW
+				spriteY += subY * tileSizeH
+				srcW = tileSizeW
+				srcH = tileSizeH
 			}
 		}
 

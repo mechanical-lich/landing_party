@@ -28,6 +28,7 @@ const (
 	LaserBeam        ecs.ComponentType = "LaserBeam"
 	QuestTarget      ecs.ComponentType = "QuestTarget"
 	Datapad          ecs.ComponentType = "Datapad"
+	Bed              ecs.ComponentType = "Bed"
 )
 
 

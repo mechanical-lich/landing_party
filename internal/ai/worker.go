@@ -132,6 +132,8 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleUnequipTask(level, entity, wc, aiMemory)
 	case task_requests.RetrieveAction:
 		handleRetrieveTask(level, entity, wc, aiMemory)
+	case task_requests.SleepAction:
+		handleSleepTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -292,22 +294,39 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 			if buildable.IsEntity {
 				newEntity, err := factory.Create(buildRequest.Type, buildRequest.X, buildRequest.Y, buildRequest.Z)
 				if err == nil {
-					if newEntity.HasComponent(components.Storage) {
-						storageC := newEntity.GetComponent(components.Storage).(*components.StorageComponent)
-						storageC.OwnedBy = sc.Name
-					}
-					if newEntity.HasComponent(rlcomponents.Door) {
-						door := newEntity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
-						faction := sc.Name
-						if entity.HasComponent(rlcomponents.Description) {
-							dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
-							if dc.Faction != "" {
-								faction = dc.Faction
+					canPlace := true
+					if newEntity.HasComponent(rlcomponents.Size) {
+						sizec := newEntity.GetComponent(rlcomponents.Size).(*rlcomponents.SizeComponent)
+						if sizec.Width > 0 && sizec.Height > 0 {
+							startX := buildRequest.X - sizec.Width/2
+							startY := buildRequest.Y - sizec.Height/2
+							for dx := 0; dx < sizec.Width && canPlace; dx++ {
+								for dy := 0; dy < sizec.Height && canPlace; dy++ {
+									if level.GetSolidEntityAt(startX+dx, startY+dy, buildRequest.Z) != nil {
+										canPlace = false
+									}
+								}
 							}
 						}
-						door.OwnedBy = faction
 					}
-					level.AddEntity(newEntity)
+					if canPlace {
+						if newEntity.HasComponent(components.Storage) {
+							storageC := newEntity.GetComponent(components.Storage).(*components.StorageComponent)
+							storageC.OwnedBy = sc.Name
+						}
+						if newEntity.HasComponent(rlcomponents.Door) {
+							door := newEntity.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
+							faction := sc.Name
+							if entity.HasComponent(rlcomponents.Description) {
+								dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+								if dc.Faction != "" {
+									faction = dc.Faction
+								}
+							}
+							door.OwnedBy = faction
+						}
+						level.AddEntity(newEntity)
+					}
 				}
 			} else {
 				typeIdx := world.TileNameToIndex[buildRequest.Type]
@@ -671,6 +690,80 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		}
 		aiMemory.State = "idle"
 	}
+}
+
+func handleSleepTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	sr, ok := wc.CurrentTask.Data.(*task_requests.SleepRequest)
+	if !ok {
+		aiMemory.State = "idle"
+		wc.CurrentTask = nil
+		return
+	}
+
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+	if !sr.OnBed {
+		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), sr.X, sr.Y, sr.Z, 1, 1, 0) {
+			if !MoveTowardsTarget(level, entity, sr.X, sr.Y, sr.Z) {
+				wc.CurrentTask.ReQueue()
+				wc.CurrentTask = nil
+				aiMemory.State = "idle"
+			}
+			return
+		}
+		// Adjacent to bed: climb on. Save dismount tile so we can return there
+		// when fully rested.
+		sr.PrevX, sr.PrevY, sr.PrevZ = pc.GetX(), pc.GetY(), pc.GetZ()
+		level.PlaceEntity(sr.X, sr.Y, sr.Z, entity)
+		sr.OnBed = true
+	}
+
+	sr.Progress++
+	if sr.Progress < sr.Required {
+		return
+	}
+	// 10-turn cycle complete: heal 1, or wake if already at full health.
+	sr.Progress = 0
+	hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
+	if hc.Health < hc.MaxHealth {
+		hc.Health++
+	}
+	if hc.Health >= hc.MaxHealth {
+		dismountSleeper(level, entity, sr)
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Fully rested")
+		aiMemory.State = "idle"
+	}
+}
+
+// dismountSleeper moves the worker off the bed back to their pre-mount tile if
+// it's still walkable; otherwise picks any walkable tile adjacent to the bed.
+// If nothing is walkable, the worker stays on the bed (caller should still
+// complete the task).
+func dismountSleeper(level *world.Level, entity *ecs.Entity, sr *task_requests.SleepRequest) {
+	if canStand(level, sr.PrevX, sr.PrevY, sr.PrevZ) {
+		level.PlaceEntity(sr.PrevX, sr.PrevY, sr.PrevZ, entity)
+		return
+	}
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			if dx == 0 && dy == 0 {
+				continue
+			}
+			nx, ny := sr.X+dx, sr.Y+dy
+			if canStand(level, nx, ny, sr.Z) {
+				level.PlaceEntity(nx, ny, sr.Z, entity)
+				return
+			}
+		}
+	}
+}
+
+// canStand reports whether (x,y,z) has walkable terrain and no blocking entity.
+func canStand(level *world.Level, x, y, z int) bool {
+	if !level.IsWalkable(x, y, z) {
+		return false
+	}
+	return level.GetSolidEntityAt(x, y, z) == nil
 }
 
 func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {

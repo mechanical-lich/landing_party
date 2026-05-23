@@ -87,6 +87,17 @@
         "category": "structures",
         "order": 2
     },
+    "bed": {
+        "name": "Bed",
+        "type": "bed",
+        "description": "A bed for workers to rest and restore energy.",
+        "build_time": 2,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": {},
+        "category": "structures",
+        "order": 4
+    },
     "work_light": {
         "name": "Work Light",
         "type": "work_light",

@@ -67,6 +67,20 @@ type RetrieveRequest struct {
 	Item *ecs.Entity // specific item entity to retrieve; nil check at pickup time
 }
 
+type SleepRequest struct {
+	X        int
+	Y        int
+	Z        int
+	Progress int // turns slept in current heal cycle
+	Required int // turns per heal cycle (typically 10)
+	// Mount state: PrevX/Y/Z is where the worker stood before climbing onto the
+	// bed; used to dismount back to that tile when the task completes.
+	OnBed bool
+	PrevX int
+	PrevY int
+	PrevZ int
+}
+
 // FilterableAction pairs a task action with the label shown in the colonist UI.
 type FilterableAction struct {
 	Action task.TaskAction
@@ -96,4 +110,5 @@ const (
 	EquipAction    task.TaskAction = "equip"
 	UnequipAction  task.TaskAction = "unequip"
 	RetrieveAction task.TaskAction = "retrieve"
+	SleepAction    task.TaskAction = "sleep"
 )

@@ -312,6 +312,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 				{id: "mine", label: "Mine", description: "Order colonists to mine ore deposits.", mode: CursorModeMine},
 				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
 				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
+				{id: "sleep", label: "Sleep", description: "Order a colonist to rest in a bed and restore health.", mode: CursorModeSleep},
 			},
 		},
 		{id: "walls", label: "Walls"},
