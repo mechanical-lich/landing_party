@@ -113,39 +113,5 @@
             "AC": 6,
             "BasicAttackDice": "1d4"
         }
-    },
-    "radiation_mutant": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
-            "B": 255,
-            "Bounces": true,
-            "Resource": "scifi_entities",
-            "SpriteX": 48,
-            "SpriteY": 336
-        },
-        "Description": {
-            "Name": "<mutant>",
-            "Faction": "mutant"
-        },
-        "Health": {
-            "MaxHealth": 18
-        },
-        "Initiative": {
-            "DefaultValue": 11,
-            "Ticks": 1
-        },
-        "ScriptedAI": {
-            "script": "data/scripts/mutants/radiation.basic"
-        },
-        "Skills": { "Skills": ["radiation_heal"] },
-        "Solid": {},
-        "Stats": {
-            "Str": 10,
-            "Int": 3,
-            "Dex": 10,
-            "AC": 8,
-            "BasicAttackDice": "1d6"
-        }
     }
 }

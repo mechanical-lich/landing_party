@@ -66,17 +66,22 @@ func (s *ScriptedAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.
 		ai.Vars = make(map[string]any)
 	}
 
-	interp := basic.NewMechanicalBasic()
-	registerScriptedAIFuncs(interp, entity, level, ai)
+	if ai.Interp == nil || ai.InterpScript != ai.Script {
+		interp := basic.NewMechanicalBasic()
+		registerScriptedAIFuncs(interp, entity, level, ai)
+		if err := interp.Load(src); err != nil {
+			log.Printf("ScriptedAISystem: load %s: %v", ai.Script, err)
+			return nil
+		}
+		ai.Interp = interp
+		ai.InterpScript = ai.Script
+		ai.InterpHasOnTurn = interp.HasFunction("on_turn")
+	}
 
-	if err := interp.Load(src); err != nil {
-		log.Printf("ScriptedAISystem: load %s: %v", ai.Script, err)
+	if !ai.InterpHasOnTurn {
 		return nil
 	}
-	if !interp.HasFunction("on_turn") {
-		return nil
-	}
-	if _, err := interp.Call("on_turn"); err != nil {
+	if _, err := ai.Interp.Call("on_turn"); err != nil {
 		log.Printf("ScriptedAISystem: on_turn %s: %v", ai.Script, err)
 	}
 	return nil
@@ -276,24 +281,57 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	// find_nearest_worker(radius) — finds nearest entity with a Worker component.
 	// find_nearest_blueprint(blueprint, radius) — finds nearest entity with matching blueprint.
 	// Both return 1 on success and populate get_nearest_x/y/z.
+	//
+	// find_nearest_worker and find_nearest_enemy cache the last found entity and
+	// skip the full ring scan while the target is still alive and in LOS. The
+	// cache is cleared when the target dies, goes out of LOS, or LOS is blocked.
 	var lastNearX, lastNearY, lastNearZ int
+	var cachedWorker *ecs.Entity
+	var workerMissCooldown int
 	interp.RegisterFunc("find_nearest_worker", func(args ...any) (any, error) {
 		radius := 12
 		if len(args) >= 1 {
 			radius = int(toAIFloat(args[0]))
 		}
 		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
+
+		if cachedWorker != nil {
+			if !cachedWorker.HasComponent(rlcomponents.Dead) &&
+				cachedWorker.HasComponent(components.Worker) &&
+				cachedWorker.HasComponent(rlcomponents.Position) {
+				cp := cachedWorker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				if losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
+					lastNearX, lastNearY, lastNearZ = cp.GetX(), cp.GetY(), cp.GetZ()
+					return float64(1), nil
+				}
+			}
+			cachedWorker = nil
+		}
+
+		if workerMissCooldown > 0 {
+			workerMissCooldown--
+			return float64(0), nil
+		}
+
 		found := level.GetClosestEntityMatching(
-			pc.GetX(), pc.GetY(), pc.GetZ(),
-			radius*2, radius*2,
-			entity,
+			sx, sy, sz, radius*2, radius*2, entity,
 			func(c *ecs.Entity) bool {
-				return !c.HasComponent(rlcomponents.Dead) && c.HasComponent(components.Worker)
+				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(components.Worker) {
+					return false
+				}
+				if !c.HasComponent(rlcomponents.Position) {
+					return false
+				}
+				cp := c.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				return losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz)
 			},
 		)
 		if found == nil {
+			workerMissCooldown = 4
 			return float64(0), nil
 		}
+		cachedWorker = found
 		fp := found.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		lastNearX, lastNearY, lastNearZ = fp.GetX(), fp.GetY(), fp.GetZ()
 		return float64(1), nil
@@ -338,48 +376,65 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	// find_nearest_enemy(radius) — finds the nearest entity not in this entity's
 	// faction and not in the "ignored_factions" var (comma-separated list).
 	// Returns 1 on success and populates get_nearest_x/y/z.
+	// Caches the last found enemy; skips the ring scan while it's alive and in LOS.
+	selfFaction := ""
+	if entity.HasComponent(rlcomponents.Description) {
+		selfFaction = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+	}
+	ignored := buildIgnored(selfFaction, ai)
+	var cachedEnemy *ecs.Entity
+	var enemyMissCooldown int
 	interp.RegisterFunc("find_nearest_enemy", func(args ...any) (any, error) {
 		radius := 12
 		if len(args) >= 1 {
 			radius = int(toAIFloat(args[0]))
 		}
-		selfFaction := ""
-		if entity.HasComponent(rlcomponents.Description) {
-			selfFaction = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
-		}
-		ignored := map[string]bool{}
-		if selfFaction != "" {
-			ignored[selfFaction] = true
-		}
-		if raw, ok := ai.Vars["ignored_factions"]; ok {
-			for _, f := range strings.Split(fmt.Sprint(raw), ",") {
-				if t := strings.TrimSpace(f); t != "" {
-					ignored[t] = true
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
+
+		if cachedEnemy != nil {
+			alive := !cachedEnemy.HasComponent(rlcomponents.Dead) &&
+				cachedEnemy.HasComponent(rlcomponents.Health) &&
+				cachedEnemy.HasComponent(rlcomponents.Position)
+			if alive {
+				cp := cachedEnemy.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				if losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
+					lastNearX, lastNearY, lastNearZ = cp.GetX(), cp.GetY(), cp.GetZ()
+					return float64(1), nil
 				}
 			}
+			cachedEnemy = nil
 		}
-		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+		if enemyMissCooldown > 0 {
+			enemyMissCooldown--
+			return float64(0), nil
+		}
+
 		found := level.GetClosestEntityMatching(
-			pc.GetX(), pc.GetY(), pc.GetZ(),
-			radius*2, radius*2,
-			entity,
+			sx, sy, sz, radius*2, radius*2, entity,
 			func(c *ecs.Entity) bool {
-				if c.HasComponent(rlcomponents.Dead) {
+				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(rlcomponents.Health) {
 					return false
 				}
-				if !c.HasComponent(rlcomponents.Health) {
+				if c.HasComponent(rlcomponents.Description) {
+					cf := c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+					if ignored[cf] {
+						return false
+					}
+				}
+				if !c.HasComponent(rlcomponents.Position) {
 					return false
 				}
-				if !c.HasComponent(rlcomponents.Description) {
-					return true
-				}
-				cf := c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
-				return !ignored[cf]
+				cp := c.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				return losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz)
 			},
 		)
 		if found == nil {
+			enemyMissCooldown = 4
 			return float64(0), nil
 		}
+		cachedEnemy = found
 		fp := found.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		lastNearX, lastNearY, lastNearZ = fp.GetX(), fp.GetY(), fp.GetZ()
 		return float64(1), nil
@@ -398,18 +453,40 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
 		if sx == tx && sy == ty {
+			ai.PathCache = nil
 			return float64(0), nil
 		}
-		fromTile := level.GetTilePtr(sx, sy, sz)
-		toTile := level.GetTilePtr(tx, ty, tz)
-		if fromTile == nil || toTile == nil {
+		// Recompute path only when target changes or cache is empty.
+		if ai.PathTargetX != tx || ai.PathTargetY != ty || len(ai.PathCache) == 0 {
+			fromTile := level.GetTilePtr(sx, sy, sz)
+			toTile := level.GetTilePtr(tx, ty, tz)
+			if fromTile == nil || toTile == nil {
+				return float64(0), nil
+			}
+			steps := fspath.GetPossiblePathForEntity(level, entity, fromTile, toTile, ai.PathCache[:0])
+			if len(steps) < 2 {
+				ai.PathCache = nil
+				return float64(0), nil
+			}
+			// Store steps[1:] — skip the starting tile.
+			ai.PathCache = steps[1:]
+			ai.PathTargetX = tx
+			ai.PathTargetY = ty
+		}
+		// Advance past any waypoints we've already reached.
+		for len(ai.PathCache) > 0 {
+			wp := level.Level.GetTilePtrIndex(ai.PathCache[0])
+			wx, wy, _ := wp.Coords()
+			if wx == sx && wy == sy {
+				ai.PathCache = ai.PathCache[1:]
+			} else {
+				break
+			}
+		}
+		if len(ai.PathCache) == 0 {
 			return float64(0), nil
 		}
-		steps := fspath.GetPossiblePathForEntity(level, entity, fromTile, toTile, nil)
-		if len(steps) < 2 {
-			return float64(0), nil
-		}
-		next := level.Level.GetTilePtrIndex(steps[1])
+		next := level.Level.GetTilePtrIndex(ai.PathCache[0])
 		nx, ny, _ := next.Coords()
 		dx, dy := nx-sx, ny-sy
 		rlentity.Move(entity, level, dx, dy, 0)
@@ -621,6 +698,21 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		dy := toAIFloat(args[1]) - toAIFloat(args[3])
 		return math.Sqrt(dx*dx + dy*dy), nil
 	})
+}
+
+func buildIgnored(selfFaction string, ai *components.ScriptedAIComponent) map[string]bool {
+	ignored := map[string]bool{}
+	if selfFaction != "" {
+		ignored[selfFaction] = true
+	}
+	if raw, ok := ai.Vars["ignored_factions"]; ok {
+		for _, f := range strings.Split(fmt.Sprint(raw), ",") {
+			if t := strings.TrimSpace(f); t != "" {
+				ignored[t] = true
+			}
+		}
+	}
+	return ignored
 }
 
 func toAIFloat(v any) float64 {

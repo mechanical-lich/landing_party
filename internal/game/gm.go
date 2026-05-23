@@ -50,7 +50,8 @@ func (gm *GameMaster) Update() {
 
 	hostileCount := 0
 	for _, e := range gm.level.Entities {
-		if e.HasComponent(components.FactionAI) && !e.HasComponent(rlcomponents.Dead) {
+		if !e.HasComponent(rlcomponents.Dead) &&
+			(e.HasComponent(components.FactionAI) || e.HasComponent(components.ScriptedAI)) {
 			hostileCount++
 		}
 	}

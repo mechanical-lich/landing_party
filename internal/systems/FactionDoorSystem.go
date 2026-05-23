@@ -68,14 +68,9 @@ func (s *FactionDoorSystem) UpdateEntity(levelInterface interface{}, entity *ecs
 }
 
 func (s *FactionDoorSystem) hasAuthorizedOccupant(level *world.Level, door *rlcomponents.DoorComponent, x, y, z int) bool {
-	for _, candidate := range level.Entities {
-		if !candidate.HasComponent(rlcomponents.Position) {
-			continue
-		}
-		cp := candidate.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if cp.GetX() != x || cp.GetY() != y || cp.GetZ() != z {
-			continue
-		}
+	var buf []*ecs.Entity
+	level.GetEntitiesAt(x, y, z, &buf)
+	for _, candidate := range buf {
 		if isFactionMember(candidate, door) {
 			return true
 		}
@@ -84,19 +79,15 @@ func (s *FactionDoorSystem) hasAuthorizedOccupant(level *world.Level, door *rlco
 }
 
 func (s *FactionDoorSystem) hasAuthorizedNeighbor(level *world.Level, door *rlcomponents.DoorComponent, x, y, z int) bool {
+	var buf []*ecs.Entity
 	for dx := -1; dx <= 1; dx++ {
 		for dy := -1; dy <= 1; dy++ {
 			if dx == 0 && dy == 0 {
 				continue
 			}
-			for _, candidate := range level.Entities {
-				if !candidate.HasComponent(rlcomponents.Position) {
-					continue
-				}
-				cp := candidate.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				if cp.GetX() != x+dx || cp.GetY() != y+dy || cp.GetZ() != z {
-					continue
-				}
+			buf = buf[:0]
+			level.GetEntitiesAt(x+dx, y+dy, z, &buf)
+			for _, candidate := range buf {
 				if isFactionMember(candidate, door) {
 					return true
 				}

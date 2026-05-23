@@ -1,6 +1,7 @@
 package campaign
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/ecs"
 )
@@ -71,7 +72,7 @@ func newHoldStorage() *world.SaveEntity {
 	return &world.SaveEntity{
 		Blueprint: "ship_hold",
 		Components: map[ecs.ComponentType]any{
-			ecs.ComponentType("Storage"): map[string]any{
+			components.Storage: map[string]any{
 				"Capacity": float64(100000),
 				"OwnedBy":  ShipSettlementName,
 			},
