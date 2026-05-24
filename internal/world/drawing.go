@@ -56,8 +56,8 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 			tX := float64(screenX * tileSizeW)
 			tY := float64(screenY * tileSizeH)
 
-			seen := level.GetSeen(x, y, cameraZ)
-			visible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
+			seen := disableLighting || level.GetSeen(x, y, cameraZ)
+			visible := disableLighting || len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
 
 			// Never-seen tiles: skipped entirely. The world image is cleared to
 			// black each frame so there's nothing to draw here.
