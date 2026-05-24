@@ -5,7 +5,7 @@
         "description": "A reinforced metal wall panel.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 1 },
         "category": "walls",
         "order": 1
     },
@@ -15,7 +15,7 @@
         "description": "A heavy concrete wall.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2 },
         "category": "walls",
         "order": 2
     },
@@ -25,16 +25,16 @@
         "description": "A reinforced advanced wall.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2, "crystal": 1 },
         "category": "walls",
         "order": 3
     },
     "bio_printer": {
         "name": "Bio-Printer",
         "description": "Prints new colonists from biomass.",
-        "build_time": 40,
+        "build_time": 60,
         "is_entity": true,
-        "cost": {}
+        "cost": { "ore": 5, "crystal": 5 }
     },
     "hull_floor": {
         "name": "Hull Floor",
@@ -42,7 +42,7 @@
         "description": "A metal floor panel.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 1 },
         "category": "floors",
         "order": 1
     },
@@ -52,7 +52,7 @@
         "description": "A reinforced concrete floor.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2 },
         "category": "floors",
         "order": 2
     },
@@ -62,7 +62,7 @@
         "description": "A reinforced advanced floor.",
         "build_time": 1,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2, "crystal": 1 },
         "category": "floors",
         "order": 3
     },
@@ -70,10 +70,10 @@
         "name": "Storage Locker",
         "type": "storage_locker",
         "description": "A secure locker for storing resources.",
-        "build_time": 1,
+        "build_time": 5,
         "is_entity": true,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2 },
         "category": "structures",
         "order": 1
     },
@@ -81,9 +81,9 @@
         "name": "Research Lab",
         "type": "research_lab",
         "description": "A facility for conducting research.",
-        "build_time": 1,
+        "build_time": 40,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 4, "crystal": 3 },
         "category": "structures",
         "order": 2
     },
@@ -91,10 +91,10 @@
         "name": "Bed",
         "type": "bed",
         "description": "A bed for workers to rest and restore energy.",
-        "build_time": 2,
+        "build_time": 5,
         "is_entity": true,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 2 },
         "category": "structures",
         "order": 4
     },
@@ -102,10 +102,10 @@
         "name": "Work Light",
         "type": "work_light",
         "description": "A powered light that illuminates the surrounding area.",
-        "build_time": 1,
+        "build_time": 3,
         "is_entity": true,
         "allow_multiple": true,
-        "cost": {},
+        "cost": { "ore": 1, "crystal": 1 },
         "category": "structures",
         "order": 3
     },
@@ -113,8 +113,8 @@
         "name": "Stairs Up",
         "type": "stairs_up",
         "description": "Access to the level above.",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 3,
+        "cost": { "ore": 2 },
         "category": "stairs",
         "order": 1
     },
@@ -122,8 +122,8 @@
         "name": "Stairs Down",
         "type": "stairs_down",
         "description": "Access to the level below.",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 3,
+        "cost": { "ore": 2 },
         "category": "stairs",
         "order": 2
     },
@@ -131,9 +131,9 @@
         "name": "Airlock",
         "type": "airlock",
         "description": "Auto-opens for authorized factions. Keeps others out.",
-        "build_time": 1,
+        "build_time": 10,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 3, "crystal": 1 },
         "category": "doors",
         "order": 1
     },
@@ -141,9 +141,9 @@
         "name": "Blast Door",
         "type": "blast_door",
         "description": "Heavy reinforced door. Restricted access.",
-        "build_time": 1,
+        "build_time": 15,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 4, "crystal": 1 },
         "category": "doors",
         "order": 2
     },
@@ -152,7 +152,7 @@
         "description": "A general-purpose crafting station.",
         "build_time": 20,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 4 },
         "category": "structures",
         "order": 4
     },
@@ -161,7 +161,7 @@
         "description": "Fabricates weapons and firearms.",
         "build_time": 30,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 5, "crystal": 2 },
         "category": "structures",
         "order": 5
     },
@@ -170,7 +170,7 @@
         "description": "Crafts standard armor sets.",
         "build_time": 30,
         "is_entity": true,
-        "cost": {},
+        "cost": { "ore": 5 },
         "category": "structures",
         "order": 6
     },
@@ -180,7 +180,7 @@
         "build_time": 50,
         "is_entity": true,
         "required_tech": "advanced_metallurgy",
-        "cost": {},
+        "cost": { "ore": 6, "crystal": 4 },
         "category": "structures",
         "order": 7
     },
@@ -190,7 +190,7 @@
         "build_time": 40,
         "is_entity": true,
         "required_tech": "fuel_refining",
-        "cost": {},
+        "cost": { "ore": 5, "crystal": 4 },
         "category": "structures",
         "order": 8
     }

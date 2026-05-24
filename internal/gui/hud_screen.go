@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"image/color"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -394,7 +395,25 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			locked := buildable.RequiredTech != "" && !h.knownTechs[buildable.RequiredTech]
 			label := buildable.Name
 			if locked {
-				label = fmt.Sprintf("%s  (requires %s)", buildable.Name, buildable.RequiredTech)
+				label = fmt.Sprintf("%s  (requires %s)", label, buildable.RequiredTech)
+			}
+			tooltipDesc := buildable.Description
+			if len(buildable.Cost) > 0 {
+				mats := make([]string, 0, len(buildable.Cost))
+				for k := range buildable.Cost {
+					mats = append(mats, k)
+				}
+				sort.Strings(mats)
+				parts := make([]string, 0, len(mats))
+				for _, k := range mats {
+					parts = append(parts, fmt.Sprintf("%d %s", buildable.Cost[k], k))
+				}
+				costLine := "Cost: " + strings.Join(parts, ", ")
+				if tooltipDesc != "" {
+					tooltipDesc = tooltipDesc + "\n" + costLine
+				} else {
+					tooltipDesc = costLine
+				}
 			}
 			mi := minui.NewMenuItem("build_"+buildType, label)
 			mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
@@ -411,8 +430,8 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 					h.setSelectionLabel(btName, btDesc, btIcon)
 				}
 			}
-			if buildable.Description != "" || buildable.Name != "" {
-				h.tooltipManager.Register(mi, buildable.Name, buildable.Description, buildableTooltipIcon(buildType, buildable))
+			if tooltipDesc != "" || buildable.Name != "" {
+				h.tooltipManager.Register(mi, buildable.Name, tooltipDesc, buildableTooltipIcon(buildType, buildable))
 			}
 			h.buildMenuItems["build_"+buildType] = mi
 			h.buildSubPanel.AddChild(mi)

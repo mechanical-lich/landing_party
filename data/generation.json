@@ -1,5 +1,5 @@
 {
-  "home_radius": 220,
+  "home_radius": 3000,
 
   "start_fuel": 400,
   "start_colonists": 6,
