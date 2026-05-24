@@ -40,6 +40,16 @@
       "Sprocket", "Mibble", "Wobble", "Fribble", "Zibble", "Gribble", "Sprocket", "Mibble", "Wobble", "Fribble", "Zibble", "Gribble", "Sprocket"
     ]
   },
+  "zombie": {
+    "kind": "flat",
+    "names": [
+      "Rot", "Gore", "Stench", "Putrid", "Fester", "Decay", "Maggot",
+      "Carrion", "Pestilence", "Blight", "Ghoul", "Sewer", "Grave",
+      "Crypt", "Bone", "Shamble", "Lurch", "Creep", "Worm", "Slime",
+      "Corpse", "Flesh", "Rotten", "Squalid", "Pus", "Infest",
+      "Vile", "Moldy", "Rank", "Sickly", "Gruesome"
+    ]
+  },
   "location": {
     "kind": "combined",
     "prefixes": [

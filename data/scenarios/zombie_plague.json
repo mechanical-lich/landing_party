@@ -1,0 +1,126 @@
+{
+  "id": "zombie_plague",
+  "name": "Zombie Plague",
+  "description": "Something reanimates the dead here. Frozen walkers shamble through the ice, ragers tear across desert wastes, and headless things crawl up from below.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/zombie_plague_setup.basic"
+  ],
+  "hostile_max": 120,
+  "supported_maps": [
+    "earth_like",
+    "moon",
+    "asteroid",
+    "alien"
+  ],
+  "spawn_rules": {
+    "zombie": {
+      "spawn_rate": 60,
+      "light_min": 0,
+      "tiles": ["grass", "regolith", "ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "rage_zombie": {
+      "spawn_rate": 35,
+      "light_min": 0,
+      "tiles": ["regolith"],
+      "min_z": 4,
+      "max_z": 5
+    },
+    "frozen_zombie": {
+      "spawn_rate": 35,
+      "light_min": 0,
+      "tiles": ["ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "headless_zombie": {
+      "spawn_rate": 25,
+      "light_min": 0,
+      "tiles": ["grass", "regolith", "rock_floor"],
+      "min_z": 0,
+      "max_z": 5
+    },
+    "martial_zombie": {
+      "spawn_rate": 20,
+      "light_min": 0,
+      "tiles": ["grass", "regolith", "ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "noble_zombie": {
+      "spawn_rate": 15,
+      "light_min": 0,
+      "tiles": ["grass", "regolith"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "elite_zombie": {
+      "spawn_rate": 10,
+      "light_min": 0,
+      "tiles": ["grass", "regolith", "ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "frozen_elite_zombie": {
+      "spawn_rate": 8,
+      "light_min": 0,
+      "tiles": ["ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "rage_elite_zombie": {
+      "spawn_rate": 8,
+      "light_min": 0,
+      "tiles": ["regolith"],
+      "min_z": 4,
+      "max_z": 5
+    },
+    "frozen_headless_zombie": {
+      "spawn_rate": 8,
+      "light_min": 0,
+      "tiles": ["ice_floor", "rock_floor"],
+      "min_z": 0,
+      "max_z": 5
+    },
+    "rage_headless_zombie": {
+      "spawn_rate": 8,
+      "light_min": 0,
+      "tiles": ["regolith", "rock_floor"],
+      "min_z": 0,
+      "max_z": 5
+    },
+    "frozen_noble_zombie": {
+      "spawn_rate": 5,
+      "light_min": 0,
+      "tiles": ["ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "rage_noble_zombie": {
+      "spawn_rate": 5,
+      "light_min": 0,
+      "tiles": ["regolith"],
+      "min_z": 4,
+      "max_z": 5
+    },
+    "frozen_martial_noble": {
+      "spawn_rate": 5,
+      "light_min": 0,
+      "tiles": ["ice_floor"],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "rage_martial_zombie": {
+      "spawn_rate": 5,
+      "light_min": 0,
+      "tiles": ["regolith"],
+      "min_z": 4,
+      "max_z": 5
+    }
+  },
+  "lighting": {
+    "mode": "day_night"
+  }
+}

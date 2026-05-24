@@ -1,0 +1,610 @@
+{
+    "frozen_elite_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 528,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 6,
+            "Dex": 6,
+            "AC": 10,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "rage_elite_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 288,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 6,
+            "Dex": 16,
+            "AC": 6,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "elite_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 6,
+            "Dex": 10,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "frozen_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 480,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 6,
+            "AC": 8,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "frozen_headless_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 672,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 2,
+            "Dex": 6,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "rage_headless_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 432,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 2,
+            "Dex": 14,
+            "AC": 4,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "headless_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 192,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 2,
+            "Dex": 6,
+            "AC": 6,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "frozen_martial_noble": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 624,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 6,
+            "Dex": 6,
+            "AC": 14,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "rage_martial_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 384,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 5,
+            "Dex": 14,
+            "AC": 10,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "martial_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 144,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 5,
+            "Dex": 10,
+            "AC": 12,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "rage_noble_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 336,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 6,
+            "Dex": 14,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "frozen_noble_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 576,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 6,
+            "Dex": 6,
+            "AC": 12,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "noble_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 6,
+            "Dex": 8,
+            "AC": 10,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "rage_zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 6
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 16,
+            "AC": 4,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "zombie": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 8,
+            "AC": 4,
+            "BasicAttackDice": "1d4"
+        }
+    },
+    "zombie_arm": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 720,
+            "SpriteY": 432
+        },
+        "Description": {
+            "Name": "<zombie>",
+            "Faction": "undead"
+        },
+        "Health": {
+            "MaxHealth": 5
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": "wildlife"
+            }
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 4,
+            "Int": 2,
+            "Dex": 12,
+            "AC": 4,
+            "BasicAttackDice": "1d3"
+        }
+    }
+}

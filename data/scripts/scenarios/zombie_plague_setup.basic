@@ -1,0 +1,35 @@
+function on_setup()
+    add_message("Day 1. The dead are walking. Something here reanimates corpses - frozen, raging, and headless things are already moving toward your position.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    carve_room(sx - 4, sy - 5, sz, 9, 7, "bunker_wall", "bunker_floor")
+    spawn_entity_owned("airlock", sx, sy + 1, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 3, sy - 3, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 3, sy - 3, sz, sname)
+
+    # Spawn a small wave of zombies at medium range as an immediate threat
+    spawned = 0
+    for attempt = 1 to 300
+        if spawned < 5 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 400 and d2 < 2500 then
+                    spawn_entity("zombie", ox, oy, sz)
+                    spawned = spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    set_flag("zombie_plague_started", 1)
+endfunction
