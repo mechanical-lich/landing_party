@@ -349,6 +349,39 @@ func NewMainState(cfg SettlementConfig) (*MainState, error) {
 	return s, nil
 }
 
+// knownTechs returns the campaign's tech list if in campaign mode, else the settlement's.
+func (s *MainState) knownTechs() []string {
+	if s.campaign != nil {
+		return s.campaign.KnownTechs
+	}
+	if s.MainSettlement != nil {
+		return s.MainSettlement.KnownTechs
+	}
+	return nil
+}
+
+// hasTech reports whether the given tech key has been researched.
+func (s *MainState) hasTech(key string) bool {
+	if s.campaign != nil {
+		return s.campaign.HasTech(key)
+	}
+	if s.MainSettlement != nil {
+		return s.MainSettlement.HasTech(key)
+	}
+	return false
+}
+
+// unlockTech records a tech as researched in the appropriate store.
+func (s *MainState) unlockTech(key string) {
+	if s.campaign != nil {
+		s.campaign.UnlockTech(key)
+		return
+	}
+	if s.MainSettlement != nil {
+		s.MainSettlement.UnlockTech(key)
+	}
+}
+
 // findAdjacentWorker returns the first Worker entity within one tile of (x,y,z),
 // presumed to be the killer of a freshly-dead hostile. Returns nil if no
 // friendly worker is adjacent (drops will fall to the ground in that case).
@@ -597,9 +630,7 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
 	s.handleInput()
-	if s.MainSettlement != nil {
-		s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
-	}
+	s.guiManager.SetKnownTechs(s.knownTechs())
 	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible)
 	s.guiManager.Update()
 	cfg2 := config.Global()
@@ -779,7 +810,10 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case gui.StationClickedEvent:
 		if s.MainSettlement != nil {
 			cs := ev.Station.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
-			knownTechs := s.MainSettlement.KnownTechSet()
+			knownTechs := map[string]bool{}
+			for _, k := range s.knownTechs() {
+				knownTechs[k] = true
+			}
 			allRecipes := crafting.RecipesByStation(cs.StationID)
 			var recipes, lockedRecipes []crafting.Recipe
 			for _, r := range allRecipes {
@@ -803,10 +837,8 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case gui.ResearchRequestedEvent:
 		s.addResearchTask(ev.TechKey, ev.Station)
 	case eventsystem.ResearchDoneEvent:
-		if s.MainSettlement != nil {
-			s.MainSettlement.UnlockTech(ev.TechKey)
-			s.guiManager.SetKnownTechs(s.MainSettlement.KnownTechs)
-		}
+		s.unlockTech(ev.TechKey)
+		s.guiManager.SetKnownTechs(s.knownTechs())
 	case gui.ColonistSelectedEvent:
 		if ev.Entity.HasComponent(rlcomponents.Position) {
 			pc := ev.Entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
@@ -856,7 +888,7 @@ func (s *MainState) researchSnapshot() (available, locked, completed, inProgress
 		return
 	}
 
-	for _, k := range s.MainSettlement.KnownTechs {
+	for _, k := range s.knownTechs() {
 		if t, ok := research.GetTech(k); ok {
 			completed = append(completed, t)
 		}
@@ -887,13 +919,13 @@ func (s *MainState) researchSnapshot() (available, locked, completed, inProgress
 		queue = append(queue, gui.ResearchQueueEntry{Name: name, Progress: progress})
 	}
 
-	for _, t := range research.AvailableTechs(s.MainSettlement.KnownTechs) {
+	for _, t := range research.AvailableTechs(s.knownTechs()) {
 		if inProgressSet[t.Key] {
 			continue
 		}
 		available = append(available, t)
 	}
-	locked = research.LockedTechs(s.MainSettlement.KnownTechs)
+	locked = research.LockedTechs(s.knownTechs())
 	return
 }
 
@@ -906,7 +938,7 @@ func (s *MainState) addResearchTask(techKey string, station *ecs.Entity) {
 		log.Printf("[RESEARCH] tech not found: %s", techKey)
 		return
 	}
-	if s.MainSettlement.HasTech(techKey) {
+	if s.hasTech(techKey) {
 		message.AddMessage(tech.Name + " already researched.")
 		return
 	}
@@ -1972,10 +2004,6 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 	for _, e := range s.level.StaticEntities {
 		accumulate(e)
 	}
-	var knownTechs []string
-	if s.MainSettlement != nil {
-		knownTechs = s.MainSettlement.KnownTechs
-	}
 	return objective.EvalContext{
 		Entities:        s.level.Entities,
 		Flags:           s.level.Flags,
@@ -1983,7 +2011,7 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 		StructuresBuilt: entityCounts,
 		EntityCounts:    entityCounts,
 		ResourceCounts:  resourceCounts,
-		KnownTechs:      knownTechs,
+		KnownTechs:      s.knownTechs(),
 		Day:             s.day,
 	}
 }

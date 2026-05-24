@@ -36,6 +36,9 @@ type Campaign struct {
 	// died (named bosses / bounty creatures). Persisted so completion
 	// survives freeze/thaw and save/load.
 	KilledTargets map[string]bool `json:"killed_targets,omitempty"`
+	// KnownTechs is the set of tech keys the colony has researched. Stored
+	// here (not on Settlement) so it persists across planets and save/load.
+	KnownTechs []string `json:"known_techs,omitempty"`
 
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
@@ -52,6 +55,32 @@ func (c *Campaign) HomeLocation() *Location {
 		}
 	}
 	return nil
+}
+
+// HasTech reports whether the campaign has researched the given tech key.
+func (c *Campaign) HasTech(key string) bool {
+	for _, k := range c.KnownTechs {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
+// UnlockTech adds key to KnownTechs if not already present.
+func (c *Campaign) UnlockTech(key string) {
+	if !c.HasTech(key) {
+		c.KnownTechs = append(c.KnownTechs, key)
+	}
+}
+
+// KnownTechSet returns KnownTechs as a set for O(1) lookup.
+func (c *Campaign) KnownTechSet() map[string]bool {
+	set := make(map[string]bool, len(c.KnownTechs))
+	for _, k := range c.KnownTechs {
+		set[k] = true
+	}
+	return set
 }
 
 // MarkTargetKilled records that the tagged target for questID has died.
