@@ -35,6 +35,10 @@ Crafting stations. Each variant produces a different category of items:
 
 Colonists work at whichever bench matches the queued recipe. See [Crafting](crafting.md) for the full workflow.
 
+### Bed
+
+A rest station for colonists. When exhaustion is high enough, a colonist will seek out a bed, sleep until exhaustion clears, then return to work. Colonists remember the last bed they slept in and will return to it. Without a bed, colonists eventually pass out on the spot and recover much more slowly — build one per colonist early.
+
 ### Work Light
 
 Provides illumination at night. Place these throughout your colony to maintain visibility and worker productivity during the dark cycle.
@@ -62,4 +66,6 @@ When you place a structure:
 3. Once materials arrive, a colonist claims the construction task and works until the structure is complete.
 4. Progress on construction is shared — multiple colonists speed up completion.
 
-Structures with zero material cost (currently all structures during the testing phase) complete as soon as a colonist begins working on them.
+When materials are delivered, a colonist claims the construction task and works until the structure is complete. Progress is shared — multiple colonists speed up completion.
+
+Most structures require **metal ore** and some require **crystal**. Check the build menu tooltip to see the cost before placing.

@@ -81,6 +81,13 @@ type SleepRequest struct {
 	PrevZ int
 }
 
+// PassoutRequest is used when a colonist collapses from exhaustion with no bed
+// available. Recovery is 4× slower than a proper bed.
+type PassoutRequest struct {
+	Progress int // turns into current recovery cycle
+	Required int // turns per recovery cycle (typically 40)
+}
+
 // FilterableAction pairs a task action with the label shown in the colonist UI.
 type FilterableAction struct {
 	Action task.TaskAction
@@ -111,4 +118,15 @@ const (
 	UnequipAction  task.TaskAction = "unequip"
 	RetrieveAction task.TaskAction = "retrieve"
 	SleepAction    task.TaskAction = "sleep"
+	PassoutAction  task.TaskAction = "passout"
 )
+
+// IsInterruptibleAction reports whether the NeedsSystem may preempt a task
+// with the given action when a colonist becomes too exhausted.
+func IsInterruptibleAction(action task.TaskAction) bool {
+	switch action {
+	case AttackAction, SleepAction, PassoutAction, EquipAction, UnequipAction:
+		return false
+	}
+	return true
+}

@@ -448,10 +448,10 @@ func drawEntity(screen *ebiten.Image, entity *ecs.Entity, tX, tY float64, tileWo
 				subY := tileWorldY - startY
 				// Per-tile slice is exactly one tile in screen pixels.
 				// The full sprite spans sc.Width × sc.Height tiles.
-				spriteX += subX * tileSizeW
-				spriteY += subY * tileSizeH
-				srcW = tileSizeW
-				srcH = tileSizeH
+				spriteX += subX * spriteSizeW
+				spriteY += subY * spriteSizeH
+				srcW = spriteSizeW
+				srcH = spriteSizeH
 			}
 		}
 

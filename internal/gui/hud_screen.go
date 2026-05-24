@@ -914,6 +914,24 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		h.colonistScroll.AddContent(levelsLabel)
 	}
 
+	if colonist.HasComponent(components.Needs) {
+		nc := colonist.GetComponent(components.Needs).(*components.NeedsComponent)
+		if nc.MaxHunger > 0 {
+			hungerStatus := "fed"
+			if nc.IsStarving() {
+				hungerStatus = "STARVING"
+			} else if nc.IsHungry() {
+				hungerStatus = "hungry"
+			}
+			hungerLabel := minui.NewLabel("colonistHunger", fmt.Sprintf("Hunger: %d / %d (%s)", nc.Hunger, nc.MaxHunger, hungerStatus))
+			hungerLabel.GetStyle().FontSize = &smallSize
+			h.colonistScroll.AddContent(hungerLabel)
+		}
+		exhaustionLabel := minui.NewLabel("colonistExhaustion", fmt.Sprintf("Exhaustion: %d / %d", nc.Exhaustion, nc.MaxExhaustion))
+		exhaustionLabel.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(exhaustionLabel)
+	}
+
 	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
 	eqHdr.GetStyle().FontSize = &smallSize
 	h.colonistScroll.AddContent(eqHdr)
@@ -1456,15 +1474,18 @@ func (h *HUDScreen) updateDetailsContent() {
 			add("Task: idle")
 		}
 	}
-	if entity.HasComponent(components.Hunger) {
-		hg := entity.GetComponent(components.Hunger).(*components.HungerComponent)
-		status := "fed"
-		if hg.IsStarving() {
-			status = "STARVING"
-		} else if hg.IsHungry() {
-			status = "hungry"
+	if entity.HasComponent(components.Needs) {
+		nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
+		if nc.MaxHunger > 0 {
+			status := "fed"
+			if nc.IsStarving() {
+				status = "STARVING"
+			} else if nc.IsHungry() {
+				status = "hungry"
+			}
+			add(fmt.Sprintf("Hunger: %d/%d (%s)", nc.Hunger, nc.MaxHunger, status))
 		}
-		add(fmt.Sprintf("Hunger: %d/%d (%s)", hg.Energy, hg.MaxEnergy, status))
+		add(fmt.Sprintf("Exhaustion: %d/%d", nc.Exhaustion, nc.MaxExhaustion))
 	}
 	if entity.HasComponent(rlcomponents.Inventory) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)

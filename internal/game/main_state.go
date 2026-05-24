@@ -258,6 +258,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(aiSystem)
 	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.ScriptedAISystem{})
+	s.systemManager.AddSystem(&systems.NeedsSystem{})
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
 	s.systemManager.AddSystem(&systems.RadiationSystem{})
 	s.systemManager.AddSystem(&systems.LightingSystem{})

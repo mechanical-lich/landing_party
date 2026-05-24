@@ -81,6 +81,31 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 
+	// Eat from own inventory first before walking to storage.
+	if entity.HasComponent(rlcomponents.Inventory) {
+		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+		for i, item := range inv.Bag {
+			if !item.HasComponent(rlcomponents.Food) {
+				continue
+			}
+			foodC := item.GetComponent(rlcomponents.Food).(*rlcomponents.FoodComponent)
+			if entity.HasComponent(rlcomponents.Health) {
+				hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
+				hc.Energy += foodC.Amount
+			}
+			if entity.HasComponent(components.Needs) {
+				nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
+				nc.Eat(foodC.Amount)
+			}
+			inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			message.PostMessage(rlentity.GetName(entity), "Ate "+item.Blueprint)
+			aiMemory.TargetX = -1
+			aiMemory.TargetY = -1
+			aiMemory.State = "idle"
+			return
+		}
+	}
+
 	if aiMemory.TargetX == -1 && aiMemory.TargetY == -1 {
 		storage := FindClosestStorageWithComponent(level, sc.Name, rlcomponents.Food, pc.GetX(), pc.GetY(), pc.GetZ())
 		if storage != nil {
@@ -109,9 +134,9 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 				hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
 				foodC := foodEntity.GetComponent(rlcomponents.Food).(*rlcomponents.FoodComponent)
 				hc.Energy += foodC.Amount
-				if entity.HasComponent(components.Hunger) {
-					hg := entity.GetComponent(components.Hunger).(*components.HungerComponent)
-					hg.Eat(foodC.Amount)
+				if entity.HasComponent(components.Needs) {
+					nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
+					nc.Eat(foodC.Amount)
 				}
 				message.PostMessage(rlentity.GetName(entity), "Ate "+foodEntity.Blueprint)
 				aiMemory.TargetX = -1

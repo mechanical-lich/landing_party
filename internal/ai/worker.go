@@ -53,6 +53,7 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 			t := mySettlement.Tasks.PeekClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ(), wc.LastTaskAction)
 			if t != nil && utility.Abs(t.X-pc.GetX())+utility.Abs(t.Y-pc.GetY()) <= momentumRadius {
 				t.Start()
+				t.Interruptible = task_requests.IsInterruptibleAction(t.Action)
 				wc.CurrentTask = t
 				wc.LastTaskAction = t.Action
 				aiMemory.State = "task"
@@ -73,6 +74,7 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 			if !workerQualifiesForTask(entity, t) {
 				t.ReQueue()
 			} else {
+				t.Interruptible = task_requests.IsInterruptibleAction(t.Action)
 				aiMemory.State = "task"
 				wc.CurrentTask = t
 				wc.LastTaskAction = t.Action
@@ -135,6 +137,8 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleRetrieveTask(level, entity, wc, aiMemory)
 	case task_requests.SleepAction:
 		handleSleepTask(level, entity, wc, aiMemory)
+	case task_requests.PassoutAction:
+		handlePassoutTask(level, entity, wc, aiMemory)
 	default:
 		handleMoveTask(level, entity, wc, aiMemory)
 	}
@@ -217,8 +221,9 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	// Find the first missing material (quantity-aware for resource stacks)
+	// Find the first missing material and compute the exact deficit.
 	searching := ""
+	deficit := 0
 	for name, cost := range buildable.Cost {
 		count := 0
 		for _, item := range inv.Bag {
@@ -234,6 +239,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		}
 		if count < cost {
 			searching = name
+			deficit = cost - count
 			break
 		}
 	}
@@ -258,16 +264,32 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		// Take the whole resource stack at once; fall back to TakeOne for non-resources
-		var material *ecs.Entity
-		if storageC.HasItem(searching) {
-			material = storageC.TakeResourceStack(searching)
-			if material == nil {
-				material = storageC.TakeOne(searching)
+
+		// Detect whether this item type is a stackable resource.
+		isResource := false
+		for _, item := range storageC.Items {
+			if item.Blueprint == searching && item.HasComponent(components.ResourceItem) {
+				isResource = true
+				break
 			}
 		}
-		if material != nil {
-			inv.AddItem(material)
+
+		if isResource {
+			// Deduct exactly the deficit, then carry a new entity with that quantity.
+			if storageC.DeductResource(searching, deficit) {
+				material, err := factory.Create(searching, 0, 0, 0)
+				if err == nil {
+					rc := material.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+					rc.Quantity = deficit
+					inv.AddItem(material)
+				}
+			}
+		} else {
+			// Non-resource item (equipment, etc.) — take one at a time.
+			material := storageC.TakeOne(searching)
+			if material != nil {
+				inv.AddItem(material)
+			}
 		}
 	}
 }
@@ -728,17 +750,60 @@ func handleSleepTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	if sr.Progress < sr.Required {
 		return
 	}
-	// 10-turn cycle complete: heal 1, or wake if already at full health.
+	// Cycle complete: heal 1 HP and drain exhaustion.
 	sr.Progress = 0
 	hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
 	if hc.Health < hc.MaxHealth {
 		hc.Health++
 	}
-	if hc.Health >= hc.MaxHealth {
+	exhausted := false
+	if entity.HasComponent(components.Needs) {
+		nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
+		nc.Exhaustion -= sleepRecoveryPerCycle
+		if nc.Exhaustion < 0 {
+			nc.Exhaustion = 0
+		}
+		// Record this bed so the colonist returns here next time.
+		nc.LastBedX, nc.LastBedY, nc.LastBedZ = sr.X, sr.Y, sr.Z
+		nc.HasKnownBed = true
+		exhausted = nc.Exhaustion > 0
+	}
+	if !exhausted && hc.Health >= hc.MaxHealth {
 		dismountSleeper(level, entity, sr)
 		CompleteTaskWithMessage(entity, wc.CurrentTask, "Fully rested")
 		aiMemory.State = "idle"
 	}
+}
+
+const sleepRecoveryPerCycle = 10
+
+func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	pr, ok := wc.CurrentTask.Data.(*task_requests.PassoutRequest)
+	if !ok {
+		aiMemory.State = "idle"
+		wc.CurrentTask = nil
+		return
+	}
+
+	pr.Progress++
+	if pr.Progress < pr.Required {
+		return
+	}
+	pr.Progress = 0
+
+	if entity.HasComponent(components.Needs) {
+		nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
+		nc.Exhaustion -= sleepRecoveryPerCycle
+		if nc.Exhaustion < 0 {
+			nc.Exhaustion = 0
+		}
+		if nc.Exhaustion > 0 {
+			return // still recovering
+		}
+	}
+
+	CompleteTaskWithMessage(entity, wc.CurrentTask, "Woke up after passing out")
+	aiMemory.State = "idle"
 }
 
 // dismountSleeper moves the worker off the bed back to their pre-mount tile if

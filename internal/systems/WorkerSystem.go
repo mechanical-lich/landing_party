@@ -49,32 +49,6 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 		}
 	}
 
-	// Hunger: drain energy, seek food when hungry, take damage when starving
-	if entity.HasComponent(components.Hunger) {
-		hg := entity.GetComponent(components.Hunger).(*components.HungerComponent)
-		if hg.Tick() {
-			if hg.Energy > 0 {
-				hg.Energy--
-			}
-		}
-		if hg.IsStarving() && entity.HasComponent(rlcomponents.Health) {
-			hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
-			hc.Health--
-		}
-		if hg.IsHungry() && aiMemory.State != "findfood" {
-			if entity.HasComponent(components.Worker) {
-				wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
-				if wc.CurrentTask != nil {
-					wc.CurrentTask.ReQueue()
-					wc.CurrentTask = nil
-				}
-			}
-			aiMemory.TargetX = -1
-			aiMemory.TargetY = -1
-			aiMemory.State = "findfood"
-		}
-	}
-
 	// Self-defense: counter-attack whoever just hit this worker, then return.
 	if wc := entity.GetComponent(components.Worker); wc != nil {
 		workerC := wc.(*components.WorkerComponent)

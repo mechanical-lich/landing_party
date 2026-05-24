@@ -104,13 +104,6 @@
             "MaxHealth": 20
         },
         "Skills": { "Skills": [] },
-        "Hunger": {
-            "Energy": 100,
-            "MaxEnergy": 100,
-            "HungerThreshold": 30,
-            "StarveThreshold": 10,
-            "DrainRate": 20
-        },
         "Initiative": {
             "DefaultValue": 10,
             "Ticks": 1
@@ -137,6 +130,14 @@
             "BasicAttackDice": "1d4"
         },
         "Worker": {},
-        "StatProgression": {}
+        "StatProgression": {},
+        "Needs": {
+            "MaxExhaustion": 100,
+            "Hunger": 0,
+            "MaxHunger": 100,
+            "HungerThreshold": 70,
+            "StarveThreshold": 90,
+            "HungerRate": 20
+        }
     }
 }

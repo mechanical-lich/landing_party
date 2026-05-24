@@ -35,11 +35,19 @@ Level-ups appear as messages in the event log and are visible in the colonist de
 
 ## Needs
 
+Colonists have two needs that must be managed: **Hunger** and **Exhaustion**. Both are visible in the colonist detail panel and the hover tooltip. A colonist will interrupt their current task when a need becomes urgent, then return to work once it is met.
+
 ### Hunger
 
-Colonists consume energy over time. When energy drops below the **hunger threshold** a colonist will stop whatever they are doing and seek food. If no food is available and energy drops to the **starvation threshold**, they begin taking damage each turn.
+Hunger builds up over time. When it crosses the **hunger threshold** a colonist stops what they are doing and looks for something to eat — first checking their own inventory, then searching nearby settlement storage. If hunger reaches the **starvation threshold** with no food available, the colonist takes damage each turn.
 
-Keep a stockpile of food items near your colonists to prevent starvation. A `storage_locker` is the standard container for food and supplies.
+Keep a stockpile of food items (ration packs, etc.) in a `storage_locker` near your workers. Colonists start with a ration pack in their inventory, which buys time before storage is established.
+
+### Exhaustion
+
+Exhaustion accumulates while colonists work. Physical tasks (digging, mining, building) are more tiring than mental ones (research, crafting). When exhaustion is high enough, the colonist will stop working and look for a bed to sleep in. A proper bed restores exhaustion quickly; with no bed available, the colonist eventually passes out and recovers much more slowly.
+
+Build beds early — one per colonist is ideal. Colonists remember the last bed they slept in and will return to it.
 
 ---
 

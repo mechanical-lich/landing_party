@@ -3,6 +3,7 @@ module github.com/mechanical-lich/landing_party
 go 1.25.5
 
 //replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
+replace github.com/mechanical-lich/mlge => ../mlge
 
 require (
 	github.com/aquilax/go-perlin v1.1.0
