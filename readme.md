@@ -55,3 +55,10 @@ See [docs/player/controls.md](docs/player/controls.md) for the full reference.
 **With an order selected (Dig, Build, etc.)**
 - **Left Click**: Perform the order (drag to paint area)
 - **Right Click**: Cancel order, return to Default
+
+
+## Credits
+
+- [Oryx Design](https://www.oryxdesignlab.com/home)
+- [Lotovik's autotiling template](https://lotovik.itch.io/tile47-autotiling)
+- [Kenney](https://kenney.nl/)
