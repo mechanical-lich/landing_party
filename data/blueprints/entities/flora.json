@@ -1,31 +1,4 @@
 {
-    "alien_crystal": {
-        "Appearance": {
-            "R": 200,
-            "G": 240,
-            "B": 255,
-            "Resource": "scifi_world",
-            "SpriteX": 336,
-            "SpriteY": 552
-        },
-        "Choppable": {
-            "Health": 3
-        },
-        "Description": {
-            "Name": "Alien Crystal",
-            "Faction": ""
-        },
-        "Drops": {
-            "Items": [
-                "crystal"
-            ]
-        },
-        "Inanimate": {},
-        "Light": {
-            "Level": 60,
-            "Range": 3
-        }
-    },
     "alien_flora": {
         "Appearance": {
             "R": 255,
@@ -40,6 +13,144 @@
         },
         "Description": {
             "Name": "Alien Flora",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "frosted_pointed_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1176,
+            "SpriteY": 72
+        },
+         "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Frosted Pointed Tree",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "fruit_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1056,
+            "SpriteY": 72
+        },
+        "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Fruit Tree",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "orange_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1080,
+            "SpriteY": 72
+        },
+        "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Orange Tree",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "pointed_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1152,
+            "SpriteY": 72
+        },
+         "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Pointed Tree",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "round_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1032,
+            "SpriteY": 72
+        },
+        "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Round Tree",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "spikey_tree": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1176,
+            "SpriteY": 48
+        },
+         "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Spikey Tree",
             "Faction": ""
         },
         "Drops": {

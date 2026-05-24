@@ -1,42 +1,18 @@
 {
   "id": "tundra",
-  "temp_range": [
-    0.0,
-    0.35
-  ],
-  "humidity_range": [
-    0.3,
-    1.0
-  ],
+  "temp_range": [0.0, 0.35],
+  "humidity_range": [0.3, 1.0],
   "rules": [
-    {
-      "kind": "surface",
-      "tile": "ice_floor"
-    },
-    {
-      "kind": "subsurface",
-      "tile": "rock",
-      "floor": "rock_floor"
-    },
-    {
-      "kind": "underground",
-      "tile": "rock"
-    },
-    {
-      "kind": "cavern",
-      "tile": "air"
-    },
-    {
-      "kind": "atmosphere",
-      "tile": "air"
-    },
-    {
-      "kind": "space",
-      "tile": "space"
-    },
-    {
-      "kind": "bedrock",
-      "tile": "bedrock"
-    }
+    { "kind": "surface",     "tile": "ice_floor" },
+    { "kind": "subsurface",  "tile": "rock", "floor": "rock_floor" },
+    { "kind": "underground", "tile": "rock" },
+    { "kind": "cavern",      "tile": "air" },
+    { "kind": "atmosphere",  "tile": "air" },
+    { "kind": "space",       "tile": "space" },
+    { "kind": "bedrock",     "tile": "bedrock" }
+  ],
+  "features": [
+    { "kind": "scatter_entity", "count": 30, "biome": "tundra", "params": { "blueprint": "frosted_pointed_tree" } },
+    { "kind": "scatter_entity", "count": 10, "biome": "tundra", "params": { "blueprint": "pointed_tree" } }
   ]
 }

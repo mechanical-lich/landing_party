@@ -57,6 +57,18 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		}, opts.Seed)
 		ApplyBiomes(level)
 		ExposeMountainTops(level)
+
+		// Collect and run features declared in each active biome.
+		for _, id := range opts.BiomeIDs {
+			if b := GetBiome(id); b != nil && len(b.Features) > 0 {
+				PlaceFeatures(level, b.Features)
+			}
+		}
+		if opts.BiomeSingle != "" {
+			if b := GetBiome(opts.BiomeSingle); b != nil && len(b.Features) > 0 {
+				PlaceFeatures(level, b.Features)
+			}
+		}
 	}
 
 	if len(opts.Features) > 0 {

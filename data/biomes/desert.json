@@ -10,5 +10,9 @@
     { "kind": "atmosphere",  "tile": "air" },
     { "kind": "space",       "tile": "space" },
     { "kind": "bedrock",     "tile": "bedrock" }
+  ],
+  "features": [
+    { "kind": "scatter_entity", "count": 20, "biome": "desert", "params": { "blueprint": "spikey_tree" } },
+    { "kind": "scatter_entity", "count": 8,  "biome": "desert", "params": { "blueprint": "orange_tree" } }
   ]
 }

@@ -1,0 +1,52 @@
+{
+    "alien_crystal": {
+        "Appearance": {
+            "R": 200,
+            "G": 240,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 336,
+            "SpriteY": 552
+        },
+        "Choppable": {
+            "Health": 3
+        },
+        "Description": {
+            "Name": "Alien Crystal",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "crystal"
+            ]
+        },
+        "Inanimate": {},
+        "Light": {
+            "Level": 60,
+            "Range": 3
+        }
+    },
+    "rock": {
+        "Appearance": {
+            "R": 200,
+            "G": 240,
+            "B": 255,
+            "Resource": "fantasy_world",
+            "SpriteX": 1080,
+            "SpriteY": 48
+        },
+        "Choppable": {
+            "Health": 3
+        },
+        "Description": {
+            "Name": "Rock",
+            "Faction": ""
+        },
+        "Drops": {
+            "Items": [
+                "stone"
+            ]
+        },
+        "Inanimate": {}
+    }
+}
