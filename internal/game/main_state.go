@@ -1400,6 +1400,9 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				for _, e := range s.level.Entities {
 					e.RemoveComponent(components.Selected)
 				}
+				for _, e := range s.level.StaticEntities {
+					e.RemoveComponent(components.Selected)
+				}
 				s.selectedEntity = nil
 				if ent == nil {
 					for _, se := range s.level.StaticEntities {
@@ -1810,7 +1813,7 @@ func (s *MainState) refreshHUD() {
 	}
 
 	// Count resources across all storage lockers
-	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0}
+	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0, "biomass": 0}
 	if s.campaign != nil {
 		// Surface the campaign-wide ship hold alongside on-planet stock.
 		p := storage.ShipProvider{Ship: s.campaign.Ship}
@@ -1825,9 +1828,14 @@ func (s *MainState) refreshHUD() {
 			st := entity.GetComponent(components.Storage).(*components.StorageComponent)
 			for _, item := range st.Items {
 				if item.Blueprint != "" {
-					resources[item.Blueprint]++
+					if item.HasComponent(components.ResourceItem) {
+						rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+						resources[item.Blueprint] += rc.Quantity
+					} else {
+						resources[item.Blueprint]++
+					}
 				}
-				if item.HasComponent(rlcomponents.Food) {
+				if item.HasComponent(rlcomponents.Food) && !item.HasComponent(components.ResourceItem) {
 					resources["food"]++
 				}
 			}

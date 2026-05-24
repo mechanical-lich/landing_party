@@ -183,5 +183,15 @@
         "cost": {},
         "category": "structures",
         "order": 7
+    },
+    "fuel_refiner": {
+        "name": "Fuel Refiner",
+        "description": "Refines biomass and ore into fuel cells for the ship's drive. Requires Fuel Refining research.",
+        "build_time": 40,
+        "is_entity": true,
+        "required_tech": "fuel_refining",
+        "cost": {},
+        "category": "structures",
+        "order": 8
     }
 }

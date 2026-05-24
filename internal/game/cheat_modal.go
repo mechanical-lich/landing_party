@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/ui/minui"
@@ -50,7 +52,7 @@ func (cm *CheatModal) rebuildModal() {
 	cm.modal.SetPosition(mx, my)
 	cm.modal.Closeable = false
 
-	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>")
+	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>")
 	cm.input.SetPosition(10, 20)
 	cm.input.SetSize(cheatModalW-20, 30)
 	cm.modal.AddChild(cm.input)
@@ -253,8 +255,56 @@ func (cm *CheatModal) runCommand(raw string) {
 		}
 		message.PostMessage("cheat", fmt.Sprintf("teleported %s to %d,%d,%d", label, x, y, z))
 
+	case "give":
+		if len(parts) < 3 {
+			message.PostMessage("cheat", "usage: give <resource> <amount>")
+			return
+		}
+		blueprint := strings.ToLower(parts[1])
+		amount, err := strconv.Atoi(parts[2])
+		if err != nil || amount <= 0 {
+			message.PostMessage("cheat", "give: amount must be a positive integer")
+			return
+		}
+		item, err := factory.Create(blueprint, 0, 0, 0)
+		if err != nil {
+			message.PostMessage("cheat", fmt.Sprintf("give: unknown blueprint %q", blueprint))
+			return
+		}
+		if item.HasComponent(components.ResourceItem) {
+			item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = amount
+		}
+		// Find the player's settlement name from any colonist on the level.
+		settlementName := ""
+		for _, e := range cm.ms.level.Entities {
+			if e.HasComponent(components.Settlement) && e.HasComponent(components.Worker) {
+				settlementName = e.GetComponent(components.Settlement).(*components.SettlementComponent).Name
+				break
+			}
+		}
+		// Deposit into the first storage container owned by the player's settlement.
+		for _, e := range cm.ms.level.Entities {
+			if !e.HasComponent(components.Storage) {
+				continue
+			}
+			st := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if settlementName != "" && st.OwnedBy != settlementName {
+				continue
+			}
+			st.AddItem(item)
+			message.PostMessage("cheat", fmt.Sprintf("gave %d %s to storage", amount, blueprint))
+			return
+		}
+		// No storage — drop at camera center so haulers can collect it.
+		cx, cy, cz := cm.cameraCenter()
+		if pc, ok := entityPos(item); ok {
+			pc.SetPosition(cx, cy, cz)
+		}
+		cm.ms.level.AddEntity(item)
+		message.PostMessage("cheat", fmt.Sprintf("dropped %d %s at camera (no storage found)", amount, blueprint))
+
 	default:
-		message.PostMessage("cheat", "unknown command: " + parts[0])
+		message.PostMessage("cheat", "unknown command: "+parts[0])
 	}
 }
 

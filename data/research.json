@@ -74,5 +74,12 @@
         "required_building": "research_lab",
         "required_int": 12,
         "requires_tech": "radiation_shielding"
+    },
+    "fuel_refining": {
+        "name": "Fuel Refining",
+        "description": "Techniques for processing biomass and ore into refined fuel cells for the ship's drive.",
+        "duration": 120,
+        "required_building": "research_lab",
+        "required_int": 8
     }
 }

@@ -212,6 +212,7 @@ func (h *HUDScreen) setupHUDElements() {
 	h.resourceBar.AddResource("metal_ore", nil, 0)
 	h.resourceBar.AddResource("crystal", nil, 0)
 	h.resourceBar.AddResource("food", nil, 0)
+	h.resourceBar.AddResource("biomass", nil, 0)
 	h.uiGUI.AddElement(h.resourceBar)
 
 	theme := h.uiGUI.GetTheme()

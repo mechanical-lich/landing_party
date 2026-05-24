@@ -7,180 +7,200 @@
         "cost": { "biomass": 25 },
         "station": "bio_printer"
     },
-    "laser_pistol": {
-        "name": "Laser Pistol",
-        "description": "A compact sidearm firing concentrated light pulses. Reliable at close range.",
-        "output": "laser_pistol",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
-    "plasma_cutter": {
-        "name": "Plasma Cutter",
-        "description": "Short-range plasma tool repurposed as a weapon. Devastating up close.",
-        "output": "plasma_cutter",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
-    "stun_baton": {
-        "name": "Stun Baton",
-        "description": "Delivers a powerful electric shock. Non-lethal at low settings.",
-        "output": "stun_baton",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
-    "enviro_suit": {
-        "name": "Enviro Suit",
-        "description": "Full-body suit providing environmental protection against hazardous conditions.",
-        "output": "enviro_suit",
-        "build_time": 1,
-        "cost": {},
-        "station": "basic_armor_bench"
-    },
     "refine_fuel": {
         "name": "Refine Fuel Cell",
         "description": "Process raw biomass and ore into a fuel cell for the ship's drive.",
         "output": "fuel",
         "build_time": 30,
         "cost": { "biomass": 2, "metal_ore": 1 },
-        "station": "basic_workbench"
+        "station": "fuel_refiner"
     },
     "medkit": {
         "name": "Medkit",
         "description": "Emergency medical supplies. Restores health when used.",
         "output": "medkit",
-        "build_time": 1,
-        "cost": { "biomass": 1 },
+        "build_time": 15,
+        "cost": { "biomass": 2 },
         "station": "basic_workbench"
     },
-    "rifle": {
-        "name": "Rifle",
-        "description": "Standard-issue ballistic rifle. Accurate at medium to long range.",
-        "output": "rifle",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
-    "shotgun": {
-        "name": "Shotgun",
-        "description": "Scattershot firearm. High damage at close range, poor accuracy at distance.",
-        "output": "shotgun",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
+
     "knife": {
         "name": "Knife",
         "description": "A simple bladed weapon. Fast and silent.",
         "output": "knife",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 15,
+        "cost": { "metal_ore": 2 },
         "station": "gun_bench"
     },
-    "rocket_launcher": {
-        "name": "Rocket Launcher",
-        "description": "Fires explosive rockets. Massive area damage, slow to reload.",
-        "output": "rocket_launcher",
-        "build_time": 1,
-        "cost": {},
+    "stun_baton": {
+        "name": "Stun Baton",
+        "description": "Delivers a powerful electric shock. Non-lethal at low settings.",
+        "output": "stun_baton",
+        "build_time": 15,
+        "cost": { "metal_ore": 1, "crystal": 1 },
         "station": "gun_bench"
     },
-    "flamethrower": {
-        "name": "Flamethrower",
-        "description": "Projects a stream of burning fuel. Effective against groups.",
-        "output": "flamethrower",
-        "build_time": 1,
-        "cost": {},
-        "station": "gun_bench"
-    },
-    "autorifle": {
-        "name": "Auto Rifle",
-        "description": "Fully automatic ballistic rifle. High rate of fire, moderate accuracy.",
-        "output": "autorifle",
-        "build_time": 1,
-        "cost": {},
+    "laser_pistol": {
+        "name": "Laser Pistol",
+        "description": "A compact sidearm firing concentrated light pulses. Reliable at close range.",
+        "output": "laser_pistol",
+        "build_time": 20,
+        "cost": { "crystal": 2 },
         "station": "gun_bench"
     },
     "pistol_shield": {
         "name": "Pistol Shield",
         "description": "A sidearm with an integrated energy shield emitter.",
         "output": "pistol_shield",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 25,
+        "cost": { "metal_ore": 2, "crystal": 2 },
         "station": "gun_bench"
     },
     "flag_rifle_red": {
         "name": "Flag Rifle (Red)",
         "description": "Ceremonial rifle fitted with red faction markings.",
         "output": "flag_rifle_red",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 2 },
         "station": "gun_bench"
     },
     "flag_rifle_blue": {
         "name": "Flag Rifle (Blue)",
         "description": "Ceremonial rifle fitted with blue faction markings.",
         "output": "flag_rifle_blue",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 2 },
+        "station": "gun_bench"
+    },
+    "rifle": {
+        "name": "Rifle",
+        "description": "Standard-issue ballistic rifle. Accurate at medium to long range.",
+        "output": "rifle",
+        "build_time": 30,
+        "cost": { "metal_ore": 4 },
+        "station": "gun_bench"
+    },
+    "shotgun": {
+        "name": "Shotgun",
+        "description": "Scattershot firearm. High damage at close range, poor accuracy at distance.",
+        "output": "shotgun",
+        "build_time": 30,
+        "cost": { "metal_ore": 3 },
+        "station": "gun_bench"
+    },
+    "plasma_cutter": {
+        "name": "Plasma Cutter",
+        "description": "Short-range plasma tool repurposed as a weapon. Devastating up close.",
+        "output": "plasma_cutter",
+        "build_time": 35,
+        "cost": { "crystal": 4 },
         "station": "gun_bench"
     },
     "energy_sword": {
         "name": "Energy Sword",
         "description": "A melee weapon with an energized blade. High damage, requires skill.",
         "output": "energy_sword",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 35,
+        "cost": { "crystal": 3 },
+        "station": "gun_bench"
+    },
+    "autorifle": {
+        "name": "Auto Rifle",
+        "description": "Fully automatic ballistic rifle. High rate of fire, moderate accuracy.",
+        "output": "autorifle",
+        "build_time": 50,
+        "cost": { "metal_ore": 6 },
+        "station": "gun_bench"
+    },
+    "flamethrower": {
+        "name": "Flamethrower",
+        "description": "Projects a stream of burning fuel. Effective against groups.",
+        "output": "flamethrower",
+        "build_time": 50,
+        "cost": { "metal_ore": 3, "crystal": 3 },
         "station": "gun_bench"
     },
     "laser_sword": {
         "name": "Laser Sword",
         "description": "A focused laser blade capable of cutting through most materials.",
         "output": "laser_sword",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 60,
+        "cost": { "crystal": 6 },
         "station": "gun_bench"
     },
+    "rocket_launcher": {
+        "name": "Rocket Launcher",
+        "description": "Fires explosive rockets. Massive area damage, slow to reload.",
+        "output": "rocket_launcher",
+        "build_time": 80,
+        "cost": { "metal_ore": 8, "crystal": 2 },
+        "station": "gun_bench"
+    },
+
+    "enviro_helmet": {
+        "name": "Enviro Helmet",
+        "description": "Sealed helmet with oxygen recycler for hostile atmospheres.",
+        "output": "enviro_helmet",
+        "build_time": 10,
+        "cost": { "metal_ore": 1, "crystal": 1 },
+        "station": "basic_armor_bench"
+    },
+    "enviro_suit": {
+        "name": "Enviro Suit",
+        "description": "Full-body suit providing environmental protection against hazardous conditions.",
+        "output": "enviro_suit",
+        "build_time": 15,
+        "cost": { "metal_ore": 2, "crystal": 2 },
+        "station": "basic_armor_bench"
+    },
+    "enviro_boots": {
+        "name": "Enviro Boots",
+        "description": "Sealed boots rated for corrosive and toxic terrain.",
+        "output": "enviro_boots",
+        "build_time": 10,
+        "cost": { "metal_ore": 1, "crystal": 1 },
+        "station": "basic_armor_bench"
+    },
+
     "scout_head": {
         "name": "Scout Helmet",
         "description": "Lightweight helmet with built-in sensors. Low armor, high mobility.",
         "output": "scout_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 10,
+        "cost": { "metal_ore": 2 },
         "station": "basic_armor_bench"
     },
     "scout_torso": {
         "name": "Scout Vest",
         "description": "Lightweight vest for reconnaissance. Minimal protection, maximum agility.",
         "output": "scout_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 15,
+        "cost": { "metal_ore": 2 },
         "station": "basic_armor_bench"
     },
     "scout_legs": {
         "name": "Scout Pants",
         "description": "Lightweight leg armor for fast movement.",
         "output": "scout_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 10,
+        "cost": { "metal_ore": 2 },
         "station": "basic_armor_bench"
     },
     "scout_feet": {
         "name": "Scout Boots",
         "description": "Soft-soled boots that reduce noise while moving.",
         "output": "scout_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 10,
+        "cost": { "metal_ore": 2 },
         "station": "basic_armor_bench"
     },
+
     "marine_head": {
         "name": "Marine Helmet",
         "description": "Standard-issue combat helmet. Solid protection for front-line soldiers.",
         "output": "marine_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 3 },
         "station": "basic_armor_bench",
         "requires_tech": "combat_armor"
     },
@@ -188,8 +208,8 @@
         "name": "Marine Vest",
         "description": "Ballistic vest standard for infantry. Balances protection and mobility.",
         "output": "marine_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 25,
+        "cost": { "metal_ore": 5 },
         "station": "basic_armor_bench",
         "requires_tech": "combat_armor"
     },
@@ -197,8 +217,8 @@
         "name": "Marine Pants",
         "description": "Reinforced combat trousers. Standard marine issue.",
         "output": "marine_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 3 },
         "station": "basic_armor_bench",
         "requires_tech": "combat_armor"
     },
@@ -206,17 +226,18 @@
         "name": "Marine Boots",
         "description": "Heavy-duty boots built for long patrols.",
         "output": "marine_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 2 },
         "station": "basic_armor_bench",
         "requires_tech": "combat_armor"
     },
+
     "tactical_head": {
         "name": "Tactical Helmet",
         "description": "Advanced helmet with HUD integration and improved optics.",
         "output": "tactical_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 1, "crystal": 2 },
         "station": "basic_armor_bench",
         "requires_tech": "tactical_systems"
     },
@@ -224,8 +245,8 @@
         "name": "Tactical Vest",
         "description": "Modular vest with attachment points for gear and better armor coverage.",
         "output": "tactical_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 25,
+        "cost": { "metal_ore": 2, "crystal": 3 },
         "station": "basic_armor_bench",
         "requires_tech": "tactical_systems"
     },
@@ -233,8 +254,8 @@
         "name": "Tactical Pants",
         "description": "Multi-pocket combat trousers with knee reinforcement.",
         "output": "tactical_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 1, "crystal": 2 },
         "station": "basic_armor_bench",
         "requires_tech": "tactical_systems"
     },
@@ -242,17 +263,18 @@
         "name": "Tactical Boots",
         "description": "Ankle-support boots designed for varied terrain.",
         "output": "tactical_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 20,
+        "cost": { "metal_ore": 1, "crystal": 2 },
         "station": "basic_armor_bench",
         "requires_tech": "tactical_systems"
     },
+
     "heavy_head": {
         "name": "Heavy Helmet",
         "description": "Thick plated helmet offering strong head protection at the cost of visibility.",
         "output": "heavy_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "metal_ore": 5 },
         "station": "basic_armor_bench",
         "requires_tech": "reinforced_plating"
     },
@@ -260,8 +282,8 @@
         "name": "Heavy Vest",
         "description": "Bulky chest armor. High defense, reduces movement speed.",
         "output": "heavy_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 40,
+        "cost": { "metal_ore": 8 },
         "station": "basic_armor_bench",
         "requires_tech": "reinforced_plating"
     },
@@ -269,8 +291,8 @@
         "name": "Heavy Pants",
         "description": "Reinforced leg plates for front-line combat.",
         "output": "heavy_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "metal_ore": 5 },
         "station": "basic_armor_bench",
         "requires_tech": "reinforced_plating"
     },
@@ -278,17 +300,18 @@
         "name": "Heavy Boots",
         "description": "Steel-toed boots that protect against crushing and shrapnel.",
         "output": "heavy_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 25,
+        "cost": { "metal_ore": 3 },
         "station": "basic_armor_bench",
         "requires_tech": "reinforced_plating"
     },
+
     "stealth_head": {
         "name": "Stealth Helmet",
         "description": "Signal-dampening helmet that reduces detection by electronic sensors.",
         "output": "stealth_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "stealth_module"
     },
@@ -296,8 +319,8 @@
         "name": "Stealth Vest",
         "description": "Micro-fiber vest that absorbs radar and reduces thermal signature.",
         "output": "stealth_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 40,
+        "cost": { "crystal": 5 },
         "station": "advanced_armor_bench",
         "requires_tech": "stealth_module"
     },
@@ -305,8 +328,8 @@
         "name": "Stealth Pants",
         "description": "Sound-dampening leg armor for silent infiltration.",
         "output": "stealth_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "stealth_module"
     },
@@ -314,17 +337,18 @@
         "name": "Stealth Boots",
         "description": "Virtually silent boots engineered for covert operations.",
         "output": "stealth_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "stealth_module"
     },
+
     "heat_resistant_head": {
         "name": "Heat Resistant Helmet",
         "description": "Ceramic-lined helmet that insulates against extreme heat.",
         "output": "heat_resistant_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "metal_ore": 2, "crystal": 2 },
         "station": "advanced_armor_bench",
         "requires_tech": "thermal_insulation"
     },
@@ -332,8 +356,8 @@
         "name": "Heat Resistant Vest",
         "description": "Ablative plating that dissipates thermal energy from fire and plasma.",
         "output": "heat_resistant_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 40,
+        "cost": { "metal_ore": 3, "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "thermal_insulation"
     },
@@ -341,8 +365,8 @@
         "name": "Heat Resistant Pants",
         "description": "Insulated leg armor rated for volcanic environments.",
         "output": "heat_resistant_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 30,
+        "cost": { "metal_ore": 2, "crystal": 2 },
         "station": "advanced_armor_bench",
         "requires_tech": "thermal_insulation"
     },
@@ -350,17 +374,18 @@
         "name": "Heat Resistant Boots",
         "description": "Thermally insulated boots for high-temperature zones.",
         "output": "heat_resistant_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 25,
+        "cost": { "metal_ore": 2, "crystal": 1 },
         "station": "advanced_armor_bench",
         "requires_tech": "thermal_insulation"
     },
+
     "super_heavy_head": {
         "name": "Super Heavy Helmet",
         "description": "Maximally armored helmet. Extremely heavy but nearly impenetrable.",
         "output": "super_heavy_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 50,
+        "cost": { "metal_ore": 8 },
         "station": "advanced_armor_bench",
         "requires_tech": "powered_exoskeleton"
     },
@@ -368,8 +393,8 @@
         "name": "Super Heavy Vest",
         "description": "Elite chest armor with powered exoskeleton assistance.",
         "output": "super_heavy_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 60,
+        "cost": { "metal_ore": 12 },
         "station": "advanced_armor_bench",
         "requires_tech": "powered_exoskeleton"
     },
@@ -377,8 +402,8 @@
         "name": "Super Heavy Pants",
         "description": "Full leg encasement for maximum protection in the most dangerous zones.",
         "output": "super_heavy_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 50,
+        "cost": { "metal_ore": 8 },
         "station": "advanced_armor_bench",
         "requires_tech": "powered_exoskeleton"
     },
@@ -386,17 +411,18 @@
         "name": "Super Heavy Boots",
         "description": "Powered boots with embedded armor plating.",
         "output": "super_heavy_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 40,
+        "cost": { "metal_ore": 6 },
         "station": "advanced_armor_bench",
         "requires_tech": "powered_exoskeleton"
     },
+
     "radiation_head": {
         "name": "Radiation Helmet",
         "description": "Lead-lined helmet that shields against radiation exposure.",
         "output": "radiation_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 35,
+        "cost": { "metal_ore": 2, "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "radiation_shielding"
     },
@@ -404,8 +430,8 @@
         "name": "Radiation Vest",
         "description": "Shielded torso armor for navigating irradiated zones.",
         "output": "radiation_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 45,
+        "cost": { "metal_ore": 3, "crystal": 5 },
         "station": "advanced_armor_bench",
         "requires_tech": "radiation_shielding"
     },
@@ -413,8 +439,8 @@
         "name": "Radiation Pants",
         "description": "Radiation-dampening leg armor for extended exposure zones.",
         "output": "radiation_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 35,
+        "cost": { "metal_ore": 2, "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "radiation_shielding"
     },
@@ -422,17 +448,18 @@
         "name": "Radiation Boots",
         "description": "Sealed boots that prevent radioactive material contact.",
         "output": "radiation_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 35,
+        "cost": { "metal_ore": 2, "crystal": 3 },
         "station": "advanced_armor_bench",
         "requires_tech": "radiation_shielding"
     },
+
     "super_radiation_head": {
         "name": "Super Radiation Helmet",
         "description": "Maximum-grade radiation protection with filtered air supply.",
         "output": "super_radiation_head",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 50,
+        "cost": { "metal_ore": 3, "crystal": 6 },
         "station": "advanced_armor_bench",
         "requires_tech": "advanced_radiation_shielding"
     },
@@ -440,8 +467,8 @@
         "name": "Super Radiation Vest",
         "description": "Full-spectrum radiation shielding for extreme reactor environments.",
         "output": "super_radiation_torso",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 60,
+        "cost": { "metal_ore": 4, "crystal": 8 },
         "station": "advanced_armor_bench",
         "requires_tech": "advanced_radiation_shielding"
     },
@@ -449,8 +476,8 @@
         "name": "Super Radiation Pants",
         "description": "Heavy-duty leg shielding rated for the most hazardous radiation levels.",
         "output": "super_radiation_legs",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 50,
+        "cost": { "metal_ore": 3, "crystal": 6 },
         "station": "advanced_armor_bench",
         "requires_tech": "advanced_radiation_shielding"
     },
@@ -458,25 +485,9 @@
         "name": "Super Radiation Boots",
         "description": "Impermeable boots with radiation sensor readout.",
         "output": "super_radiation_feet",
-        "build_time": 1,
-        "cost": {},
+        "build_time": 45,
+        "cost": { "metal_ore": 2, "crystal": 5 },
         "station": "advanced_armor_bench",
         "requires_tech": "advanced_radiation_shielding"
-    },
-    "enviro_helmet": {
-        "name": "Enviro Helmet",
-        "description": "Sealed helmet with oxygen recycler for hostile atmospheres.",
-        "output": "enviro_helmet",
-        "build_time": 1,
-        "cost": {},
-        "station": "basic_armor_bench"
-    },
-    "enviro_boots": {
-        "name": "Enviro Boots",
-        "description": "Sealed boots rated for corrosive and toxic terrain.",
-        "output": "enviro_boots",
-        "build_time": 1,
-        "cost": {},
-        "station": "basic_armor_bench"
     }
 }

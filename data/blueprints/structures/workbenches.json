@@ -1,57 +1,19 @@
 {
-    "bio_printer": {
+    "advanced_armor_bench": {
         "Appearance": {
-            "R": 140,
-            "G": 240,
-            "B": 180,
-            "Resource": "scifi_world",
-            "SpriteX": 168,
-            "SpriteY": 120
-        },
-        "Description": {
-            "Name": "Bio-Printer",
-            "Faction": ""
-        },
-        "CraftingStation": {
-            "StationID": "bio_printer"
-        },
-        "Inanimate": {},
-        "Solid": {}
-    },
-    "basic_workbench": {
-        "Appearance": {
-            "R": 255,
-            "G": 255,
+            "R": 180,
+            "G": 180,
             "B": 255,
             "Resource": "scifi_world",
             "SpriteX": 168,
             "SpriteY": 120
         },
-        "Description": {
-            "Name": "Workbench",
-            "Faction": ""
-        },
         "CraftingStation": {
-            "StationID": "basic_workbench"
-        },
-        "Inanimate": {},
-        "Solid": {}
-    },
-    "gun_bench": {
-        "Appearance": {
-            "R": 255,
-            "G": 220,
-            "B": 180,
-            "Resource": "scifi_world",
-            "SpriteX": 168,
-            "SpriteY": 120
+            "StationID": "advanced_armor_bench"
         },
         "Description": {
-            "Name": "Gun Bench",
+            "Name": "Advanced Armor Bench",
             "Faction": ""
-        },
-        "CraftingStation": {
-            "StationID": "gun_bench"
         },
         "Inanimate": {},
         "Solid": {}
@@ -65,31 +27,89 @@
             "SpriteX": 168,
             "SpriteY": 120
         },
+        "CraftingStation": {
+            "StationID": "basic_armor_bench"
+        },
         "Description": {
             "Name": "Armor Bench",
             "Faction": ""
         },
-        "CraftingStation": {
-            "StationID": "basic_armor_bench"
-        },
         "Inanimate": {},
         "Solid": {}
     },
-    "advanced_armor_bench": {
+    "basic_workbench": {
         "Appearance": {
-            "R": 180,
-            "G": 180,
+            "R": 255,
+            "G": 255,
             "B": 255,
             "Resource": "scifi_world",
             "SpriteX": 168,
             "SpriteY": 120
         },
+        "CraftingStation": {
+            "StationID": "basic_workbench"
+        },
         "Description": {
-            "Name": "Advanced Armor Bench",
+            "Name": "Workbench",
             "Faction": ""
         },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "bio_printer": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 672,
+            "SpriteY": 24
+        },
         "CraftingStation": {
-            "StationID": "advanced_armor_bench"
+            "StationID": "bio_printer"
+        },
+        "Description": {
+            "Name": "Bio-Printer",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "fuel_refiner": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "CraftingStation": {
+            "StationID": "fuel_refiner"
+        },
+        "Description": {
+            "Name": "Fuel Refiner",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "gun_bench": {
+        "Appearance": {
+            "R": 255,
+            "G": 220,
+            "B": 180,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "CraftingStation": {
+            "StationID": "gun_bench"
+        },
+        "Description": {
+            "Name": "Gun Bench",
+            "Faction": ""
         },
         "Inanimate": {},
         "Solid": {}
