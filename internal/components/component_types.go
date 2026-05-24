@@ -29,6 +29,7 @@ const (
 	QuestTarget         ecs.ComponentType = "QuestTarget"
 	Datapad             ecs.ComponentType = "Datapad"
 	Bed                 ecs.ComponentType = "Bed"
+	StatProgression     ecs.ComponentType = "StatProgression"
 )
 
 // Shared component struct aliases from ml-rogue-lib

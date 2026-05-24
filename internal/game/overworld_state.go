@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/storage"
@@ -168,12 +169,20 @@ func colonistDisplayName(se *world.SaveEntity) string {
 }
 
 func entityDisplayName(e *ecs.Entity) string {
-	if e != nil && e.HasComponent(rlcomponents.Description) {
+	if e == nil {
+		return "Colonist"
+	}
+	name := "Colonist"
+	if e.HasComponent(rlcomponents.Description) {
 		if dc, ok := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent); ok && dc.Name != "" {
-			return dc.Name
+			name = dc.Name
 		}
 	}
-	return "Colonist"
+	if e.HasComponent(components.StatProgression) {
+		prog := e.GetComponent(components.StatProgression).(*components.StatProgressionComponent)
+		name += fmt.Sprintf("  [S:%d D:%d I:%d]", prog.Str.Level, prog.Dex.Level, prog.Int.Level)
+	}
+	return name
 }
 
 func (o *OverworldState) fuelAvailable() int {

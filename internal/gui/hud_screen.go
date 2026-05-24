@@ -885,6 +885,15 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	statsLabel.GetStyle().FontSize = &smallSize
 	h.colonistScroll.AddContent(statsLabel)
 
+	if colonist.HasComponent(components.StatProgression) {
+		prog := colonist.GetComponent(components.StatProgression).(*components.StatProgressionComponent)
+		levelStr := fmt.Sprintf("Str Lv.%d  Dex Lv.%d  Int Lv.%d  Con Lv.%d",
+			prog.Str.Level, prog.Dex.Level, prog.Int.Level, prog.Con.Level)
+		levelsLabel := minui.NewLabel("colonistStatLevels", levelStr)
+		levelsLabel.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(levelsLabel)
+	}
+
 	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
 	eqHdr.GetStyle().FontSize = &smallSize
 	h.colonistScroll.AddContent(eqHdr)
@@ -1407,7 +1416,13 @@ func (h *HUDScreen) updateDetailsContent() {
 	}
 	if entity.HasComponent(rlcomponents.Stats) {
 		sc := entity.GetComponent(rlcomponents.Stats).(*rlcomponents.StatsComponent)
-		add(fmt.Sprintf("Str:%d Dex:%d Int:%d AC:%d", sc.Str, sc.Dex, sc.Int, sc.AC))
+		if entity.HasComponent(components.StatProgression) {
+			prog := entity.GetComponent(components.StatProgression).(*components.StatProgressionComponent)
+			add(fmt.Sprintf("Str:%d[%d] Dex:%d[%d] Int:%d[%d] AC:%d",
+				sc.Str, prog.Str.Level, sc.Dex, prog.Dex.Level, sc.Int, prog.Int.Level, sc.AC))
+		} else {
+			add(fmt.Sprintf("Str:%d Dex:%d Int:%d AC:%d", sc.Str, sc.Dex, sc.Int, sc.AC))
+		}
 	}
 	if entity.HasComponent(rlcomponents.AIMemory) {
 		aiMem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)

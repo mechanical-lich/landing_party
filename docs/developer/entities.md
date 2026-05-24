@@ -66,13 +66,41 @@ Each file is a JSON object keyed by blueprint ID; each value is a map of compone
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Str` | int | Strength — affects physical task speed and melee damage |
-| `Int` | int | Intelligence — affects research and crafting speed |
-| `Dex` | int | Dexterity — affects gathering and fine manipulation speed |
-| `AC` | int | Armor class — reduces incoming damage |
+| `Str` | int | Strength — melee damage modifier: `(Str - 10) / 2` added to damage rolls |
+| `Dex` | int | Dexterity — attack accuracy modifier: `(Dex - 10) / 2` added to to-hit rolls |
+| `Int` | int | Intelligence — minimum value required to qualify for high-tier research tasks |
+| `Con` | int | Constitution — no effect currently |
+| `AC` | int | Armor class — the target number attackers must beat to land a hit |
 | `BasicAttackDice` | string | Dice expression for unarmed attacks (e.g. `"1d4"`) |
 
-Stats act as **multipliers on task duration**: higher stat = faster task completion.
+### StatProgression
+
+Tracks per-stat XP and level for colonists. Each stat can gain up to 10 levels; each level-up permanently increments that stat's value by 1. Add to any entity that should benefit from the progression system.
+
+```json
+"StatProgression": {}
+```
+
+Fields are initialized to zero and managed entirely at runtime — no JSON configuration needed.
+
+**XP thresholds**: the XP required to advance from level N to N+1 is `(N+1)² × 100`. For example:
+
+| Level | XP to next |
+|-------|-----------|
+| 0 | 100 |
+| 1 | 400 |
+| 5 | 3600 |
+| 9 | (cap) |
+
+**Task → stat mapping** (from `internal/progression/progression.go`):
+
+| Task action | Stat awarded |
+|-------------|-------------|
+| Dig, Mine, Build | Str |
+| Research, Craft | Int |
+| Pickup, Retrieve | Dex |
+
+To award XP from a new task handler, call `progression.AwardXP(entity, "Str", progression.XPPerTask)` before `CompleteTaskWithMessage`. Con is wired up but no tasks award it yet.
 
 ### Worker
 
@@ -226,7 +254,7 @@ Empty marker component. Makes the entity impassable — other entities cannot mo
 2. Add a new top-level key — this is the **blueprint ID** and must be unique across the entire `data/blueprints/` tree.
 3. Add the required components for your entity type:
    - **Hostile NPC** (`data/blueprints/entities/aliens.json`): `Description`, `Appearance`, `Health`, `Stats`, `FactionAI`, `Initiative`, `AIMemory`, `Solid`
-   - **Colonist** (`data/blueprints/entities/colonists.json`): `Description`, `EquipmentAppearance`, `Health`, `Stats`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
+   - **Colonist** (`data/blueprints/entities/colonists.json`): `Description`, `EquipmentAppearance`, `Health`, `Stats`, `StatProgression`, `Worker`, `Hunger`, `Initiative`, `Light`, `Inventory`, `Solid`
    - **Item** (`data/blueprints/items/*.json`): `Description`, `Appearance`, `Item`, plus `Weapon` / `Armor` / consumable components. No `Solid` — items are walkable.
    - **Interactive Structure** (`data/blueprints/structures/*.json`): `Description`, `Appearance`, `Solid` (usually), plus role components like `CraftingStation`, `StorageContainer`, `Door`, `Light`. Reference the blueprint from `data/build.json` to make it player-buildable.
    - **Plain Tile Build** (no entity needed): just add an entry to `data/build.json` with a tile `type`.

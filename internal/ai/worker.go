@@ -8,6 +8,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
 	"github.com/mechanical-lich/landing_party/internal/crafting"
+	"github.com/mechanical-lich/landing_party/internal/progression"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/research"
@@ -353,6 +354,7 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				Type: buildRequest.Type, Settlement: sc.Name,
 				X: buildRequest.X, Y: buildRequest.Y, Z: buildRequest.Z,
 			})
+			progression.AwardXP(entity, "Str", progression.XPPerTask)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Built "+buildRequest.Type)
 			aiMemory.State = "idle"
 		}
@@ -391,6 +393,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			// was there.
 			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
+			progression.AwardXP(entity, "Str", progression.XPPerTask)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Dug out tile")
 			aiMemory.State = "idle"
 		}
@@ -476,6 +479,7 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			// Layered mine: just remove the Middle. Floor stays.
 			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
+			progression.AwardXP(entity, "Str", progression.XPPerTask)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Mined out deposit")
 			aiMemory.State = "idle"
 		}
@@ -505,6 +509,7 @@ func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		return
 	}
 	PickupItemFromTile(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, pc.GetZ())
+	progression.AwardXP(entity, "Dex", progression.XPPerTask)
 	CompleteTaskWithMessage(entity, wc.CurrentTask, "Fetched item")
 	wc.InteractTicks = 0
 	aiMemory.State = "idle"
@@ -683,6 +688,7 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 	rr.Progress++
 	if rr.Progress >= rr.Required {
 		event.GetQueuedInstance().QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
+		progression.AwardXP(entity, "Int", progression.XPPerTask)
 		if tech, ok := research.GetTech(rr.TechKey); ok {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
 		} else {
@@ -829,6 +835,7 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				inv.AddItem(output)
 			}
 		}
+		progression.AwardXP(entity, "Int", progression.XPPerTask)
 		CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
 		aiMemory.State = "idle"
 	}
@@ -997,6 +1004,7 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 			if e == req.Item {
 				inv.AddItem(e)
 				level.RemoveEntity(e)
+				progression.AwardXP(entity, "Dex", progression.XPPerTask)
 				CompleteTaskWithMessage(entity, wc.CurrentTask, "Retrieved "+e.Blueprint)
 				storage := FindAvailableStorage(level, sc.Name)
 				if storage != nil {

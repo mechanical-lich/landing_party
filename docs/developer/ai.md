@@ -25,13 +25,19 @@ Task progress is stored **on the task object, not the worker**. This means:
 
 - Multiple colonists can work the same task simultaneously and progress accumulates from all contributions.
 - If a colonist is interrupted (hunger, death, reassignment), the progress is not lost.
-- Task duration is modified by the relevant colonist stat: `effective_duration = base_duration / stat_value`.
+
+### Stat Progression
+
+When a task completes, `progression.AwardXP(entity, stat, progression.XPPerTask)` is called in the task handler before `CompleteTaskWithMessage`. This awards 25 XP toward a specific stat (Str, Int, or Dex). Enough accumulated XP levels up that stat, permanently incrementing its value by 1 (capped at +10 per stat).
+
+See `internal/progression/progression.go` for the XP formula and `docs/developer/entities.md` for the task→stat mapping. To hook a new task type into progression, add an `AwardXP` call in the relevant handler in `internal/ai/worker.go`.
 
 ### Adding New Task Types
 
-1. Define the task struct in `internal/settlement/settlement.go`.
-2. Add a handler case in `internal/ai/worker.go` for the new task state.
+1. Define the task action constant in `internal/task_requests/requests.go`.
+2. Add a handler function in `internal/ai/worker.go` and a case for it in `HandleTaskState`.
 3. Wire the task into the settlement's task queue creation logic.
+4. Optionally call `progression.AwardXP` at completion to hook it into the stat progression system.
 
 ---
 

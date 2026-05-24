@@ -6,15 +6,30 @@ Colonists are the workforce of your settlement. They act autonomously, pulling t
 
 ## Stats
 
-Each colonist has three stats that affect how quickly they complete tasks:
+Each colonist has four stats:
 
 | Stat | Abbreviation | Effect |
 |------|-------------|--------|
-| Strength | Str | Speeds up physical tasks: hauling, construction, mining |
-| Intelligence | Int | Speeds up research and crafting tasks |
-| Dexterity | Dex | Speeds up gathering, fine manipulation tasks |
+| Strength | Str | Increases melee damage |
+| Dexterity | Dex | Increases melee and ranged attack accuracy |
+| Intelligence | Int | Required minimum to perform high-tier research tasks |
+| Constitution | Con | Reserved — no effect yet |
 
-Stats act as **multipliers on task duration** — a colonist with high Str will finish a construction job faster than one with low Str.
+---
+
+## Stat Progression
+
+Colonists improve their stats through experience. Each time a colonist completes a task, they earn **25 XP** toward the relevant stat:
+
+| Task | Stat gained |
+|------|------------|
+| Dig, Mine, Build | Strength |
+| Research, Craft | Intelligence |
+| Fetch, Retrieve items | Dexterity |
+
+When a colonist accumulates enough XP, their stat **levels up** — permanently increasing that stat by 1. The XP required to reach each level grows: early levels are quick, later levels take sustained effort. Each stat caps at **10 levels** above its starting value.
+
+Level-ups appear as messages in the event log and are visible in the colonist detail panel (Str Lv.N / Dex Lv.N / Int Lv.N). Constitution is tracked but has no tasks that improve it yet.
 
 ---
 

@@ -136,6 +136,7 @@
             "AC": 10,
             "BasicAttackDice": "1d4"
         },
-        "Worker": {}
+        "Worker": {},
+        "StatProgression": {}
     }
 }

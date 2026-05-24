@@ -6,3 +6,4 @@
 - Go through and balance all the resource costs for building
 - Fix gear items to better match what they are
 - Make it so that some resources "glow" to make it easier to find them.  Kind of like how stairs glow 
+- Make tasks complete faster based on worker stats.
