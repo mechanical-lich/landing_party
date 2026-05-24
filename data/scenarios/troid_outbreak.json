@@ -1,0 +1,58 @@
+{
+  "id": "troid_outbreak",
+  "name": "Troid Outbreak",
+  "description": "A troid colony has taken root beneath the surface. Eggs are hatching and adults are emerging. Clear them out before the infestation spreads.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/troid_outbreak_setup.basic"
+  ],
+  "hostile_max": 120,
+  "supported_maps": [
+    "asteroid",
+    "moon"
+  ],
+  "spawn_rules": {
+    "troid_egg": {
+      "spawn_rate": 40,
+      "light_min": 0,
+      "tiles": [
+        "rock_floor"
+      ],
+      "min_z": 0,
+      "max_z": 3
+    },
+    "troid_hatchling": {
+      "spawn_rate": 50,
+      "light_min": 0,
+      "tiles": [
+        "rock_floor",
+        "regolith"
+      ],
+      "min_z": 0,
+      "max_z": 5
+    },
+    "troid_stage2": {
+      "spawn_rate": 25,
+      "light_min": 0,
+      "tiles": [
+        "rock_floor",
+        "regolith"
+      ],
+      "min_z": 0,
+      "max_z": 5
+    },
+    "troid_stage3": {
+      "spawn_rate": 10,
+      "light_min": 0,
+      "tiles": [
+        "regolith"
+      ],
+      "min_z": 4,
+      "max_z": 5
+    }
+  },
+  "lighting": {
+    "mode": "fixed",
+    "ambient_level": 25
+  }
+}

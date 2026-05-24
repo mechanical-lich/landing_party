@@ -1,0 +1,73 @@
+function on_setup()
+    add_message("Day 1. The crystals pulse with a cold light. The fauna near them has changed.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    carve_room(sx - 4, sy - 5, sz, 9, 7, "bunker_wall", "bunker_floor")
+    spawn_entity_owned("airlock", sx, sy + 1, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 3, sy - 3, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 3, sy - 3, sz, sname)
+
+    # Seed extra crystal clusters well away from the base to mark blight epicenters
+    crystals_spawned = 0
+    for attempt = 1 to 400
+        if crystals_spawned < 6 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 1600 then
+                    spawn_entity("alien_crystal", ox, oy, sz)
+                    spawn_entity("alien_crystal", ox + 1, oy, sz)
+                    spawn_entity("alien_crystal", ox, oy + 1, sz)
+                    crystals_spawned = crystals_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    # Spawn a small pack of mutated critters near the blight zones
+    critters_spawned = 0
+    for attempt = 1 to 300
+        if critters_spawned < 5 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 600 then
+                    spawn_entity("critter", ox, oy, sz)
+                    critters_spawned = critters_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    # One mutant_scout already closing in on the landing zone
+    for attempt = 1 to 200
+        found = find_open_tile(sz)
+        if found = 1 then
+            ox = get_open_x()
+            oy = get_open_y()
+            ddx = ox - sx
+            ddy = oy - sy
+            d2 = ddx * ddx + ddy * ddy
+            if d2 > 400 and d2 < 1200 then
+                spawn_entity("mutant_scout", ox, oy, sz)
+                attempt = 200
+            endif
+        endif
+    next attempt
+
+    add_message(num_to_str(crystals_spawned) + " blight epicenters identified.")
+    set_flag("crystalline_blight_started", 1)
+endfunction

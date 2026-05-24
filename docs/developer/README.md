@@ -10,6 +10,7 @@ Architecture notes, system references, and guides for extending the game.
 - [Crafting](crafting.md) — workbenches, recipes, and items
 - [Research](research.md) — adding technologies to the tech tree
 - [Scenarios](scenarios.md) — scenario configuration, biome maps, spawn rules, and setup scripts
+- [Stamps](stamps.md) — hand-authored multi-tile templates painted during world generation
 - [Biomes](biomes.md) — biome definitions, terrain rules, and biome-specific features
 - [World Generation](world_generation.md) — Z-levels, terrain, and lighting
 - [Structure Scripts](structure_scripts.md) — procedural structure generation via mechanical-basic scripts; quest-target binding

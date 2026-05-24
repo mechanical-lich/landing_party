@@ -26,6 +26,7 @@ type Config struct {
 	DebugDisableLighting   bool   `json:"debugDisableLighting"`
 	DebugDisableLookdown   bool   `json:"debugDisableLookdown"`
 	DebugShowAutotileMask  bool   `json:"debugShowAutotileMask"`
+	DebugShowScenarioID    bool   `json:"debugShowScenarioID"`
 	ProfileCPU             bool   `json:"profileCPU"`
 	ProfileMemory          bool   `json:"profileMemory"`
 	OverrideGCMemoryLimit  int64  `json:"overrideGCMemoryLimit"`

@@ -1,0 +1,102 @@
+# crashed_ufo — a greyish vessel that came down hard. The hull is breached
+# in 2–3 places; a smaller inner cockpit sits at the centre. Crew are
+# scattered across the interior; the commander is in the cockpit and acts
+# as the quest target when the fixture is quest-backed.
+#
+# Recommended footprint: 17×17 or larger.
+function generate(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    # Outer hull radius — fits the footprint with 1-tile clearance.
+    r = w / 2 - 1
+    if h / 2 - 1 < r then
+        r = h / 2 - 1
+    endif
+    if r < 6 then
+        r = 6
+    endif
+
+    # ── Outer hull ────────────────────────────────────────────────────────
+    carve_round_room(cx, cy, sz, r, "hull_wall", "hull_floor")
+
+    # ── Crash breaches — 2 guaranteed, 1 random third ─────────────────────
+    # Breach pairs: opposite walls get hit so the ship looks like it skidded.
+    breach_side = rnd_int(4)
+    if breach_side = 0 then
+        clear_middle(cx,     cy - r, sz)
+        clear_middle(cx + 1, cy - r, sz)
+        clear_middle(cx,     cy + r, sz)
+        clear_middle(cx - 1, cy + r, sz)
+    endif
+    if breach_side = 1 then
+        clear_middle(cx - r, cy,     sz)
+        clear_middle(cx - r, cy + 1, sz)
+        clear_middle(cx + r, cy,     sz)
+        clear_middle(cx + r, cy - 1, sz)
+    endif
+    if breach_side = 2 then
+        clear_middle(cx,     cy - r, sz)
+        clear_middle(cx - 1, cy - r, sz)
+        clear_middle(cx + r, cy,     sz)
+        clear_middle(cx + r, cy + 1, sz)
+    endif
+    if breach_side = 3 then
+        clear_middle(cx - r, cy,     sz)
+        clear_middle(cx - r, cy - 1, sz)
+        clear_middle(cx,     cy + r, sz)
+        clear_middle(cx + 1, cy + r, sz)
+    endif
+
+    # Optional third breach on a random edge.
+    extra = rnd_int(3)
+    if extra = 0 then
+        clear_middle(cx - 1, cy - r, sz)
+    endif
+    if extra = 1 then
+        clear_middle(cx + r, cy + 1, sz)
+    endif
+    if extra = 2 then
+        clear_middle(cx - r, cy - 1, sz)
+    endif
+
+    # ── Inner cockpit ─────────────────────────────────────────────────────
+    cockpit_w = 5
+    cockpit_h = 5
+    cpx = cx - cockpit_w / 2
+    cpy = cy - cockpit_h / 2
+    carve_room(cpx, cpy, sz, cockpit_w, cockpit_h, "hull_wall", "hull_floor")
+
+    # Single doorway into the cockpit — random side.
+    door_side = rnd_int(4)
+    if door_side = 0 then
+        clear_middle(cx, cpy, sz)
+    endif
+    if door_side = 1 then
+        clear_middle(cx, cpy + cockpit_h - 1, sz)
+    endif
+    if door_side = 2 then
+        clear_middle(cpx, cy, sz)
+    endif
+    if door_side = 3 then
+        clear_middle(cpx + cockpit_w - 1, cy, sz)
+    endif
+
+    # ── Loot ──────────────────────────────────────────────────────────────
+    spawn_entity("storage_locker", cpx + 1, cpy + 1, sz)
+
+    # ── Crew — scattered across the outer hull interior ───────────────────
+    spawn_entity("greyish",  cx - 3, cy + 2, sz)
+    spawn_entity("greyish",  cx + 3, cy - 2, sz)
+    spawn_entity("whitish",  cx + 2, cy + 3, sz)
+    spawn_entity("greenish", cx - 2, cy - 3, sz)
+
+    # ── Commander in the cockpit — quest target ────────────────────────────
+    spawn_entity_named("whitish", cx, cy, sz, "Commander")
+    add_epithet(cx, cy, sz)
+    mark_quest_target(cx, cy, sz)
+endfunction

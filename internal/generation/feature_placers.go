@@ -19,6 +19,7 @@ func init() {
 	RegisterFeature("structure", placeStructure)
 	RegisterFeature("scatter_tile", placeScatterTile)
 	RegisterFeature("scatter_entity", placeScatterEntity)
+	RegisterFeature("stamp", placeStamp)
 }
 
 // scatter_entity — sparse single-entity decoration on surface tiles matching
@@ -484,6 +485,44 @@ func placeBotanyBay(level *world.Level, s FeatureSpec) error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// stamp — runs a structure script at a surface location found during generation.
+//
+//	params: script (string, required — name of script in data/scripts/structures/),
+//	        w (int, default 9), h (int, default 7)
+func placeStamp(level *world.Level, s FeatureSpec) error {
+	script := featureParamString(s, "script", "")
+	if script == "" {
+		return errFeature("stamp", "params.script required")
+	}
+	w := featureParamInt(s, "w", 9)
+	h := featureParamInt(s, "h", 7)
+	count := s.Count
+	if count <= 0 {
+		count = 1
+	}
+	placed := 0
+	for attempt := 0; placed < count && attempt < count*20; attempt++ {
+		cx, cy, ok := pickFeatureCenter(level, s)
+		if !ok {
+			break
+		}
+		if !columnMatchesBiome(level, cx, cy, s.Biome) {
+			continue
+		}
+		surfZ := level.GetSurfaceZ(cx, cy)
+		if surfZ < 0 {
+			continue
+		}
+		x := cx - w/2
+		y := cy - h/2
+		if err := runStructure(level, script, x, y, w, h); err != nil {
+			return err
+		}
+		placed++
 	}
 	return nil
 }

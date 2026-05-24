@@ -7,7 +7,7 @@ go 1.25.5
 require (
 	github.com/aquilax/go-perlin v1.1.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.9
-	github.com/mechanical-lich/mechanical-basic v1.1.1
+	github.com/mechanical-lich/mechanical-basic v1.2.0
 	github.com/mechanical-lich/ml-rogue-lib v1.14.2
 	github.com/mechanical-lich/mlge v1.8.0
 	github.com/stretchr/testify v1.11.1

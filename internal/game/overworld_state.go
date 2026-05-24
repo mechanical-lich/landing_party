@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -110,6 +111,7 @@ func (o *OverworldState) refreshLocations() {
 	o.locIDs = o.locIDs[:0]
 	var labels []string
 	sel := o.locList.SelectedIndex
+	cfg := config.Global()
 	for _, loc := range o.campaign.DiscoveredLocations() {
 		o.locIDs = append(o.locIDs, loc.ID)
 		tag := ""
@@ -118,7 +120,13 @@ func (o *OverworldState) refreshLocations() {
 		} else if loc.Visited {
 			tag = "  [established]"
 		}
-		labels = append(labels, fmt.Sprintf("%s (%s) — fuel %d%s", loc.Name, loc.Kind, o.campaign.FuelCost(loc.ID), tag))
+		scenarioName := ""
+		if cfg.DebugShowScenarioID {
+			if s := scenario.ByID(loc.ScenarioID); s != nil {
+				scenarioName = " · " + s.Name
+			}
+		}
+		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s", loc.Name, loc.Kind, scenarioName, o.campaign.FuelCost(loc.ID), tag))
 	}
 	o.locList.SetItems(labels)
 	if sel >= 0 && sel < len(labels) {
@@ -300,7 +308,12 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	mlge_text.Draw(screen, hdr, 16, cx-300, 150, color.RGBA{200, 220, 255, 255})
 
 	if loc := o.selectedLocation(); loc != nil {
-		mlge_text.Draw(screen, loc.Summary, 13, cx-300, 352, color.RGBA{170, 190, 210, 255})
+		mlge_text.Draw(screen, loc.Summary, 13, cx-300, 338, color.RGBA{170, 190, 210, 255})
+		if loc.Visited {
+			if s := scenario.ByID(loc.ScenarioID); s != nil {
+				mlge_text.Draw(screen, s.Name+": "+s.Description, 13, cx-300, 354, color.RGBA{120, 200, 255, 255})
+			}
+		}
 	}
 
 	mlge_text.Draw(screen, "On Ship", 15, cx-300, 372, lbl)

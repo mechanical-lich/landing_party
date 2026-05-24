@@ -77,6 +77,9 @@ var _ state.StateInterface = (*TitleState)(nil)
 
 func NewTitleState() *TitleState {
 	ts := &TitleState{screen: screenMain}
+	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int) error {
+		return RunStructureScript(level, name, x, y, w, h)
+	})
 	_ = scenario.Load("data/scenarios")
 	_ = mapdef.Load("data/maps")
 	_ = generation.LoadBiomes("data/biomes")

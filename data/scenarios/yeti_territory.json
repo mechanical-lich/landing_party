@@ -1,0 +1,45 @@
+{
+  "id": "yeti_territory",
+  "name": "Yeti Territory",
+  "description": "Your landing site sits within the territory of an ancient yeti clan. The elders are extremely territorial and the ancients do not forgive trespassers.",
+  "enabled": true,
+  "setup_scripts": [
+    "data/scripts/scenarios/yeti_territory_setup.basic"
+  ],
+  "hostile_max": 50,
+  "supported_maps": [
+    "earth_like"
+  ],
+  "spawn_rules": {
+    "yeti": {
+      "spawn_rate": 25,
+      "light_min": 0,
+      "tiles": [
+        "ice_floor"
+      ],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "elder_yeti": {
+      "spawn_rate": 8,
+      "light_min": 0,
+      "tiles": [
+        "ice_floor"
+      ],
+      "min_z": 5,
+      "max_z": 5
+    },
+    "ancient_yeti": {
+      "spawn_rate": 2,
+      "light_min": 0,
+      "tiles": [
+        "ice_floor"
+      ],
+      "min_z": 5,
+      "max_z": 5
+    }
+  },
+  "lighting": {
+    "mode": "day_night"
+  }
+}

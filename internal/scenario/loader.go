@@ -58,6 +58,17 @@ func AllEnabled() []Scenario {
 	return enabled
 }
 
+// ByID returns the enabled scenario with the given ID, or nil if not found.
+// Unlike SelectByID this does not change the active scenario.
+func ByID(id string) *Scenario {
+	for i := range enabled {
+		if enabled[i].ID == id {
+			return &enabled[i]
+		}
+	}
+	return nil
+}
+
 // ForMap returns the enabled scenarios that support the given map ID.
 func ForMap(mapID string) []Scenario {
 	var out []Scenario

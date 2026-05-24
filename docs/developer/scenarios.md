@@ -105,7 +105,7 @@ Each entry in `features` has:
 
 | Field | Description |
 |-------|-------------|
-| `kind` | Feature kind. Built-ins include `ore_vein`, `radiation_pocket`, `scatter_entity`. |
+| `kind` | Feature kind. Built-ins: `ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `fauna_spawner`, `derelict_pod`, `botany_bay`, `structure`, `stamp`. |
 | `count` | Number of placements to attempt |
 | `biome` | Optional. Restricts placement to columns whose biome matches this ID. |
 | `params` | Per-kind parameters (e.g. `tile`, `radius`, `blueprint`, `peak`). |

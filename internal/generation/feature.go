@@ -105,6 +105,25 @@ func errFeature(kind, msg string) error {
 	return fmt.Errorf("%s: %s", kind, msg)
 }
 
+// StructureRunnerFunc is the signature of the structure-script dispatcher.
+// Registered by the game package at startup to avoid a circular import.
+type StructureRunnerFunc func(level *world.Level, name string, x, y, w, h int) error
+
+var structureRunner StructureRunnerFunc
+
+// SetStructureRunner registers the function used by the stamp placer to invoke
+// structure scripts. Must be called before world generation begins.
+func SetStructureRunner(fn StructureRunnerFunc) {
+	structureRunner = fn
+}
+
+func runStructure(level *world.Level, name string, x, y, w, h int) error {
+	if structureRunner == nil {
+		return fmt.Errorf("stamp: structure runner not registered")
+	}
+	return structureRunner(level, name, x, y, w, h)
+}
+
 var warnedUnknownTile = map[string]bool{}
 
 // requireTile returns true if the tile name exists in the loaded definitions.

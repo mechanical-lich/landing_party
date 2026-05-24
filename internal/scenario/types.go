@@ -1,5 +1,7 @@
 package scenario
 
+import "github.com/mechanical-lich/landing_party/internal/mapdef"
+
 type SpawnRule struct {
 	SpawnRate         int                `json:"spawn_rate"`
 	LightMin          int                `json:"light_min"`
@@ -30,7 +32,8 @@ type Scenario struct {
 	// SupportedMaps lists the map IDs (data/maps/*.json) this scenario can run
 	// on. Empty means "any map". Terrain generation is driven by the chosen
 	// map, not by the scenario.
-	SupportedMaps []string `json:"supported_maps,omitempty"`
+	SupportedMaps []string             `json:"supported_maps,omitempty"`
+	Features      []mapdef.FeatureBlock `json:"features,omitempty"`
 }
 
 // SupportsMap reports whether this scenario can run on the given map ID. An

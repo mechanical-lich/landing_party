@@ -454,6 +454,15 @@ func (s *MainState) newGame() {
 				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
 			})
 		}
+		if activeScenario != nil {
+			for _, fb := range activeScenario.Features {
+				opts.Features = append(opts.Features, generation.FeatureSpec{
+					Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+					InRegion: fb.InRegion, Jitter: fb.Jitter,
+					MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
+				})
+			}
+		}
 		level, err := generation.BuildWorld(opts)
 		if err != nil {
 			log.Printf("BuildWorld: %v (falling back to legacy planet)", err)
