@@ -4,6 +4,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/ai"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/emotes"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -52,6 +53,9 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 	// Self-defense: counter-attack whoever just hit this worker, then return.
 	if wc := entity.GetComponent(components.Worker); wc != nil {
 		workerC := wc.(*components.WorkerComponent)
+		if aiMemory.Attacked {
+			emotes.Set(entity, emotes.Exclamation, 3, 3)
+		}
 		if workerC.SelfDefend && aiMemory.Attacked {
 			selfPC := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 			attacker := level.GetSolidEntityAt(aiMemory.AttackerX, aiMemory.AttackerY, selfPC.GetZ())
