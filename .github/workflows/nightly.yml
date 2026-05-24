@@ -81,7 +81,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 1
-        run: go build -ldflags="-s -w" -o dist/landing-party${{ matrix.suffix }} ./cmd/game
+        run: go build -ldflags="-s -w -X github.com/mechanical-lich/landing_party/internal/buildinfo.Version=${{ needs.check.outputs.tag }}" -o dist/landing-party${{ matrix.suffix }} ./cmd/game
 
       - name: Stage release archive
         shell: bash

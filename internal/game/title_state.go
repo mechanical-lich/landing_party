@@ -10,6 +10,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/buildinfo"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/generation"
@@ -443,6 +444,9 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	if ts.errMsg != "" {
 		mlge_text.Draw(screen, ts.errMsg, 13, cfg.ScreenWidth/2-200, cfg.ScreenHeight-60, color.RGBA{220, 80, 80, 255})
 	}
+
+	ver := buildinfo.Version
+	mlge_text.Draw(screen, ver, 11, cfg.ScreenWidth-len(ver)*7-8, cfg.ScreenHeight-20, color.RGBA{80, 100, 120, 200})
 
 	// Flush any overlays queued by widgets (e.g. open SelectBox dropdowns).
 	minui.FlushOverlays(screen)

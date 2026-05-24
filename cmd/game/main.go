@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 
+	"github.com/mechanical-lich/landing_party/internal/buildinfo"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/game"
@@ -32,6 +33,7 @@ func chdirToExecutableIfBundled() {
 }
 
 func main() {
+	log.Print("Version: ", buildinfo.Version)
 	chdirToExecutableIfBundled()
 
 	cfg := config.Global()
