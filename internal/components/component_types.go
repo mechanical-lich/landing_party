@@ -31,6 +31,7 @@ const (
 	Bed                 ecs.ComponentType = "Bed"
 	StatProgression     ecs.ComponentType = "StatProgression"
 	Needs               ecs.ComponentType = "Needs"
+	Emote               ecs.ComponentType = "Emote"
 )
 
 // Shared component struct aliases from ml-rogue-lib

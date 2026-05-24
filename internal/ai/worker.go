@@ -7,10 +7,11 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
+	"github.com/mechanical-lich/landing_party/internal/emotes"
 	"github.com/mechanical-lich/landing_party/internal/crafting"
-	"github.com/mechanical-lich/landing_party/internal/progression"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/progression"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/storage"
@@ -747,6 +748,9 @@ func handleSleepTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 
 	sr.Progress++
+	if sr.OnBed {
+		emotes.Set(entity, emotes.Sleeps, 2, 2)
+	}
 	if sr.Progress < sr.Required {
 		return
 	}
@@ -786,6 +790,7 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	}
 
 	pr.Progress++
+	emotes.Set(entity, emotes.Sleeps, 2, 2)
 	if pr.Progress < pr.Required {
 		return
 	}

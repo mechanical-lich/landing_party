@@ -167,7 +167,10 @@ func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, ti
 		drawEntity(screen, p.entity, p.tX, p.tY, p.worldX, p.worldY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 
-	// Third pass: shadow pass — entities at Z+1 cast an elliptical shadow on
+	// Third pass: emote bubbles above entities.
+	DrawEmotes(screen, pendingEntities, tileSizeW, tileSizeH)
+
+	// Fourth pass: shadow pass — entities at Z+1 cast an elliptical shadow on
 	// the current camera level. Only drawn where there is no ceiling (floor at
 	// aboveZ) and the tile below is currently visible.
 	aboveZ := cameraZ + 1

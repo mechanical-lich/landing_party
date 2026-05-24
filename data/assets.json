@@ -15,6 +15,6 @@
     "fx_scifi_lg": "assets/fx/oryx_16bit_scifi_FX_lg.png",
     "rock_blob47": "assets/tilesets/autotile_source/rock.png",
     "dirt_blob47": "assets/tilesets/autotile_source/dirt.png",
-    "ice_blob47": "assets/tilesets/autotile_source/ice.png"
-
+    "ice_blob47": "assets/tilesets/autotile_source/ice.png",
+    "emotes": "assets/emotes/emotes.png"
 }

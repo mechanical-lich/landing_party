@@ -54,4 +54,5 @@ func registerComponents() {
 	jsonFactory.RegisterComponent("Bed", func() ecs.Component { return &components.BedComponent{} })
 	jsonFactory.RegisterComponent("StatProgression", func() ecs.Component { return &components.StatProgressionComponent{} })
 	jsonFactory.RegisterComponent("Needs", func() ecs.Component { return &components.NeedsComponent{} })
+	jsonFactory.RegisterComponent("Emote", func() ecs.Component { return &components.EmoteComponent{} })
 }

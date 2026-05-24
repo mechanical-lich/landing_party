@@ -138,6 +138,7 @@
             "HungerThreshold": 70,
             "StarveThreshold": 90,
             "HungerRate": 20
-        }
+        },
+        "Emote": {}
     }
 }

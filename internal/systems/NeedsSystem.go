@@ -4,6 +4,7 @@ import (
 	"math/rand"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/emotes"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -79,6 +80,7 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 		wc.CurrentTask.ReQueue()
 		wc.CurrentTask = nil
 		aiMemory.State = "idle"
+		emotes.Set(entity, emotes.Swirl, 10, 1)
 	}
 
 	// --- Idle food-seeking ---
@@ -104,6 +106,7 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
+			emotes.Set(entity, emotes.Sleep, 5, 1)
 		}
 	}
 
@@ -145,6 +148,7 @@ func assignRestTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		t.Start()
 		wc.CurrentTask = t
 		aiMemory.State = "task"
+		emotes.Set(entity, emotes.Sleep, 5, 2)
 		return
 	}
 
