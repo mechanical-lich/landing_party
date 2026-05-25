@@ -8,7 +8,8 @@
   ],
   "hostile_max": 50,
   "supported_maps": [
-    "earth_like"
+    "earth_like",
+    "frozen_planet"
   ],
   "spawn_rules": {
     "yeti": {

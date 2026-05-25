@@ -1,7 +1,6 @@
 [
     {
         "name": "blue_wires",
-        "solid": false,
         "autoTile": 2,
         "variants": [
             {
@@ -89,7 +88,6 @@
     },
     {
         "name": "red_wires",
-        "solid": false,
         "autoTile": 2,
         "variants": [
             {

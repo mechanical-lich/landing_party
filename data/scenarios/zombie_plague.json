@@ -11,20 +11,23 @@
     "earth_like",
     "moon",
     "asteroid",
-    "alien"
+    "alien",
+    "desert_planet",
+    "frozen_planet",
+    "ocean_planet"
   ],
   "spawn_rules": {
     "zombie": {
       "spawn_rate": 60,
       "light_min": 0,
-      "tiles": ["grass", "regolith", "ice_floor"],
+      "tiles": ["grass", "alien_ground", "regolith", "sand", "ice_floor"],
       "min_z": 5,
       "max_z": 5
     },
     "rage_zombie": {
       "spawn_rate": 35,
       "light_min": 0,
-      "tiles": ["regolith"],
+      "tiles": ["regolith", "sand"],
       "min_z": 4,
       "max_z": 5
     },
@@ -38,28 +41,28 @@
     "headless_zombie": {
       "spawn_rate": 25,
       "light_min": 0,
-      "tiles": ["grass", "regolith", "rock_floor"],
+      "tiles": ["grass", "alien_ground", "regolith", "sand", "rock_floor"],
       "min_z": 0,
       "max_z": 5
     },
     "martial_zombie": {
       "spawn_rate": 20,
       "light_min": 0,
-      "tiles": ["grass", "regolith", "ice_floor"],
+      "tiles": ["grass", "alien_ground", "regolith", "sand", "ice_floor"],
       "min_z": 5,
       "max_z": 5
     },
     "noble_zombie": {
       "spawn_rate": 15,
       "light_min": 0,
-      "tiles": ["grass", "regolith"],
+      "tiles": ["grass", "alien_ground", "regolith", "sand"],
       "min_z": 5,
       "max_z": 5
     },
     "elite_zombie": {
       "spawn_rate": 10,
       "light_min": 0,
-      "tiles": ["grass", "regolith", "ice_floor"],
+      "tiles": ["grass", "alien_ground", "regolith", "sand", "ice_floor"],
       "min_z": 5,
       "max_z": 5
     },
@@ -73,7 +76,7 @@
     "rage_elite_zombie": {
       "spawn_rate": 8,
       "light_min": 0,
-      "tiles": ["regolith"],
+      "tiles": ["regolith", "sand"],
       "min_z": 4,
       "max_z": 5
     },
@@ -87,7 +90,7 @@
     "rage_headless_zombie": {
       "spawn_rate": 8,
       "light_min": 0,
-      "tiles": ["regolith", "rock_floor"],
+      "tiles": ["regolith", "sand", "rock_floor"],
       "min_z": 0,
       "max_z": 5
     },
@@ -101,7 +104,7 @@
     "rage_noble_zombie": {
       "spawn_rate": 5,
       "light_min": 0,
-      "tiles": ["regolith"],
+      "tiles": ["regolith", "sand"],
       "min_z": 4,
       "max_z": 5
     },
@@ -115,7 +118,7 @@
     "rage_martial_zombie": {
       "spawn_rate": 5,
       "light_min": 0,
-      "tiles": ["regolith"],
+      "tiles": ["regolith", "sand"],
       "min_z": 4,
       "max_z": 5
     }

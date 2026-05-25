@@ -11,7 +11,10 @@
     "moon",
     "earth_like",
     "alien",
-    "asteroid"
+    "asteroid",
+    "desert_planet",
+    "frozen_planet",
+    "ocean_planet"
   ],
   "features": [
     { "kind": "stamp", "count": 1, "params": { "script": "crashed_ufo", "w": 17, "h": 17 } }
@@ -20,21 +23,21 @@
     "greyish": {
       "spawn_rate": 25,
       "light_min": 0,
-      "tiles": ["regolith", "grass", "ice_floor"],
+      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
       "min_z": 5,
       "max_z": 5
     },
     "whitish": {
       "spawn_rate": 15,
       "light_min": 0,
-      "tiles": ["regolith", "grass", "ice_floor"],
+      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
       "min_z": 5,
       "max_z": 5
     },
     "greenish": {
       "spawn_rate": 10,
       "light_min": 0,
-      "tiles": ["regolith", "grass", "ice_floor"],
+      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
       "min_z": 5,
       "max_z": 5,
       "starting_equipment": {

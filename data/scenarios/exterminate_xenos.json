@@ -12,7 +12,10 @@
     "alien",
     "moon",
     "asteroid",
-    "abandoned_station"
+    "abandoned_station",
+    "desert_planet",
+    "frozen_planet",
+    "ocean_planet"
   ],
   "spawn_rules": {},
   "lighting": {

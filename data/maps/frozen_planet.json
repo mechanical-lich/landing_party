@@ -1,0 +1,18 @@
+{
+    "id": "frozen_planet",
+    "name": "Frozen World",
+    "description": "A world locked in ice, where frozen tundra stretches to every horizon and blizzards scour the surface.",
+    "terrain": "planet",
+    "biome_map": {
+        "type": "perlin_temp_humidity",
+        "scale": 80,
+        "biomes": ["tundra"]
+    },
+    "features": [
+        { "kind": "ore_vein",         "count": 30, "params": { "tile": "ore_deposit", "radius": 3 } },
+        { "kind": "ore_vein",         "count": 10, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "lava_lake",        "count": 20, "params": { "tile": "ice", "radius": 4 } },
+        { "kind": "lava_lake",        "count": 6,  "params": { "tile": "ice", "radius": 8 } },
+        { "kind": "radiation_pocket", "count": 3,  "params": { "peak": 100, "radius": 3 } }
+    ]
+}

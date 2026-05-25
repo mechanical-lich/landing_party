@@ -12,7 +12,10 @@
     "alien",
     "moon",
     "asteroid",
-    "abandoned_station"
+    "abandoned_station",
+    "desert_planet",
+    "frozen_planet",
+    "ocean_planet"
   ],
   "spawn_rules": {
     "enforcer": {
@@ -30,11 +33,13 @@
       "light_min": 0,
       "tiles": [
         "grass",
+        "alien_ground",
         "dirt_floor",
         "regolith",
-        "alien_ground",
+        "sand",
         "hull_floor",
-        "rock_floor"
+        "rock_floor",
+        "ice_floor"
       ],
       "min_z": 0,
       "max_z": 6

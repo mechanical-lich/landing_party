@@ -55,6 +55,33 @@
       "scenarios": ["abandoned_station", "grey_contact", "exterminate_xenos", "autonz_incursion"],
       "tags": ["salvage"],
       "summary": "A long-dead orbital station, dark and silent."
+    },
+    {
+      "id": "scorched",
+      "kind": "planet",
+      "weight": 2,
+      "maps": ["desert_planet"],
+      "scenarios": ["crashed_ufo", "zombie_plague", "exterminate_xenos", "autonz_incursion", "troid_outbreak"],
+      "tags": ["ore", "radioactive", "hostile"],
+      "summary": "A scorched desert world baked by its sun. Resources exist but the heat is punishing."
+    },
+    {
+      "id": "frozen",
+      "kind": "planet",
+      "weight": 2,
+      "maps": ["frozen_planet"],
+      "scenarios": ["yeti_territory", "crashed_ufo", "zombie_plague", "autonz_incursion", "troid_outbreak"],
+      "tags": ["ore", "biomass"],
+      "summary": "A world locked in ice. Ancient things stir beneath the frozen surface."
+    },
+    {
+      "id": "ocean",
+      "kind": "planet",
+      "weight": 2,
+      "maps": ["ocean_planet"],
+      "scenarios": ["crashed_ufo", "alien_world", "exterminate_xenos", "autonz_incursion", "zombie_plague"],
+      "tags": ["biomass", "hostile", "radioactive"],
+      "summary": "A volcanic ocean world. Small islands rise from the sea, wreathed in lava and strange life."
     }
   ],
   "home": {

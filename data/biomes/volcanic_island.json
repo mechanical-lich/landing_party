@@ -1,0 +1,15 @@
+{
+  "id": "volcanic_island",
+  "temp_range": [0.7, 1.0],
+  "humidity_range": [0.0, 0.3],
+  "rules": [
+    { "kind": "surface",     "tile": "rock_floor" },
+    { "kind": "subsurface",  "tile": "rock" },
+    { "kind": "underground", "tile": "rock" },
+    { "kind": "cavern",      "tile": "air" },
+    { "kind": "atmosphere",  "tile": "air" },
+    { "kind": "space",       "tile": "space" },
+    { "kind": "bedrock",     "tile": "bedrock" }
+  ],
+  "features": []
+}

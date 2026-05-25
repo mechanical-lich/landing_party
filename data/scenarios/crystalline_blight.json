@@ -20,6 +20,7 @@
       "light_min": 0,
       "tiles": [
         "grass",
+        "alien_ground",
         "regolith"
       ],
       "min_z": 5,
@@ -29,7 +30,8 @@
       "spawn_rate": 40,
       "light_min": 0,
       "tiles": [
-        "grass"
+        "grass",
+        "alien_ground"
       ],
       "min_z": 5,
       "max_z": 5
@@ -48,6 +50,7 @@
       "light_min": 0,
       "tiles": [
         "grass",
+        "alien_ground",
         "regolith"
       ],
       "min_z": 5,

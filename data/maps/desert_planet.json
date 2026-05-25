@@ -1,0 +1,18 @@
+{
+    "id": "desert_planet",
+    "name": "Desert World",
+    "description": "A scorched, windswept world of endless dunes and volcanic heat vents.",
+    "terrain": "planet",
+    "biome_map": {
+        "type": "perlin_temp_humidity",
+        "scale": 80,
+        "biomes": ["desert"]
+    },
+    "features": [
+        { "kind": "ore_vein",          "count": 30, "params": { "tile": "ore_deposit", "radius": 3 } },
+        { "kind": "ore_vein",          "count": 10, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "lava_lake",         "count": 12, "params": { "tile": "lava", "radius": 3 } },
+        { "kind": "lava_lake",         "count": 4,  "params": { "tile": "lava", "radius": 6 } },
+        { "kind": "radiation_pocket",  "count": 6,  "params": { "peak": 160, "radius": 4 } }
+    ]
+}

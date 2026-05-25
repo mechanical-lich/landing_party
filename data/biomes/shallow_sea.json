@@ -1,0 +1,15 @@
+{
+  "id": "shallow_sea",
+  "temp_range": [0.2, 0.8],
+  "humidity_range": [0.5, 1.0],
+  "rules": [
+    { "kind": "surface",     "tile": "water" },
+    { "kind": "subsurface",  "tile": "rock" },
+    { "kind": "underground", "tile": "rock" },
+    { "kind": "cavern",      "tile": "air" },
+    { "kind": "atmosphere",  "tile": "air" },
+    { "kind": "space",       "tile": "space" },
+    { "kind": "bedrock",     "tile": "bedrock" }
+  ],
+  "features": []
+}

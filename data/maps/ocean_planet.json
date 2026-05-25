@@ -1,0 +1,17 @@
+{
+    "id": "ocean_planet",
+    "name": "Ocean World",
+    "description": "A world of deep seas and volcanic island chains. Land is scarce, lava flows into the surf, and strange things move beneath the waves.",
+    "terrain": "planet",
+    "biome_map": {
+        "type": "perlin_temp_humidity",
+        "scale": 35,
+        "biomes": ["volcanic_island", "shallow_sea"]
+    },
+    "features": [
+        { "kind": "ore_vein",  "count": 20, "biome": "volcanic_island", "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "lava_lake", "count": 20, "biome": "volcanic_island", "params": { "tile": "lava", "radius": 3 } },
+        { "kind": "lava_lake", "count": 6,  "biome": "volcanic_island", "params": { "tile": "lava", "radius": 5 } },
+        { "kind": "radiation_pocket", "count": 4, "biome": "volcanic_island", "params": { "peak": 140, "radius": 3 } }
+    ]
+}

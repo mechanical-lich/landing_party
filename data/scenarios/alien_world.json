@@ -8,7 +8,8 @@
   ],
   "hostile_max": 200,
   "supported_maps": [
-    "alien"
+    "alien",
+    "ocean_planet"
   ],
   "spawn_rules": {
     "mutant_grunt": {
@@ -16,7 +17,9 @@
       "light_min": 0,
       "tiles": [
         "grass",
-        "regolith"
+        "alien_ground",
+        "regolith",
+        "rock_floor"
       ],
       "min_z": 5,
       "max_z": 5,
@@ -30,7 +33,9 @@
       "light_min": 0,
       "tiles": [
         "grass",
-        "regolith"
+        "alien_ground",
+        "regolith",
+        "rock_floor"
       ],
       "min_z": 5,
       "max_z": 5

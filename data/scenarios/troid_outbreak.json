@@ -9,7 +9,10 @@
   "hostile_max": 120,
   "supported_maps": [
     "asteroid",
-    "moon"
+    "moon",
+    "desert_planet",
+    "frozen_planet",
+    "ocean_planet"
   ],
   "spawn_rules": {
     "troid_egg": {
@@ -26,7 +29,9 @@
       "light_min": 0,
       "tiles": [
         "rock_floor",
-        "regolith"
+        "regolith",
+        "sand",
+        "ice_floor"
       ],
       "min_z": 0,
       "max_z": 5
@@ -36,7 +41,9 @@
       "light_min": 0,
       "tiles": [
         "rock_floor",
-        "regolith"
+        "regolith",
+        "sand",
+        "ice_floor"
       ],
       "min_z": 0,
       "max_z": 5
@@ -45,7 +52,9 @@
       "spawn_rate": 10,
       "light_min": 0,
       "tiles": [
-        "regolith"
+        "regolith",
+        "sand",
+        "ice_floor"
       ],
       "min_z": 4,
       "max_z": 5

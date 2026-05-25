@@ -22,6 +22,38 @@
         "resource": "scifi_world"
     },
     {
+        "name": "sand",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 672,
+                "spriteY": 696
+            },
+            {
+                "variant": 1,
+                "spriteX": 696,
+                "spriteY": 696
+            },
+            {
+                "variant": 2,
+                "spriteX": 672,
+                "spriteY": 696
+            },
+            {
+                "variant": 3,
+                "spriteX": 696,
+                "spriteY": 744
+            },
+            {
+                "variant": 4,
+                "spriteX": 672,
+                "spriteY": 744
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
         "name": "rock_old",
         "layer": "middle",
         "solid": true,
@@ -671,6 +703,23 @@
                 "variant": 1,
                 "spriteX": 696,
                 "spriteY": 792
+            }
+        ],
+        "resource": "fantasy_world"
+    },
+    {
+        "name": "alien_ground",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 696,
+                "spriteY": 504
+            },
+            {
+                "variant": 1,
+                "spriteX": 672,
+                "spriteY": 504
             }
         ],
         "resource": "fantasy_world"
