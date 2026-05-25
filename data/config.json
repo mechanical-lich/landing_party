@@ -18,6 +18,7 @@
     "debugDisableLighting": false,
     "debugDisableLookdown": false,
     "debugShowAutotileMask": false,
+    "debugShowScenarioID": false,
     "profileCPU": false,
     "profileMemory": false,
     "rogueKeyRepeatDelay": 20,

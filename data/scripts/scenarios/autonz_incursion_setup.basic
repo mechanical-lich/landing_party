@@ -1,0 +1,32 @@
+function on_setup()
+    add_message("Day 1. Autonz signals detected across the surface. They're already spreading.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    spawn_entity_owned("storage_locker", sx - 1, sy, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 1, sy, sz, sname)
+
+    # Seed a handful of wire placers at distance from the colony so they
+    # arrive rather than starting on top of the colonists.
+    placers_spawned = 0
+    for attempt = 1 to 400
+        if placers_spawned < 6 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                d = dist(sx, sy, ox, oy)
+                if d > 30 then
+                    spawn_entity("wire_placer", ox, oy, sz)
+                    placers_spawned = placers_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    set_flag("autonz_started", 1)
+endfunction

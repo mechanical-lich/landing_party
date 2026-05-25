@@ -296,7 +296,11 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	// Middle slots are skipped — they're vision markers, not visuals, and
 	// painting them clobbers tiles drawn through them by the z-lookdown.
 	if !tile.Floor.IsEmpty() {
-		drawSlot(screen, level, tile, tile.Floor, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+		floorSlot := tile.Floor
+		if TileDefinitions[floorSlot.Type].AutoTile > 0 && level != nil {
+			floorSlot.Variant = resolveFloorAutotileVariant(level, tile)
+		}
+		drawSlot(screen, level, tile, floorSlot, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 	// Air middles are always skipped — they're vision markers only.
 	// Space middles are skipped only when the tile has a floor beneath them
@@ -311,6 +315,38 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 	if !tile.Ceiling.IsEmpty() {
 		drawSlot(screen, level, tile, tile.Ceiling, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
+}
+
+// resolveFloorAutotileVariant computes an AutoTileBitmask variant index by
+// checking which cardinal neighbors share the same floor tile type.
+// top=1, bottom=2, left=4, right=8 — matches the Middle-slot bitmask convention.
+func resolveFloorAutotileVariant(level *Level, tile *Tile) int {
+	x, y, z := tile.Coords()
+	tileType := tile.Floor.Type
+	same := func(nx, ny int) bool {
+		n := level.GetTilePtr(nx, ny, z)
+		return n != nil && !n.Floor.IsEmpty() && n.Floor.Type == tileType
+	}
+	idx := 0
+	if same(x, y-1) {
+		idx |= 1
+	}
+	if same(x, y+1) {
+		idx |= 2
+	}
+	if same(x-1, y) {
+		idx |= 4
+	}
+	if same(x+1, y) {
+		idx |= 8
+	}
+	def := TileDefinitions[tileType]
+	for i := range def.Variants {
+		if def.Variants[i].Variant == idx {
+			return i
+		}
+	}
+	return 0
 }
 
 // drawSlot renders one slot of a tile. autotileEligible is true only for the

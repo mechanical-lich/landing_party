@@ -1,0 +1,178 @@
+[
+    {
+        "name": "blue_wires",
+        "solid": false,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 120,
+                "spriteY": 768
+            },
+            {
+                "variant": 1,
+                "spriteX": 264,
+                "spriteY": 768
+            },
+            {
+                "variant": 2,
+                "spriteX": 216,
+                "spriteY": 768
+            },
+            {
+                "variant": 3,
+                "spriteX": 240,
+                "spriteY": 768
+            },
+            {
+                "variant": 4,
+                "spriteX": 192,
+                "spriteY": 768
+            },
+            {
+                "variant": 5,
+                "spriteX": 360,
+                "spriteY": 768
+            },
+            {
+                "variant": 6,
+                "spriteX": 312,
+                "spriteY": 768
+            },
+            {
+                "variant": 7,
+                "spriteX": 432,
+                "spriteY": 768
+            },
+            {
+                "variant": 8,
+                "spriteX": 144,
+                "spriteY": 768
+            },
+            {
+                "variant": 9,
+                "spriteX": 336,
+                "spriteY": 768
+            },
+            {
+                "variant": 10,
+                "spriteX": 288,
+                "spriteY": 768
+            },
+            {
+                "variant": 11,
+                "spriteX": 456,
+                "spriteY": 768
+            },
+            {
+                "variant": 12,
+                "spriteX": 168,
+                "spriteY": 768
+            },
+            {
+                "variant": 13,
+                "spriteX": 480,
+                "spriteY": 768
+            },
+            {
+                "variant": 14,
+                "spriteX": 408,
+                "spriteY": 768
+            },
+            {
+                "variant": 15,
+                "spriteX": 384,
+                "spriteY": 768
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "red_wires",
+        "solid": false,
+        "autoTile": 2,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 120,
+                "spriteY": 792
+            },
+            {
+                "variant": 1,
+                "spriteX": 264,
+                "spriteY": 792
+            },
+            {
+                "variant": 2,
+                "spriteX": 216,
+                "spriteY": 792
+            },
+            {
+                "variant": 3,
+                "spriteX": 240,
+                "spriteY": 792
+            },
+            {
+                "variant": 4,
+                "spriteX": 192,
+                "spriteY": 792
+            },
+            {
+                "variant": 5,
+                "spriteX": 360,
+                "spriteY": 792
+            },
+            {
+                "variant": 6,
+                "spriteX": 312,
+                "spriteY": 792
+            },
+            {
+                "variant": 7,
+                "spriteX": 432,
+                "spriteY": 792
+            },
+            {
+                "variant": 8,
+                "spriteX": 144,
+                "spriteY": 792
+            },
+            {
+                "variant": 9,
+                "spriteX": 336,
+                "spriteY": 792
+            },
+            {
+                "variant": 10,
+                "spriteX": 288,
+                "spriteY": 792
+            },
+            {
+                "variant": 11,
+                "spriteX": 456,
+                "spriteY": 792
+            },
+            {
+                "variant": 12,
+                "spriteX": 168,
+                "spriteY": 792
+            },
+            {
+                "variant": 13,
+                "spriteX": 480,
+                "spriteY": 792
+            },
+            {
+                "variant": 14,
+                "spriteX": 408,
+                "spriteY": 792
+            },
+            {
+                "variant": 15,
+                "spriteX": 384,
+                "spriteY": 792
+            }
+        ],
+        "resource": "scifi_world"
+    }
+]

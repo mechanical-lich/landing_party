@@ -416,6 +416,14 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return float64(rand.Intn(n)), nil
 	})
+	interp.RegisterFunc("dist", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return float64(0), nil
+		}
+		dx := toSetupFloat(args[0]) - toSetupFloat(args[2])
+		dy := toSetupFloat(args[1]) - toSetupFloat(args[3])
+		return math.Sqrt(dx*dx + dy*dy), nil
+	})
 
 	// set_radiation(x, y, z, level) — set a single tile's radiation (0..255).
 	interp.RegisterFunc("set_radiation", func(args ...any) (any, error) {

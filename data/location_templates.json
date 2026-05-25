@@ -6,7 +6,7 @@
       "weight": 3,
       "start_ok": true,
       "maps": ["earth_like"],
-      "scenarios": ["earth_like", "yeti_territory", "crashed_ufo"],
+      "scenarios": ["earth_like", "yeti_territory", "crashed_ufo", "zombie_plague", "exterminate_xenos", "autonz_incursion"],
       "tags": ["biomass", "ore"],
       "summary": "A temperate world: breathable air, scattered ore, abundant biomass."
     },
@@ -16,7 +16,7 @@
       "weight": 2,
       "start_ok": true,
       "maps": ["alien"],
-      "scenarios": ["alien_world", "crystalline_blight", "crashed_ufo"],
+      "scenarios": ["alien_world", "crystalline_blight", "crashed_ufo", "zombie_plague", "exterminate_xenos", "autonz_incursion"],
       "tags": ["biomass", "hostile"],
       "summary": "An alien biosphere — strange flora and restless fauna."
     },
@@ -25,7 +25,7 @@
       "kind": "moon",
       "weight": 2,
       "maps": ["moon"],
-      "scenarios": ["moon", "troid_outbreak", "crashed_ufo"],
+      "scenarios": ["moon", "troid_outbreak", "crashed_ufo", "zombie_plague", "exterminate_xenos", "autonz_incursion"],
       "tags": ["ore", "radioactive"],
       "summary": "A barren, irradiated moon. Resources lie beneath the regolith."
     },
@@ -34,7 +34,7 @@
       "kind": "asteroid_field",
       "weight": 2,
       "maps": ["asteroid"],
-      "scenarios": ["asteroid_field", "troid_outbreak", "crashed_ufo"],
+      "scenarios": ["asteroid_field", "troid_outbreak", "crashed_ufo", "zombie_plague", "exterminate_xenos", "autonz_incursion"],
       "tags": ["ore"],
       "summary": "A slow-tumbling belt, dense with metal-rich rock."
     },
@@ -52,7 +52,7 @@
       "kind": "station",
       "weight": 1,
       "maps": ["abandoned_station"],
-      "scenarios": ["abandoned_station", "grey_contact"],
+      "scenarios": ["abandoned_station", "grey_contact", "exterminate_xenos", "autonz_incursion"],
       "tags": ["salvage"],
       "summary": "A long-dead orbital station, dark and silent."
     }

@@ -50,7 +50,19 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 	type chunk struct{ z, xStart, xEnd int }
 
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	chunkChan := make(chan chunk, 32)
+
+	safePaintKind := func(x, y, z int, k world.TerrainKind) {
+		mu.Lock()
+		paintKind(level, x, y, z, k)
+		mu.Unlock()
+	}
+	safeSetSurfaceZ := func(x, y, z int) {
+		mu.Lock()
+		level.SetSurfaceZ(x, y, z)
+		mu.Unlock()
+	}
 
 	worker := func() {
 		for c := range chunkChan {
@@ -62,40 +74,40 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 
 					switch {
 					case c.z >= cfg.SpaceZ:
-						paintKind(level, x, y, c.z, world.TKSpace)
+						safePaintKind(x, y, c.z, world.TKSpace)
 
 					case c.z >= cfg.AtmosphereZ:
 						if value >= 2 {
 							belowKind := level.GetTerrainKind(x, y, c.z-1)
 							if belowKind == world.TKSurface || belowKind == world.TKUnderground || belowKind == world.TKSubsurface {
-								paintKind(level, x, y, c.z, world.TKUnderground)
+								safePaintKind(x, y, c.z, world.TKUnderground)
 								// Anchor the mountain at surface level so the
 								// camera-z=SurfaceZ view actually shows the
 								// rock obstacle instead of grass with a
 								// disconnected rock floating one z above.
 								if belowKind == world.TKSurface {
-									paintKind(level, x, y, c.z-1, world.TKUnderground)
-									level.SetSurfaceZ(x, y, c.z-1)
+									safePaintKind(x, y, c.z-1, world.TKUnderground)
+									safeSetSurfaceZ(x, y, c.z-1)
 								}
 								continue
 							}
 						}
-						paintKind(level, x, y, c.z, world.TKAtmosphere)
+						safePaintKind(x, y, c.z, world.TKAtmosphere)
 
 					case c.z == cfg.SurfaceZ:
-						paintKind(level, x, y, c.z, world.TKSurface)
-						level.SetSurfaceZ(x, y, c.z)
+						safePaintKind(x, y, c.z, world.TKSurface)
+						safeSetSurfaceZ(x, y, c.z)
 
 					case c.z == 0:
-						paintKind(level, x, y, c.z, world.TKBedrock)
+						safePaintKind(x, y, c.z, world.TKBedrock)
 
 					default:
 						if c.z > 1 && c.z < cfg.SurfaceZ-1 && cavern > cavernThreshold {
-							paintKind(level, x, y, c.z, world.TKCavern)
+							safePaintKind(x, y, c.z, world.TKCavern)
 						} else if c.z >= cfg.SurfaceZ-3 {
-							paintKind(level, x, y, c.z, world.TKSubsurface)
+							safePaintKind(x, y, c.z, world.TKSubsurface)
 						} else {
-							paintKind(level, x, y, c.z, world.TKUnderground)
+							safePaintKind(x, y, c.z, world.TKUnderground)
 						}
 					}
 				}

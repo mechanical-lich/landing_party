@@ -1,0 +1,83 @@
+{
+    "enforcer": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "ENFORCER",
+            "Faction": "autonz"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "laser_pistol"
+            ]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": ""
+            }
+        },
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "wire_placer": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "WIRE PLACER",
+            "Faction": "autonz"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/autonz_wire_placer.basic",
+            "vars": {}
+        },
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 8,
+            "AC": 4,
+            "BasicAttackDice": "1d4"
+        }
+    }
+}

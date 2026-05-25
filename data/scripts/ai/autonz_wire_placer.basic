@@ -1,0 +1,83 @@
+function on_turn()
+    # Wire Placer — lays blue_wires in long straight runs.
+    # Stamps a line of wire tiles ahead in the current heading each turn,
+    # stopping at solid terrain or floorless tiles. Only fights back when struck.
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+
+    # Retaliate if hit, then return — no chasing.
+    if was_attacked() = 1 then
+        ax = get_attacker_x()
+        ay = get_attacker_y()
+        attack_at(ax, ay, sz)
+        return
+    endif
+
+    # Retrieve or initialise persistent direction (1=N, 2=E, 3=S, 4=W).
+    dir = get_var("dir") + 0
+    if dir = 0 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+    endif
+
+    dx = 0
+    dy = 0
+    if dir = 1 then
+        dy = -1
+    endif
+    if dir = 2 then
+        dx = 1
+    endif
+    if dir = 3 then
+        dy = 1
+    endif
+    if dir = 4 then
+        dx = -1
+    endif
+
+    # Check if the next tile is actually walkable (has a floor, not solid).
+    # Floorless tiles (mountain slopes at this z) block movement but don't
+    # show as solid, so we must check both.
+    nx = sx + dx
+    ny = sy + dy
+    nextFloor = get_floor_type(nx, ny, sz)
+    nextSolid = is_tile_solid(nx, ny, sz)
+    blocked = 0
+    if nextSolid = 1 then
+        blocked = 1
+    endif
+    if nextFloor = "" then
+        blocked = 1
+    endif
+
+    if blocked = 1 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+        dx = 0
+        dy = 0
+        if dir = 1 then
+            dy = -1
+        endif
+        if dir = 2 then
+            dx = 1
+        endif
+        if dir = 3 then
+            dy = 1
+        endif
+        if dir = 4 then
+            dx = -1
+        endif
+    endif
+
+    # Stamp wire on the current tile if it has a floor.
+    floor = get_floor_type(sx, sy, sz)
+    if floor != "" then
+        if floor != "blue_wires" then
+            set_floor(sx, sy, sz, "blue_wires")
+        endif
+    endif
+
+    move_by(dx, dy)
+endfunction

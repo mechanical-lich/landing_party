@@ -127,6 +127,31 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
 		return float64(hc.Health), nil
 	})
+	// was_attacked() — returns 1 if this entity was hit since its last turn, then clears the flag.
+	interp.RegisterFunc("was_attacked", func(args ...any) (any, error) {
+		if !entity.HasComponent(rlcomponents.AIMemory) {
+			return float64(0), nil
+		}
+		mem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+		if mem.Attacked {
+			mem.Attacked = false
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	// get_attacker_x / get_attacker_y — position of the last attacker (valid after was_attacked = 1).
+	interp.RegisterFunc("get_attacker_x", func(args ...any) (any, error) {
+		if !entity.HasComponent(rlcomponents.AIMemory) {
+			return float64(0), nil
+		}
+		return float64(entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent).AttackerX), nil
+	})
+	interp.RegisterFunc("get_attacker_y", func(args ...any) (any, error) {
+		if !entity.HasComponent(rlcomponents.AIMemory) {
+			return float64(0), nil
+		}
+		return float64(entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent).AttackerY), nil
+	})
 
 	// --- world queries ---
 	interp.RegisterFunc("get_width", func(args ...any) (any, error) {
@@ -624,6 +649,36 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		name := fmt.Sprint(args[3])
 		level.SetMiddle(x, y, z, name, world.RandomTileVariant(name))
 		return nil, nil
+	})
+	// set_floor(x, y, z, name) — set the floor slot of a tile.
+	interp.RegisterFunc("set_floor", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return nil, nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		name := fmt.Sprint(args[3])
+		level.SetFloor(x, y, z, name, world.RandomTileVariant(name))
+		return nil, nil
+	})
+	// get_floor_type(x, y, z) — returns the tile name of the floor slot, or "" if empty.
+	interp.RegisterFunc("get_floor_type", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return "", nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		tI := level.GetTileAt(x, y, z)
+		if tI == nil {
+			return "", nil
+		}
+		t := tI.(*world.Tile)
+		if t.Floor.IsEmpty() {
+			return "", nil
+		}
+		return world.TileIndexToName[t.Floor.Type], nil
 	})
 
 	// --- entity lifecycle ---
