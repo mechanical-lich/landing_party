@@ -132,7 +132,7 @@
         "Worker": {},
         "StatProgression": {},
         "Needs": {
-            "MaxExhaustion": 100,
+            "MaxExhaustion": 300,
             "Hunger": 0,
             "MaxHunger": 100,
             "HungerThreshold": 70,

@@ -2,7 +2,7 @@
   "templates": [
     {
       "id": "gather_ore",
-      "weight": 3,
+      "weight": 1,
       "requires_tag": "ore",
       "name": "Ore Run",
       "desc": "Mine and stockpile %n metal ore.",
@@ -14,7 +14,7 @@
     },
     {
       "id": "gather_biomass",
-      "weight": 2,
+      "weight": 1,
       "requires_tag": "biomass",
       "name": "Harvest Run",
       "desc": "Gather and stockpile %n biomass.",
@@ -26,7 +26,7 @@
     },
     {
       "id": "refine_fuel",
-      "weight": 2,
+      "weight": 1,
       "name": "Fuel Up",
       "desc": "Refine and stockpile %n fuel cells.",
       "trigger": "resource_gathered",
@@ -38,7 +38,7 @@
     },
     {
       "id": "purge",
-      "weight": 2,
+      "weight": 1,
       "spawn_archetype": "hive",
       "name": "Distress Call",
       "desc": "A colony is overrun. Make planetfall and destroy every xeno — eggs and all life stages.",
@@ -50,7 +50,7 @@
     },
     {
       "id": "bounty",
-      "weight": 2,
+      "weight": 1,
       "spawn_archetype": "alien",
       "name": "Bounty",
       "desc": "A marked killer lairs on this world. Hunt it down and put it in the ground.",
@@ -63,7 +63,7 @@
     },
     {
       "id": "reactor_clear",
-      "weight": 2,
+      "weight": 1,
       "spawn_archetype": "moon",
       "name": "Reactor Purge",
       "desc": "A failed reactor on this moon has become a mutant nest. Eliminate the overseer before the radiation does the rest.",
@@ -76,7 +76,7 @@
     },
     {
       "id": "underground_bounty",
-      "weight": 2,
+      "weight": 1,
       "spawn_archetype": "temperate",
       "name": "Buried Threat",
       "desc": "A warden has gone to ground. Find the bunker entrance and dig it out — floor by floor.",

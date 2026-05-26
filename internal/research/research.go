@@ -9,13 +9,14 @@ import (
 )
 
 type Tech struct {
-	Key              string   `json:"-"` // populated post-load from the map key
-	Name             string   `json:"name"`
-	Description      string   `json:"description"`
-	Duration         int      `json:"duration"`
-	RequiredBuilding string   `json:"required_building"`
-	RequiredInt      int      `json:"required_int"`
-	RequiresTech string `json:"requires_tech"`
+	Key              string         `json:"-"` // populated post-load from the map key
+	Name             string         `json:"name"`
+	Description      string         `json:"description"`
+	Duration         int            `json:"duration"`
+	Cost             map[string]int `json:"cost"`
+	RequiredBuilding string         `json:"required_building"`
+	RequiredInt      int            `json:"required_int"`
+	RequiresTech     string         `json:"requires_tech"`
 }
 
 var techs map[string]Tech

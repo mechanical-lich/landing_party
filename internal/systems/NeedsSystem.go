@@ -15,10 +15,9 @@ import (
 
 // Exhaustion constants — all tunable.
 const (
-	needsInterruptThreshold = 100 // exhaustion level that forces task interruption
-	sleepRollMinPct         = 60  // exhaustion must be at least this % of max before idle sleep roll fires
+	sleepRollMinPct = 60 // exhaustion must be at least this % of max before idle sleep roll fires
 
-	sleepRecoveryPerCycle = 10 // exhaustion reduced each sleep cycle
+	sleepRecoveryPerCycle = 20 // exhaustion reduced each sleep cycle
 	sleepCycleLength      = 10 // turns per sleep cycle (proper bed)
 	passoutCycleLength    = 40 // turns per recovery cycle (no bed, 4× slower)
 )
@@ -27,8 +26,8 @@ const (
 // turn spent on that task. Actions absent from the map add no exhaustion.
 var exhaustionPerAction = map[task.TaskAction]int{
 	task_requests.DigAction:      1,
-	task_requests.MineAction:     2,
-	task_requests.BuildAction:    2,
+	task_requests.MineAction:     1,
+	task_requests.BuildAction:    1,
 	task_requests.PickupAction:   1,
 	task_requests.RetrieveAction: 1,
 	task_requests.ResearchAction: 1,
@@ -101,7 +100,7 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 		}
 
 		// Interrupt the task if exhaustion is maxed and the task allows it.
-		if nc.Exhaustion >= needsInterruptThreshold && wc.CurrentTask.Interruptible {
+		if nc.Exhaustion >= nc.MaxExhaustion && wc.CurrentTask.Interruptible {
 			message.PostMessage(name, "Too exhausted to continue, needs rest.")
 			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil

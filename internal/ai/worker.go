@@ -708,11 +708,23 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		return
 	}
 
+	tech, techFound := research.GetTech(rr.TechKey)
+	if rr.Progress == 0 && techFound && len(tech.Cost) > 0 {
+		sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+		if !checkSettlementStorageForCraft(level, sc.Name, tech.Cost) {
+			wc.CurrentTask.Stop()
+			wc.CurrentTask = nil
+			message.PostMessage(rlentity.GetName(entity), "Insufficient materials to research "+tech.Name)
+			aiMemory.State = "idle"
+			return
+		}
+		deductFromSettlementStorage(level, sc.Name, tech.Cost)
+	}
 	rr.Progress++
 	if rr.Progress >= rr.Required {
 		event.GetQueuedInstance().QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
 		progression.AwardXP(entity, "Int", progression.XPPerTask)
-		if tech, ok := research.GetTech(rr.TechKey); ok {
+		if techFound {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
 		} else {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Research complete")

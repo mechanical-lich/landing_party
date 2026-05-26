@@ -1168,7 +1168,18 @@ func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) 
 	colors := make([]color.Color, 0, len(available)+len(locked))
 	h.researchTooltipDescs = h.researchTooltipDescs[:0]
 	for _, t := range available {
-		items = append(items, fmt.Sprintf("%s  [%d ticks]", t.Name, t.Duration))
+		costStr := ""
+		for mat, qty := range t.Cost {
+			if costStr != "" {
+				costStr += ", "
+			}
+			costStr += fmt.Sprintf("%s×%d", mat, qty)
+		}
+		label := fmt.Sprintf("%s  [%d ticks]", t.Name, t.Duration)
+		if costStr != "" {
+			label = fmt.Sprintf("%s  [%d ticks | %s]", t.Name, t.Duration, costStr)
+		}
+		items = append(items, label)
 		keys = append(keys, t.Key)
 		colors = append(colors, nil)
 		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
