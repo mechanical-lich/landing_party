@@ -681,6 +681,71 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		return world.TileIndexToName[t.Floor.Type], nil
 	})
 
+	// get_terrain_kind(x, y, z) — returns the terrain role string for a tile:
+	// "underground", "surface", "subsurface", "atmosphere", "void".
+	interp.RegisterFunc("get_terrain_kind", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return "void", nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		switch level.GetTerrainKind(x, y, z) {
+		case world.TKSurface:
+			return "surface", nil
+		case world.TKSubsurface:
+			return "subsurface", nil
+		case world.TKUnderground, world.TKCavern, world.TKBedrock:
+			return "underground", nil
+		case world.TKAtmosphere:
+			return "atmosphere", nil
+		case world.TKSpace:
+			return "space", nil
+		default:
+			return "void", nil
+		}
+	})
+
+	// get_surface_z(x, y) — returns the surface z level for the column at (x, y).
+	interp.RegisterFunc("get_surface_z", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return float64(0), nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		return float64(level.GetSurfaceZ(x, y)), nil
+	})
+
+	// burrow_by(dx, dy, dz) — move through solid tiles (ignores solid middle).
+	// Only usable by entities with the burrowing skill. Returns 1 on success.
+	interp.RegisterFunc("burrow_by", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		if !skills.Has(entity, fspath.BurrowingSkill) {
+			return float64(0), nil
+		}
+		dx := int(toAIFloat(args[0]))
+		dy := int(toAIFloat(args[1]))
+		dz := int(toAIFloat(args[2]))
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		destX := pc.GetX() + dx
+		destY := pc.GetY() + dy
+		destZ := pc.GetZ() + dz
+		dest := level.GetTilePtr(destX, destY, destZ)
+		if dest == nil {
+			return float64(0), nil
+		}
+		// Block space and void; allow everything else (open air, cave air, solid rock).
+		tk := level.GetTerrainKind(destX, destY, destZ)
+		if tk == world.TKSpace || tk == world.TKVoid {
+			return float64(0), nil
+		}
+		level.PlaceEntity(destX, destY, destZ, entity)
+		rlentity.Face(entity, dx, dy)
+		return float64(1), nil
+	})
+
 	// --- entity lifecycle ---
 	// spawn_entity(blueprint, x, y, z) — create and add an entity.
 	interp.RegisterFunc("spawn_entity", func(args ...any) (any, error) {

@@ -1,0 +1,146 @@
+# Worm AI: burrows underground, surfaces to attack nearby enemies.
+# State vars:
+#   "surfaced"    — 1 while above ground, 0 while underground
+#   "surface_ttl" — turns remaining before retreating underground
+#   "dir"         — current burrow direction (1=N 2=E 3=S 4=W)
+
+function on_turn()
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+    surf_z = get_surface_z(sx, sy)
+
+    # If attacked, surface and retaliate immediately.
+    if was_attacked() = 1 then
+        ax = get_attacker_x()
+        ay = get_attacker_y()
+        if sz < surf_z then
+            burrow_by(0, 0, 1)
+        else
+            attack_at(ax, ay, sz)
+            set_var("surfaced", 1)
+            set_var("surface_ttl", 4)
+        endif
+        return
+    endif
+
+    surfaced = get_var("surfaced") + 0
+
+    # ---- Surfaced behaviour ----
+    if surfaced = 1 then
+        ttl = get_var("surface_ttl") + 0
+        ttl = ttl - 1
+        set_var("surface_ttl", ttl)
+
+        if find_nearest_enemy(3) = 1 then
+            ex = get_nearest_x()
+            ey = get_nearest_y()
+            attack_at(ex, ey, sz)
+            set_var("surface_ttl", 3)
+            return
+        endif
+
+        # No enemies or timer expired: retreat underground.
+        if ttl <= 0 then
+            moved = burrow_by(0, 0, -1)
+            if moved = 1 then
+                sz = sz - 1
+            endif
+            if sz <= surf_z - 2 then
+                set_var("surfaced", 0)
+            endif
+        endif
+        return
+    endif
+
+    # ---- Underground behaviour ----
+
+    if find_nearest_enemy(10) = 1 then
+        ex = get_nearest_x()
+        ey = get_nearest_y()
+        ez = get_nearest_z()
+
+        # Enemy is above — rise toward them.
+        if ez > sz then
+            burrow_by(0, 0, 1)
+            return
+        endif
+
+        # Enemy is below — dig down.
+        if ez < sz then
+            burrow_by(0, 0, -1)
+            return
+        endif
+
+        # Same z — attack if adjacent, otherwise burrow toward them.
+        dx = 0
+        dy = 0
+        if ex > sx then dx = 1 endif
+        if ex < sx then dx = -1 endif
+        if ey > sy then dy = 1 endif
+        if ey < sy then dy = -1 endif
+        adist = ex - sx
+        if adist < 0 then adist = -adist endif
+        bdist = ey - sy
+        if bdist < 0 then bdist = -bdist endif
+        if adist <= 1 and bdist <= 1 then
+            attack_at(ex, ey, sz)
+            set_var("surfaced", 1)
+            set_var("surface_ttl", 4)
+            return
+        endif
+        # Try to close distance on the longer axis first.
+        moved = 0
+        if adist >= bdist then
+            if dx != 0 then moved = burrow_by(dx, 0, 0) endif
+            if moved = 0 and dy != 0 then moved = burrow_by(0, dy, 0) endif
+        else
+            if dy != 0 then moved = burrow_by(0, dy, 0) endif
+            if moved = 0 and dx != 0 then moved = burrow_by(dx, 0, 0) endif
+        endif
+        if moved = 1 then
+            return
+        endif
+    endif
+
+    # Random burrowing — cardinal directions, change direction when blocked
+    # or randomly (~20% chance per turn) to feel organic.
+    dir = get_var("dir") + 0
+    if dir = 0 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+    endif
+
+    # Occasional random direction change even when not blocked.
+    roll = rnd_int(5)
+    if roll = 0 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+    endif
+
+    dx = 0
+    dy = 0
+    if dir = 1 then dy = -1 endif
+    if dir = 2 then dx = 1 endif
+    if dir = 3 then dy = 1 endif
+    if dir = 4 then dx = -1 endif
+
+    nx = sx + dx
+    ny = sy + dy
+    nkind = get_terrain_kind(nx, ny, sz)
+    blocked = 0
+    if nkind = "void" then blocked = 1 endif
+    if nkind = "atmosphere" then blocked = 1 endif
+
+    if blocked = 1 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+        return
+    endif
+
+    moved = burrow_by(dx, dy, 0)
+    if moved = 0 then
+        dir = rnd_int(4) + 1
+        set_var("dir", dir)
+    endif
+endfunction
