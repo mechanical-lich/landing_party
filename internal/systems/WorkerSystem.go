@@ -1,7 +1,7 @@
 package systems
 
 import (
-	"github.com/mechanical-lich/landing_party/internal/ai"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/emotes"
@@ -69,20 +69,20 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 
 	switch aiMemory.State {
 	case "idle":
-		ai.HandleWorkerIdleState(level, entity)
+		workerai.HandleWorkerIdleState(level, entity)
 	case "task":
-		ai.HandleTaskState(level, entity)
+		workerai.HandleTaskState(level, entity)
 	case "dropoff":
-		ai.HandleDropOffState(level, entity)
+		workerai.HandleDropOffState(level, entity)
 	case "gather_materials":
-		ai.HandleGatherMaterialsState(level, entity)
+		workerai.HandleGatherMaterialsState(level, entity)
 	case "gather_materials_craft":
 		// No longer used; redirect to task state
 		aiMemory.State = "task"
 	case "findfood":
-		ai.HandleFindFood(level, entity)
+		workerai.HandleFindFood(level, entity)
 	case "haul":
-		ai.HandleHaulState(level, entity)
+		workerai.HandleHaulState(level, entity)
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mechanical-lich/landing_party/internal/ai"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
@@ -26,7 +26,7 @@ import (
 // installCampaignStorageHook makes worker crafting/fuel draw from both the live
 // level and the campaign ship hold (logistics: ship hold + local).
 func installCampaignStorageHook(c *campaign.Campaign) {
-	ai.StorageProviderFor = func(level *world.Level, settlementName string) (storage.Provider, []string) {
+	workerai.StorageProviderFor = func(level *world.Level, settlementName string) (storage.Provider, []string) {
 		return storage.MultiProvider{Providers: []storage.Provider{
 			storage.LevelProvider{Level: level},
 			storage.ShipProvider{Ship: c.Ship},
