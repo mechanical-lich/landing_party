@@ -8,3 +8,4 @@ bin/
 dist/
 cpu.pprof
 mem.pprof
+data/config.local.json

@@ -37,6 +37,7 @@ type Config struct {
 	RogueAutoMoveInterval  int `json:"rogueAutoMoveInterval"`
 }
 
+// LoadConfig reads and unmarshals a JSON config file.
 func LoadConfig(filePath string) (*Config, error) {
 	var cfg Config
 	data, err := os.ReadFile(filePath)
@@ -51,6 +52,28 @@ func LoadConfig(filePath string) (*Config, error) {
 	return &cfg, nil
 }
 
+// localConfigPath is the gitignored per-developer override file.
+const localConfigPath = "data/config.local.json"
+
+// applyLocalOverrides merges config.local.json on top of cfg if the file
+// exists. Only the fields present in the local file are overwritten; all
+// others keep their value from the base config.
+func applyLocalOverrides(cfg *Config) {
+	data, err := os.ReadFile(localConfigPath)
+	if os.IsNotExist(err) {
+		return // no local overrides, nothing to do
+	}
+	if err != nil {
+		log.Printf("config: could not read %s: %v (ignoring)", localConfigPath, err)
+		return
+	}
+	if err := json.Unmarshal(data, cfg); err != nil {
+		log.Printf("config: could not parse %s: %v (ignoring)", localConfigPath, err)
+		return
+	}
+	log.Printf("config: applied local overrides from %s", localConfigPath)
+}
+
 var settings *Config
 
 func Global() *Config {
@@ -60,6 +83,7 @@ func Global() *Config {
 		if err != nil {
 			log.Fatalf("Failed to load config: %v", err)
 		}
+		applyLocalOverrides(settings)
 	}
 	return settings
 }
