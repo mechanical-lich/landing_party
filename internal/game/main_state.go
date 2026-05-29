@@ -31,7 +31,6 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
-	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -1844,16 +1843,9 @@ func (s *MainState) refreshHUD() {
 		return
 	}
 
-	// Count resources across all storage lockers
+	// Count resources held in on-site storage only. Ship hold is separate and
+	// managed via the Star Map beam interface.
 	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0, "biomass": 0}
-	if s.campaign != nil {
-		// Surface the campaign-wide ship hold alongside on-planet stock.
-		p := storage.ShipProvider{Ship: s.campaign.Ship}
-		owners := []string{campaign.ShipSettlementName}
-		for _, id := range []string{"metal_ore", "crystal", "biomass", "fuel"} {
-			resources[id] += storage.CountResource(p, owners, id)
-		}
-	}
 	var popEntries []gui.PopulationEntry
 	for _, entity := range s.level.Entities {
 		if entity.HasComponent(components.Storage) {
@@ -1986,10 +1978,16 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 		if e.HasComponent(components.Storage) {
 			st := e.GetComponent(components.Storage).(*components.StorageComponent)
 			for _, item := range st.Items {
-				if item.Blueprint != "" {
+				if item.Blueprint == "" {
+					continue
+				}
+				if item.HasComponent(components.ResourceItem) {
+					rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
+					resourceCounts[item.Blueprint] += rc.Quantity
+				} else {
 					resourceCounts[item.Blueprint]++
 				}
-				if item.HasComponent(rlcomponents.Food) {
+				if item.HasComponent(rlcomponents.Food) && !item.HasComponent(components.ResourceItem) {
 					resourceCounts["food"]++
 				}
 			}
@@ -2063,16 +2061,8 @@ func (s *MainState) evaluateQuests() {
 		return
 	}
 	ctx := s.buildEvalContext()
-	merged := make(map[string]int, len(ctx.ResourceCounts)+4)
-	for k, v := range ctx.ResourceCounts {
-		merged[k] = v
-	}
-	holdP := storage.ShipProvider{Ship: s.campaign.Ship}
-	owners := []string{campaign.ShipSettlementName}
-	for _, id := range []string{"metal_ore", "crystal", "biomass", "fuel", "stone", "radioactive_material"} {
-		merged[id] += storage.CountResource(holdP, owners, id)
-	}
-	ctx.ResourceCounts = merged
+	// Resource quests are evaluated against the current site's stockpile only.
+	// Players must beam resources to site before a gather quest completes.
 	ctx.KilledTargets = s.campaign.KilledTargets
 
 	for _, q := range s.campaign.EvaluateQuests(ctx) {

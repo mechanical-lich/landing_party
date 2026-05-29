@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/mechanical-lich/landing_party/internal/workerai"
@@ -23,14 +24,12 @@ import (
 	"github.com/mechanical-lich/mlge/message"
 )
 
-// installCampaignStorageHook makes worker crafting/fuel draw from both the live
-// level and the campaign ship hold (logistics: ship hold + local).
+// installCampaignStorageHook directs worker crafting/building to draw only
+// from the live level's storage. Ship hold is managed separately via explicit
+// beam operations in the Star Map.
 func installCampaignStorageHook(c *campaign.Campaign) {
 	workerai.StorageProviderFor = func(level *world.Level, settlementName string) (storage.Provider, []string) {
-		return storage.MultiProvider{Providers: []storage.Provider{
-			storage.LevelProvider{Level: level},
-			storage.ShipProvider{Ship: c.Ship},
-		}}, []string{settlementName, campaign.ShipSettlementName}
+		return storage.LevelProvider{Level: level}, []string{settlementName}
 	}
 }
 
@@ -108,18 +107,38 @@ func freeLandingTile(level *world.Level, cx, cy, cz int) (int, int, int) {
 
 func NewWorldManager(c *campaign.Campaign) *WorldManager { return &WorldManager{Campaign: c} }
 
+// startingResources lists every resource blueprint placed in the ship hold at
+// campaign start. Fuel is handled separately (caller-supplied quantity).
+var startingResources = []string{
+	"metal_ore",
+	"crystal",
+	"biomass",
+	"stone",
+	"radioactive_material",
+}
+
+const startingResourceQty = 100
+
 // SeedNewCampaign stocks a brand-new expedition: the ship begins with a fuel
-// reserve in the hold and a small crew aboard so the player can make the first
-// planetfall immediately.
+// reserve, 100 units of each resource type, and a small crew aboard so the
+// player can make the first planetfall immediately.
 func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
-	if fuel > 0 {
-		if hold := c.Ship.LiveHold(); len(hold) > 0 {
-			sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
+	if hold := c.Ship.LiveHold(); len(hold) > 0 {
+		sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
+		if fuel > 0 {
 			if fe, err := factory.Create("fuel", 0, 0, 0); err == nil {
 				if fe.HasComponent(components.ResourceItem) {
 					fe.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = fuel
 				}
 				sc.AddItem(fe)
+			}
+		}
+		for _, bp := range startingResources {
+			if e, err := factory.Create(bp, 0, 0, 0); err == nil {
+				if e.HasComponent(components.ResourceItem) {
+					e.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = startingResourceQty
+				}
+				sc.AddItem(e)
 			}
 		}
 	}
@@ -191,41 +210,111 @@ func beamPartyOntoLevel(level *world.Level, party []*world.SaveEntity, colonyNam
 	}
 }
 
-// sweepResourcesToShip moves every ResourceItem stack out of colony-owned
-// storage on the level and into the ship hold — "all resources gathered end up
-// on the ship". Called on Freeze so the stockpile is available campaign-wide.
-func sweepResourcesToShip(level *world.Level, colonyName string, ship *campaign.ShipState) {
-	hold := ship.LiveHold()
-	if len(hold) == 0 {
-		return
+// addToSite drops qty units of blueprint into the first colony-owned storage
+// container found on level. Returns an error if none exists yet — the player
+// must build a storage locker before beaming resources down.
+func addToSite(level *world.Level, colonyName, blueprint string, qty int) error {
+	if qty <= 0 {
+		return nil
 	}
-	holdSC := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
-	move := func(entities []*ecs.Entity) {
-		for _, e := range entities {
-			if !e.HasComponent(components.Storage) {
+	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range ents {
+			if e == nil || !e.HasComponent(components.Storage) {
 				continue
 			}
 			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
 			if sc.OwnedBy != colonyName {
 				continue
 			}
-			kept := sc.Items[:0]
-			for _, item := range sc.Items {
-				if item != nil && item.HasComponent(components.ResourceItem) {
-					holdSC.AddItem(item)
-				} else {
-					kept = append(kept, item)
-				}
+			item, err := factory.Create(blueprint, 0, 0, 0)
+			if err != nil {
+				return fmt.Errorf("beam: unknown resource %q", blueprint)
 			}
-			sc.Items = kept
+			if item.HasComponent(components.ResourceItem) {
+				item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = qty
+			}
+			sc.AddItem(item)
+			return nil
 		}
 	}
-	move(level.Entities)
-	move(level.StaticEntities)
+	return fmt.Errorf("no storage locker on site — build one first")
+}
+
+// BeamResourceToShip moves qty units of blueprint from the current site's
+// storage into the ship hold. Returns an error if the site is short.
+func (wm *WorldManager) BeamResourceToShip(blueprint string, qty int) error {
+	if qty <= 0 {
+		return nil
+	}
+	if wm.current == nil || wm.current.level == nil {
+		return fmt.Errorf("no location loaded")
+	}
+	colony := campaignColonyName(wm.Campaign)
+	p := storage.LevelProvider{Level: wm.current.level}
+	owners := []string{colony}
+	if have := storage.CountResource(p, owners, blueprint); have < qty {
+		return fmt.Errorf("only %d %s on site", have, blueprint)
+	}
+	storage.Deduct(p, owners, map[string]int{blueprint: qty})
+	addToHold(wm.Campaign, blueprint, qty)
+	return nil
+}
+
+// BeamResourceToSite moves qty units of blueprint from the ship hold into the
+// current site's storage. Returns an error if the ship hold is short, or if
+// no storage container exists on site.
+func (wm *WorldManager) BeamResourceToSite(blueprint string, qty int) error {
+	if qty <= 0 {
+		return nil
+	}
+	if wm.current == nil || wm.current.level == nil {
+		return fmt.Errorf("no location loaded")
+	}
+	colony := campaignColonyName(wm.Campaign)
+	p := storage.ShipProvider{Ship: wm.Campaign.Ship}
+	owners := []string{campaign.ShipSettlementName}
+	if have := storage.CountResource(p, owners, blueprint); have < qty {
+		return fmt.Errorf("only %d %s in ship hold", have, blueprint)
+	}
+	if err := addToSite(wm.current.level, colony, blueprint, qty); err != nil {
+		return err
+	}
+	storage.Deduct(p, owners, map[string]int{blueprint: qty})
+	return nil
+}
+
+// AllResourceNames returns the sorted union of resource blueprint names present
+// in either the ship hold or the current site's storage. Used by the beam
+// resources modal to build its row list dynamically.
+func (wm *WorldManager) AllResourceNames() []string {
+	seen := map[string]bool{}
+	if wm.Campaign != nil {
+		for _, n := range storage.ListResources(
+			storage.ShipProvider{Ship: wm.Campaign.Ship},
+			[]string{campaign.ShipSettlementName},
+		) {
+			seen[n] = true
+		}
+	}
+	if wm.current != nil && wm.current.level != nil && wm.Campaign != nil {
+		colony := campaignColonyName(wm.Campaign)
+		for _, n := range storage.ListResources(
+			storage.LevelProvider{Level: wm.current.level},
+			[]string{colony},
+		) {
+			seen[n] = true
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // Freeze serializes the current live level to its per-location file and records
-// view state, after sweeping resources up to the ship.
+// view state.
 // countLevelColonists tallies living colonists on a level (for total-wipe
 // detection recorded onto the frozen location).
 func countLevelColonists(level *world.Level) int {
@@ -251,7 +340,6 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 	if colony == "" {
 		colony = s.settlementCfg.Name
 	}
-	sweepResourcesToShip(s.level, colony, c.Ship)
 
 	loc.CameraX, loc.CameraY, loc.CameraZ = s.CameraX, s.CameraY, s.CameraZ
 	loc.BuildMode = s.buildMode

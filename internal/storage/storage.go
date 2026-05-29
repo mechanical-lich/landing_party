@@ -5,6 +5,8 @@
 package storage
 
 import (
+	"sort"
+
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -112,6 +114,26 @@ func Check(p Provider, owners []string, cost map[string]int) bool {
 		}
 	}
 	return true
+}
+
+// ListResources returns the sorted set of resource blueprint names present in
+// any matching storage across the provider. Useful for dynamically enumerating
+// what exists in an inventory without a hardcoded name list.
+func ListResources(p Provider, owners []string) []string {
+	seen := map[string]bool{}
+	eachStorage(p, owners, func(sc *components.StorageComponent) {
+		for _, item := range sc.Items {
+			if item != nil && item.Blueprint != "" && item.HasComponent(components.ResourceItem) {
+				seen[item.Blueprint] = true
+			}
+		}
+	})
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // Deduct removes cost from the combined storage, draining containers in

@@ -32,9 +32,11 @@ type OverworldState struct {
 	planList *minui.ListBox
 	planEnts []*ecs.Entity
 
-	beamDownBtn *minui.Button
-	beamUpBtn   *minui.Button
-	travelBtn   *minui.Button
+	beamDownBtn  *minui.Button
+	beamUpBtn    *minui.Button
+	beamResBtn   *minui.Button
+	beamResModal *BeamResourcesModal
+	travelBtn    *minui.Button
 	resumeBtn   *minui.Button
 	saveBtn     *minui.Button
 	questBtn    *minui.Button
@@ -71,6 +73,8 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.beamUpBtn.SetSize(90, 34)
 	o.beamUpBtn.OnClick = func() { o.beamUp() }
 
+	o.beamResModal = newBeamResourcesModal(wm)
+
 	btnY := 624
 	o.travelBtn = minui.NewButton("ow_travel", "Travel Here")
 	o.travelBtn.SetPosition(cx-300, btnY)
@@ -81,6 +85,11 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.resumeBtn.SetPosition(cx-90, btnY)
 	o.resumeBtn.SetSize(180, 36)
 	o.resumeBtn.OnClick = func() { o.resume() }
+
+	o.beamResBtn = minui.NewButton("ow_beam_res", "Beam Resources...")
+	o.beamResBtn.SetPosition(cx-66, btnY+46)
+	o.beamResBtn.SetSize(132, 34)
+	o.beamResBtn.OnClick = func() { o.openBeamResources() }
 
 	o.saveBtn = minui.NewButton("ow_save", "Save Expedition")
 	o.saveBtn.SetPosition(cx+120, btnY)
@@ -199,6 +208,18 @@ func (o *OverworldState) selectedLocation() *campaign.Location {
 	return o.campaign.Locations[o.locIDs[i]]
 }
 
+func (o *OverworldState) openBeamResources() {
+	if o.wm.current == nil {
+		o.status = "Travel to a location before beaming resources."
+		return
+	}
+	locName := ""
+	if loc := o.campaign.CurrentLocation(); loc != nil {
+		locName = loc.Name
+	}
+	o.beamResModal.Open(locName)
+}
+
 func (o *OverworldState) beamDown() {
 	if o.wm.current == nil {
 		o.status = "Travel to a location before beaming down."
@@ -285,6 +306,12 @@ func (o *OverworldState) resume() {
 }
 
 func (o *OverworldState) Update() state.StateInterface {
+	// Beam resources modal takes full input priority while open.
+	if o.beamResModal.Visible {
+		o.beamResModal.Update()
+		return o.next
+	}
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && o.wm.current != nil {
 		o.resume()
 		return o.next
@@ -294,6 +321,7 @@ func (o *OverworldState) Update() state.StateInterface {
 	o.planList.Update()
 	o.beamDownBtn.Update()
 	o.beamUpBtn.Update()
+	o.beamResBtn.Update()
 	o.travelBtn.Update()
 	o.resumeBtn.Update()
 	o.saveBtn.Update()
@@ -335,6 +363,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.planList.Draw(screen)
 	o.beamDownBtn.Draw(screen)
 	o.beamUpBtn.Draw(screen)
+	o.beamResBtn.Draw(screen)
 	o.travelBtn.Draw(screen)
 	o.resumeBtn.Draw(screen)
 	o.saveBtn.Draw(screen)
@@ -343,6 +372,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	if o.status != "" {
 		mlge_text.Draw(screen, o.status, 13, cx-300, cfg.ScreenHeight-40, color.RGBA{230, 160, 90, 255})
 	}
+	o.beamResModal.Draw(screen)
 	minui.FlushOverlays(screen)
 }
 
