@@ -3,7 +3,7 @@ package game
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/mechanical-lich/landing_party/internal/ai"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -328,7 +328,7 @@ func (s *MainState) roguePickup() bool {
 	if item == nil || !item.HasComponent(rlcomponents.Item) {
 		return false
 	}
-	ai.PickupItemFromTile(s.level, ent, pc.GetX(), pc.GetY(), pc.GetZ())
+	workerai.PickupItemFromTile(s.level, ent, pc.GetX(), pc.GetY(), pc.GetZ())
 	return true
 }
 

@@ -122,8 +122,6 @@ const (
 	starMapBtnH = 26
 )
 
-var _ state.StateInterface = (*MainState)(nil)
-
 // sharedListenersOnce guards process-wide singleton listeners against being
 // re-registered on every campaign level swap.
 var sharedListenersOnce sync.Once
@@ -2193,8 +2191,8 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 		// hoverTileX/Y is the top-left corner of the footprint, matching addBuildTask.
 		for dx := 0; dx < footprintW; dx++ {
 			for dy := 0; dy < footprintH; dy++ {
-				sx := float32((s.hoverTileX+dx-s.CameraX)*s.TileSizeW)
-				sy := float32((s.hoverTileY+dy-s.CameraY)*s.TileSizeH)
+				sx := float32((s.hoverTileX + dx - s.CameraX) * s.TileSizeW)
+				sy := float32((s.hoverTileY + dy - s.CameraY) * s.TileSizeH)
 				vector.DrawFilledRect(screen, sx, sy, tw, th,
 					color.RGBA{R: 255, G: 255, B: 255, A: 40}, false)
 				vector.StrokeRect(screen, sx, sy, tw, th,

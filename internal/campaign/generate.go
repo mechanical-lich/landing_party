@@ -31,7 +31,7 @@ type locArchetype struct {
 
 type locTemplates struct {
 	Archetypes []locArchetype `json:"archetypes"`
-	Home         struct {
+	Home       struct {
 		Maps      []string `json:"maps"`
 		Scenarios []string `json:"scenarios"`
 		Summary   string   `json:"summary"`
@@ -39,22 +39,22 @@ type locTemplates struct {
 }
 
 type questTemplate struct {
-	ID            string         `json:"id"`
-	Weight        int            `json:"weight"`
-	RequiresTag   string         `json:"requires_tag"`
-	Name          string         `json:"name"`
-	Desc          string         `json:"desc"`
-	Trigger       string         `json:"trigger"`
-	Resource      string         `json:"resource"`
-	Blueprints    []string       `json:"blueprints"`
-	Structure     string         `json:"structure"`
-	TechPool      []string       `json:"tech_pool"`
-	Min           int            `json:"min"`
-	Max           int            `json:"max"`
-	RewardFuelPer int            `json:"reward_fuel_per"`
-	RewardFuelFlat int           `json:"reward_fuel_flat"`
-	RewardRes     map[string]int `json:"reward_resources"`
-	SpawnSystems  int            `json:"spawn_systems"`
+	ID             string         `json:"id"`
+	Weight         int            `json:"weight"`
+	RequiresTag    string         `json:"requires_tag"`
+	Name           string         `json:"name"`
+	Desc           string         `json:"desc"`
+	Trigger        string         `json:"trigger"`
+	Resource       string         `json:"resource"`
+	Blueprints     []string       `json:"blueprints"`
+	Structure      string         `json:"structure"`
+	TechPool       []string       `json:"tech_pool"`
+	Min            int            `json:"min"`
+	Max            int            `json:"max"`
+	RewardFuelPer  int            `json:"reward_fuel_per"`
+	RewardFuelFlat int            `json:"reward_fuel_flat"`
+	RewardRes      map[string]int `json:"reward_resources"`
+	SpawnSystems   int            `json:"spawn_systems"`
 	// TargetBlueprints / TargetNames drive a target_killed "bounty" quest: a
 	// named entity (random blueprint + name from these pools) is spawned as a
 	// location fixture and must be killed.
@@ -539,13 +539,6 @@ func genName(rng *rand.Rand) string {
 	return n
 }
 
-func pick(rng *rand.Rand, s []string) string {
-	if len(s) == 0 {
-		return ""
-	}
-	return s[rng.Intn(len(s))]
-}
-
 func hasTag(tags []string, want string) bool {
 	for _, t := range tags {
 		if t == want {
@@ -560,28 +553,4 @@ func firstTag(tags []string) string {
 		return ""
 	}
 	return tags[0]
-}
-
-func replaceN(s string, n int) string  { return replaceAll(s, "%n", fmt.Sprintf("%d", n)) }
-func replaceTech(s, t string) string   { return replaceAll(s, "%tech", t) }
-
-func replaceAll(s, old, new string) string {
-	out := ""
-	for {
-		i := indexOf(s, old)
-		if i < 0 {
-			return out + s
-		}
-		out += s[:i] + new
-		s = s[i+len(old):]
-	}
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
 }

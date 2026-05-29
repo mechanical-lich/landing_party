@@ -20,8 +20,6 @@ type CampaignEndState struct {
 	next    state.StateInterface
 }
 
-var _ state.StateInterface = (*CampaignEndState)(nil)
-
 func NewCampaignEndState(victory bool, detail string) *CampaignEndState {
 	e := &CampaignEndState{victory: victory, detail: detail}
 	cfg := config.Global()

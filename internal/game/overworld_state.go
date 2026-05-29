@@ -44,8 +44,6 @@ type OverworldState struct {
 	next   state.StateInterface
 }
 
-var _ state.StateInterface = (*OverworldState)(nil)
-
 func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o := &OverworldState{campaign: c, wm: wm}
 	cfg := config.Global()

@@ -30,8 +30,6 @@ type QuestLogState struct {
 	next   state.StateInterface
 }
 
-var _ state.StateInterface = (*QuestLogState)(nil)
-
 func NewQuestLogState(c *campaign.Campaign, wm *WorldManager) *QuestLogState {
 	q := &QuestLogState{campaign: c, wm: wm}
 	cfg := config.Global()

@@ -2836,6 +2836,3 @@ func main() {
 	}
 }
 
-// suppress unused import
-var _ = strings.Count
-var _ = math.Round

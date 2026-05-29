@@ -74,8 +74,6 @@ type TitleState struct {
 	next   state.StateInterface
 }
 
-var _ state.StateInterface = (*TitleState)(nil)
-
 func NewTitleState() *TitleState {
 	ts := &TitleState{screen: screenMain}
 	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int) error {
