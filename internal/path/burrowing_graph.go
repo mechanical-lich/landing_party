@@ -19,9 +19,10 @@ func (g *burrowingGraph) PathNeighborIDs(tileIdx int, buf []int) []int {
 			continue
 		}
 		tk := g.level.GetTerrainKind(nx, ny, nz)
-		// Block space and void; allow everything else.
-		// This lets burrowers move normally through open tiles AND through solid underground tiles.
-		if tk == world.TKSpace || tk == world.TKVoid {
+		// Block space, atmosphere, and void. Atmosphere is open air above the
+		// surface — allowing it would let burrowers fly through the sky once
+		// they broke surface, which contradicts underground-only movement.
+		if tk == world.TKSpace || tk == world.TKAtmosphere || tk == world.TKVoid {
 			continue
 		}
 		buf = append(buf, n.Idx)
