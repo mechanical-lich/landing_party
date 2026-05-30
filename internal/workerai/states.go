@@ -130,6 +130,8 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleUnequipTask(level, entity, wc, aiMemory)
 	case task_requests.RetrieveAction:
 		handleRetrieveTask(level, entity, wc, aiMemory)
+	case task_requests.RelocateAction:
+		handleRelocateTask(level, entity, wc, aiMemory)
 	case task_requests.SleepAction:
 		handleSleepTask(level, entity, wc, aiMemory)
 	case task_requests.PassoutAction:
@@ -178,7 +180,11 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 			toDeposit = append([]*ecs.Entity{}, inv.Bag...)
 		}
 		for _, item := range toDeposit {
-			storageC.AddItem(item)
+			if !storageC.AddItem(item) {
+				// Container's tag filter rejected this item — leave it in the
+				// worker's bag rather than silently destroying it.
+				continue
+			}
 			inv.RemoveItem(item)
 			if item.HasComponent(rlcomponents.Description) {
 				dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
@@ -225,9 +231,9 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 			if item.Blueprint != name {
 				continue
 			}
-			if item.HasComponent(components.ResourceItem) {
-				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-				count += rc.Quantity
+			if item.HasComponent(components.Material) {
+				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+				count += mc.Quantity
 			} else {
 				count++
 			}
@@ -260,27 +266,27 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
 
-		// Detect whether this item type is a stackable resource.
-		isResource := false
+		// Detect whether this item type is a stackable material.
+		isStackable := false
 		for _, item := range storageC.Items {
-			if item.Blueprint == searching && item.HasComponent(components.ResourceItem) {
-				isResource = true
+			if item.Blueprint == searching && item.HasComponent(components.Material) {
+				isStackable = true
 				break
 			}
 		}
 
-		if isResource {
+		if isStackable {
 			// Deduct exactly the deficit, then carry a new entity with that quantity.
 			if storageC.DeductResource(searching, deficit) {
 				material, err := factory.Create(searching, 0, 0, 0)
 				if err == nil {
-					rc := material.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-					rc.Quantity = deficit
+					mc := material.GetComponent(components.Material).(*components.MaterialComponent)
+					mc.Quantity = deficit
 					inv.AddItem(material)
 				}
 			}
 		} else {
-			// Non-resource item (equipment, etc.) — take one at a time.
+			// Non-stackable item (equipment, etc.) — take one at a time.
 			material := storageC.TakeOne(searching)
 			if material != nil {
 				inv.AddItem(material)
@@ -297,9 +303,11 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 
-	// If holding something, go drop it off
+	// If holding something, go drop it off — pick a container that accepts
+	// the first bag item; remaining items will retry next iteration if this
+	// container doesn't take them.
 	if len(inv.Bag) > 0 {
-		storage := FindAvailableStorage(level, sc.Name)
+		storage := FindAvailableStorageFor(level, sc.Name, inv.Bag[0])
 		if storage == nil {
 			aiMemory.State = "idle"
 			return
@@ -307,10 +315,13 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 		spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		if !MoveTowardsTarget(level, entity, spc.GetX(), spc.GetY(), spc.GetZ()) {
 			storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
+			kept := inv.Bag[:0]
 			for _, item := range inv.Bag {
-				storageC.AddItem(item)
+				if !storageC.AddItem(item) {
+					kept = append(kept, item)
+				}
 			}
-			inv.Bag = inv.Bag[:0]
+			inv.Bag = kept
 			message.PostMessage(rlentity.GetName(entity), "Stored items")
 			aiMemory.State = "idle"
 		}

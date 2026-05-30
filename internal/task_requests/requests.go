@@ -65,6 +65,27 @@ type UnequipRequest struct {
 
 type RetrieveRequest struct {
 	Item *ecs.Entity // specific item entity to retrieve; nil check at pickup time
+	// Dest, when set, forces the drop-off target after pickup instead of the
+	// default "first accepting container" search. Used by the Store order so
+	// players can dictate exactly which locker an item lands in.
+	Dest *ecs.Entity
+}
+
+// RelocateRequest moves Qty units of Blueprint from Source to a destination —
+// either a specific storage container (DestEntity) or a ground tile
+// (DestEntity == nil, position in DestX/Y/Z). Worker phases: walk to source,
+// withdraw into bag (Carried tracks the actually-withdrawn amount in case the
+// source ran short), walk to destination, deposit.
+type RelocateRequest struct {
+	Source     *ecs.Entity
+	Blueprint  string
+	Qty        int
+	DestEntity *ecs.Entity // nil → ground drop at DestX/Y/Z
+	DestX      int
+	DestY      int
+	DestZ      int
+	PickedUp   bool // true once material is in the worker's bag
+	Carried    int  // actual quantity in bag (may be < Qty if source was short)
 }
 
 type SleepRequest struct {
@@ -119,6 +140,7 @@ const (
 	RetrieveAction task.TaskAction = "retrieve"
 	SleepAction    task.TaskAction = "sleep"
 	PassoutAction  task.TaskAction = "passout"
+	RelocateAction task.TaskAction = "relocate"
 )
 
 // IsInterruptibleAction reports whether the NeedsSystem may preempt a task

@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"github.com/mechanical-lich/landing_party/internal/workerai"
@@ -127,16 +126,16 @@ func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
 		sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
 		if fuel > 0 {
 			if fe, err := factory.Create("fuel", 0, 0, 0); err == nil {
-				if fe.HasComponent(components.ResourceItem) {
-					fe.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = fuel
+				if fe.HasComponent(components.Material) {
+					fe.GetComponent(components.Material).(*components.MaterialComponent).Quantity = fuel
 				}
 				sc.AddItem(fe)
 			}
 		}
 		for _, bp := range startingResources {
 			if e, err := factory.Create(bp, 0, 0, 0); err == nil {
-				if e.HasComponent(components.ResourceItem) {
-					e.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = startingResourceQty
+				if e.HasComponent(components.Material) {
+					e.GetComponent(components.Material).(*components.MaterialComponent).Quantity = startingResourceQty
 				}
 				sc.AddItem(e)
 			}
@@ -161,8 +160,8 @@ func addToHold(c *campaign.Campaign, blueprint string, qty int) {
 	}
 	sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
 	if e, err := factory.Create(blueprint, 0, 0, 0); err == nil {
-		if e.HasComponent(components.ResourceItem) {
-			e.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = qty
+		if e.HasComponent(components.Material) {
+			e.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
 		}
 		sc.AddItem(e)
 	}
@@ -230,8 +229,8 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 			if err != nil {
 				return fmt.Errorf("beam: unknown resource %q", blueprint)
 			}
-			if item.HasComponent(components.ResourceItem) {
-				item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = qty
+			if item.HasComponent(components.Material) {
+				item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
 			}
 			sc.AddItem(item)
 			return nil
@@ -240,30 +239,23 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 	return fmt.Errorf("no storage locker on site — build one first")
 }
 
-// BeamResourceToShip moves qty units of blueprint from the current site's
-// storage into the ship hold. Returns an error if the site is short.
-func (wm *WorldManager) BeamResourceToShip(blueprint string, qty int) error {
-	if qty <= 0 {
+// ShipHoldEntity returns the persistent ship-hold storage container entity,
+// or nil if none has been initialised yet.
+func (wm *WorldManager) ShipHoldEntity() *ecs.Entity {
+	if wm.Campaign == nil {
 		return nil
 	}
-	if wm.current == nil || wm.current.level == nil {
-		return fmt.Errorf("no location loaded")
+	for _, e := range wm.Campaign.Ship.LiveHold() {
+		if e != nil && e.HasComponent(components.Storage) {
+			return e
+		}
 	}
-	colony := campaignColonyName(wm.Campaign)
-	p := storage.LevelProvider{Level: wm.current.level}
-	owners := []string{colony}
-	if have := storage.CountResource(p, owners, blueprint); have < qty {
-		return fmt.Errorf("only %d %s on site", have, blueprint)
-	}
-	storage.Deduct(p, owners, map[string]int{blueprint: qty})
-	addToHold(wm.Campaign, blueprint, qty)
 	return nil
 }
 
-// BeamResourceToSite moves qty units of blueprint from the ship hold into the
-// current site's storage. Returns an error if the ship hold is short, or if
-// no storage container exists on site.
-func (wm *WorldManager) BeamResourceToSite(blueprint string, qty int) error {
+// BeamResourceDown moves qty of blueprint from the ship hold into the first
+// colony-owned storage container at the current site.
+func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {
 	if qty <= 0 {
 		return nil
 	}
@@ -283,34 +275,23 @@ func (wm *WorldManager) BeamResourceToSite(blueprint string, qty int) error {
 	return nil
 }
 
-// AllResourceNames returns the sorted union of resource blueprint names present
-// in either the ship hold or the current site's storage. Used by the beam
-// resources modal to build its row list dynamically.
-func (wm *WorldManager) AllResourceNames() []string {
-	seen := map[string]bool{}
-	if wm.Campaign != nil {
-		for _, n := range storage.ListResources(
-			storage.ShipProvider{Ship: wm.Campaign.Ship},
-			[]string{campaign.ShipSettlementName},
-		) {
-			seen[n] = true
-		}
+// BeamResourceUpFrom moves qty of blueprint from a specific storage container
+// into the ship hold. Returns an error if the container is short.
+func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint string, qty int) error {
+	if qty <= 0 {
+		return nil
 	}
-	if wm.current != nil && wm.current.level != nil && wm.Campaign != nil {
-		colony := campaignColonyName(wm.Campaign)
-		for _, n := range storage.ListResources(
-			storage.LevelProvider{Level: wm.current.level},
-			[]string{colony},
-		) {
-			seen[n] = true
-		}
+	if container == nil || !container.HasComponent(components.Storage) {
+		return fmt.Errorf("not a storage container")
 	}
-	names := make([]string, 0, len(seen))
-	for n := range seen {
-		names = append(names, n)
+	sc := container.GetComponent(components.Storage).(*components.StorageComponent)
+	have := sc.CountResource(blueprint)
+	if have < qty {
+		return fmt.Errorf("only %d %s here", have, blueprint)
 	}
-	sort.Strings(names)
-	return names
+	sc.DeductResource(blueprint, qty)
+	addToHold(wm.Campaign, blueprint, qty)
+	return nil
 }
 
 // Freeze serializes the current live level to its per-location file and records
@@ -425,6 +406,10 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 
 	ms.campaign = c
 	ms.wm = wm
+	ms.storageInspector = newStorageInspectorModal(wm)
+	ms.storageInspector.OnBeginRelocate = func(source *ecs.Entity, blueprint string, maxAvail int) {
+		ms.BeginRelocate(source, blueprint, maxAvail)
+	}
 	loc.Visited = true
 	spawnLocationFixtures(c, loc, ms.level)
 	installCampaignStorageHook(c)

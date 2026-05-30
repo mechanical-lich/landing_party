@@ -14,8 +14,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "biomass"
+        "Material": {
+            "Tags": ["biomass", "organic", "raw_material"],
+            "MaxStack": 500
         }
     },
     "crystal": {
@@ -34,8 +35,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "crystal"
+        "Material": {
+            "Tags": ["crystal", "mineral", "raw_material"],
+            "MaxStack": 500
         }
     },
     "fuel": {
@@ -53,8 +55,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "fuel"
+        "Material": {
+            "Tags": ["fuel", "energy"],
+            "MaxStack": 200
         }
     },
     "metal_ore": {
@@ -72,8 +75,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "metal_ore"
+        "Material": {
+            "Tags": ["metal", "mineral", "raw_material"],
+            "MaxStack": 500
         }
     },
     "radioactive_material": {
@@ -91,8 +95,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "radioactive_material"
+        "Material": {
+            "Tags": ["radioactive", "mineral", "raw_material"],
+            "MaxStack": 200
         }
     },
     "stone": {
@@ -111,8 +116,9 @@
             "Faction": ""
         },
         "Item": {},
-        "ResourceItem": {
-            "Type": "stone"
+        "Material": {
+            "Tags": ["stone", "mineral", "raw_material"],
+            "MaxStack": 500
         }
     }
 }

@@ -13,4 +13,6 @@ const (
 	CursorModeSetSettlementLocation CursorModeType = "setSettlementLocation"
 	CursorModeFollow                CursorModeType = "follow"
 	CursorModeRogue                 CursorModeType = "rogue"
+	CursorModeRelocate              CursorModeType = "relocate"
+	CursorModeStore                 CursorModeType = "store"
 )

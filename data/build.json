@@ -69,13 +69,57 @@
     "storage_locker": {
         "name": "Storage Locker",
         "type": "storage_locker",
-        "description": "A secure locker for storing resources.",
+        "description": "A general-purpose locker. Stores any resource type.",
         "build_time": 5,
         "is_entity": true,
         "allow_multiple": true,
         "cost": { "metal_ore": 2 },
         "category": "structures",
         "order": 1
+    },
+    "mineral_bin": {
+        "name": "Mineral Bin",
+        "type": "mineral_bin",
+        "description": "Stores ores, crystals, stone, and other minerals.",
+        "build_time": 5,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 3 },
+        "category": "structures",
+        "order": 2
+    },
+    "fuel_tank": {
+        "name": "Fuel Tank",
+        "type": "fuel_tank",
+        "description": "A sealed tank for fuel cells and other energy stores.",
+        "build_time": 5,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 2, "crystal": 1 },
+        "category": "structures",
+        "order": 3
+    },
+    "bio_silo": {
+        "name": "Bio Silo",
+        "type": "bio_silo",
+        "description": "Climate-controlled storage for biomass, organics, and food.",
+        "build_time": 5,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 2, "biomass": 5 },
+        "category": "structures",
+        "order": 4
+    },
+    "hazmat_vault": {
+        "name": "Hazmat Vault",
+        "type": "hazmat_vault",
+        "description": "Shielded vault for radioactive materials. Heavy build.",
+        "build_time": 8,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 4, "crystal": 2 },
+        "category": "structures",
+        "order": 5
     },
     "research_lab": {
         "name": "Research Lab",
@@ -85,7 +129,7 @@
         "is_entity": true,
         "cost": { "metal_ore": 4, "crystal": 3 },
         "category": "structures",
-        "order": 2
+        "order": 6
     },
     "bed": {
         "name": "Bed",
@@ -96,7 +140,7 @@
         "allow_multiple": true,
         "cost": { "metal_ore": 2 },
         "category": "structures",
-        "order": 4
+        "order": 8
     },
     "work_light": {
         "name": "Work Light",
@@ -107,7 +151,7 @@
         "allow_multiple": true,
         "cost": { "metal_ore": 1, "crystal": 1 },
         "category": "structures",
-        "order": 3
+        "order": 7
     },
     "stairs_up": {
         "name": "Stairs Up",
@@ -154,7 +198,7 @@
         "is_entity": true,
         "cost": { "metal_ore": 4 },
         "category": "structures",
-        "order": 4
+        "order": 9
     },
     "gun_bench": {
         "name": "Gun Bench",
@@ -163,7 +207,7 @@
         "is_entity": true,
         "cost": { "metal_ore": 5, "crystal": 2 },
         "category": "structures",
-        "order": 5
+        "order": 10
     },
     "basic_armor_bench": {
         "name": "Armor Bench",
@@ -172,7 +216,7 @@
         "is_entity": true,
         "cost": { "metal_ore": 5 },
         "category": "structures",
-        "order": 6
+        "order": 11
     },
     "advanced_armor_bench": {
         "name": "Advanced Armor Bench",
@@ -182,7 +226,7 @@
         "required_tech": "advanced_metallurgy",
         "cost": { "metal_ore": 6, "crystal": 4 },
         "category": "structures",
-        "order": 7
+        "order": 12
     },
     "fuel_refiner": {
         "name": "Fuel Refiner",
@@ -192,6 +236,6 @@
         "required_tech": "fuel_refining",
         "cost": { "metal_ore": 5, "crystal": 4 },
         "category": "structures",
-        "order": 8
+        "order": 13
     }
 }

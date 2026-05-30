@@ -34,8 +34,8 @@ type OverworldState struct {
 
 	beamDownBtn  *minui.Button
 	beamUpBtn    *minui.Button
-	beamResBtn   *minui.Button
-	beamResModal *BeamResourcesModal
+	beamResBtn      *minui.Button
+	storageInspector *StorageInspectorModal
 	travelBtn    *minui.Button
 	resumeBtn   *minui.Button
 	saveBtn     *minui.Button
@@ -73,7 +73,7 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.beamUpBtn.SetSize(90, 34)
 	o.beamUpBtn.OnClick = func() { o.beamUp() }
 
-	o.beamResModal = newBeamResourcesModal(wm)
+	o.storageInspector = newStorageInspectorModal(wm)
 
 	btnY := 624
 	o.travelBtn = minui.NewButton("ow_travel", "Travel Here")
@@ -213,11 +213,12 @@ func (o *OverworldState) openBeamResources() {
 		o.status = "Travel to a location before beaming resources."
 		return
 	}
-	locName := ""
-	if loc := o.campaign.CurrentLocation(); loc != nil {
-		locName = loc.Name
+	hold := o.wm.ShipHoldEntity()
+	if hold == nil {
+		o.status = "Ship hold not initialised."
+		return
 	}
-	o.beamResModal.Open(locName)
+	o.storageInspector.Open(hold)
 }
 
 func (o *OverworldState) beamDown() {
@@ -307,8 +308,8 @@ func (o *OverworldState) resume() {
 
 func (o *OverworldState) Update() state.StateInterface {
 	// Beam resources modal takes full input priority while open.
-	if o.beamResModal.Visible {
-		o.beamResModal.Update()
+	if o.storageInspector.Visible {
+		o.storageInspector.Update()
 		return o.next
 	}
 
@@ -372,7 +373,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	if o.status != "" {
 		mlge_text.Draw(screen, o.status, 13, cx-300, cfg.ScreenHeight-40, color.RGBA{230, 160, 90, 255})
 	}
-	o.beamResModal.Draw(screen)
+	o.storageInspector.Draw(screen)
 	minui.FlushOverlays(screen)
 }
 

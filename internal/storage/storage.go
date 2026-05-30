@@ -116,14 +116,18 @@ func Check(p Provider, owners []string, cost map[string]int) bool {
 	return true
 }
 
-// ListResources returns the sorted set of resource blueprint names present in
-// any matching storage across the provider. Useful for dynamically enumerating
-// what exists in an inventory without a hardcoded name list.
+// isMaterialItem returns true for items carrying a Material component.
+func isMaterialItem(item *ecs.Entity) bool {
+	return item != nil && item.Blueprint != "" && item.HasComponent(components.Material)
+}
+
+// ListResources returns the sorted set of material blueprint names present in
+// any matching storage across the provider.
 func ListResources(p Provider, owners []string) []string {
 	seen := map[string]bool{}
 	eachStorage(p, owners, func(sc *components.StorageComponent) {
 		for _, item := range sc.Items {
-			if item != nil && item.Blueprint != "" && item.HasComponent(components.ResourceItem) {
+			if isMaterialItem(item) {
 				seen[item.Blueprint] = true
 			}
 		}
@@ -134,6 +138,58 @@ func ListResources(p Provider, owners []string) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// MaterialEntry describes one distinct material stack visible across a provider.
+type MaterialEntry struct {
+	Blueprint string
+	Name      string   // from Description component, falls back to Blueprint
+	Tags      []string // from Material component
+	Quantity  int
+}
+
+// ListMaterials returns one entry per distinct blueprint in any matching
+// storage, with name and tags resolved from the first matching item.
+func ListMaterials(p Provider, owners []string) []MaterialEntry {
+	type agg struct {
+		name string
+		tags []string
+		qty  int
+	}
+	seen := map[string]*agg{}
+	eachStorage(p, owners, func(sc *components.StorageComponent) {
+		for _, item := range sc.Items {
+			if !isMaterialItem(item) {
+				continue
+			}
+			a, ok := seen[item.Blueprint]
+			if !ok {
+				a = &agg{}
+				seen[item.Blueprint] = a
+			}
+			a.qty += sc.CountResource(item.Blueprint)
+			if a.name == "" {
+				if item.HasComponent(components.Material) {
+					mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+					if len(a.tags) == 0 {
+						a.tags = mc.Tags
+					}
+				}
+			}
+		}
+	})
+	entries := make([]MaterialEntry, 0, len(seen))
+	for bp, a := range seen {
+		entries = append(entries, MaterialEntry{
+			Blueprint: bp,
+			Tags:      a.tags,
+			Quantity:  a.qty,
+		})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Blueprint < entries[j].Blueprint
+	})
+	return entries
 }
 
 // Deduct removes cost from the combined storage, draining containers in

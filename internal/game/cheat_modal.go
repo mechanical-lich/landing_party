@@ -271,8 +271,8 @@ func (cm *CheatModal) runCommand(raw string) {
 			message.PostMessage("cheat", fmt.Sprintf("give: unknown blueprint %q", blueprint))
 			return
 		}
-		if item.HasComponent(components.ResourceItem) {
-			item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent).Quantity = amount
+		if item.HasComponent(components.Material) {
+			item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = amount
 		}
 		// Find the player's settlement name from any colonist on the level.
 		settlementName := ""

@@ -9,6 +9,7 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 - [Controls](controls.md) — keyboard and camera reference
 - [Colonists](colonists.md) — stats, needs, and how workers behave
 - [Buildings](buildings.md) — what you can build and what each structure does
+- [Storage & Materials](storage.md) — tagged materials, typed containers, beam, store, relocate
 - [Crafting](crafting.md) — workbenches, recipes, and gear
 - [Research](research.md) — the tech tree and how to unlock new structures
 - [Scenarios](scenarios.md) — the world types a location can use

@@ -70,6 +70,19 @@ Select an order from the Build menu. The active order is shown in the tooltip ne
 | Left click + drag | Paint the order across multiple tiles (Build / Dig) |
 | Right click | Cancel the active order and return to Default mode |
 
+### Store order
+
+Orders → **Store** is a two-click order for placing a specific loose item into a specific container:
+
+1. Left click an item on the ground to pick it.
+2. Left click a storage container that accepts it.
+
+A colonist will retrieve the item and deliver it to that exact container. The mode resets after each pair of clicks so you can keep issuing Store orders. Right click cancels back to Default. See [Storage & Materials](storage.md#store) for tag-acceptance rules.
+
+### Relocate (from the Storage Inspector)
+
+Relocate isn't in the Orders menu — it's launched from the **Storage Inspector** of a site container. Select a material, enter an amount, click **↔ Relocate**, then click a destination — another container that accepts the material, or any walkable tile (the worker drops it on the ground). See [Storage & Materials → Relocate](storage.md#relocate).
+
 ## Rogue Mode
 
 You can take direct control of a single colonist. Open a colonist's detail

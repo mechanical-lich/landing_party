@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
@@ -12,6 +13,17 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 )
+
+// saveStorageData is the JSON-serialisable form of a StorageComponent,
+// with items stored as SaveEntity records so each item's components are
+// properly round-tripped through the factory on load.
+type saveStorageData struct {
+	Capacity    int           `json:"Capacity"`
+	OwnedBy     string        `json:"OwnedBy"`
+	AllowedTags []string      `json:"AllowedTags,omitempty"`
+	FilterTags  []string      `json:"FilterTags,omitempty"`
+	Items       []*SaveEntity `json:"Items,omitempty"`
+}
 
 type SaveEntity struct {
 	Blueprint  string
@@ -247,6 +259,20 @@ func EntityToSaveEntity(entity *ecs.Entity) *SaveEntity {
 			se.Components[compType] = comp
 		case rlcomponents.Inventory:
 			se.Components[compType] = inventoryToSave(comp.(*rlcomponents.InventoryComponent))
+		case components.Storage:
+			sc := comp.(*components.StorageComponent)
+			saved := &saveStorageData{
+				Capacity:    sc.Capacity,
+				OwnedBy:     sc.OwnedBy,
+				AllowedTags: sc.AllowedTags,
+				FilterTags:  sc.FilterTags,
+			}
+			for _, item := range sc.Items {
+				if item != nil {
+					saved.Items = append(saved.Items, EntityToSaveEntity(item))
+				}
+			}
+			se.Components[compType] = saved
 		default:
 			se.Components[compType] = comp
 		}
@@ -368,6 +394,33 @@ func RebuildEntity(entity *SaveEntity) *ecs.Entity {
 				continue
 			}
 			newEntity.AddComponent(saveInventoryToComponent(compMap))
+			continue
+		}
+		if compType == components.Storage {
+			compMap, ok := compInterface.(map[string]any)
+			if !ok {
+				continue
+			}
+			raw, err := json.Marshal(compMap)
+			if err != nil {
+				continue
+			}
+			var saved saveStorageData
+			if err := json.Unmarshal(raw, &saved); err != nil {
+				continue
+			}
+			sc := &components.StorageComponent{
+				Capacity:    saved.Capacity,
+				OwnedBy:     saved.OwnedBy,
+				AllowedTags: saved.AllowedTags,
+				FilterTags:  saved.FilterTags,
+			}
+			for _, savedItem := range saved.Items {
+				if savedItem != nil {
+					sc.Items = append(sc.Items, RebuildEntity(savedItem))
+				}
+			}
+			newEntity.AddComponent(sc)
 			continue
 		}
 		compMap, ok := compInterface.(map[string]any)

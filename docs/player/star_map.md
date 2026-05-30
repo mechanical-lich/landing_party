@@ -8,12 +8,18 @@ at the Star Map, and decide where to make planetfall.
 
 The ship is an abstract hub — there is no walkable ship deck. It holds:
 
-- **The hold** — a single, campaign-wide stockpile. Everything your colonists
-  gather on a planet ends up here when you leave it ("all resources end up on
-  the ship"). Fuel, ore, biomass, crystal, etc. are spent from the hold.
+- **The hold** — a single, campaign-wide stockpile. Fuel and any other
+  materials you've **beamed up** from a site live here. Fuel for travel is
+  spent from the hold.
 - **The roster** — colonists currently aboard, not deployed anywhere.
 
-A new expedition starts with a fuel reserve and a small crew already aboard.
+A new expedition starts with a fuel reserve, 100 of each starting material in
+the hold, and a small crew already aboard.
+
+> **Ship and site storage are separate.** What your colonists mine, harvest,
+> or craft on a planet stays in that planet's storage containers when you
+> leave. To move materials between the ship hold and a site, use the
+> [Beam Resources](#beaming-resources) flow.
 
 ## The Star Map
 
@@ -55,8 +61,8 @@ distance from **where the ship currently is** to that destination:
   just left now costs fuel to return to.
 
 Make fuel by refining it: the **Refine Fuel Cell** recipe (basic workbench)
-turns biomass + ore into fuel. Refined fuel is swept into the ship hold when
-you leave the location, making it available for the next jump.
+turns biomass + ore into fuel. Refined fuel stays at the site by default — to
+spend it on travel, **beam it up** to the ship hold first (see below).
 
 ## Beaming colonists
 
@@ -72,6 +78,24 @@ Colonists move between the ship and the loaded location on the Star Map:
 The whole landing party beams down to the same plaza (they spread out so they
 never stack). Beam-up has one rule: a colonist must be **open to the sky** —
 you cannot beam up through solid ground or a roof.
+
+## Beaming resources
+
+Resources do **not** move automatically. The Star Map's **Beam Resources...**
+button opens the ship hold in the [Storage Inspector](storage.md#the-storage-inspector).
+From here:
+
+- Pick a material, set an amount, click **▼ Beam Down** to send it from the
+  ship hold to the first colony-owned storage container at the loaded site
+  that accepts it. Requires a loaded location.
+- To **beam up** instead, Resume / Land into the location and click a storage
+  container on the planet — its inspector has a **▲ Beam Up** action that
+  sends the selected amount into the ship hold.
+
+The ship hold accepts any material (no tag filters). Beam Down can fail if no
+container on the site will take the material — build a container that accepts
+the right tags first. See [Storage & Materials](storage.md) for the full
+picture of containers, tags, and filters.
 
 ## A typical loop
 

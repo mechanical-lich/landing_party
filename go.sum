@@ -31,8 +31,8 @@ github.com/mechanical-lich/mechanical-basic v1.2.0 h1:a4YMXAs/D8/J1fj3Zra7AuB16+
 github.com/mechanical-lich/mechanical-basic v1.2.0/go.mod h1:W6AUQYju/VDAtDtYs5vU3SJI9GIO9swi1BeB/qZp5Z8=
 github.com/mechanical-lich/ml-rogue-lib v1.14.2 h1:yrbJPmL2fOS/qLx2A8eMVOkGFHW+fSWdHistEeoepIA=
 github.com/mechanical-lich/ml-rogue-lib v1.14.2/go.mod h1:UPOB+FMPGH4tSCrCBdMtjhsdKxfDa9NNcgIEeq28jdQ=
-github.com/mechanical-lich/mlge v1.9.1 h1:yxHj4+LsSEZqxL9SnKMS0Ov6Oyb+gU3dPetPHl4LXdo=
-github.com/mechanical-lich/mlge v1.9.1/go.mod h1:+21TYM9sZrfp4wxIQlu3fbcISOQsLU86NBUCzwUCHpc=
+github.com/mechanical-lich/mlge v1.9.2 h1:PMbsLXr1o5pies2uz2JXl0vh34eti/UbGlzL/WjDU2k=
+github.com/mechanical-lich/mlge v1.9.2/go.mod h1:+21TYM9sZrfp4wxIQlu3fbcISOQsLU86NBUCzwUCHpc=
 github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
 github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

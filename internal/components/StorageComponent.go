@@ -4,48 +4,89 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
-const StackMax = 100
-
+// StorageComponent holds items for a settlement-owned container (storage locker,
+// ship hold, etc.).
+//
+// AllowedTags lists the item categories the container physically supports
+// (game-defined). An empty slice means "accept anything".
+// FilterTags is a player-narrowed subset of AllowedTags. When non-empty, only
+// items matching FilterTags are accepted (and highlighted in the UI).
+//
+// Items is the live runtime slice; it is serialised via world.saveStorageData
+// (not by standard JSON marshalling — see world/save.go).
 type StorageComponent struct {
-	Capacity int
-	Items    []*ecs.Entity
-	OwnedBy  string
+	Capacity    int           `json:"Capacity"`
+	Items       []*ecs.Entity `json:"-"`
+	OwnedBy     string        `json:"OwnedBy"`
+	AllowedTags []string      `json:"AllowedTags,omitempty"`
+	FilterTags  []string      `json:"FilterTags,omitempty"`
 }
 
 func (s *StorageComponent) GetType() ecs.ComponentType { return Storage }
 
-func (s *StorageComponent) AddItem(item *ecs.Entity) {
-	if item.HasComponent(ResourceItem) {
-		rc := item.GetComponent(ResourceItem).(*ResourceItemComponent)
-		qty := rc.Quantity
-		if qty <= 0 {
-			qty = 1
-		}
-		for _, existing := range s.Items {
-			if existing.Blueprint != item.Blueprint || !existing.HasComponent(ResourceItem) {
-				continue
-			}
-			ec := existing.GetComponent(ResourceItem).(*ResourceItemComponent)
-			room := StackMax - ec.Quantity
-			if room <= 0 {
-				continue
-			}
-			if qty <= room {
-				ec.Quantity += qty
-				return
-			}
-			ec.Quantity = StackMax
-			qty -= room
-		}
-		rc.Quantity = qty
-		s.Items = append(s.Items, item)
-		return
+// Accepts reports whether item may be stored here given the current filter
+// configuration. Containers with no AllowedTags accept everything.
+func (s *StorageComponent) Accepts(item *ecs.Entity) bool {
+	if len(s.AllowedTags) == 0 {
+		return true
 	}
-	s.Items = append(s.Items, item)
+	if !item.HasComponent(Material) {
+		// Non-material items can only go in unrestricted containers.
+		return false
+	}
+	mc := item.GetComponent(Material).(*MaterialComponent)
+	active := s.AllowedTags
+	if len(s.FilterTags) > 0 {
+		active = s.FilterTags
+	}
+	for _, allowed := range active {
+		if mc.HasTag(allowed) {
+			return true
+		}
+	}
+	return false
 }
 
-// TakeOne removes and returns one non-resource item by blueprint name.
-// For food, equipment, and other non-stackable items.
+// AddItem places item into the container, merging into existing stacks for
+// stackable materials. Returns false if the item was rejected by the tag
+// filter; the item is not added in that case.
+func (s *StorageComponent) AddItem(item *ecs.Entity) bool {
+	if !s.Accepts(item) {
+		return false
+	}
+	if item.HasComponent(Material) {
+		mc := item.GetComponent(Material).(*MaterialComponent)
+		if mc.IsStackable() {
+			qty := mc.Quantity
+			if qty <= 0 {
+				qty = 1
+			}
+			for _, existing := range s.Items {
+				if existing.Blueprint != item.Blueprint || !existing.HasComponent(Material) {
+					continue
+				}
+				ec := existing.GetComponent(Material).(*MaterialComponent)
+				room := mc.MaxStack - ec.Quantity
+				if room <= 0 {
+					continue
+				}
+				if qty <= room {
+					ec.Quantity += qty
+					return true
+				}
+				ec.Quantity = mc.MaxStack
+				qty -= room
+			}
+			mc.Quantity = qty
+			s.Items = append(s.Items, item)
+			return true
+		}
+	}
+	s.Items = append(s.Items, item)
+	return true
+}
+
+// TakeOne removes and returns the first item matching blueprint.
 func (s *StorageComponent) TakeOne(name string) *ecs.Entity {
 	for i, item := range s.Items {
 		if item.Blueprint == name {
@@ -56,10 +97,10 @@ func (s *StorageComponent) TakeOne(name string) *ecs.Entity {
 	return nil
 }
 
-// TakeResourceStack removes and returns the entire stack entity for a resource.
+// TakeResourceStack removes and returns the first material stack for blueprint.
 func (s *StorageComponent) TakeResourceStack(blueprint string) *ecs.Entity {
 	for i, item := range s.Items {
-		if item.Blueprint == blueprint && item.HasComponent(ResourceItem) {
+		if item.Blueprint == blueprint && item.HasComponent(Material) {
 			s.Items = append(s.Items[:i], s.Items[i+1:]...)
 			return item
 		}
@@ -67,17 +108,17 @@ func (s *StorageComponent) TakeResourceStack(blueprint string) *ecs.Entity {
 	return nil
 }
 
-// CountResource returns total quantity of a resource across all stacks,
-// or the entity count for non-resource items.
+// CountResource returns the total quantity of blueprint across all stacks,
+// or the item count for non-material entities.
 func (s *StorageComponent) CountResource(blueprint string) int {
 	count := 0
 	for _, item := range s.Items {
 		if item.Blueprint != blueprint {
 			continue
 		}
-		if item.HasComponent(ResourceItem) {
-			rc := item.GetComponent(ResourceItem).(*ResourceItemComponent)
-			count += rc.Quantity
+		if item.HasComponent(Material) {
+			mc := item.GetComponent(Material).(*MaterialComponent)
+			count += mc.Quantity
 		} else {
 			count++
 		}
@@ -85,8 +126,8 @@ func (s *StorageComponent) CountResource(blueprint string) int {
 	return count
 }
 
-// DeductResource subtracts amount units from resource stacks, removing depleted
-// stack entities. Returns true if the full amount was deducted.
+// DeductResource subtracts amount units from stacks, removing depleted slots.
+// Returns true if the full amount was successfully deducted.
 func (s *StorageComponent) DeductResource(blueprint string, amount int) bool {
 	if s.CountResource(blueprint) < amount {
 		return false
@@ -95,30 +136,30 @@ func (s *StorageComponent) DeductResource(blueprint string, amount int) bool {
 	i := 0
 	for remaining > 0 && i < len(s.Items) {
 		item := s.Items[i]
-		if item.Blueprint != blueprint || !item.HasComponent(ResourceItem) {
+		if item.Blueprint != blueprint {
 			i++
 			continue
 		}
-		rc := item.GetComponent(ResourceItem).(*ResourceItemComponent)
-		if rc.Quantity <= remaining {
-			remaining -= rc.Quantity
-			s.Items = append(s.Items[:i], s.Items[i+1:]...)
+		if item.HasComponent(Material) {
+			mc := item.GetComponent(Material).(*MaterialComponent)
+			if mc.Quantity <= remaining {
+				remaining -= mc.Quantity
+				s.Items = append(s.Items[:i], s.Items[i+1:]...)
+			} else {
+				mc.Quantity -= remaining
+				remaining = 0
+				i++
+			}
 		} else {
-			rc.Quantity -= remaining
-			remaining = 0
-			i++
+			remaining--
+			s.Items = append(s.Items[:i], s.Items[i+1:]...)
 		}
 	}
 	return true
 }
 
-func (s *StorageComponent) HasItem(name string) bool {
-	return s.CountResource(name) > 0
-}
-
-func (s *StorageComponent) CountItem(name string) int {
-	return s.CountResource(name)
-}
+func (s *StorageComponent) HasItem(name string) bool  { return s.CountResource(name) > 0 }
+func (s *StorageComponent) CountItem(name string) int { return s.CountResource(name) }
 
 func (s *StorageComponent) HasItemWithComponent(compType ecs.ComponentType) bool {
 	for _, item := range s.Items {

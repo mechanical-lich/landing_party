@@ -74,9 +74,9 @@ Key methods:
 - `EnterCurrent()` — clears the parked state's stale `done`/`next` (set when it
   opened the Star Map, otherwise it bounces straight back), `reattach()`es it,
   and returns it for the state machine. This is **Resume / Land**.
-- `Freeze(s)` — `sweepResourcesToShip` (moves colony-owned `ResourceItem`
-  stacks into the ship hold), records view state, and writes the location's
-  `saveFile` gzip.
+- `Freeze(s)` — records view state and writes the location's `saveFile` gzip.
+  Ship and site storage are decoupled: site materials stay at the site,
+  transferred only via the Star Map's Storage Inspector.
 - `BeamDown(rosterIdx)` / `BeamUp(e)` — move one colonist between roster and
   the loaded level. Beam-down uses a cached `landingZone()` (colony settlement
   centre, else a one-time plaza search) and `freeLandingTile()` (spiral search

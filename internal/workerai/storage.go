@@ -30,6 +30,26 @@ func FindAvailableStorage(level *world.Level, settlementName string) *ecs.Entity
 	return nil
 }
 
+// FindAvailableStorageFor returns the first colony-owned storage container
+// whose tag filter accepts item, or nil if none will. Use this instead of
+// FindAvailableStorage when the worker has a specific item to deposit, so the
+// worker doesn't walk to a container that would silently reject the drop.
+func FindAvailableStorageFor(level *world.Level, settlementName string, item *ecs.Entity) *ecs.Entity {
+	if item == nil {
+		return FindAvailableStorage(level, settlementName)
+	}
+	for _, e := range level.Entities {
+		if !e.HasComponent(components.Storage) {
+			continue
+		}
+		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if sc.OwnedBy == settlementName && sc.Accepts(item) {
+			return e
+		}
+	}
+	return nil
+}
+
 func FindClosestStorageWith(level *world.Level, settlementName, itemName string, x, y, z int) *ecs.Entity {
 	var closest *ecs.Entity
 	minDist := 99999

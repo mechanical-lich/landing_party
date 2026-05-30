@@ -192,9 +192,25 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 				level.RemoveEntity(e)
 				progression.AwardXP(entity, "Dex", progression.XPPerTask)
 				CompleteTaskWithMessage(entity, wc.CurrentTask, "Retrieved "+e.Blueprint)
-				storage := FindAvailableStorage(level, sc.Name)
-				if storage != nil {
-					spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				// Prefer the explicit Dest from the Store order; otherwise fall
+				// back to the first colony locker that accepts the item.
+				dest := req.Dest
+				if dest != nil {
+					if !dest.HasComponent(components.Storage) || !dest.HasComponent(rlcomponents.Position) {
+						dest = nil
+					} else {
+						destSc := dest.GetComponent(components.Storage).(*components.StorageComponent)
+						if !destSc.Accepts(e) {
+							// Filter changed between order and pickup — fall through to default.
+							dest = nil
+						}
+					}
+				}
+				if dest == nil {
+					dest = FindAvailableStorageFor(level, sc.Name, e)
+				}
+				if dest != nil {
+					spc := dest.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 					aiMemory.TargetX = spc.GetX()
 					aiMemory.TargetY = spc.GetY()
 					aiMemory.TargetZ = spc.GetZ()
@@ -236,8 +252,8 @@ func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 		return
 	}
 
-	// Walk to storage and deposit
-	storage := FindAvailableStorage(level, sc.Name)
+	// Walk to storage and deposit — pick one that accepts the unequipped item.
+	storage := FindAvailableStorageFor(level, sc.Name, item)
 	if storage == nil {
 		wc.CurrentTask.Complete()
 		wc.CurrentTask = nil
@@ -250,8 +266,9 @@ func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
 		storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
 		for _, bagItem := range append([]*ecs.Entity{}, inv.Bag...) {
-			storageC.AddItem(bagItem)
-			inv.RemoveItem(bagItem)
+			if storageC.AddItem(bagItem) {
+				inv.RemoveItem(bagItem)
+			}
 		}
 		wc.CurrentTask.Complete()
 		wc.CurrentTask = nil
@@ -816,4 +833,151 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			wc.CurrentTask = nil
 		}
 	}
+}
+
+// handleRelocateTask moves a quantity of one material from a source container
+// to either a destination container or a ground tile. Phases are driven by
+// req.PickedUp: false → walk to source and withdraw; true → walk to dest and
+// deposit.
+func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	req, ok := wc.CurrentTask.Data.(task_requests.RelocateRequest)
+	if !ok {
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+
+	if !req.PickedUp {
+		// Phase 1: walk to source and withdraw.
+		if req.Source == nil || !req.Source.HasComponent(components.Storage) {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: source missing")
+			aiMemory.State = "idle"
+			return
+		}
+		srcPC := req.Source.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy, sz := srcPC.GetX(), srcPC.GetY(), srcPC.GetZ()
+		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), sx, sy, sz, 1, 1, 0) {
+			if !MoveTowardsTarget(level, entity, sx, sy, sz) {
+				wc.CurrentTask.ReQueue()
+				wc.CurrentTask = nil
+				aiMemory.State = "idle"
+			}
+			return
+		}
+		srcSc := req.Source.GetComponent(components.Storage).(*components.StorageComponent)
+		// "Take what's there" — clamp to whatever the source still has.
+		take := req.Qty
+		if have := srcSc.CountResource(req.Blueprint); have < take {
+			take = have
+		}
+		if take <= 0 {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: nothing to take")
+			aiMemory.State = "idle"
+			return
+		}
+		if !srcSc.DeductResource(req.Blueprint, take) {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: withdraw failed")
+			aiMemory.State = "idle"
+			return
+		}
+		item, err := factory.Create(req.Blueprint, 0, 0, 0)
+		if err != nil {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: unknown material")
+			aiMemory.State = "idle"
+			return
+		}
+		if item.HasComponent(components.Material) {
+			item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = take
+		}
+		inv.AddItem(item)
+		req.PickedUp = true
+		req.Carried = take
+		wc.CurrentTask.Data = req
+		return
+	}
+
+	// Phase 2: walk to dest and deposit.
+	var dx, dy, dz int
+	if req.DestEntity != nil {
+		if !req.DestEntity.HasComponent(rlcomponents.Position) {
+			// Dest entity lost its position somehow — fall back to drop at task X/Y/Z.
+			dx, dy, dz = req.DestX, req.DestY, req.DestZ
+		} else {
+			dpc := req.DestEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			dx, dy, dz = dpc.GetX(), dpc.GetY(), dpc.GetZ()
+		}
+	} else {
+		dx, dy, dz = req.DestX, req.DestY, req.DestZ
+	}
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), dx, dy, dz, 1, 1, 0) {
+		if !MoveTowardsTarget(level, entity, dx, dy, dz) {
+			// Can't reach — drop the load wherever we ended up so it isn't lost.
+			dropMaterialAt(level, inv, req.Blueprint, req.Carried, pc.GetX(), pc.GetY(), pc.GetZ())
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: blocked, dropped load")
+			aiMemory.State = "idle"
+			return
+		}
+		return
+	}
+
+	// Find the carried material entity in the bag.
+	var carried *ecs.Entity
+	for _, item := range inv.Bag {
+		if item.Blueprint == req.Blueprint && item.HasComponent(components.Material) {
+			carried = item
+			break
+		}
+	}
+	if carried == nil {
+		// Carried material went missing (eaten, dropped, …); task is done.
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: load lost")
+		aiMemory.State = "idle"
+		return
+	}
+
+	if req.DestEntity != nil && req.DestEntity.HasComponent(components.Storage) {
+		destSc := req.DestEntity.GetComponent(components.Storage).(*components.StorageComponent)
+		if destSc.AddItem(carried) {
+			inv.RemoveItem(carried)
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
+			aiMemory.State = "idle"
+			return
+		}
+		// Filter rejected (changed mid-trip) — drop on the ground next to the dest.
+		dropMaterialAt(level, inv, req.Blueprint, req.Carried, pc.GetX(), pc.GetY(), pc.GetZ())
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: dest filter rejected, dropped")
+		aiMemory.State = "idle"
+		return
+	}
+
+	// Ground drop.
+	dropMaterialAt(level, inv, req.Blueprint, req.Carried, dx, dy, dz)
+	CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
+	aiMemory.State = "idle"
+}
+
+// dropMaterialAt removes the carried material stack from inv and places a new
+// material entity with the given quantity at (x,y,z) on the level. Used as the
+// ground-drop deposit and as the fallback when the destination is unreachable
+// or rejects the load.
+func dropMaterialAt(level *world.Level, inv *rlcomponents.InventoryComponent, blueprint string, qty, x, y, z int) {
+	// Remove the carried stack from the bag.
+	for i, item := range inv.Bag {
+		if item.Blueprint == blueprint && item.HasComponent(components.Material) {
+			inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			break
+		}
+	}
+	dropped, err := factory.Create(blueprint, x, y, z)
+	if err != nil {
+		return
+	}
+	if dropped.HasComponent(components.Material) {
+		dropped.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
+	}
+	level.AddEntity(dropped)
 }

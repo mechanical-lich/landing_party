@@ -312,6 +312,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 				{id: "default", label: "Default", description: "Default cursor mode. Select and inspect entities.", mode: CursorModeDefault},
 				{id: "dig", label: "Dig", description: "Order colonists to dig through terrain.", mode: CursorModeDig},
 				{id: "mine", label: "Mine", description: "Order colonists to mine ore deposits.", mode: CursorModeMine},
+				{id: "store", label: "Store", description: "Pick an item, then choose a storage container to put it in.", mode: CursorModeStore},
 				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
 				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
 				{id: "sleep", label: "Sleep", description: "Order a colonist to rest in a bed and restore health.", mode: CursorModeSleep},
@@ -866,9 +867,9 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			if item.HasComponent(rlcomponents.Description) {
 				name = item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			if item.HasComponent(components.ResourceItem) {
-				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-				name = fmt.Sprintf("%s x%d", name, rc.Quantity)
+			if item.HasComponent(components.Material) {
+				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+				name = fmt.Sprintf("%s x%d", name, mc.Quantity)
 			}
 			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop Off]", name))
 			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
@@ -1553,9 +1554,9 @@ func (h *HUDScreen) updateDetailsContent() {
 				if d := item.GetComponent(rlcomponents.Description); d != nil {
 					name = d.(*rlcomponents.DescriptionComponent).Name
 				}
-				if item.HasComponent(components.ResourceItem) {
-					rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-					add(fmt.Sprintf("  - %s x%d", name, rc.Quantity))
+				if item.HasComponent(components.Material) {
+					mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+					add(fmt.Sprintf("  - %s x%d", name, mc.Quantity))
 				} else {
 					add("  - " + name)
 				}

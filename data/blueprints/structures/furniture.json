@@ -54,6 +54,82 @@
         "Solid": {},
         "Storage": {}
     },
+    "mineral_bin": {
+        "Appearance": {
+            "R": 200,
+            "G": 180,
+            "B": 150,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Mineral Bin",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {
+            "AllowedTags": ["metal", "crystal", "stone", "mineral"]
+        }
+    },
+    "fuel_tank": {
+        "Appearance": {
+            "R": 120,
+            "G": 230,
+            "B": 180,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Fuel Tank",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {
+            "AllowedTags": ["fuel", "energy"]
+        }
+    },
+    "bio_silo": {
+        "Appearance": {
+            "R": 255,
+            "G": 172,
+            "B": 174,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Bio Silo",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {
+            "AllowedTags": ["biomass", "organic", "food"]
+        }
+    },
+    "hazmat_vault": {
+        "Appearance": {
+            "R": 255,
+            "G": 220,
+            "B": 80,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Hazmat Vault",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {
+            "AllowedTags": ["radioactive"]
+        }
+    },
     "work_light": {
         "Appearance": {
             "R": 255,

@@ -41,7 +41,7 @@ Colonists have two needs that must be managed: **Hunger** and **Exhaustion**. Bo
 
 Hunger builds up over time. When it crosses the **hunger threshold** a colonist stops what they are doing and looks for something to eat — first checking their own inventory, then searching nearby settlement storage. If hunger reaches the **starvation threshold** with no food available, the colonist takes damage each turn.
 
-Keep a stockpile of food items (ration packs, etc.) in a `storage_locker` near your workers. Colonists start with a ration pack in their inventory, which buys time before storage is established.
+Keep a stockpile of food items (ration packs, etc.) in a **Bio Silo** or generic **Storage Locker** near your workers (the silo's food tag is the more specific fit). Colonists start with a ration pack in their inventory, which buys time before storage is established. See [Storage & Materials](storage.md) for container details.
 
 ### Exhaustion
 

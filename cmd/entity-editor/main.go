@@ -101,8 +101,8 @@ var componentNames = []string{
 	"Dead", "DefensiveAI", "Description", "Direction", "Door", "Drops",
 	"EquipmentAppearance", "FactionAI", "FX", "Food", "Health", "HostileAI",
 	"Hunger", "Inanimate", "Initiative", "Inventory", "Item", "LaserBeam",
-	"Light", "MyTurn", "NeverSleep", "Nocturnal", "Position", "ResearchBuilding",
-	"ResourceItem", "Script", "ScriptedAI", "Selected", "Settlement", "Skills",
+	"Light", "Material", "MyTurn", "NeverSleep", "Nocturnal", "Position", "ResearchBuilding",
+	"Script", "ScriptedAI", "Selected", "Settlement", "Skills",
 	"Solid", "Stats", "Storage", "WanderAI", "Weapon", "Worker",
 }
 

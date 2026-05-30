@@ -14,9 +14,19 @@ Solid wall tile. Blocks movement and line of sight. Use to define rooms and peri
 
 Passable floor tile. Required as a foundation for interior structures in most layouts.
 
-### Storage Locker
+### Storage containers
 
-Container for items and resources. Colonists haul gathered materials to nearby storage lockers and retrieve food from them when hungry. Place one in every work area.
+Five flavours of storage. The generic **Storage Locker** accepts anything; the four specialised containers only accept materials whose tags match — see [Storage & Materials](storage.md) for the full tag system.
+
+| Container | Accepts | Cost |
+|---|---|---|
+| Storage Locker | anything | 2 metal_ore |
+| Mineral Bin | metal / crystal / stone / mineral | 3 metal_ore |
+| Fuel Tank | fuel / energy | 2 metal_ore, 1 crystal |
+| Bio Silo | biomass / organic / food | 2 metal_ore, 5 biomass |
+| Hazmat Vault | radioactive | 4 metal_ore, 2 crystal |
+
+Colonists haul gathered materials into whichever container will accept them and pull from any container that has what they need. Click any container in-game to open its **Storage Inspector** (contents, beam-up, relocate, and player filter tags). Place at least one container of each category you'll use early on.
 
 ### Research Lab
 

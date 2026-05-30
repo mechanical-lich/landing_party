@@ -55,9 +55,9 @@ func checkInventoryForMaterials(entity *ecs.Entity, buildable construction.Build
 			if item.Blueprint != name {
 				continue
 			}
-			if item.HasComponent(components.ResourceItem) {
-				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-				count += rc.Quantity
+			if item.HasComponent(components.Material) {
+				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+				count += mc.Quantity
 			} else {
 				count++
 			}
@@ -80,13 +80,13 @@ func removeMaterialsFromInventory(entity *ecs.Entity, buildable construction.Bui
 				i++
 				continue
 			}
-			if item.HasComponent(components.ResourceItem) {
-				rc := item.GetComponent(components.ResourceItem).(*components.ResourceItemComponent)
-				if rc.Quantity <= remaining {
-					remaining -= rc.Quantity
+			if item.HasComponent(components.Material) {
+				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+				if mc.Quantity <= remaining {
+					remaining -= mc.Quantity
 					inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
 				} else {
-					rc.Quantity -= remaining
+					mc.Quantity -= remaining
 					remaining = 0
 					i++
 				}
