@@ -140,6 +140,28 @@ func ListResources(p Provider, owners []string) []string {
 	return names
 }
 
+// Summarize totals every material across all matching storage as a flat
+// blueprint→total-quantity map. Non-material items count as 1 each. Used to
+// cache a snapshot for the Global Inventory modal so parked sites can be
+// inspected without loading their full level.
+func Summarize(p Provider, owners []string) map[string]int {
+	out := make(map[string]int)
+	eachStorage(p, owners, func(sc *components.StorageComponent) {
+		for _, item := range sc.Items {
+			if item == nil || item.Blueprint == "" {
+				continue
+			}
+			if item.HasComponent(components.Material) {
+				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+				out[item.Blueprint] += mc.Quantity
+			} else {
+				out[item.Blueprint]++
+			}
+		}
+	})
+	return out
+}
+
 // Deduct removes cost from the combined storage, draining containers in
 // Provider/source order (callers put the ship hold first when desired).
 func Deduct(p Provider, owners []string, cost map[string]int) {

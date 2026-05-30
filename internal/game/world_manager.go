@@ -336,6 +336,12 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 	loc.BuildMode = s.buildMode
 	loc.Visited = true
 	loc.Colonists = countLevelColonists(s.level)
+	// Snapshot storage so the Global Inventory can read this site without
+	// having to load its level file.
+	loc.StorageSummary = storage.Summarize(
+		storage.LevelProvider{Level: s.level},
+		[]string{colony},
+	)
 
 	root := campaignRoot(c.Name)
 	if err := os.MkdirAll(root, 0755); err != nil {

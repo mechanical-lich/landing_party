@@ -92,5 +92,31 @@
         "cost": { "metal_ore": 4, "biomass": 8 },
         "required_building": "research_lab",
         "required_int": 8
+    },
+    "global_inv_current": {
+        "name": "Inventory Survey",
+        "description": "Networked locker telemetry for a single site. Adds the Current Site tab to the Global Inventory.",
+        "duration": 80,
+        "cost": { "crystal": 3 },
+        "required_building": "research_lab",
+        "required_int": 8
+    },
+    "global_inv_all": {
+        "name": "Fleet Census",
+        "description": "Subspace ledger that aggregates storage across the ship hold and every established site. Adds the All Sites tab.",
+        "duration": 160,
+        "cost": { "crystal": 6, "metal_ore": 4 },
+        "required_building": "research_lab",
+        "required_int": 10,
+        "requires_tech": "global_inv_current"
+    },
+    "global_inv_detailed": {
+        "name": "Detailed Census",
+        "description": "Per-site breakdown of the fleet census. Adds the By Site tab to the Global Inventory.",
+        "duration": 220,
+        "cost": { "crystal": 10, "metal_ore": 6 },
+        "required_building": "research_lab",
+        "required_int": 12,
+        "requires_tech": "global_inv_all"
     }
 }

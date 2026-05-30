@@ -35,7 +35,9 @@ type OverworldState struct {
 	beamDownBtn      *minui.Button
 	beamUpBtn        *minui.Button
 	beamResBtn       *minui.Button
+	globalInvBtn     *minui.Button
 	storageInspector *StorageInspectorModal
+	globalInventory  *GlobalInventoryModal
 	travelBtn        *minui.Button
 	resumeBtn        *minui.Button
 	saveBtn          *minui.Button
@@ -92,9 +94,15 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.resumeBtn.OnClick = func() { o.resume() }
 
 	o.beamResBtn = minui.NewButton("ow_beam_res", "Beam Resources...")
-	o.beamResBtn.SetPosition(cx-66, btnY+46)
+	o.beamResBtn.SetPosition(cx-150, btnY+46)
 	o.beamResBtn.SetSize(132, 34)
 	o.beamResBtn.OnClick = func() { o.openBeamResources() }
+
+	o.globalInvBtn = minui.NewButton("ow_global_inv", "Global Inventory")
+	o.globalInvBtn.SetPosition(cx+18, btnY+46)
+	o.globalInvBtn.SetSize(150, 34)
+	o.globalInvBtn.OnClick = func() { o.openGlobalInventory() }
+	o.globalInventory = newGlobalInventoryModal(wm)
 
 	o.saveBtn = minui.NewButton("ow_save", "Save Expedition")
 	o.saveBtn.SetPosition(cx+120, btnY)
@@ -226,6 +234,14 @@ func (o *OverworldState) openBeamResources() {
 	o.storageInspector.Open(hold)
 }
 
+func (o *OverworldState) openGlobalInventory() {
+	if !o.campaign.HasTech(techGlobalInvCurrent) {
+		o.status = "Requires Inventory Survey research."
+		return
+	}
+	o.globalInventory.Open()
+}
+
 func (o *OverworldState) beamDown() {
 	if o.wm.current == nil {
 		o.status = "Travel to a location before beaming down."
@@ -312,9 +328,13 @@ func (o *OverworldState) resume() {
 }
 
 func (o *OverworldState) Update() state.StateInterface {
-	// Beam resources modal takes full input priority while open.
+	// Modals take full input priority while open.
 	if o.storageInspector.Visible {
 		o.storageInspector.Update()
+		return o.next
+	}
+	if o.globalInventory.Visible {
+		o.globalInventory.Update()
 		return o.next
 	}
 
@@ -322,12 +342,18 @@ func (o *OverworldState) Update() state.StateInterface {
 		o.resume()
 		return o.next
 	}
+	// Gate the Global Inventory button on the Tier 1 research; greys out
+	// until "Inventory Survey" is researched so the player sees the feature
+	// exists but knows it's locked.
+	o.globalInvBtn.SetEnabled(o.campaign.HasTech(techGlobalInvCurrent))
+
 	o.locList.Update()
 	o.shipList.Update()
 	o.planList.Update()
 	o.beamDownBtn.Update()
 	o.beamUpBtn.Update()
 	o.beamResBtn.Update()
+	o.globalInvBtn.Update()
 	o.travelBtn.Update()
 	o.resumeBtn.Update()
 	o.saveBtn.Update()
@@ -370,6 +396,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.beamDownBtn.Draw(screen)
 	o.beamUpBtn.Draw(screen)
 	o.beamResBtn.Draw(screen)
+	o.globalInvBtn.Draw(screen)
 	o.travelBtn.Draw(screen)
 	o.resumeBtn.Draw(screen)
 	o.saveBtn.Draw(screen)
@@ -379,6 +406,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, o.status, 13, cx-300, cfg.ScreenHeight-40, color.RGBA{230, 160, 90, 255})
 	}
 	o.storageInspector.Draw(screen)
+	o.globalInventory.Draw(screen)
 	minui.FlushOverlays(screen)
 }
 

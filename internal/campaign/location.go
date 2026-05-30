@@ -47,6 +47,12 @@ type Location struct {
 	// level load (see the game-side spawn hook); persisted so a fixture added
 	// after the location was first visited still appears on the next trip.
 	Fixtures []QuestFixture `json:"fixtures,omitempty"`
+
+	// StorageSummary is the cached blueprint→total-quantity snapshot of all
+	// colony-owned storage at this location, refreshed on Freeze. Used by the
+	// Global Inventory modal to display data from parked sites without
+	// loading the full level.
+	StorageSummary map[string]int `json:"storage_summary,omitempty"`
 }
 
 // QuestFixture describes one quest-placed entity for a location.

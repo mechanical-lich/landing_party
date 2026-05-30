@@ -146,6 +146,24 @@ Right-click cancels Relocate mode. A worker will fulfil the relocation as a stan
 
 ---
 
+## Global Inventory
+
+The **Star Map → Global Inventory** button opens a campaign-wide dashboard for your stockpiles. It's view-only — for actual transfers, use the [Storage Inspector](#the-storage-inspector) or [Beam Resources](star_map.md#beaming-resources).
+
+The button is visible on the Star Map from the start of a campaign, but **disabled** until you research the first of three Inventory tiers at a research lab:
+
+| Research | Unlocks | Requires |
+|---|---|---|
+| **Inventory Survey** | *Current Site* tab — total of every colony-owned locker on the currently loaded site. | (root) |
+| **Fleet Census** | *All Sites* tab — grand total of the ship hold + every established site. | Inventory Survey |
+| **Detailed Census** | *By Site* tab — left list of sites (Ship Hold + every established location); right pane shows that one site's contents. | Fleet Census |
+
+Cross-site totals come from a snapshot taken each time you leave a site (or save the campaign), so the numbers reflect the state at the most recent Freeze, not real-time on parked sites. The currently-loaded site is always fresh.
+
+> **Pre-research view:** the button is still visible while locked so you can see the feature exists; clicking it just reports the missing research.
+
+---
+
 ## Worker behaviour around storage
 
 Workers respect tag filters automatically:

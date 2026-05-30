@@ -9,6 +9,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/ui/minui"
@@ -52,7 +53,7 @@ func (cm *CheatModal) rebuildModal() {
 	cm.modal.SetPosition(mx, my)
 	cm.modal.Closeable = false
 
-	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>")
+	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>  |  research <tech_id>")
 	cm.input.SetPosition(10, 20)
 	cm.input.SetSize(cheatModalW-20, 30)
 	cm.modal.AddChild(cm.input)
@@ -302,6 +303,27 @@ func (cm *CheatModal) runCommand(raw string) {
 		}
 		cm.ms.level.AddEntity(item)
 		message.PostMessage("cheat", fmt.Sprintf("dropped %d %s at camera (no storage found)", amount, blueprint))
+
+	case "research":
+		if len(parts) < 2 {
+			message.PostMessage("cheat", "usage: research <tech_id>")
+			return
+		}
+		key := strings.ToLower(parts[1])
+		if cm.ms.campaign == nil {
+			message.PostMessage("cheat", "research: no active campaign")
+			return
+		}
+		if _, ok := research.GetTech(key); !ok {
+			message.PostMessage("cheat", fmt.Sprintf("research: unknown tech %q", key))
+			return
+		}
+		if cm.ms.campaign.HasTech(key) {
+			message.PostMessage("cheat", fmt.Sprintf("research: %s already known", key))
+			return
+		}
+		cm.ms.campaign.UnlockTech(key)
+		message.PostMessage("cheat", fmt.Sprintf("researched %s", key))
 
 	default:
 		message.PostMessage("cheat", "unknown command: "+parts[0])

@@ -47,3 +47,27 @@ Study of alien biology and ecosystems. Useful for understanding and countering t
 Electrical generation and distribution. Required for powered structures and lighting upgrades.
 
 **Requires:** None
+
+---
+
+### Inventory Survey
+
+Networked locker telemetry for a single site. Unlocks the **Current Site** tab in the Global Inventory modal (Star Map → Global Inventory).
+
+**Requires:** None
+
+---
+
+### Fleet Census
+
+Subspace ledger that aggregates storage across the ship hold and every established site. Unlocks the **All Sites** tab in the Global Inventory.
+
+**Requires:** Inventory Survey
+
+---
+
+### Detailed Census
+
+Per-site breakdown of the fleet census. Unlocks the **By Site** tab in the Global Inventory — pick any established location (or the ship hold) and see its individual stockpile.
+
+**Requires:** Fleet Census
