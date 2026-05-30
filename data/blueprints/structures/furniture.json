@@ -52,7 +52,9 @@
             "Faction": ""
         },
         "Solid": {},
-        "Storage": {}
+        "Storage": {
+            "Capacity": 20
+        }
     },
     "mineral_bin": {
         "Appearance": {
@@ -70,6 +72,7 @@
         },
         "Solid": {},
         "Storage": {
+            "Capacity": 32,
             "AllowedTags": ["metal", "crystal", "stone", "mineral"]
         }
     },
@@ -89,6 +92,7 @@
         },
         "Solid": {},
         "Storage": {
+            "Capacity": 16,
             "AllowedTags": ["fuel", "energy"]
         }
     },
@@ -108,6 +112,7 @@
         },
         "Solid": {},
         "Storage": {
+            "Capacity": 24,
             "AllowedTags": ["biomass", "organic", "food"]
         }
     },
@@ -127,6 +132,7 @@
         },
         "Solid": {},
         "Storage": {
+            "Capacity": 12,
             "AllowedTags": ["radioactive"]
         }
     },

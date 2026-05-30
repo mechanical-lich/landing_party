@@ -32,14 +32,14 @@ type OverworldState struct {
 	planList *minui.ListBox
 	planEnts []*ecs.Entity
 
-	beamDownBtn  *minui.Button
-	beamUpBtn    *minui.Button
-	beamResBtn      *minui.Button
+	beamDownBtn      *minui.Button
+	beamUpBtn        *minui.Button
+	beamResBtn       *minui.Button
 	storageInspector *StorageInspectorModal
-	travelBtn    *minui.Button
-	resumeBtn   *minui.Button
-	saveBtn     *minui.Button
-	questBtn    *minui.Button
+	travelBtn        *minui.Button
+	resumeBtn        *minui.Button
+	saveBtn          *minui.Button
+	questBtn         *minui.Button
 
 	status string
 	done   bool
@@ -73,6 +73,11 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.beamUpBtn.SetSize(90, 34)
 	o.beamUpBtn.OnClick = func() { o.beamUp() }
 
+	// Star Map gets its own inspector instance, separate from MainState's.
+	// We intentionally don't wire OnBeginRelocate here: the Star Map only opens
+	// the ship hold (a ship-side source), and the inspector hides the Relocate
+	// button on ship-side sources anyway — relocate is a per-site task that
+	// only makes sense once a level is loaded.
 	o.storageInspector = newStorageInspectorModal(wm)
 
 	btnY := 624

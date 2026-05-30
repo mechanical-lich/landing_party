@@ -179,10 +179,14 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		} else {
 			toDeposit = append([]*ecs.Entity{}, inv.Bag...)
 		}
+		// Rejected items intentionally stay in the worker's bag rather than
+		// vanishing. The next call to HandleHaulState picks them up via a fresh
+		// FindAvailableStorageFor lookup against bag[0], and that state has a
+		// "no container takes anything" drop-to-ground safety net — so an
+		// empty bag is not this function's responsibility, only this drop-off
+		// attempt is.
 		for _, item := range toDeposit {
 			if !storageC.AddItem(item) {
-				// Container's tag filter rejected this item — leave it in the
-				// worker's bag rather than silently destroying it.
 				continue
 			}
 			inv.RemoveItem(item)
@@ -303,9 +307,15 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 
-	// If holding something, go drop it off — pick a container that accepts
-	// the first bag item; remaining items will retry next iteration if this
-	// container doesn't take them.
+	// If holding something, go drop it off. We pick a container that accepts
+	// the FIRST bag item; bag[0] is guaranteed to be deposited (Accepts is the
+	// only gate in AddItem). Subsequent items the chosen container rejects
+	// stay in the bag and get a fresh container lookup on the next tick —
+	// since bag[0] was removed, FindAvailableStorageFor sees the new head.
+	//
+	// Safety net: if a filter changes mid-trip and ZERO items deposit (e.g.
+	// bag[0] is no longer accepted by anyone matching), drop the bag on the
+	// current tile so workers don't get permanently stuck carrying.
 	if len(inv.Bag) > 0 {
 		storage := FindAvailableStorageFor(level, sc.Name, inv.Bag[0])
 		if storage == nil {
@@ -315,6 +325,7 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 		spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		if !MoveTowardsTarget(level, entity, spc.GetX(), spc.GetY(), spc.GetZ()) {
 			storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
+			before := len(inv.Bag)
 			kept := inv.Bag[:0]
 			for _, item := range inv.Bag {
 				if !storageC.AddItem(item) {
@@ -322,7 +333,15 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 				}
 			}
 			inv.Bag = kept
-			message.PostMessage(rlentity.GetName(entity), "Stored items")
+			if len(inv.Bag) == before {
+				// Nothing was accepted — filter must have changed between
+				// target pick and arrival. Drop where we stand rather than
+				// looping.
+				dropBagOnTile(level, inv, pc.GetX(), pc.GetY(), pc.GetZ())
+				message.PostMessage(rlentity.GetName(entity), "Dropped load (rejected)")
+			} else {
+				message.PostMessage(rlentity.GetName(entity), "Stored items")
+			}
 			aiMemory.State = "idle"
 		}
 		return
@@ -360,6 +379,27 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 		}
 		aiMemory.TargetX = -1
 		aiMemory.TargetY = -1
+	}
+}
+
+// dropBagOnTile empties a worker's bag onto the level at (x,y,z) — used as a
+// safety net by HandleHaulState when the chosen destination accepts nothing.
+// Each loose item gets its Position updated; level.AddEntity routes it to
+// Entities / StaticEntities based on the Inanimate component as usual.
+func dropBagOnTile(level *world.Level, inv *rlcomponents.InventoryComponent, x, y, z int) {
+	bag := append([]*ecs.Entity{}, inv.Bag...)
+	inv.Bag = inv.Bag[:0]
+	for _, item := range bag {
+		if item == nil {
+			continue
+		}
+		if item.HasComponent(rlcomponents.Position) {
+			pc := item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			pc.SetPosition(x, y, z)
+		} else {
+			item.AddComponent(&rlcomponents.PositionComponent{X: x, Y: y, Z: z})
+		}
+		level.AddEntity(item)
 	}
 }
 

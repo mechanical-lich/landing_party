@@ -74,12 +74,6 @@ type pendingRelocate struct {
 	qty       int
 }
 
-// pendingStore tracks the in-progress two-click selection for CursorModeStore:
-// the player first clicks an item to "pick", then clicks a destination
-// container that accepts that item. nil item means no item picked yet.
-type pendingStore struct {
-	item *ecs.Entity
-}
 
 type MainState struct {
 	level             *world.Level
@@ -116,7 +110,10 @@ type MainState struct {
 	cheatModal        *CheatModal
 	storageInspector  *StorageInspectorModal
 	pendingRelocate   *pendingRelocate
-	pendingStore      *pendingStore
+	// pendingStoreItem is the item picked in the first click of Store mode,
+	// awaiting a destination-container click. nil = no item picked yet (or
+	// not in Store mode).
+	pendingStoreItem *ecs.Entity
 	smallMap          *SmallMapWidget
 	followEntity      *ecs.Entity
 	rogueEntity       *ecs.Entity
@@ -789,7 +786,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.guiManager.SetDefaultContext("", "", "")
 		}
 		if s.CursorMode == gui.CursorModeStore && ev.Mode != gui.CursorModeStore {
-			s.pendingStore = nil
+			s.setPendingStoreItem(nil)
 			s.guiManager.SetDefaultContext("", "", "")
 		}
 		s.CursorMode = ev.Mode
@@ -797,7 +794,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.relocateModeBanner()
 		}
 		if ev.Mode == gui.CursorModeStore {
-			s.pendingStore = &pendingStore{}
+			s.setPendingStoreItem(nil)
 			s.storeModeBanner()
 		}
 	case gui.MainMenuEvent:
@@ -1097,9 +1094,7 @@ func (s *MainState) handleRelocateClick(tX, tY, tZ int) {
 			return
 		}
 		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		// Build a probe item so Accepts checks tags properly.
-		probe, err := factory.Create(pr.blueprint, 0, 0, 0)
-		if err == nil && !destSc.Accepts(probe) {
+		if !destSc.AcceptsTags(factory.GetMaterialTags(pr.blueprint)) {
 			message.AddMessage(fmt.Sprintf("That container doesn't accept %s.", dispName))
 			return
 		}
@@ -1959,23 +1954,36 @@ func (s *MainState) updateHovered() {
 	}
 }
 
+// setPendingStoreItem updates the Phase-1 selection AND syncs the world-render
+// highlight (the same SelectedComponent that brightens hovered/inspected
+// entities). Passing nil clears the highlight on the previously-picked item.
+func (s *MainState) setPendingStoreItem(item *ecs.Entity) {
+	if s.pendingStoreItem != nil && s.pendingStoreItem != item {
+		s.pendingStoreItem.RemoveComponent(components.Selected)
+	}
+	s.pendingStoreItem = item
+	if item != nil {
+		item.AddComponent(&components.SelectedComponent{})
+	}
+}
+
 // storeModeBanner shows the static Store hint based on whether an item has
 // been picked yet.
 func (s *MainState) storeModeBanner() {
-	if s.pendingStore == nil || s.pendingStore.item == nil {
+	item := s.pendingStoreItem
+	if item == nil {
 		s.guiManager.SetDefaultContext("Store: Pick an Item", "Click an item on the ground.", "")
 		return
 	}
-	item := s.pendingStore.item
 	s.guiManager.SetDefaultContext("Store: "+entityDisplayLabel(item), "Click a storage container that accepts it.", item.Blueprint)
 }
 
 // updateStoreContext drives the per-hover tooltip while in Store cursor mode.
 // Branches differ depending on whether the player has already picked an item.
 func (s *MainState) updateStoreContext(tX, tY, tZ int) {
-	picked := s.pendingStore != nil && s.pendingStore.item != nil
+	item := s.pendingStoreItem
 
-	if !picked {
+	if item == nil {
 		// First-click phase: looking for an item on the ground.
 		ent := s.level.GetEntityAt(tX, tY, tZ)
 		if ent != nil && ent.HasComponent(rlcomponents.Item) {
@@ -1987,7 +1995,6 @@ func (s *MainState) updateStoreContext(tX, tY, tZ int) {
 	}
 
 	// Second-click phase: looking for a storage container.
-	item := s.pendingStore.item
 	var destEntity *ecs.Entity
 	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
 		destEntity = ent
@@ -2027,25 +2034,22 @@ func (s *MainState) handleStoreClick(tX, tY, tZ int) {
 	if s.MainSettlement == nil {
 		return
 	}
-	if s.pendingStore == nil {
-		s.pendingStore = &pendingStore{}
-	}
 
 	// Phase 1: pick an item.
-	if s.pendingStore.item == nil {
+	if s.pendingStoreItem == nil {
 		ent := s.level.GetEntityAt(tX, tY, tZ)
 		if ent == nil || !ent.HasComponent(rlcomponents.Item) {
 			message.AddMessage("Pick an item lying on the ground first.")
 			return
 		}
-		s.pendingStore.item = ent
+		s.setPendingStoreItem(ent)
 		s.storeModeBanner()
 		message.AddMessage("Picked " + entityDisplayLabel(ent) + ". Click a storage container.")
 		return
 	}
 
 	// Phase 2: pick a destination container.
-	item := s.pendingStore.item
+	item := s.pendingStoreItem
 	var destEntity *ecs.Entity
 	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
 		destEntity = ent
@@ -2075,7 +2079,7 @@ func (s *MainState) handleStoreClick(tX, tY, tZ int) {
 	// Queue the task and reset for another order.
 	if !item.HasComponent(rlcomponents.Position) {
 		message.AddMessage("Item is no longer on the ground.")
-		s.pendingStore.item = nil
+		s.setPendingStoreItem(nil)
 		s.storeModeBanner()
 		return
 	}
@@ -2087,8 +2091,10 @@ func (s *MainState) handleStoreClick(tX, tY, tZ int) {
 		Escalated: true,
 	})
 	message.AddMessage("Queued: store " + entityDisplayLabel(item) + " in " + entityDisplayLabel(destEntity) + ".")
-	s.pendingStore.item = nil
-	s.storeModeBanner()
+	// Match the other one-shot orders (Sleep/Attack/etc.) — drop back to
+	// Default after a successful queue. The CursorModeChangedEvent handler
+	// will clear pendingStoreItem and the highlight for us.
+	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
 }
 
 // relocateBannerText returns the static "title + desc" pair shown when no
@@ -2148,8 +2154,7 @@ func (s *MainState) updateRelocateContext(tX, tY, tZ int) {
 			return
 		}
 		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		probe, err := factory.Create(pr.blueprint, 0, 0, 0)
-		if err == nil && !destSc.Accepts(probe) {
+		if !destSc.AcceptsTags(factory.GetMaterialTags(pr.blueprint)) {
 			s.guiManager.SetDefaultContext("Won't Accept: "+destName, "Tag filter rejects this material.", pr.blueprint)
 			return
 		}
@@ -2579,6 +2584,31 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 			}
 		}
 	}
+
+	s.drawStorePickHighlight(screen)
+}
+
+// drawStorePickHighlight renders a yellow halo over the tile of the item
+// picked in Phase 1 of Store mode, on top of the SelectedComponent's sprite
+// brightening.
+func (s *MainState) drawStorePickHighlight(screen *ebiten.Image) {
+	item := s.pendingStoreItem
+	if item == nil || !item.HasComponent(rlcomponents.Position) {
+		return
+	}
+	pc := item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if pc.GetZ() != s.CameraZ {
+		return
+	}
+	tw := float32(s.TileSizeW)
+	th := float32(s.TileSizeH)
+	sx := float32((pc.GetX() - s.CameraX) * s.TileSizeW)
+	sy := float32((pc.GetY() - s.CameraY) * s.TileSizeH)
+
+	stroke := color.RGBA{R: 255, G: 220, B: 60, A: 220}
+	vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{R: 255, G: 220, B: 60, A: 60}, false)
+	vector.StrokeRect(screen, sx, sy, tw, th, 3, stroke, false)
+	vector.StrokeRect(screen, sx+2, sy+2, tw-4, th-4, 1, stroke, false)
 }
 
 // findStartingPlaza picks a spawn anchor with `slots` adjacent standable

@@ -18,13 +18,15 @@ Passable floor tile. Required as a foundation for interior structures in most la
 
 Five flavours of storage. The generic **Storage Locker** accepts anything; the four specialised containers only accept materials whose tags match — see [Storage & Materials](storage.md) for the full tag system.
 
-| Container | Accepts | Cost |
-|---|---|---|
-| Storage Locker | anything | 2 metal_ore |
-| Mineral Bin | metal / crystal / stone / mineral | 3 metal_ore |
-| Fuel Tank | fuel / energy | 2 metal_ore, 1 crystal |
-| Bio Silo | biomass / organic / food | 2 metal_ore, 5 biomass |
-| Hazmat Vault | radioactive | 4 metal_ore, 2 crystal |
+| Container | Accepts | Slots | Cost |
+|---|---|---|---|
+| Storage Locker | anything | 20 | 2 metal_ore |
+| Mineral Bin | metal / crystal / stone / mineral | 32 | 3 metal_ore |
+| Fuel Tank | fuel / energy | 16 | 2 metal_ore, 1 crystal |
+| Bio Silo | biomass / organic / food | 24 | 2 metal_ore, 5 biomass |
+| Hazmat Vault | radioactive | 12 | 4 metal_ore, 2 crystal |
+
+A *slot* holds one stack of a stackable material (e.g. all your Metal Ore — up to 500) or one non-stackable item (e.g. a single weapon). Specialists hold more of their category than the generalist; pick them when you know what kind of stockpile you're building.
 
 Colonists haul gathered materials into whichever container will accept them and pull from any container that has what they need. Click any container in-game to open its **Storage Inspector** (contents, beam-up, relocate, and player filter tags). Place at least one container of each category you'll use early on.
 

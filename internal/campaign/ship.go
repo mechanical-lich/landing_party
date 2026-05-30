@@ -73,6 +73,7 @@ func newHoldStorage() *world.SaveEntity {
 		Blueprint: "ship_hold",
 		Components: map[ecs.ComponentType]any{
 			components.Storage: map[string]any{
+				// Effectively unlimited — the player's whole expedition stockpile.
 				"Capacity": float64(100000),
 				"OwnedBy":  ShipSettlementName,
 			},

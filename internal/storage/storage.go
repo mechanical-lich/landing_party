@@ -140,58 +140,6 @@ func ListResources(p Provider, owners []string) []string {
 	return names
 }
 
-// MaterialEntry describes one distinct material stack visible across a provider.
-type MaterialEntry struct {
-	Blueprint string
-	Name      string   // from Description component, falls back to Blueprint
-	Tags      []string // from Material component
-	Quantity  int
-}
-
-// ListMaterials returns one entry per distinct blueprint in any matching
-// storage, with name and tags resolved from the first matching item.
-func ListMaterials(p Provider, owners []string) []MaterialEntry {
-	type agg struct {
-		name string
-		tags []string
-		qty  int
-	}
-	seen := map[string]*agg{}
-	eachStorage(p, owners, func(sc *components.StorageComponent) {
-		for _, item := range sc.Items {
-			if !isMaterialItem(item) {
-				continue
-			}
-			a, ok := seen[item.Blueprint]
-			if !ok {
-				a = &agg{}
-				seen[item.Blueprint] = a
-			}
-			a.qty += sc.CountResource(item.Blueprint)
-			if a.name == "" {
-				if item.HasComponent(components.Material) {
-					mc := item.GetComponent(components.Material).(*components.MaterialComponent)
-					if len(a.tags) == 0 {
-						a.tags = mc.Tags
-					}
-				}
-			}
-		}
-	})
-	entries := make([]MaterialEntry, 0, len(seen))
-	for bp, a := range seen {
-		entries = append(entries, MaterialEntry{
-			Blueprint: bp,
-			Tags:      a.tags,
-			Quantity:  a.qty,
-		})
-	}
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Blueprint < entries[j].Blueprint
-	})
-	return entries
-}
-
 // Deduct removes cost from the combined storage, draining containers in
 // Provider/source order (callers put the ship hold first when desired).
 func Deduct(p Provider, owners []string, cost map[string]int) {

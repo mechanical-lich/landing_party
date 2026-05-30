@@ -216,6 +216,16 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 	if qty <= 0 {
 		return nil
 	}
+	// Build the item once so we can probe Accepts; we'll only consume it on
+	// a successful deposit so a failed beam doesn't burn the entity.
+	item, err := factory.Create(blueprint, 0, 0, 0)
+	if err != nil {
+		return fmt.Errorf("beam: unknown resource %q", blueprint)
+	}
+	if item.HasComponent(components.Material) {
+		item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
+	}
+	hasAnyColonyLocker := false
 	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
 		for _, e := range ents {
 			if e == nil || !e.HasComponent(components.Storage) {
@@ -225,16 +235,16 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 			if sc.OwnedBy != colonyName {
 				continue
 			}
-			item, err := factory.Create(blueprint, 0, 0, 0)
-			if err != nil {
-				return fmt.Errorf("beam: unknown resource %q", blueprint)
-			}
-			if item.HasComponent(components.Material) {
-				item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
+			hasAnyColonyLocker = true
+			if !sc.Accepts(item) {
+				continue
 			}
 			sc.AddItem(item)
 			return nil
 		}
+	}
+	if hasAnyColonyLocker {
+		return fmt.Errorf("no storage container on site accepts %s", blueprint)
 	}
 	return fmt.Errorf("no storage locker on site — build one first")
 }

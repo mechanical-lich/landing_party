@@ -95,6 +95,28 @@ func GetSize(name string) *rlcomponents.SizeComponent {
 	return entity.GetComponent(rlcomponents.Size).(*rlcomponents.SizeComponent)
 }
 
+// materialTagCache memoizes per-blueprint material tags so per-frame UI
+// callers (relocate/store hover, inspector lookups) don't allocate a fresh
+// entity every tick just to read a tag slice.
+var materialTagCache = map[string][]string{}
+
+// GetMaterialTags returns the Material.Tags for a blueprint, or nil if the
+// blueprint has no Material component. The result is cached and shared — do
+// not mutate the returned slice.
+func GetMaterialTags(name string) []string {
+	if tags, ok := materialTagCache[name]; ok {
+		return tags
+	}
+	entity, err := jsonFactory.Create(name)
+	if err != nil || !entity.HasComponent(components.Material) {
+		materialTagCache[name] = nil
+		return nil
+	}
+	tags := entity.GetComponent(components.Material).(*components.MaterialComponent).Tags
+	materialTagCache[name] = tags
+	return tags
+}
+
 func CreateComponent(name string, data map[string]interface{}) (ecs.Component, error) {
 	return jsonFactory.CreateComponent(name, data)
 }

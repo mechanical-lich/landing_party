@@ -19,8 +19,11 @@ var StorageProviderFor = func(level *world.Level, settlementName string) (storag
 }
 
 func FindAvailableStorage(level *world.Level, settlementName string) *ecs.Entity {
-	for _, e := range level.Entities {
-		if e.HasComponent(components.Storage) {
+	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range src {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
 			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
 			if sc.OwnedBy == settlementName {
 				return e
@@ -31,20 +34,26 @@ func FindAvailableStorage(level *world.Level, settlementName string) *ecs.Entity
 }
 
 // FindAvailableStorageFor returns the first colony-owned storage container
-// whose tag filter accepts item, or nil if none will. Use this instead of
-// FindAvailableStorage when the worker has a specific item to deposit, so the
-// worker doesn't walk to a container that would silently reject the drop.
+// whose tag filter accepts item, or nil if none will. Scans BOTH Entities and
+// StaticEntities so a placed locker that ends up static (Inanimate-tagged
+// blueprints) is still reachable — every other storage-lookup path in the
+// game iterates both slices, so this one matches.
+//
+// When called with a nil item, falls through to FindAvailableStorage's "any
+// colony locker" semantics for backward compatibility.
 func FindAvailableStorageFor(level *world.Level, settlementName string, item *ecs.Entity) *ecs.Entity {
 	if item == nil {
 		return FindAvailableStorage(level, settlementName)
 	}
-	for _, e := range level.Entities {
-		if !e.HasComponent(components.Storage) {
-			continue
-		}
-		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-		if sc.OwnedBy == settlementName && sc.Accepts(item) {
-			return e
+	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range src {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
+			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if sc.OwnedBy == settlementName && sc.Accepts(item) {
+				return e
+			}
 		}
 	}
 	return nil

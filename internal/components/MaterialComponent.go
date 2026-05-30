@@ -29,3 +29,4 @@ func (m *MaterialComponent) HasTag(tag string) bool {
 	}
 	return false
 }
+

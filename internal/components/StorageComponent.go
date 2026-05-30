@@ -15,7 +15,9 @@ import (
 // Items is the live runtime slice; it is serialised via world.saveStorageData
 // (not by standard JSON marshalling — see world/save.go).
 type StorageComponent struct {
-	Capacity    int           `json:"Capacity"`
+	// Capacity caps the number of distinct slots — each merged stack or
+	// non-stackable item is one slot. 0 means unlimited (the ship hold).
+	Capacity    int           `json:"Capacity,omitempty"`
 	Items       []*ecs.Entity `json:"-"`
 	OwnedBy     string        `json:"OwnedBy"`
 	AllowedTags []string      `json:"AllowedTags,omitempty"`
@@ -35,13 +37,29 @@ func (s *StorageComponent) Accepts(item *ecs.Entity) bool {
 		return false
 	}
 	mc := item.GetComponent(Material).(*MaterialComponent)
+	return s.AcceptsTags(mc.Tags)
+}
+
+// AcceptsTags is the tag-only variant of Accepts, intended for hot UI paths
+// that already have a cached tag slice and want to avoid spawning a probe
+// entity per frame. Passing nil/empty tags into a tag-restricted container
+// returns false (matches Accepts's non-material rejection).
+func (s *StorageComponent) AcceptsTags(materialTags []string) bool {
+	if len(s.AllowedTags) == 0 {
+		return true
+	}
+	if len(materialTags) == 0 {
+		return false
+	}
 	active := s.AllowedTags
 	if len(s.FilterTags) > 0 {
 		active = s.FilterTags
 	}
 	for _, allowed := range active {
-		if mc.HasTag(allowed) {
-			return true
+		for _, t := range materialTags {
+			if allowed == t {
+				return true
+			}
 		}
 	}
 	return false
@@ -49,7 +67,7 @@ func (s *StorageComponent) Accepts(item *ecs.Entity) bool {
 
 // AddItem places item into the container, merging into existing stacks for
 // stackable materials. Returns false if the item was rejected by the tag
-// filter; the item is not added in that case.
+// filter or the container is at capacity; the item is not added in that case.
 func (s *StorageComponent) AddItem(item *ecs.Entity) bool {
 	if !s.Accepts(item) {
 		return false
@@ -77,13 +95,28 @@ func (s *StorageComponent) AddItem(item *ecs.Entity) bool {
 				ec.Quantity = mc.MaxStack
 				qty -= room
 			}
+			// Remainder needs a fresh slot.
+			if s.full() {
+				return false
+			}
 			mc.Quantity = qty
 			s.Items = append(s.Items, item)
 			return true
 		}
 	}
+	// Non-stackable or non-material item: needs its own slot.
+	if s.full() {
+		return false
+	}
 	s.Items = append(s.Items, item)
 	return true
+}
+
+// full reports whether the container has no room for a new slot. Capacity 0
+// means unlimited (the ship hold sets a deliberate cap; site lockers all
+// declare one).
+func (s *StorageComponent) full() bool {
+	return s.Capacity > 0 && len(s.Items) >= s.Capacity
 }
 
 // TakeOne removes and returns the first item matching blueprint.

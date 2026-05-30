@@ -92,10 +92,20 @@ From here:
   container on the planet — its inspector has a **▲ Beam Up** action that
   sends the selected amount into the ship hold.
 
-The ship hold accepts any material (no tag filters). Beam Down can fail if no
-container on the site will take the material — build a container that accepts
-the right tags first. See [Storage & Materials](storage.md) for the full
-picture of containers, tags, and filters.
+The ship hold accepts any material (no tag filters). Beam Down can fail in
+two ways:
+
+- **No storage container on site at all.** Beam Down lands materials in the
+  first colony-owned container it can find. Build at least one Storage
+  Locker (or a typed container that accepts what you're sending) before your
+  first beam-down.
+- **No container accepts the tag.** Even with containers on site, a fuel
+  tank won't take metal ore. Build a generalist Storage Locker, or a typed
+  container that matches the material's tags.
+
+The status line under the Star Map will tell you which case you've hit. See
+[Storage & Materials](storage.md) for the full picture of containers, tags,
+and filters.
 
 ## A typical loop
 

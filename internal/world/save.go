@@ -18,7 +18,7 @@ import (
 // with items stored as SaveEntity records so each item's components are
 // properly round-tripped through the factory on load.
 type saveStorageData struct {
-	Capacity    int           `json:"Capacity"`
+	Capacity    int           `json:"Capacity,omitempty"`
 	OwnedBy     string        `json:"OwnedBy"`
 	AllowedTags []string      `json:"AllowedTags,omitempty"`
 	FilterTags  []string      `json:"FilterTags,omitempty"`

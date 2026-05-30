@@ -30,13 +30,15 @@ A material's tags are visible in the [Storage Inspector](#the-storage-inspector)
 
 Build menu → **Structures**. Each container has a **game-defined allowed list** of tags. A container will only accept materials whose tags overlap that list. A generic Storage Locker has *no* allowed list, so it takes anything.
 
-| Container | Accepts (tags) | Cost | Notes |
-|---|---|---|---|
-| **Storage Locker** | anything | 2 metal_ore | Universal. Use early. |
-| **Mineral Bin** | metal, crystal, stone, mineral | 3 metal_ore | All raw minerals (including radioactive — see below). |
-| **Fuel Tank** | fuel, energy | 2 metal_ore, 1 crystal | Sealed for fuel cells. |
-| **Bio Silo** | biomass, organic, food | 2 metal_ore, 5 biomass | Organic seal. Holds food too. |
-| **Hazmat Vault** | radioactive | 4 metal_ore, 2 crystal | Shielded. Heavy 8-tick build. |
+| Container | Accepts (tags) | Slots | Cost | Notes |
+|---|---|---|---|---|
+| **Storage Locker** | anything | 20 | 2 metal_ore | Universal. Use early. |
+| **Mineral Bin** | metal, crystal, stone, mineral | 32 | 3 metal_ore | All raw minerals (including radioactive — see below). |
+| **Fuel Tank** | fuel, energy | 16 | 2 metal_ore, 1 crystal | Sealed for fuel cells. |
+| **Bio Silo** | biomass, organic, food | 24 | 2 metal_ore, 5 biomass | Organic seal. Holds food too. |
+| **Hazmat Vault** | radioactive | 12 | 4 metal_ore, 2 crystal | Shielded. Heavy 8-tick build. |
+
+A **slot** holds one stack of a stackable material (e.g. all your Metal Ore — up to its 500 stack cap) or one non-stackable item (e.g. a single sword). Once a container is full, workers will skip it and find another that has room. The ship hold has effectively unlimited capacity.
 
 > **Note:** the Mineral Bin accepts the "mineral" tag, which radioactive material also carries. If you want radioactive segregated to the Hazmat Vault, set the bin's player filters to exclude it (see [Allowed Tags filters](#allowed-tags-filters)).
 

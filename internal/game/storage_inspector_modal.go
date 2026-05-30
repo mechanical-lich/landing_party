@@ -18,15 +18,26 @@ import (
 )
 
 // Layout constants for the storage inspector modal.
+//
+// IMPORTANT: child Y coordinates inside a minui Modal are relative to the
+// content area BELOW the 30px title bar (see ElementBase.GetAbsolutePosition).
+// siModalH below explicitly adds the title bar + bottom padding to the last
+// child's bottom so children placed at the computed positions actually fit
+// inside the modal's render box.
 const (
 	siModalW = 760
-	siModalH = 520
 
-	// Column-header label row (just under the title bar).
-	siColHdrY = 36
+	// Title bar overhead — minui's Modal renders a 30px title bar above
+	// children whose Y is in content coordinates.
+	siTitleBarH = 30
+	// Padding inside the modal's bottom edge after the last child.
+	siBottomPad = 12
+
+	// Column-header label row, in content coordinates (just below the title bar).
+	siColHdrY = 6
 
 	// Listbox row band.
-	siListY = 60
+	siListY = 30
 	siListH = 320
 
 	// Column positions: tag filter | inventory | allowed filter.
@@ -37,8 +48,13 @@ const (
 	siAllowColX  = 590
 	siAllowColW  = 158
 
-	// Action panel.
-	siActionY    = siListY + siListH + 12
+	// Action panel sits below the listboxes. Each row stacks on the previous
+	// so the layout stays self-consistent if any spacing changes.
+	siActionY    = siListY + siListH + 12 // selected-label top
+	siSelectedH  = 20
+	siAmountRowY = siActionY + siSelectedH + 6 // amount input + buttons row
+	siActionBtnH = 28
+
 	siActionLblX = siInvColX
 	siAmountX    = siInvColX + 70
 	siAmountW    = 70
@@ -48,12 +64,18 @@ const (
 	siActionBtnW = 130
 	siRelocateX  = siInvColX + 332
 	siRelocateW  = 130
-	siActionBtnH = 28
 
-	// Status + close.
-	siStatusY  = siActionY + 40
+	// Status line and Close button at the bottom.
+	siStatusY   = siAmountRowY + siActionBtnH + 14
+	siStatusH   = 20
+	siCloseY    = siStatusY + siStatusH + 12
 	siCloseBtnW = 100
 	siCloseBtnH = 28
+
+	// Total modal height — derived from the last child's bottom so we never
+	// overhang again. Anything stacked above just needs to follow the y =
+	// previous_y + previous_h + gap pattern.
+	siModalH = siCloseY + siCloseBtnH + siTitleBarH + siBottomPad
 )
 
 // StorageInspectorModal views the contents of one storage container and
@@ -79,8 +101,9 @@ type StorageInspectorModal struct {
 	filterList   *minui.ListBox
 	filterValues []string // parallel to filterList items; "" = "All"
 
-	invList *minui.ListBox
-	invBPs  []string // parallel to invList items
+	invList   *minui.ListBox
+	invBPs    []string      // parallel to invList items
+	invHdrLbl *minui.Label  // "Inventory (n/cap slots)" — kept live by refreshInventory
 
 	allowedList *minui.ListBox
 	allowedTags []string // parallel to allowedList items (raw tag names)
@@ -208,11 +231,10 @@ func (s *StorageInspectorModal) build() {
 		s.modal.AddChild(lbl)
 	}
 	addHeader("Tag Filter", siFilterColX)
-	invHdr := "Inventory"
-	if sc := s.sourceStorage(); sc != nil && len(sc.AllowedTags) > 0 {
-		invHdr = "Inventory  (filtered)"
-	}
-	addHeader(invHdr, siInvColX)
+	s.invHdrLbl = minui.NewLabel("si_hdr_inventory", s.inventoryHeaderText())
+	s.invHdrLbl.SetPosition(siInvColX, siColHdrY)
+	s.invHdrLbl.SetColor(color.RGBA{160, 185, 215, 255})
+	s.modal.AddChild(s.invHdrLbl)
 	addHeader("Allowed Tags", siAllowColX)
 
 	// ── Tag filter listbox (left) ─────────────────────────────────────────
@@ -259,20 +281,20 @@ func (s *StorageInspectorModal) build() {
 	// ── Action panel ──────────────────────────────────────────────────────
 	s.selectedLbl = minui.NewLabel("si_selected", "Select a material to transfer.")
 	s.selectedLbl.SetPosition(siActionLblX, siActionY)
-	s.selectedLbl.SetSize(siInvColW, 20)
+	s.selectedLbl.SetSize(siInvColW, siSelectedH)
 	s.modal.AddChild(s.selectedLbl)
 
 	amtLbl := minui.NewLabel("si_amt_lbl", "Amount:")
-	amtLbl.SetPosition(siActionLblX, siActionY+24)
+	amtLbl.SetPosition(siActionLblX, siAmountRowY+2)
 	s.modal.AddChild(amtLbl)
 
 	s.amountInput = minui.NewTextInput("si_amount", "")
-	s.amountInput.SetPosition(siAmountX, siActionY+22)
+	s.amountInput.SetPosition(siAmountX, siAmountRowY)
 	s.amountInput.SetSize(siAmountW, siActionBtnH)
 	s.modal.AddChild(s.amountInput)
 
 	allBtn := minui.NewButton("si_all", "All")
-	allBtn.SetPosition(siAllBtnX, siActionY+22)
+	allBtn.SetPosition(siAllBtnX, siAmountRowY)
 	allBtn.SetSize(siAllBtnW, siActionBtnH)
 	allBtn.OnClick = func() {
 		sc := s.sourceStorage()
@@ -288,7 +310,7 @@ func (s *StorageInspectorModal) build() {
 		actionLabel = "▼ Beam Down"
 	}
 	s.actionBtn = minui.NewButton("si_action", actionLabel)
-	s.actionBtn.SetPosition(siActionBtnX, siActionY+22)
+	s.actionBtn.SetPosition(siActionBtnX, siAmountRowY)
 	s.actionBtn.SetSize(siActionBtnW, siActionBtnH)
 	s.actionBtn.OnClick = s.performAction
 	s.modal.AddChild(s.actionBtn)
@@ -297,7 +319,7 @@ func (s *StorageInspectorModal) build() {
 	// only "beam down" to a site, which doesn't fit the in-level move flow.
 	if !ship && s.OnBeginRelocate != nil {
 		s.relocateBtn = minui.NewButton("si_relocate", "↔ Relocate")
-		s.relocateBtn.SetPosition(siRelocateX, siActionY+22)
+		s.relocateBtn.SetPosition(siRelocateX, siAmountRowY)
 		s.relocateBtn.SetSize(siRelocateW, siActionBtnH)
 		s.relocateBtn.OnClick = s.beginRelocate
 		s.modal.AddChild(s.relocateBtn)
@@ -306,12 +328,12 @@ func (s *StorageInspectorModal) build() {
 	// ── Status + close ────────────────────────────────────────────────────
 	s.statusLbl = minui.NewLabel("si_status", "")
 	s.statusLbl.SetPosition(siFilterColX, siStatusY)
-	s.statusLbl.SetSize(siModalW-24, 20)
+	s.statusLbl.SetSize(siModalW-24, siStatusH)
 	s.statusLbl.SetColor(color.RGBA{230, 160, 90, 255})
 	s.modal.AddChild(s.statusLbl)
 
 	closeBtn := minui.NewButton("si_close", "Close")
-	closeBtn.SetPosition((siModalW-siCloseBtnW)/2, siModalH-siCloseBtnH-12)
+	closeBtn.SetPosition((siModalW-siCloseBtnW)/2, siCloseY)
 	closeBtn.SetSize(siCloseBtnW, siCloseBtnH)
 	closeBtn.OnClick = func() { s.Visible = false }
 	s.modal.AddChild(closeBtn)
@@ -321,6 +343,27 @@ func (s *StorageInspectorModal) build() {
 	s.refreshAllowedList()
 	s.refreshInventory()
 	s.updateActionPanel()
+}
+
+// inventoryHeaderText returns the label shown above the inventory listbox,
+// including live slot usage (n/cap) and a "filtered" tag when the container
+// has game-defined AllowedTags. Capacity 0 = unlimited (ship hold) — slot
+// cap is omitted there.
+func (s *StorageInspectorModal) inventoryHeaderText() string {
+	sc := s.sourceStorage()
+	if sc == nil {
+		return "Inventory"
+	}
+	var text string
+	if sc.Capacity > 0 {
+		text = fmt.Sprintf("Inventory  (%d/%d slots)", len(sc.Items), sc.Capacity)
+	} else {
+		text = fmt.Sprintf("Inventory  (%d slots)", len(sc.Items))
+	}
+	if len(sc.AllowedTags) > 0 {
+		text += "  · filtered"
+	}
+	return text
 }
 
 // refreshFilterList rebuilds the left tag-filter listbox from current tags.
@@ -371,6 +414,10 @@ func (s *StorageInspectorModal) refreshAllowedList() {
 // refreshInventory rebuilds the middle listbox from source contents, applying
 // the active tag filter. Preserves the selectedBP across rebuilds.
 func (s *StorageInspectorModal) refreshInventory() {
+	if s.invHdrLbl != nil {
+		s.invHdrLbl.Text = s.inventoryHeaderText()
+		s.invHdrLbl.Layout()
+	}
 	sc := s.sourceStorage()
 	if sc == nil {
 		s.invList.SetItems(nil)
