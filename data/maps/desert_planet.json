@@ -2,6 +2,11 @@
     "id": "desert_planet",
     "name": "Desert World",
     "description": "A scorched, windswept world of endless dunes and volcanic heat vents.",
+    "size": {
+        "w": { "min": 360, "max": 512 },
+        "h": { "min": 360, "max": 512 },
+        "z": { "min": 8, "max": 10 }
+    },
     "terrain": "planet",
     "biome_map": {
         "type": "perlin_temp_humidity",

@@ -121,8 +121,8 @@ func (w *SmallMapWidget) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	worldW := cfg.WorldGenSizeW
-	worldH := cfg.WorldGenSizeH
+	worldW := w.level.GetWidth()
+	worldH := w.level.GetHeight()
 
 	// Source region: camera view + 50% padding on each side.
 	padX := w.camViewW / 2

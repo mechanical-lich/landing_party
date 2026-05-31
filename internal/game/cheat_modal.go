@@ -126,10 +126,13 @@ func (cm *CheatModal) centerCameraOn(x, y, z int) {
 }
 
 func (cm *CheatModal) inBounds(x, y, z int) bool {
-	cfg := config.Global()
-	return x >= 0 && x < cfg.WorldGenSizeW &&
-		y >= 0 && y < cfg.WorldGenSizeH &&
-		z >= 0 && z < cfg.WorldGenSizeZ
+	l := cm.ms.level
+	if l == nil {
+		return false
+	}
+	return x >= 0 && x < l.GetWidth() &&
+		y >= 0 && y < l.GetHeight() &&
+		z >= 0 && z < l.GetDepth()
 }
 
 func entityPos(e *ecs.Entity) (*rlcomponents.PositionComponent, bool) {

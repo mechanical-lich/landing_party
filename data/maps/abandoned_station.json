@@ -2,6 +2,11 @@
     "id": "abandoned_station",
     "name": "Abandoned Station",
     "description": "A derelict multi-floor station drifting in the void.",
+    "size": {
+        "w": { "min": 120, "max": 160 },
+        "h": { "min": 120, "max": 160 },
+        "z": { "min": 5, "max": 5 }
+    },
     "terrain": "abandoned_station",
     "terrain_params": { "floors": 5, "station_size": 50, "hub_radius": 5, "spokes": 4, "bud_attempts": 80, "min_room": 4, "max_room": 8 },
     "features": [

@@ -51,10 +51,9 @@ type MapModal struct {
 }
 
 func newMapModal(level *world.Level) *MapModal {
-	cfg := config.Global()
 	return &MapModal{
 		level: level,
-		mm:    minimap.NewMinimap(level, cfg.WorldGenSizeW*mapTilePx, cfg.WorldGenSizeH*mapTilePx),
+		mm:    minimap.NewMinimap(level, level.GetWidth()*mapTilePx, level.GetHeight()*mapTilePx),
 	}
 }
 
@@ -88,9 +87,8 @@ func (m *MapModal) centerOn(worldX, worldY int) {
 }
 
 func (m *MapModal) setOffset(x, y int) {
-	cfg := config.Global()
-	maxX := cfg.WorldGenSizeW*mapTilePx - m.contentW
-	maxY := cfg.WorldGenSizeH*mapTilePx - m.contentH
+	maxX := m.level.GetWidth()*mapTilePx - m.contentW
+	maxY := m.level.GetHeight()*mapTilePx - m.contentH
 	if maxX < 0 {
 		maxX = 0
 	}
@@ -135,7 +133,6 @@ func (m *MapModal) Update() {
 	m.tick++
 	m.computeLayout()
 
-	cfg := config.Global()
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		if m.viewedZ > 0 {
 			m.viewedZ--
@@ -143,7 +140,7 @@ func (m *MapModal) Update() {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		if m.viewedZ < cfg.WorldGenSizeZ-1 {
+		if m.viewedZ < m.level.GetDepth()-1 {
 			m.viewedZ++
 			m.mm.InvalidateZ(m.viewedZ)
 		}
@@ -268,9 +265,8 @@ func (m *MapModal) Draw(screen *ebiten.Image) {
 }
 
 func (m *MapModal) floorNavLine() string {
-	cfg := config.Global()
 	line := ""
-	for z := 0; z < cfg.WorldGenSizeZ; z++ {
+	for z := 0; z < m.level.GetDepth(); z++ {
 		if z > 0 {
 			line += "  "
 		}

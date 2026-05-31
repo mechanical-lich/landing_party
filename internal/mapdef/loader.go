@@ -30,6 +30,9 @@ func Load(dir string) error {
 		if err := json.Unmarshal(data, &m); err != nil {
 			return fmt.Errorf("mapdef.Load %s: %w", entry.Name(), err)
 		}
+		if err := m.Size.Validate(); err != nil {
+			return fmt.Errorf("mapdef.Load %s: size: %w", entry.Name(), err)
+		}
 		loaded = append(loaded, m)
 	}
 	return nil

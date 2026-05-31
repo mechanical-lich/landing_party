@@ -52,7 +52,6 @@ type SettlementConfig struct {
 	ScenarioID       string
 	MapID            string // "" = random map
 	Seed             int64  // 0 = pick a random seed at generation time
-	MapW, MapH, MapZ int    // 0 = use config.json defaults
 	LightingMode     string // "" = use scenario default
 	LightingAmbient  int    // only used when LightingMode == "fixed"
 
@@ -189,7 +188,9 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 		TileSizeH:     config.Global().TileSizeH,
 		CameraX:       0,
 		CameraY:       0,
-		CameraZ:       config.Global().StartingZ,
+		// CameraZ is initialised here, but newGame / newMainStateFromLevel
+		// overwrite it with the level's SurfaceZ once the level exists.
+		CameraZ: 0,
 		settlementCfg: cfg,
 		buildMode:     "hull_wall",
 	}
@@ -332,7 +333,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.gm.Init(level)
 
 	gcfg := config.Global()
-	s.CameraZ = gcfg.StartingZ
+	s.CameraZ = level.SurfaceZ
 	x, y := s.gm.GetFreeSpaceAtZ(s.CameraZ)
 	if x != -1 {
 		sidebarTiles := 200/s.TileSizeW + 1
@@ -419,19 +420,6 @@ func findAdjacentWorker(level *world.Level, x, y, z int) *ecs.Entity {
 
 func (s *MainState) newGame() {
 	cfg := config.Global()
-	mapW := cfg.WorldGenSizeW
-	mapH := cfg.WorldGenSizeH
-	mapZ := cfg.WorldGenSizeZ
-	if s.settlementCfg.MapW > 0 {
-		mapW = s.settlementCfg.MapW
-	}
-	if s.settlementCfg.MapH > 0 {
-		mapH = s.settlementCfg.MapH
-	}
-	if s.settlementCfg.MapZ > 0 {
-		mapZ = s.settlementCfg.MapZ
-	}
-
 	// Resolve the seed; persist it so saves/regeneration reproduce the map.
 	seed := s.settlementCfg.Seed
 	if seed == 0 {
@@ -453,6 +441,12 @@ func (s *MainState) newGame() {
 		mapID = md.ID
 		s.settlementCfg.MapID = mapID
 	}
+
+	// Dimensions come from the map definition's Size block, rolled with the
+	// location's seed so re-generation reproduces the same size. The loader
+	// rejects any map JSON missing a valid size, so md is always non-nil here
+	// with a positive range.
+	mapW, mapH, mapZ := md.Size.Roll(seed)
 
 	// Select a scenario compatible with the chosen map.
 	compatible := scenario.ForMap(mapID)
@@ -542,16 +536,12 @@ func (s *MainState) newGame() {
 	s.gm = &GameMaster{}
 	s.gm.Init(s.level)
 
-	// Prefer the level's own surface Z (set by the primer) so station/asteroid
-	// scenarios don't try to spawn at the legacy hardcoded z=5.
-	startingZ := s.level.SurfaceZ
-	if startingZ <= 0 {
-		startingZ = cfg.StartingZ
-	}
+	// Use the level's own surface Z (set by the primer — station maps put 0
+	// there for the top floor, planet maps put it at the regolith surface).
 	// Initial plaza search — used for camera positioning and as the script
 	// anchor. On asteroid maps the tiles are solid rock here; the setup script
 	// will carve the room, so we re-search after the script for colonist spawn.
-	x, y, startingZ := findStartingPlaza(s.level, startingZ, 5)
+	x, y, startingZ := findStartingPlaza(s.level, s.level.SurfaceZ, 5)
 
 	name := s.settlementCfg.ColonyName
 	if name == "" {
@@ -1404,7 +1394,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && s.CameraZ > 0 {
 		s.CameraZ--
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyE) && s.CameraZ < config.Global().WorldGenSizeZ-1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyE) && s.CameraZ < s.level.GetDepth()-1 {
 		s.CameraZ++
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key1) {

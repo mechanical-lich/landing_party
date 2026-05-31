@@ -4,7 +4,6 @@ import (
 	"math/rand"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
-	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -96,9 +95,9 @@ func (gm *GameMaster) Update() {
 }
 
 func (gm *GameMaster) pickSpawnLocation() (int, int, int) {
-	z := config.Global().StartingZ
+	z := gm.level.SurfaceZ
 	if utility.GetRandom(0, 100) < 30 {
-		z = rand.Intn(config.Global().WorldGenSizeZ)
+		z = rand.Intn(gm.level.GetDepth())
 	}
 	x, y := gm.getFreeSpaceAtZ(z)
 	if x == -1 {
@@ -109,8 +108,8 @@ func (gm *GameMaster) pickSpawnLocation() (int, int, int) {
 
 func (gm *GameMaster) getFreeSpaceAtZ(z int) (int, int) {
 	for i := 0; i < maxLocationAttempts; i++ {
-		x := rand.Intn(config.Global().WorldGenSizeW)
-		y := rand.Intn(config.Global().WorldGenSizeH)
+		x := rand.Intn(gm.level.GetWidth())
+		y := rand.Intn(gm.level.GetHeight())
 		tile := gm.level.GetTileAt(x, y, z)
 		if tile != nil && !tile.IsSolid() && !tile.IsWater() && gm.level.GetEntityAt(x, y, z) == nil {
 			return x, y

@@ -2,6 +2,11 @@
     "id": "ocean_planet",
     "name": "Ocean World",
     "description": "A world of deep seas and volcanic island chains. Land is scarce, lava flows into the surf, and strange things move beneath the waves.",
+    "size": {
+        "w": { "min": 360, "max": 512 },
+        "h": { "min": 360, "max": 512 },
+        "z": { "min": 5, "max": 7 }
+    },
     "terrain": "planet",
     "biome_map": {
         "type": "perlin_temp_humidity",

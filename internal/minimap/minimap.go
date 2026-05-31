@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
@@ -52,7 +51,6 @@ func (m *Minimap) InvalidateZ(z int) {
 }
 
 func (m *Minimap) GenerateImageAtZ(z int) {
-	cfg := config.Global()
 	m.mu.Lock()
 	img := m.images[z]
 	if img == nil {
@@ -63,7 +61,7 @@ func (m *Minimap) GenerateImageAtZ(z int) {
 		m.buffers[z] = make([]byte, m.Width*m.Height*4)
 	}
 	m.mu.Unlock()
-	m.drawRegion(img, z, 0, 0, cfg.WorldGenSizeW, cfg.WorldGenSizeH)
+	m.drawRegion(img, z, 0, 0, m.level.GetWidth(), m.level.GetHeight())
 }
 
 // InvalidatePartial redraws a rectangular region of tiles into the existing
@@ -79,18 +77,18 @@ func (m *Minimap) InvalidatePartial(z, tileX, tileY, tileW, tileH int) {
 		return
 	}
 
-	cfg := config.Global()
+	worldW, worldH := m.level.GetWidth(), m.level.GetHeight()
 	if tileX < 0 {
 		tileX = 0
 	}
 	if tileY < 0 {
 		tileY = 0
 	}
-	if tileX+tileW > cfg.WorldGenSizeW {
-		tileW = cfg.WorldGenSizeW - tileX
+	if tileX+tileW > worldW {
+		tileW = worldW - tileX
 	}
-	if tileY+tileH > cfg.WorldGenSizeH {
-		tileH = cfg.WorldGenSizeH - tileY
+	if tileY+tileH > worldH {
+		tileH = worldH - tileY
 	}
 	m.drawRegion(img, z, tileX, tileY, tileW, tileH)
 }
@@ -100,9 +98,8 @@ func (m *Minimap) InvalidatePartial(z, tileX, tileY, tileW, tileH int) {
 // buffer to the image with a single WritePixels (one GPU op instead of one
 // DrawRect per tile).
 func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
-	cfg := config.Global()
-	worldW := cfg.WorldGenSizeW
-	worldH := cfg.WorldGenSizeH
+	worldW := m.level.GetWidth()
+	worldH := m.level.GetHeight()
 	scaleX := float64(m.Width) / float64(worldW)
 	scaleY := float64(m.Height) / float64(worldH)
 

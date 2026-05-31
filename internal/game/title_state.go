@@ -44,9 +44,6 @@ type TitleState struct {
 	seedInput     *minui.TextInput
 	randomSeedBtn *minui.Button
 
-	widthInput  *minui.TextInput
-	heightInput *minui.TextInput
-	depthInput  *minui.TextInput
 
 	mapPicker *minui.SelectBox
 	mapIDs    []string
@@ -186,16 +183,6 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		ts.seedInput.Text = strconv.FormatInt(rand.Int63(), 10)
 	}
 
-	ts.widthInput = minui.NewTextInput("map_w", strconv.Itoa(cfg.WorldGenSizeW))
-	ts.widthInput.SetPosition(cx-150, 356)
-	ts.widthInput.SetSize(60, 28)
-	ts.heightInput = minui.NewTextInput("map_h", strconv.Itoa(cfg.WorldGenSizeH))
-	ts.heightInput.SetPosition(cx-78, 356)
-	ts.heightInput.SetSize(60, 28)
-	ts.depthInput = minui.NewTextInput("map_z", strconv.Itoa(cfg.WorldGenSizeZ))
-	ts.depthInput.SetPosition(cx-6, 356)
-	ts.depthInput.SetSize(60, 28)
-
 	ts.mapPicker = minui.NewSelectBox("map_picker", []string{"Random"})
 	ts.mapPicker.SetPosition(cx-150, 400)
 	ts.mapPicker.SetSize(300, 28)
@@ -296,18 +283,6 @@ func (ts *TitleState) startNewSettlement() {
 		seed = rand.Int63()
 	}
 
-	gc := config.Global()
-	parseDim := func(in *minui.TextInput, def int) int {
-		v, err := strconv.Atoi(strings.TrimSpace(in.Text))
-		if err != nil || v <= 0 {
-			return def
-		}
-		return v
-	}
-	mapW := parseDim(ts.widthInput, gc.WorldGenSizeW)
-	mapH := parseDim(ts.heightInput, gc.WorldGenSizeH)
-	mapZ := parseDim(ts.depthInput, gc.WorldGenSizeZ)
-
 	var mapID string
 	if mi := ts.mapPicker.SelectedIndex; mi > 0 && mi < len(ts.mapIDs) {
 		mapID = ts.mapIDs[mi]
@@ -334,9 +309,6 @@ func (ts *TitleState) startNewSettlement() {
 
 	_ = mapID
 	_ = scenarioID
-	_ = mapW
-	_ = mapH
-	_ = mapZ
 	_ = lightMode
 	_ = ambient
 

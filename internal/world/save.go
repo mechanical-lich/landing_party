@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
-	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -321,17 +320,16 @@ func SaveLevelToFile(level *Level, filename string) error {
 }
 
 func LoadSaveData(data SaveData) *Level {
-	w, h, d := data.MapSizeW, data.MapSizeH, data.MapSizeZ
-	if w <= 0 {
-		w = config.Global().WorldGenSizeW
+	// MapSize is written by SaveLevel and must always be present in a valid
+	// save. A zero or negative dimension means the save predates the
+	// per-location size persistence or is corrupted — fail loudly rather
+	// than silently picking arbitrary defaults.
+	if data.MapSizeW <= 0 || data.MapSizeH <= 0 || data.MapSizeZ <= 0 {
+		log.Printf("save: invalid map size in save data (W=%d H=%d Z=%d); cannot load",
+			data.MapSizeW, data.MapSizeH, data.MapSizeZ)
+		return nil
 	}
-	if h <= 0 {
-		h = config.Global().WorldGenSizeH
-	}
-	if d <= 0 {
-		d = config.Global().WorldGenSizeZ
-	}
-	level := NewLevel(w, h, d)
+	level := NewLevel(data.MapSizeW, data.MapSizeH, data.MapSizeZ)
 
 	remap := buildTileRemap(data.TileCatalog)
 	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, data.CeilingRuns, remap)

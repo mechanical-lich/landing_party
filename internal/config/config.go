@@ -7,18 +7,17 @@ import (
 )
 
 type Config struct {
-	TileSizeW              int    `json:"tileSizeW"`
-	TileSizeH              int    `json:"tileSizeH"`
-	SpriteSizeW            int    `json:"spriteSizeW"`
-	SpriteSizeH            int    `json:"spriteSizeH"`
-	WorldWidth             int    `json:"worldWidth"`
-	WorldHeight            int    `json:"worldHeight"`
-	ScreenWidth            int    `json:"screenWidth"`
-	ScreenHeight           int    `json:"screenHeight"`
-	WorldGenSizeW          int    `json:"worldGenSizeW"`
-	WorldGenSizeH          int    `json:"worldGenSizeH"`
-	WorldGenSizeZ          int    `json:"worldGenSizeZ"`
-	StartingZ              int    `json:"startingZ"`
+	TileSizeW    int `json:"tileSizeW"`
+	TileSizeH    int `json:"tileSizeH"`
+	SpriteSizeW  int `json:"spriteSizeW"`
+	SpriteSizeH  int `json:"spriteSizeH"`
+	WorldWidth   int `json:"worldWidth"`
+	WorldHeight  int `json:"worldHeight"`
+	ScreenWidth  int `json:"screenWidth"`
+	ScreenHeight int `json:"screenHeight"`
+	// Starting Z lives on each level via its SurfaceZ (set by the terrain
+	// primer) — planet maps put it at the regolith surface, station maps put
+	// it at the top floor (0). No global default.
 	Title                  string `json:"title"`
 	DPI                    int    `json:"dpi"`
 	BlueprintPath          string `json:"blueprintPath"`

@@ -2,6 +2,11 @@
     "id": "alien",
     "name": "Alien World",
     "description": "A vivid alien planet of strange flora and crystal fields.",
+    "size": {
+        "w": { "min": 360, "max": 512 },
+        "h": { "min": 360, "max": 512 },
+        "z": { "min": 8, "max": 10 }
+    },
     "terrain": "planet",
     "biome_map": {
         "type": "perlin_temp_humidity",

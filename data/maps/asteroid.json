@@ -2,6 +2,11 @@
     "id": "asteroid",
     "name": "Asteroid Field",
     "description": "A sparse field of rocks across a single slab. Land on the largest.",
+    "size": {
+        "w": { "min": 100, "max": 180 },
+        "h": { "min": 100, "max": 180 },
+        "z": { "min": 4, "max": 6 }
+    },
     "terrain": "asteroid_field",
     "terrain_params": { "threshold": 0.15, "min_size": 60, "noise_scale": 22 },
     "biome_map": {
