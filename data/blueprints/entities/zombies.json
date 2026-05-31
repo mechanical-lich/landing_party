@@ -12,7 +12,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "frozen elite"
         },
         "Health": {
             "MaxHealth": 20
@@ -50,7 +52,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "rage elite"
         },
         "Health": {
             "MaxHealth": 12
@@ -88,7 +92,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "elite"
         },
         "Health": {
             "MaxHealth": 16
@@ -126,7 +132,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "frozen"
         },
         "Health": {
             "MaxHealth": 16
@@ -164,7 +172,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "frozen headless"
         },
         "Health": {
             "MaxHealth": 20
@@ -202,7 +212,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "rage headless"
         },
         "Health": {
             "MaxHealth": 8
@@ -240,7 +252,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "headless"
         },
         "Health": {
             "MaxHealth": 12
@@ -278,7 +292,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "frozen martial noble"
         },
         "Health": {
             "MaxHealth": 20
@@ -316,7 +332,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "rage martial"
         },
         "Health": {
             "MaxHealth": 12
@@ -354,7 +372,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "martial"
         },
         "Health": {
             "MaxHealth": 12
@@ -392,7 +412,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "rage noble"
         },
         "Health": {
             "MaxHealth": 8
@@ -430,7 +452,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "frozen noble"
         },
         "Health": {
             "MaxHealth": 16
@@ -468,7 +492,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "noble"
         },
         "Health": {
             "MaxHealth": 8
@@ -506,7 +532,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "rage"
         },
         "Health": {
             "MaxHealth": 6
@@ -544,7 +572,8 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie"
         },
         "Health": {
             "MaxHealth": 8
@@ -582,7 +611,9 @@
         },
         "Description": {
             "Name": "<zombie>",
-            "Faction": "undead"
+            "Faction": "undead",
+            "Species": "zombie",
+            "Classification": "arm"
         },
         "Health": {
             "MaxHealth": 5

@@ -14,7 +14,9 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -147,6 +149,15 @@ func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
 		}
 	}
 	c.Ship.Sync()
+
+	// Debug aid: pre-research everything if config.unlockAllResearch is set so
+	// research-gated features (Encyclopedia, Global Inventory tiers, etc.) are
+	// immediately available on a fresh campaign.
+	if config.Global().UnlockAllResearch {
+		for key := range research.AllTechs() {
+			c.UnlockTech(key)
+		}
+	}
 }
 
 // addToHold drops `qty` of a resource blueprint into the ship hold.

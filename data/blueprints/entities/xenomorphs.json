@@ -11,7 +11,9 @@
         },
         "Description": {
             "Name": "Xenomorph Egg",
-            "Faction": "xeno"
+            "Faction": "xeno",
+            "Species": "xenomorph",
+            "Classification": "egg"
         },
         "Health": {
             "MaxHealth": 8
@@ -36,7 +38,9 @@
         },
         "Description": {
             "Name": "Cracked Egg",
-            "Faction": "xeno"
+            "Faction": "xeno",
+            "Species": "xenomorph",
+            "Classification": "cracked egg"
         },
         "Inanimate": {}
     },
@@ -52,7 +56,9 @@
         },
         "Description": {
             "Name": "Xeno Hatchling",
-            "Faction": "xeno"
+            "Faction": "xeno",
+            "Species": "xenomorph",
+            "Classification": "hatchling"
         },
         "Health": {
             "MaxHealth": 6
@@ -85,7 +91,8 @@
         },
         "Description": {
             "Name": "Xenomorph",
-            "Faction": "xeno"
+            "Faction": "xeno",
+            "Species": "xenomorph"
         },
         "Health": {
             "MaxHealth": 16
@@ -118,7 +125,9 @@
         },
         "Description": {
             "Name": "Xenomorph Adult",
-            "Faction": "xeno"
+            "Faction": "xeno",
+            "Species": "xenomorph",
+            "Classification": "adult"
         },
         "Health": {
             "MaxHealth": 32

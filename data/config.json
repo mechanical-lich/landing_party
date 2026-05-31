@@ -15,6 +15,7 @@
     "debugDisableLookdown": false,
     "debugShowAutotileMask": false,
     "debugShowScenarioID": false,
+    "unlockAllResearch": false,
     "profileCPU": false,
     "profileMemory": false,
     "rogueKeyRepeatDelay": 20,

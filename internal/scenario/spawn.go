@@ -5,23 +5,26 @@ import (
 	"github.com/mechanical-lich/mlge/utility"
 )
 
-const maxZUnset = 0
+const lightMaxUnset = 0
 
 func (r SpawnRule) lightMatches(lightLevel int) bool {
 	if lightLevel < r.LightMin {
 		return false
 	}
-	if r.LightMax != maxZUnset && lightLevel > r.LightMax {
+	if r.LightMax != lightMaxUnset && lightLevel > r.LightMax {
 		return false
 	}
 	return true
 }
 
-func (r SpawnRule) zMatches(z int) bool {
-	if z < r.MinZ {
+// zMatches converts the rule's surface-relative Z deltas into absolute Z
+// bounds for surfaceZ and checks z against them. nil deltas mean "no bound on
+// that side", so a rule with both deltas nil always matches.
+func (r SpawnRule) zMatches(z, surfaceZ int) bool {
+	if r.MinZDelta != nil && z < surfaceZ+*r.MinZDelta {
 		return false
 	}
-	if r.MaxZ != maxZUnset && z > r.MaxZ {
+	if r.MaxZDelta != nil && z > surfaceZ+*r.MaxZDelta {
 		return false
 	}
 	return true
@@ -34,14 +37,18 @@ func (r SpawnRule) tileMatches(tileName string) bool {
 	return utility.Contains(r.Tiles, tileName)
 }
 
-func (r SpawnRule) Matches(tileName string, lightLevel, z int) bool {
-	return r.SpawnRate > 0 && r.zMatches(z) && r.lightMatches(lightLevel) && r.tileMatches(tileName)
+// Matches reports whether rule applies at the tile described by (tileName,
+// lightLevel, z) on a level whose surface lives at surfaceZ.
+func (r SpawnRule) Matches(tileName string, lightLevel, z, surfaceZ int) bool {
+	return r.SpawnRate > 0 && r.zMatches(z, surfaceZ) && r.lightMatches(lightLevel) && r.tileMatches(tileName)
 }
 
-func PickRandom(rules map[string]SpawnRule, tileName string, lightLevel, z int) string {
+// PickRandom picks a blueprint key from rules weighted by SpawnRate, honoring
+// each rule's surface-relative Z range against surfaceZ.
+func PickRandom(rules map[string]SpawnRule, tileName string, lightLevel, z, surfaceZ int) string {
 	total := 0
 	for _, r := range rules {
-		if r.Matches(tileName, lightLevel, z) {
+		if r.Matches(tileName, lightLevel, z, surfaceZ) {
 			total += r.SpawnRate
 		}
 	}
@@ -50,7 +57,7 @@ func PickRandom(rules map[string]SpawnRule, tileName string, lightLevel, z int) 
 	}
 	pick := utility.GetRandom(0, total)
 	for bp, r := range rules {
-		if r.Matches(tileName, lightLevel, z) {
+		if r.Matches(tileName, lightLevel, z, surfaceZ) {
 			pick -= r.SpawnRate
 			if pick < 0 {
 				return bp
@@ -60,8 +67,10 @@ func PickRandom(rules map[string]SpawnRule, tileName string, lightLevel, z int) 
 	return ""
 }
 
+// SpawnTiles enumerates the tiles on layer z where rule's tile constraint
+// matches, after gating on the rule's Z delta range against level.SurfaceZ.
 func SpawnTiles(level *world.Level, z int, rule SpawnRule) [][2]int {
-	if !rule.zMatches(z) {
+	if !rule.zMatches(z, level.SurfaceZ) {
 		return nil
 	}
 	var out [][2]int

@@ -1,51 +1,80 @@
 {
-  "id": "crashed_ufo",
-  "name": "Crashed UFO",
-  "description": "A greyish vessel came down hard nearby. Survivors are hostile and protecting whatever they were carrying.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/crashed_ufo_setup.basic"
-  ],
-  "hostile_max": 40,
-  "supported_maps": [
-    "moon",
-    "earth_like",
-    "alien",
-    "asteroid",
-    "desert_planet",
-    "frozen_planet",
-    "ocean_planet"
-  ],
-  "features": [
-    { "kind": "stamp", "count": 1, "params": { "script": "crashed_ufo", "w": 17, "h": 17 } }
-  ],
-  "spawn_rules": {
-    "greyish": {
-      "spawn_rate": 25,
-      "light_min": 0,
-      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
-      "min_z": 5,
-      "max_z": 5
+    "id": "crashed_ufo",
+    "name": "Crashed UFO",
+    "description": "A greyish vessel came down hard nearby. Survivors are hostile and protecting whatever they were carrying.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/crashed_ufo_setup.basic"
+    ],
+    "hostile_max": 40,
+    "supported_maps": [
+        "moon",
+        "earth_like",
+        "alien",
+        "asteroid",
+        "desert_planet",
+        "frozen_planet",
+        "ocean_planet"
+    ],
+    "features": [
+        {
+            "kind": "stamp",
+            "count": 1,
+            "params": {
+                "script": "crashed_ufo",
+                "w": 17,
+                "h": 17
+            }
+        }
+    ],
+    "spawn_rules": {
+        "greyish": {
+            "spawn_rate": 25,
+            "light_min": 0,
+            "tiles": [
+                "regolith",
+                "sand",
+                "grass",
+                "alien_ground",
+                "ice_floor",
+                "rock_floor"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "whitish": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": [
+                "regolith",
+                "sand",
+                "grass",
+                "alien_ground",
+                "ice_floor",
+                "rock_floor"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "greenish": {
+            "spawn_rate": 10,
+            "light_min": 0,
+            "tiles": [
+                "regolith",
+                "sand",
+                "grass",
+                "alien_ground",
+                "ice_floor",
+                "rock_floor"
+            ],
+            "starting_equipment": {
+                "tentacles": 1.0
+            },
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        }
     },
-    "whitish": {
-      "spawn_rate": 15,
-      "light_min": 0,
-      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
-      "min_z": 5,
-      "max_z": 5
-    },
-    "greenish": {
-      "spawn_rate": 10,
-      "light_min": 0,
-      "tiles": ["regolith", "sand", "grass", "alien_ground", "ice_floor", "rock_floor"],
-      "min_z": 5,
-      "max_z": 5,
-      "starting_equipment": {
-        "tentacles": 1.0
-      }
+    "lighting": {
+        "mode": "day_night"
     }
-  },
-  "lighting": {
-    "mode": "day_night"
-  }
 }

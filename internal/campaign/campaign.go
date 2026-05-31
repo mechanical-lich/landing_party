@@ -40,6 +40,12 @@ type Campaign struct {
 	// here (not on Settlement) so it persists across planets and save/load.
 	KnownTechs []string `json:"known_techs,omitempty"`
 
+	// KnownEntities is the set of blueprint IDs the player has hovered at
+	// least once. Populated regardless of whether the Encyclopedia is
+	// unlocked, so the bestiary is already populated the moment the research
+	// finishes. Persisted across save/load.
+	KnownEntities []string `json:"known_entities,omitempty"`
+
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
 }
@@ -79,6 +85,39 @@ func (c *Campaign) KnownTechSet() map[string]bool {
 	set := make(map[string]bool, len(c.KnownTechs))
 	for _, k := range c.KnownTechs {
 		set[k] = true
+	}
+	return set
+}
+
+// IsKnownEntity reports whether blueprint has been registered in the
+// Encyclopedia (i.e. the player has hovered an entity of this type at least
+// once).
+func (c *Campaign) IsKnownEntity(blueprint string) bool {
+	for _, b := range c.KnownEntities {
+		if b == blueprint {
+			return true
+		}
+	}
+	return false
+}
+
+// AddKnownEntity registers blueprint in the Encyclopedia. Returns true if the
+// blueprint was newly added; false if it was already known (or empty). The
+// boolean lets the hover hot path emit a one-shot "newly catalogued" message
+// without keeping a separate dedup set.
+func (c *Campaign) AddKnownEntity(blueprint string) bool {
+	if blueprint == "" || c.IsKnownEntity(blueprint) {
+		return false
+	}
+	c.KnownEntities = append(c.KnownEntities, blueprint)
+	return true
+}
+
+// KnownEntitySet returns KnownEntities as a set for O(1) lookup.
+func (c *Campaign) KnownEntitySet() map[string]bool {
+	set := make(map[string]bool, len(c.KnownEntities))
+	for _, b := range c.KnownEntities {
+		set[b] = true
 	}
 	return set
 }

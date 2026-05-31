@@ -71,3 +71,11 @@ Subspace ledger that aggregates storage across the ship hold and every establish
 Per-site breakdown of the fleet census. Unlocks the **By Site** tab in the Global Inventory — pick any established location (or the ship hold) and see its individual stockpile.
 
 **Requires:** Fleet Census
+
+---
+
+### Archive Indexing
+
+Cross-references field observations into an indexed bestiary. Unlocks the **Encyclopedia** entry point on the Star Map. Entities continue to be recorded as you encounter them, even before this research finishes — once the research completes, the catalogue is already populated with everything your colonists have hovered over so far.
+
+**Requires:** None

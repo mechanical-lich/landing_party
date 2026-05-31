@@ -1,47 +1,47 @@
 {
-  "id": "alien_world",
-  "name": "Alien World",
-  "description": "A vivid alien planet of strange flora and crystal fields. The fauna is hostile.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/alien_setup.basic"
-  ],
-  "hostile_max": 200,
-  "supported_maps": [
-    "alien",
-    "ocean_planet"
-  ],
-  "spawn_rules": {
-    "mutant_grunt": {
-      "spawn_rate": 60,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground",
-        "regolith",
-        "rock_floor"
-      ],
-      "min_z": 5,
-      "max_z": 5,
-      "starting_equipment": {
-        "knife": 0.5,
-        "laser_pistol": 0.5
-      }
+    "id": "alien_world",
+    "name": "Alien World",
+    "description": "A vivid alien planet of strange flora and crystal fields. The fauna is hostile.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/alien_setup.basic"
+    ],
+    "hostile_max": 200,
+    "supported_maps": [
+        "alien",
+        "ocean_planet"
+    ],
+    "spawn_rules": {
+        "mutant_grunt": {
+            "spawn_rate": 60,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "regolith",
+                "rock_floor"
+            ],
+            "starting_equipment": {
+                "knife": 0.5,
+                "laser_pistol": 0.5
+            },
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "mutant_brute": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "regolith",
+                "rock_floor"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        }
     },
-    "mutant_brute": {
-      "spawn_rate": 15,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground",
-        "regolith",
-        "rock_floor"
-      ],
-      "min_z": 5,
-      "max_z": 5
+    "lighting": {
+        "mode": "day_night"
     }
-  },
-  "lighting": {
-    "mode": "day_night"
-  }
 }

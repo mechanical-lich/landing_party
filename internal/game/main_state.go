@@ -1888,6 +1888,22 @@ func (s *MainState) updateHovered() {
 
 	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
 		s.guiManager.SetHoveredEntity(entity)
+		// Register the entity in the Encyclopedia (no-op if already known or
+		// no Description). This runs regardless of whether the player has
+		// unlocked the viewer, so the bestiary is populated the moment they
+		// research it. AddKnownEntity returns true exactly once per
+		// blueprint, so the message log gets one "Catalogued: …" line per
+		// new discovery without any extra dedup state.
+		if s.campaign != nil && entity.HasComponent(rlcomponents.Description) {
+			if s.campaign.AddKnownEntity(entity.Blueprint) {
+				desc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+				name := desc.DisplayName()
+				if name == "" {
+					name = entity.Blueprint
+				}
+				message.PostMessage("Encyclopedia", "Catalogued: "+name)
+			}
+		}
 		if s.CursorMode == gui.CursorModeDefault {
 			s.updateDefaultContext(tX, tY)
 		} else if s.CursorMode == gui.CursorModeRelocate {

@@ -1,63 +1,79 @@
 {
-  "id": "crystalline_blight",
-  "name": "Crystalline Blight",
-  "description": "The alien crystal growths are spreading rapidly, warping the local fauna into something aggressive. The blight advances further every day.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/crystalline_blight_setup.basic"
-  ],
-  "hostile_max": 180,
-  "supported_maps": [
-    "alien"
-  ],
-  "features": [
-    { "kind": "stamp", "count": 1, "params": { "script": "underground_dungeon", "w": 25, "h": 21 } },
-    { "kind": "stamp", "count": 1, "params": { "script": "crashed_ufo", "w": 17, "h": 17 } }
-  ],
-  "spawn_rules": {
-    "critter": {
-      "spawn_rate": 80,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground",
-        "regolith"
-      ],
-      "min_z": 5,
-      "max_z": 5
+    "id": "crystalline_blight",
+    "name": "Crystalline Blight",
+    "description": "The alien crystal growths are spreading rapidly, warping the local fauna into something aggressive. The blight advances further every day.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/crystalline_blight_setup.basic"
+    ],
+    "hostile_max": 180,
+    "supported_maps": [
+        "alien"
+    ],
+    "features": [
+        {
+            "kind": "stamp",
+            "count": 1,
+            "params": {
+                "script": "underground_dungeon",
+                "w": 25,
+                "h": 21
+            }
+        },
+        {
+            "kind": "stamp",
+            "count": 1,
+            "params": {
+                "script": "crashed_ufo",
+                "w": 17,
+                "h": 17
+            }
+        }
+    ],
+    "spawn_rules": {
+        "critter": {
+            "spawn_rate": 80,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "regolith"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "mutant_grunt": {
+            "spawn_rate": 40,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "mutant_brute": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": [
+                "regolith"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        },
+        "mutant_scout": {
+            "spawn_rate": 20,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "regolith"
+            ],
+            "min_z_delta": 0,
+            "max_z_delta": 0
+        }
     },
-    "mutant_grunt": {
-      "spawn_rate": 40,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground"
-      ],
-      "min_z": 5,
-      "max_z": 5
-    },
-    "mutant_brute": {
-      "spawn_rate": 15,
-      "light_min": 0,
-      "tiles": [
-        "regolith"
-      ],
-      "min_z": 5,
-      "max_z": 5
-    },
-    "mutant_scout": {
-      "spawn_rate": 20,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground",
-        "regolith"
-      ],
-      "min_z": 5,
-      "max_z": 5
+    "lighting": {
+        "mode": "day_night"
     }
-  },
-  "lighting": {
-    "mode": "day_night"
-  }
 }

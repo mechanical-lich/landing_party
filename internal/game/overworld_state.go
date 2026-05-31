@@ -36,6 +36,7 @@ type OverworldState struct {
 	beamUpBtn        *minui.Button
 	beamResBtn       *minui.Button
 	globalInvBtn     *minui.Button
+	encyclopediaBtn  *minui.Button
 	storageInspector *StorageInspectorModal
 	globalInventory  *GlobalInventoryModal
 	travelBtn        *minui.Button
@@ -103,6 +104,11 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.globalInvBtn.SetSize(150, 34)
 	o.globalInvBtn.OnClick = func() { o.openGlobalInventory() }
 	o.globalInventory = newGlobalInventoryModal(wm)
+
+	o.encyclopediaBtn = minui.NewButton("ow_encyclopedia", "Encyclopedia")
+	o.encyclopediaBtn.SetPosition(cx+178, btnY+46)
+	o.encyclopediaBtn.SetSize(132, 34)
+	o.encyclopediaBtn.OnClick = func() { o.openEncyclopedia() }
 
 	o.saveBtn = minui.NewButton("ow_save", "Save Expedition")
 	o.saveBtn.SetPosition(cx+120, btnY)
@@ -242,6 +248,15 @@ func (o *OverworldState) openGlobalInventory() {
 	o.globalInventory.Open()
 }
 
+func (o *OverworldState) openEncyclopedia() {
+	if !o.campaign.HasTech(techEncyclopedia) {
+		o.status = "Requires Archive Indexing research."
+		return
+	}
+	o.next = NewEncyclopediaState(o.campaign, o.wm)
+	o.done = true
+}
+
 func (o *OverworldState) beamDown() {
 	if o.wm.current == nil {
 		o.status = "Travel to a location before beaming down."
@@ -346,6 +361,9 @@ func (o *OverworldState) Update() state.StateInterface {
 	// until "Inventory Survey" is researched so the player sees the feature
 	// exists but knows it's locked.
 	o.globalInvBtn.SetEnabled(o.campaign.HasTech(techGlobalInvCurrent))
+	// Same gating for the Encyclopedia button — visible but disabled until
+	// Archive Indexing is researched.
+	o.encyclopediaBtn.SetEnabled(o.campaign.HasTech(techEncyclopedia))
 
 	o.locList.Update()
 	o.shipList.Update()
@@ -354,6 +372,7 @@ func (o *OverworldState) Update() state.StateInterface {
 	o.beamUpBtn.Update()
 	o.beamResBtn.Update()
 	o.globalInvBtn.Update()
+	o.encyclopediaBtn.Update()
 	o.travelBtn.Update()
 	o.resumeBtn.Update()
 	o.saveBtn.Update()
@@ -397,6 +416,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.beamUpBtn.Draw(screen)
 	o.beamResBtn.Draw(screen)
 	o.globalInvBtn.Draw(screen)
+	o.encyclopediaBtn.Draw(screen)
 	o.travelBtn.Draw(screen)
 	o.resumeBtn.Draw(screen)
 	o.saveBtn.Draw(screen)

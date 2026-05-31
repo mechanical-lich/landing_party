@@ -1,51 +1,49 @@
 {
-  "id": "autonz_incursion",
-  "name": "Autonz Incursion",
-  "description": "Autonz wire placers have touched down on the surface and are threading the world with their circuitry. Stop the spread before the planet is consumed.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/autonz_incursion_setup.basic"
-  ],
-  "hostile_max": 40,
-  "supported_maps": [
-    "earth_like",
-    "alien",
-    "moon",
-    "asteroid",
-    "abandoned_station",
-    "desert_planet",
-    "frozen_planet",
-    "ocean_planet"
-  ],
-  "spawn_rules": {
-    "enforcer": {
-      "spawn_rate": 50,
-      "light_min": 0,
-      "tiles": [
-        "blue_wires",
-        "red_wires"
-      ],
-      "min_z": 0,
-      "max_z": 6
+    "id": "autonz_incursion",
+    "name": "Autonz Incursion",
+    "description": "Autonz wire placers have touched down on the surface and are threading the world with their circuitry. Stop the spread before the planet is consumed.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/autonz_incursion_setup.basic"
+    ],
+    "hostile_max": 40,
+    "supported_maps": [
+        "earth_like",
+        "alien",
+        "moon",
+        "asteroid",
+        "abandoned_station",
+        "desert_planet",
+        "frozen_planet",
+        "ocean_planet"
+    ],
+    "spawn_rules": {
+        "enforcer": {
+            "spawn_rate": 50,
+            "light_min": 0,
+            "tiles": [
+                "blue_wires",
+                "red_wires"
+            ],
+            "max_z_delta": 1
+        },
+        "wire_placer": {
+            "spawn_rate": 35,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "dirt_floor",
+                "regolith",
+                "sand",
+                "hull_floor",
+                "rock_floor",
+                "ice_floor"
+            ],
+            "max_z_delta": 1
+        }
     },
-    "wire_placer": {
-      "spawn_rate": 35,
-      "light_min": 0,
-      "tiles": [
-        "grass",
-        "alien_ground",
-        "dirt_floor",
-        "regolith",
-        "sand",
-        "hull_floor",
-        "rock_floor",
-        "ice_floor"
-      ],
-      "min_z": 0,
-      "max_z": 6
+    "lighting": {
+        "mode": "day_night"
     }
-  },
-  "lighting": {
-    "mode": "day_night"
-  }
 }

@@ -82,6 +82,22 @@ func GetAppearance(name string) *components.AppearanceComponent {
 	return entity.GetComponent(components.Appearance).(*components.AppearanceComponent)
 }
 
+// GetDescription returns the blueprint's raw DescriptionComponent without
+// running the per-instance Create callback that resolves "<type>" name
+// placeholders into random rolls. Use this when you want the blueprint's
+// archetype name and lore (e.g. the Encyclopedia) rather than a fresh
+// random instance.
+func GetDescription(name string) *rlcomponents.DescriptionComponent {
+	entity, err := jsonFactory.Create(name)
+	if err != nil {
+		return nil
+	}
+	if !entity.HasComponent(rlcomponents.Description) {
+		return nil
+	}
+	return entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+}
+
 // GetSize returns the SizeComponent for a blueprint without placing it.
 // Returns nil if the blueprint doesn't exist or has no Size.
 func GetSize(name string) *rlcomponents.SizeComponent {

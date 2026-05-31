@@ -12,6 +12,7 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 - [Storage & Materials](storage.md) — tagged materials, typed containers, beam, store, relocate
 - [Crafting](crafting.md) — workbenches, recipes, and gear
 - [Research](research.md) — the tech tree and how to unlock new structures
+- [Encyclopedia](encyclopedia.md) — the campaign-wide bestiary, gated by Archive Indexing
 - [Scenarios](scenarios.md) — the world types a location can use
 - [Quests](star_map.md#quests) — objectives, rewards, and unlocking new locations
 

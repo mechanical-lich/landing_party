@@ -82,7 +82,7 @@ func (gm *GameMaster) Update() {
 		if nameSlot.IsEmpty() {
 			continue
 		}
-		bp := scenario.PickRandom(sc.SpawnRules, world.TileIndexToName[nameSlot.Type], tile.LightLevel, z)
+		bp := scenario.PickRandom(sc.SpawnRules, world.TileIndexToName[nameSlot.Type], tile.LightLevel, z, gm.level.SurfaceZ)
 		if bp == "" {
 			continue
 		}

@@ -26,6 +26,11 @@ type Config struct {
 	DebugDisableLookdown   bool   `json:"debugDisableLookdown"`
 	DebugShowAutotileMask  bool   `json:"debugShowAutotileMask"`
 	DebugShowScenarioID    bool   `json:"debugShowScenarioID"`
+	// UnlockAllResearch, when true, seeds every tech in data/research.json
+	// into the campaign's KnownTechs on creation. Debug aid for testing
+	// research-gated features (Encyclopedia, Global Inventory tiers, etc.)
+	// without grinding research time.
+	UnlockAllResearch      bool   `json:"unlockAllResearch"`
 	ProfileCPU             bool   `json:"profileCPU"`
 	ProfileMemory          bool   `json:"profileMemory"`
 	OverrideGCMemoryLimit  int64  `json:"overrideGCMemoryLimit"`

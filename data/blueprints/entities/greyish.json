@@ -2,8 +2,10 @@
     "greenish": {
         "AIMemory": {},
         "Description": {
-            "Name": "\u003cgreyish\u003e",
-            "Faction": "greyish"
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "green"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",
@@ -26,7 +28,9 @@
             "Ticks": 1
         },
         "Inventory": {
-            "StartingInventory": ["tentacles"]
+            "StartingInventory": [
+                "tentacles"
+            ]
         },
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
@@ -48,8 +52,9 @@
     "greyish": {
         "AIMemory": {},
         "Description": {
-            "Name": "\u003cgreyish\u003e",
-            "Faction": "greyish"
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",
@@ -91,8 +96,10 @@
     "pinkish": {
         "AIMemory": {},
         "Description": {
-            "Name": "\u003cgreyish\u003e",
-            "Faction": "greyish"
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "pink"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",
@@ -115,7 +122,9 @@
             "Ticks": 1
         },
         "Inventory": {
-            "StartingInventory": ["tentacles"]
+            "StartingInventory": [
+                "tentacles"
+            ]
         },
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
@@ -137,8 +146,10 @@
     "whitish": {
         "AIMemory": {},
         "Description": {
-            "Name": "\u003cgreyish\u003e",
-            "Faction": "greyish"
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "white"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",

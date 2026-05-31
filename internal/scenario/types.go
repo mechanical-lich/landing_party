@@ -3,12 +3,20 @@ package scenario
 import "github.com/mechanical-lich/landing_party/internal/mapdef"
 
 type SpawnRule struct {
-	SpawnRate         int                `json:"spawn_rate"`
-	LightMin          int                `json:"light_min"`
-	LightMax          int                `json:"light_max"`
-	Tiles             []string           `json:"tiles"`
-	MinZ              int                `json:"min_z"`
-	MaxZ              int                `json:"max_z"`
+	SpawnRate int      `json:"spawn_rate"`
+	LightMin  int      `json:"light_min"`
+	LightMax  int      `json:"light_max"`
+	Tiles     []string `json:"tiles"`
+	// MinZDelta and MaxZDelta are offsets from the level's SurfaceZ. nil =
+	// no bound on that side. A rule with both nil applies at every Z. So
+	// "spawn on the surface" is {min:0, max:0}, "anywhere underground" is
+	// {min:nil, max:-1}, and "above-surface aerial" is {min:1, max:nil}.
+	//
+	// Using deltas rather than absolute Z values lets the same scenario
+	// scale across maps with different surface Z (asteroids put surface at
+	// z=0, planets put it wherever the depth picks).
+	MinZDelta         *int               `json:"min_z_delta,omitempty"`
+	MaxZDelta         *int               `json:"max_z_delta,omitempty"`
 	StartingEquipment map[string]float64 `json:"starting_equipment,omitempty"`
 }
 

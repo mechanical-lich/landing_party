@@ -12,7 +12,9 @@
         },
         "Description": {
             "Name": "ENFORCER",
-            "Faction": "autonz"
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "enforcer"
         },
         "Health": {
             "MaxHealth": 12
@@ -57,7 +59,9 @@
         },
         "Description": {
             "Name": "WIRE PLACER",
-            "Faction": "autonz"
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "wire placer"
         },
         "Health": {
             "MaxHealth": 8

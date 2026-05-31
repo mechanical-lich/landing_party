@@ -1,61 +1,57 @@
 {
-  "id": "grey_contact",
-  "name": "Grey Contact",
-  "description": "An alien vessel has gone dark near your landing zone. The greyish crew is salvaging the wreck and hostile to intruders.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/grey_contact_setup.basic"
-  ],
-  "hostile_max": 60,
-  "supported_maps": [
-    "abandoned_station"
-  ],
-  "spawn_rules": {
-    "greyish": {
-      "spawn_rate": 30,
-      "light_min": 0,
-      "tiles": [
-        "hull_floor"
-      ],
-      "min_z": 0,
-      "max_z": 4
+    "id": "grey_contact",
+    "name": "Grey Contact",
+    "description": "An alien vessel has gone dark near your landing zone. The greyish crew is salvaging the wreck and hostile to intruders.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/grey_contact_setup.basic"
+    ],
+    "hostile_max": 60,
+    "supported_maps": [
+        "abandoned_station"
+    ],
+    "spawn_rules": {
+        "greyish": {
+            "spawn_rate": 30,
+            "light_min": 0,
+            "tiles": [
+                "hull_floor"
+            ],
+            "max_z_delta": -1
+        },
+        "whitish": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": [
+                "hull_floor"
+            ],
+            "max_z_delta": -1
+        },
+        "greenish": {
+            "spawn_rate": 10,
+            "light_min": 0,
+            "tiles": [
+                "hull_floor"
+            ],
+            "starting_equipment": {
+                "tentacles": 1.0
+            },
+            "max_z_delta": -1
+        },
+        "pinkish": {
+            "spawn_rate": 5,
+            "light_min": 0,
+            "tiles": [
+                "hull_floor"
+            ],
+            "starting_equipment": {
+                "tentacles": 1.0
+            },
+            "max_z_delta": -1
+        }
     },
-    "whitish": {
-      "spawn_rate": 15,
-      "light_min": 0,
-      "tiles": [
-        "hull_floor"
-      ],
-      "min_z": 0,
-      "max_z": 4
-    },
-    "greenish": {
-      "spawn_rate": 10,
-      "light_min": 0,
-      "tiles": [
-        "hull_floor"
-      ],
-      "min_z": 0,
-      "max_z": 4,
-      "starting_equipment": {
-        "tentacles": 1.0
-      }
-    },
-    "pinkish": {
-      "spawn_rate": 5,
-      "light_min": 0,
-      "tiles": [
-        "hull_floor"
-      ],
-      "min_z": 0,
-      "max_z": 4,
-      "starting_equipment": {
-        "tentacles": 1.0
-      }
+    "lighting": {
+        "mode": "fixed",
+        "ambient_level": 15
     }
-  },
-  "lighting": {
-    "mode": "fixed",
-    "ambient_level": 15
-  }
 }

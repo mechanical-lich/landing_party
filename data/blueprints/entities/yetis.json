@@ -11,7 +11,9 @@
         },
         "Description": {
             "Name": "Ancient Yeti",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "yeti",
+            "Classification": "ancient"
         },
         "Health": {
             "MaxHealth": 65
@@ -45,7 +47,9 @@
         },
         "Description": {
             "Name": "Elder Yeti",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "yeti",
+            "Classification": "elder"
         },
         "Health": {
             "MaxHealth": 55
@@ -79,7 +83,8 @@
         },
         "Description": {
             "Name": "Yeti",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "yeti"
         },
         "Health": {
             "MaxHealth": 45

@@ -1,38 +1,40 @@
 {
-  "id": "worms",
-  "name": "Worm Infestation",
-  "description": "Something large moves through the rock beneath your feet. The ground itself is hostile.",
-  "enabled": true,
-  "setup_scripts": [
-    "data/scripts/scenarios/worms_setup.basic"
-  ],
-  "hostile_max": 60,
-  "supported_maps": [
-    "earth_like",
-    "alien",
-    "moon",
-    "asteroid",
-    "desert_planet",
-    "frozen_planet",
-    "ocean_planet"
-  ],
-  "spawn_rules": {
-    "worm": {
-      "spawn_rate": 30,
-      "light_min": 0,
-      "tiles": ["rock_floor"],
-      "min_z": 0,
-      "max_z": 4
+    "id": "worms",
+    "name": "Worm Infestation",
+    "description": "Something large moves through the rock beneath your feet. The ground itself is hostile.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/worms_setup.basic"
+    ],
+    "hostile_max": 60,
+    "supported_maps": [
+        "earth_like",
+        "alien",
+        "moon",
+        "asteroid",
+        "desert_planet",
+        "frozen_planet",
+        "ocean_planet"
+    ],
+    "spawn_rules": {
+        "worm": {
+            "spawn_rate": 30,
+            "light_min": 0,
+            "tiles": [
+                "rock_floor"
+            ],
+            "max_z_delta": -1
+        },
+        "ancient_worm": {
+            "spawn_rate": 15,
+            "light_min": 0,
+            "tiles": [
+                "rock_floor"
+            ],
+            "max_z_delta": -1
+        }
     },
-    "ancient_worm": {
-      "spawn_rate": 15,
-      "light_min": 0,
-      "tiles": ["rock_floor"],
-      "min_z": 0,
-      "max_z": 4
+    "lighting": {
+        "mode": "day_night"
     }
-  },
-  "lighting": {
-    "mode": "day_night"
-  }
 }

@@ -13,7 +13,8 @@
         },
         "Description": {
             "Name": "<colonist>",
-            "Faction": "colony"
+            "Faction": "colony",
+            "Species": "colonist"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",

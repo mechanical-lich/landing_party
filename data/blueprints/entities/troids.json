@@ -11,7 +11,9 @@
         },
         "Description": {
             "Name": "Troid Egg",
-            "Faction": "troid"
+            "Faction": "troid",
+            "Species": "troid",
+            "Classification": "egg"
         },
         "Health": {
             "MaxHealth": 8
@@ -36,7 +38,9 @@
         },
         "Description": {
             "Name": "Cracked Egg",
-            "Faction": "troid"
+            "Faction": "troid",
+            "Species": "troid",
+            "Classification": "cracked egg"
         },
         "Inanimate": {}
     },
@@ -52,7 +56,9 @@
         },
         "Description": {
             "Name": "Troid Hatchling",
-            "Faction": "troid"
+            "Faction": "troid",
+            "Species": "troid",
+            "Classification": "hatchling"
         },
         "Health": {
             "MaxHealth": 6
@@ -90,7 +96,8 @@
         },
         "Description": {
             "Name": "Troid",
-            "Faction": "troid"
+            "Faction": "troid",
+            "Species": "troid"
         },
         "Health": {
             "MaxHealth": 16
@@ -128,7 +135,9 @@
         },
         "Description": {
             "Name": "Troid Adult",
-            "Faction": "troid"
+            "Faction": "troid",
+            "Species": "troid",
+            "Classification": "adult"
         },
         "Health": {
             "MaxHealth": 32

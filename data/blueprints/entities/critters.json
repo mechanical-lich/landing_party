@@ -13,7 +13,9 @@
         },
         "Description": {
             "Name": "Ancient Worm",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "worm",
+            "Classification": "ancient"
         },
         "Health": {
             "MaxHealth": 20
@@ -53,7 +55,8 @@
         },
         "Description": {
             "Name": "Critter",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "critter"
         },
         "Drops": {
             "Items": [
@@ -94,7 +97,8 @@
         },
         "Description": {
             "Name": "Worm",
-            "Faction": "wildlife"
+            "Faction": "wildlife",
+            "Species": "worm"
         },
         "Health": {
             "MaxHealth": 20

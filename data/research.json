@@ -118,5 +118,13 @@
         "required_building": "research_lab",
         "required_int": 12,
         "requires_tech": "global_inv_all"
+    },
+    "encyclopedia": {
+        "name": "Archive Indexing",
+        "description": "Cross-references field observations into an indexed bestiary. Unlocks the Encyclopedia on the Star Map. Entities continue to be recorded as you encounter them, even before this research finishes.",
+        "duration": 120,
+        "cost": { "crystal": 5 },
+        "required_building": "research_lab",
+        "required_int": 8
     }
 }

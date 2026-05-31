@@ -12,7 +12,9 @@
         },
         "Description": {
             "Name": "<mutant>",
-            "Faction": "mutant"
+            "Faction": "mutant",
+            "Species": "mutant",
+            "Classification": "brute"
         },
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic",
@@ -39,7 +41,9 @@
         "AIMemory": {},
         "Description": {
             "Name": "<mutant>",
-            "Faction": "mutant"
+            "Faction": "mutant",
+            "Species": "mutant",
+            "Classification": "grunt"
         },
         "EquipmentAppearance": {
             "Resource": "scifi_entities",
@@ -91,7 +95,9 @@
         },
         "Description": {
             "Name": "<mutant>",
-            "Faction": "mutant"
+            "Faction": "mutant",
+            "Species": "mutant",
+            "Classification": "scout"
         },
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic",
