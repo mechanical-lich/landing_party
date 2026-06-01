@@ -25,6 +25,10 @@
         "ScriptedAI": {
             "script": "data/scripts/xeno/egg.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {}
     },
     "xeno_egg_cracked": {
@@ -70,6 +74,10 @@
         "ScriptedAI": {
             "script": "data/scripts/xeno/hatchling.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 5,
@@ -104,6 +112,10 @@
         "ScriptedAI": {
             "script": "data/scripts/xeno/stage2.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 10,
@@ -139,6 +151,10 @@
         "ScriptedAI": {
             "script": "data/scripts/xeno/stage3.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 16,

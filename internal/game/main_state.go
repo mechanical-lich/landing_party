@@ -270,6 +270,8 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 		return fspath.GetPossiblePath(levelInterface.(*world.Level), from.(*world.Tile), to.(*world.Tile), reuse)
 	}
 	s.systemManager.AddSystem(aiSystem)
+	s.systemManager.AddSystem(&systems.HearingSystem{})
+	s.systemManager.AddSystem(&systems.VisionSystem{})
 	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.ScriptedAISystem{})
 	s.systemManager.AddSystem(&systems.EmoteSystem{})

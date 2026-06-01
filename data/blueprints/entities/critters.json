@@ -27,6 +27,10 @@
         "ScriptedAI": {
             "Script": "data/scripts/ai/worm.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "burrowing"
@@ -110,6 +114,10 @@
         "ScriptedAI": {
             "Script": "data/scripts/ai/worm.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "burrowing"

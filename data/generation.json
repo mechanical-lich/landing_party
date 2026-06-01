@@ -5,8 +5,8 @@
   "start_colonists": 6,
   "roster_cap": 12,
 
-  "nearby_min": 2,
-  "nearby_max": 3,
+  "nearby_min": 5,
+  "nearby_max": 10,
   "nearby_radius_min": 9,
   "nearby_radius_max": 27,
   "datapad_quests_max": 10,

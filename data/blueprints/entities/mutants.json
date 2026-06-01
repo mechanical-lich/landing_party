@@ -20,6 +20,8 @@
             "script": "data/scripts/ai/faction_humanoid.basic",
             "vars": { "ignored_factions": "wildlife" }
         },
+        "Hearing": { "sensitivity": 1.0 },
+        "Emote": {},
         "Health": {
             "MaxHealth": 30
         },
@@ -64,6 +66,8 @@
             "script": "data/scripts/ai/faction_humanoid.basic",
             "vars": { "ignored_factions": "wildlife" }
         },
+        "Hearing": { "sensitivity": 1.0 },
+        "Emote": {},
         "Health": {
             "MaxHealth": 12
         },
@@ -103,6 +107,8 @@
             "script": "data/scripts/ai/faction_humanoid.basic",
             "vars": { "ignored_factions": "wildlife" }
         },
+        "Hearing": { "sensitivity": 1.0 },
+        "Emote": {},
         "Health": {
             "MaxHealth": 8
         },

@@ -24,11 +24,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -64,11 +71,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -104,11 +118,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -144,11 +165,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -184,11 +212,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -224,11 +259,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -264,11 +306,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -304,11 +353,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -344,11 +400,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -384,11 +447,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -424,11 +494,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -464,11 +541,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -504,11 +588,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -544,11 +635,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -583,11 +681,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {
@@ -623,11 +728,18 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/faction_humanoid.basic",
+            "script": "data/scripts/ai/test_ai.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Vision": {
+            "range": 12
+        },
+        "Emote": {},
         "Skills": {},
         "Solid": {},
         "Stats": {

@@ -18,6 +18,8 @@ func MeleeAttack(level *world.Level, attacker *ecs.Entity, targetX, targetY, tar
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
+		pc := attacker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, attacker)
 		return true
 	}
 	return false
@@ -51,6 +53,8 @@ func Shoot(level *world.Level, attacker *ecs.Entity, targetX, targetY, targetZ i
 			weapon.ProjectileResource, weapon.ProjectileX, weapon.ProjectileY,
 		))
 	}
+
+	level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 20, world.SoundTagGunshot, attacker)
 
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {

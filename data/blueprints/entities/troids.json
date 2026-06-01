@@ -25,6 +25,10 @@
         "ScriptedAI": {
             "script": "data/scripts/troid/egg.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {}
     },
     "troid_egg_cracked": {
@@ -70,6 +74,10 @@
         "ScriptedAI": {
             "script": "data/scripts/troid/hatchling.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "spacefaring"
@@ -109,6 +117,10 @@
         "ScriptedAI": {
             "script": "data/scripts/troid/stage2.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "spacefaring"
@@ -149,6 +161,10 @@
         "ScriptedAI": {
             "script": "data/scripts/troid/stage3.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "spacefaring"

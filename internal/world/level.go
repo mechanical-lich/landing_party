@@ -46,6 +46,20 @@ type Level struct {
 
 	Flags map[string]any
 
+	// Tick is the world-round counter, advanced by stepWorld each round.
+	// Used by sense systems (hearing, scent) for event TTLs and inbox diffs.
+	Tick uint64
+
+	// Sounds is the level's per-tick list of one-shot sound events.
+	// Appended via EmitSound, swept by HearingSystem.
+	Sounds []SoundEvent
+
+	// SoundSeq is a strictly monotonic counter assigned to each emitted
+	// sound. Listeners track the highest seq they've ingested so they
+	// never miss or double-count events regardless of emit/listen ordering
+	// within a tick.
+	SoundSeq uint64
+
 	// Z-band boundaries (inclusive). Set during generation.
 	SurfaceZ     int // the "ground" z-level
 	AtmosphereZ  int // first z-level of air above surface

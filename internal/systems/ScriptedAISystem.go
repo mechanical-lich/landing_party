@@ -10,6 +10,7 @@ import (
 
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/emotes"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/skills"
@@ -215,6 +216,9 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	})
 	interp.RegisterFunc("get_hour", func(args ...any) (any, error) {
 		return float64(level.Hour), nil
+	})
+	interp.RegisterFunc("get_tick", func(args ...any) (any, error) {
+		return float64(level.Tick), nil
 	})
 	interp.RegisterFunc("is_night", func(args ...any) (any, error) {
 		if level.IsNight() {
@@ -465,6 +469,272 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		return float64(1), nil
 	})
 
+	// --- hearing ---
+	// has_ears() — 1 if this entity has a HearingComponent.
+	// new_sounds() — count of inbox entries unread since last call this turn.
+	//   Sets last_sound_* to the loudest unread entry and advances the read
+	//   pointer. Returns 0 if inbox is empty or fully drained.
+	// loudest_sound(max_radius?) — strongest sound currently in the level's
+	//   event slice that's within sensitivity. Optional 3D radius gate.
+	//   Returns perceived loudness (0 if none) and sets last_sound_*.
+	// get_sound_x/y/z/tag/loudness — retrieve the last sound returned by
+	//   new_sounds() or loudest_sound().
+	var lastSoundX, lastSoundY, lastSoundZ int
+	var lastSoundTag string
+	var lastSoundLoudness float64
+	interp.RegisterFunc("has_ears", func(args ...any) (any, error) {
+		if entity.HasComponent(components.Hearing) {
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	interp.RegisterFunc("new_sounds", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Hearing) {
+			return float64(0), nil
+		}
+		hc := entity.GetComponent(components.Hearing).(*components.HearingComponent)
+		unread := hc.Inbox[hc.InboxRead:]
+		if len(unread) == 0 {
+			return float64(0), nil
+		}
+		best := -1
+		var bestLoud float32
+		for i, p := range unread {
+			if best < 0 || p.Perceived > bestLoud {
+				best = i
+				bestLoud = p.Perceived
+			}
+		}
+		ev := unread[best]
+		lastSoundX = ev.X
+		lastSoundY = ev.Y
+		lastSoundZ = ev.Z
+		lastSoundTag = ev.Tag
+		lastSoundLoudness = float64(ev.Perceived)
+		count := len(unread)
+		hc.InboxRead = len(hc.Inbox)
+		return float64(count), nil
+	})
+	interp.RegisterFunc("loudest_sound", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Hearing) {
+			return float64(0), nil
+		}
+		hc := entity.GetComponent(components.Hearing).(*components.HearingComponent)
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
+		maxRadius := float64(-1)
+		if len(args) >= 1 {
+			maxRadius = toAIFloat(args[0])
+		}
+		var bestLoud float32
+		var bestEv *world.SoundEvent
+		for i := range level.Sounds {
+			ev := &level.Sounds[i]
+			if ev.Source == entity {
+				continue
+			}
+			perceived := PerceivedLoudness(*ev, sx, sy, sz)
+			if perceived < hc.Sensitivity {
+				continue
+			}
+			if maxRadius >= 0 {
+				dx := float64(ev.X - sx)
+				dy := float64(ev.Y - sy)
+				dz := float64(ev.Z-sz) * world.VerticalSoundFalloff
+				if math.Sqrt(dx*dx+dy*dy+dz*dz) > maxRadius {
+					continue
+				}
+			}
+			if bestEv == nil || perceived > bestLoud {
+				bestEv = ev
+				bestLoud = perceived
+			}
+		}
+		if bestEv == nil {
+			return float64(0), nil
+		}
+		lastSoundX = bestEv.X
+		lastSoundY = bestEv.Y
+		lastSoundZ = bestEv.Z
+		lastSoundTag = string(bestEv.Tag)
+		lastSoundLoudness = float64(bestLoud)
+		return float64(bestLoud), nil
+	})
+	interp.RegisterFunc("get_sound_x", func(args ...any) (any, error) { return float64(lastSoundX), nil })
+	interp.RegisterFunc("get_sound_y", func(args ...any) (any, error) { return float64(lastSoundY), nil })
+	interp.RegisterFunc("get_sound_z", func(args ...any) (any, error) { return float64(lastSoundZ), nil })
+	interp.RegisterFunc("get_sound_tag", func(args ...any) (any, error) { return lastSoundTag, nil })
+	interp.RegisterFunc("get_sound_loudness", func(args ...any) (any, error) { return lastSoundLoudness, nil })
+
+	// --- vision ---
+	// has_eyes() — 1 if entity has a VisionComponent.
+	// visible_enemy_count() — number of currently visible entities not in
+	//   this entity's faction or ignored_factions.
+	// nearest_visible_enemy() — 1 if any enemy is currently visible; sets
+	//   last_seen_* to the nearest one.
+	// newly_visible_enemies() — count of enemies that entered FOV since this
+	//   entity's last turn; sets last_seen_* to the nearest new one and
+	//   drains the inbox.
+	// newly_hidden_enemies() — count of enemies that left FOV since this
+	//   entity's last turn; sets last_lost_* to the nearest hidden one's
+	//   last-known position and drains the inbox.
+	// get_seen_x/y/z — position of the last sighting (from nearest_visible_enemy
+	//   or newly_visible_enemies).
+	// get_lost_x/y/z — last-known position of the last lost sighting.
+	var lastSeenX, lastSeenY, lastSeenZ int
+	var lastLostX, lastLostY, lastLostZ int
+	isEnemy := func(e *ecs.Entity) bool {
+		if e == nil || e == entity {
+			return false
+		}
+		if e.HasComponent(rlcomponents.Dead) || !e.HasComponent(rlcomponents.Health) {
+			return false
+		}
+		if e.HasComponent(rlcomponents.Description) {
+			cf := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+			if ignored[cf] {
+				return false
+			}
+		}
+		return true
+	}
+	// Returns the index of the nearest enemy entry in the slice, or -1.
+	nearestEnemyIndex := func(entries []components.VisibleEntry, sx, sy int) int {
+		best := -1
+		bestD2 := 0
+		for i, en := range entries {
+			if !isEnemy(en.Entity) {
+				continue
+			}
+			dx := en.X - sx
+			dy := en.Y - sy
+			d2 := dx*dx + dy*dy
+			if best < 0 || d2 < bestD2 {
+				best = i
+				bestD2 = d2
+			}
+		}
+		return best
+	}
+	interp.RegisterFunc("has_eyes", func(args ...any) (any, error) {
+		if entity.HasComponent(components.Vision) {
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	interp.RegisterFunc("visible_enemy_count", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Vision) {
+			return float64(0), nil
+		}
+		vc := entity.GetComponent(components.Vision).(*components.VisionComponent)
+		n := 0
+		for e := range vc.Visible {
+			if isEnemy(e) {
+				n++
+			}
+		}
+		return float64(n), nil
+	})
+	interp.RegisterFunc("nearest_visible_enemy", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Vision) {
+			return float64(0), nil
+		}
+		vc := entity.GetComponent(components.Vision).(*components.VisionComponent)
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy := pc.GetX(), pc.GetY()
+		var bestEntry *components.VisibleEntry
+		bestD2 := 0
+		for _, en := range vc.Visible {
+			if !isEnemy(en.Entity) {
+				continue
+			}
+			dx := en.X - sx
+			dy := en.Y - sy
+			d2 := dx*dx + dy*dy
+			if bestEntry == nil || d2 < bestD2 {
+				e := en
+				bestEntry = &e
+				bestD2 = d2
+			}
+		}
+		if bestEntry == nil {
+			return float64(0), nil
+		}
+		lastSeenX, lastSeenY, lastSeenZ = bestEntry.X, bestEntry.Y, bestEntry.Z
+		return float64(1), nil
+	})
+	interp.RegisterFunc("newly_visible_enemies", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Vision) {
+			return float64(0), nil
+		}
+		vc := entity.GetComponent(components.Vision).(*components.VisionComponent)
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy := pc.GetX(), pc.GetY()
+		unread := vc.NewlyVisible[vc.NewlyVisibleRead:]
+		idx := nearestEnemyIndex(unread, sx, sy)
+		count := 0
+		for _, en := range unread {
+			if isEnemy(en.Entity) {
+				count++
+			}
+		}
+		if idx >= 0 {
+			en := unread[idx]
+			lastSeenX, lastSeenY, lastSeenZ = en.X, en.Y, en.Z
+		}
+		vc.NewlyVisibleRead = len(vc.NewlyVisible)
+		return float64(count), nil
+	})
+	interp.RegisterFunc("newly_hidden_enemies", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Vision) {
+			return float64(0), nil
+		}
+		vc := entity.GetComponent(components.Vision).(*components.VisionComponent)
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy := pc.GetX(), pc.GetY()
+		unread := vc.NewlyHidden[vc.NewlyHiddenRead:]
+		idx := nearestEnemyIndex(unread, sx, sy)
+		count := 0
+		for _, en := range unread {
+			if isEnemy(en.Entity) {
+				count++
+			}
+		}
+		if idx >= 0 {
+			en := unread[idx]
+			lastLostX, lastLostY, lastLostZ = en.X, en.Y, en.Z
+		}
+		vc.NewlyHiddenRead = len(vc.NewlyHidden)
+		return float64(count), nil
+	})
+	interp.RegisterFunc("get_seen_x", func(args ...any) (any, error) { return float64(lastSeenX), nil })
+	interp.RegisterFunc("get_seen_y", func(args ...any) (any, error) { return float64(lastSeenY), nil })
+	interp.RegisterFunc("get_seen_z", func(args ...any) (any, error) { return float64(lastSeenZ), nil })
+	interp.RegisterFunc("get_lost_x", func(args ...any) (any, error) { return float64(lastLostX), nil })
+	interp.RegisterFunc("get_lost_y", func(args ...any) (any, error) { return float64(lastLostY), nil })
+	interp.RegisterFunc("get_lost_z", func(args ...any) (any, error) { return float64(lastLostZ), nil })
+
+	// --- emote ---
+	// set_emote(key, duration?, priority?) — queue an emote bubble above this
+	// entity. No-op if entity has no Emote component. Defaults: duration=3,
+	// priority=0.
+	interp.RegisterFunc("set_emote", func(args ...any) (any, error) {
+		if len(args) < 1 {
+			return nil, nil
+		}
+		key := fmt.Sprint(args[0])
+		duration := 3
+		priority := 0
+		if len(args) >= 2 {
+			duration = int(toAIFloat(args[1]))
+		}
+		if len(args) >= 3 {
+			priority = int(toAIFloat(args[2]))
+		}
+		emotes.Set(entity, key, duration, priority)
+		return nil, nil
+	})
+
 	// --- movement ---
 	// pathfind_step(tx, ty, tz) — move one step along the path to (tx,ty,tz).
 	// Returns 1 if a step was taken, 0 if already adjacent/there or no path.
@@ -575,6 +845,8 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		for _, e := range entitiesBuf {
 			if e != entity && e.HasComponent(rlcomponents.Health) && !rlcombat.IsFriendly(entity, e) {
 				rlcombat.Hit(level, entity, e, true)
+				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, entity)
 				return float64(1), nil
 			}
 		}

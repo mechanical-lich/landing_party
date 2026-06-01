@@ -26,6 +26,10 @@
         "ScriptedAI": {
             "script": "data/scripts/yeti/behavior.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 22,
@@ -62,6 +66,10 @@
         "ScriptedAI": {
             "script": "data/scripts/yeti/behavior.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 20,
@@ -97,6 +105,10 @@
         "ScriptedAI": {
             "script": "data/scripts/yeti/behavior.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Solid": {},
         "Stats": {
             "Str": 18,

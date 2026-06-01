@@ -12,6 +12,19 @@ function on_turn()
         set_var("hostility", hostility)
     endif
 
+    # Per-turn: log any new sound this entity hears.
+    if has_ears() = 1 then
+        n = new_sounds()
+        if n > 0 then
+            add_message("debug: heard " + num_to_str(n) + " sound(s), loudest tag=" + get_sound_tag() + " loud=" + num_to_str(get_sound_loudness()))
+            set_var("investigate_x", get_sound_x())
+            set_var("investigate_y", get_sound_y())
+            set_var("investigate_z", get_sound_z())
+            set_var("investigate_ttl", 8)
+            set_emote("question", 3, 1)
+        endif
+    endif
+
     sx = get_self_x()
     sy = get_self_y()
     sz = get_self_z()
@@ -54,6 +67,21 @@ function on_turn()
             else
                 pathfind_step(nx, ny, nz)
             endif
+            return
+        endif
+    endif
+
+    # Continue investigating a previous sound for up to investigate_ttl turns.
+    ttl = get_var("investigate_ttl") + 0
+    if ttl > 0 then
+        ix = get_var("investigate_x") + 0
+        iy = get_var("investigate_y") + 0
+        iz = get_var("investigate_z") + 0
+        if dist(sx, sy, ix, iy) <= 1.5 then
+            set_var("investigate_ttl", 0)
+        else
+            set_var("investigate_ttl", ttl - 1)
+            pathfind_step(ix, iy, iz)
             return
         endif
     endif

@@ -1,0 +1,26 @@
+function on_turn()
+    # Minimal sense test: stand still, log + emote on hearing and vision changes.
+
+    # Hearing
+    if has_ears() = 1 then
+        n = new_sounds()
+        if n > 0 then
+            add_message("test_ai: heard " + num_to_str(n) + " tag=" + get_sound_tag() + " loud=" + num_to_str(get_sound_loudness()))
+            set_emote("question", 3, 1)
+        endif
+    endif
+
+    # Vision diffs
+    if has_eyes() = 1 then
+        seen = newly_visible_enemies()
+        if seen > 0 then
+            add_message("test_ai: spotted " + num_to_str(seen) + " enemy at (" + num_to_str(get_seen_x()) + "," + num_to_str(get_seen_y()) + ")")
+            set_emote("faceAngry", 3, 2)
+        endif
+        lost = newly_hidden_enemies()
+        if lost > 0 then
+            add_message("test_ai: lost " + num_to_str(lost) + " enemy last seen (" + num_to_str(get_lost_x()) + "," + num_to_str(get_lost_y()) + ")")
+            set_emote("faceSad", 3, 1)
+        endif
+    endif
+endfunction

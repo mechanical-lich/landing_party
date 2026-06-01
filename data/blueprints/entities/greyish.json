@@ -35,6 +35,10 @@
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "radiation_heal"
@@ -79,6 +83,10 @@
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "radiation_heal"
@@ -129,6 +137,10 @@
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "radiation_heal"
@@ -174,6 +186,10 @@
         "ScriptedAI": {
             "script": "data/scripts/ai/faction_humanoid.basic"
         },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
         "Skills": {
             "Skills": [
                 "radiation_heal"

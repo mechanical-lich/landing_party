@@ -25,6 +25,7 @@ import (
 // mode can drive it manually.
 func (s *MainState) stepWorld() {
 	s.tick++
+	s.level.Tick = uint64(s.tick)
 	s.gm.Update()
 	s.systemManager.UpdateSystems(s.level)
 	for _, entity := range s.level.Entities {
@@ -258,7 +259,7 @@ func (s *MainState) rogueAct(dx, dy int) bool {
 	// Bump to attack: hostile entity with health on the destination tile.
 	if target := s.level.GetEntityAt(tx, ty, tz); target != nil &&
 		target.HasComponent(rlcomponents.Health) &&
-		(target.HasComponent(components.FactionAI) || target.HasComponent(rlcomponents.HostileAI)) {
+		(target.HasComponent(components.FactionAI) || target.HasComponent(components.ScriptedAI) || target.HasComponent(rlcomponents.HostileAI)) {
 		rlentity.Face(ent, dx, dy)
 		combat.MeleeAttack(s.level, ent, tx, ty, tz)
 		return true
