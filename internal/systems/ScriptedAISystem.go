@@ -714,6 +714,87 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	interp.RegisterFunc("get_lost_y", func(args ...any) (any, error) { return float64(lastLostY), nil })
 	interp.RegisterFunc("get_lost_z", func(args ...any) (any, error) { return float64(lastLostZ), nil })
 
+	// --- smell ---
+	// has_nose() — 1 if entity has a SmellComponent.
+	// strongest_smell(radius?) — strongest scent within radius (defaults to
+	//   SmellComponent.SniffRadius). Returns strength (0 if none) and sets
+	//   last_smell_*.
+	// smell_at(x, y, z, tag) — strength of a specific tag at one tile.
+	// new_smells() — count of unread inbox entries; sets last_smell_* to
+	//   strongest unread, drains.
+	// get_smell_x/y/z/tag/strength — retrieve the last smell returned.
+	var lastSmellX, lastSmellY, lastSmellZ int
+	var lastSmellTag string
+	var lastSmellStrength float64
+	interp.RegisterFunc("has_nose", func(args ...any) (any, error) {
+		if entity.HasComponent(components.Smell) {
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	interp.RegisterFunc("strongest_smell", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Smell) {
+			return float64(0), nil
+		}
+		sc := entity.GetComponent(components.Smell).(*components.SmellComponent)
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		radius := sc.SniffRadius
+		if radius <= 0 {
+			radius = defaultSniffRadius
+		}
+		if len(args) >= 1 {
+			radius = int(toAIFloat(args[0]))
+		}
+		tag, x, y, z, strength := level.StrongestSmellWithin(pc.GetX(), pc.GetY(), pc.GetZ(), radius)
+		if strength < sc.Sensitivity {
+			return float64(0), nil
+		}
+		lastSmellX, lastSmellY, lastSmellZ = x, y, z
+		lastSmellTag = string(tag)
+		lastSmellStrength = float64(strength)
+		return float64(strength), nil
+	})
+	interp.RegisterFunc("smell_at", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return float64(0), nil
+		}
+		x := int(toAIFloat(args[0]))
+		y := int(toAIFloat(args[1]))
+		z := int(toAIFloat(args[2]))
+		tag := world.SmellTag(fmt.Sprint(args[3]))
+		return float64(level.SmellAt(x, y, z, tag)), nil
+	})
+	interp.RegisterFunc("new_smells", func(args ...any) (any, error) {
+		if !entity.HasComponent(components.Smell) {
+			return float64(0), nil
+		}
+		sc := entity.GetComponent(components.Smell).(*components.SmellComponent)
+		unread := sc.NewSmells[sc.NewSmellsRead:]
+		if len(unread) == 0 {
+			return float64(0), nil
+		}
+		best := -1
+		var bestStrength float32
+		for i, p := range unread {
+			if best < 0 || p.Strength > bestStrength {
+				best = i
+				bestStrength = p.Strength
+			}
+		}
+		p := unread[best]
+		lastSmellX, lastSmellY, lastSmellZ = p.X, p.Y, p.Z
+		lastSmellTag = p.Tag
+		lastSmellStrength = float64(p.Strength)
+		count := len(unread)
+		sc.NewSmellsRead = len(sc.NewSmells)
+		return float64(count), nil
+	})
+	interp.RegisterFunc("get_smell_x", func(args ...any) (any, error) { return float64(lastSmellX), nil })
+	interp.RegisterFunc("get_smell_y", func(args ...any) (any, error) { return float64(lastSmellY), nil })
+	interp.RegisterFunc("get_smell_z", func(args ...any) (any, error) { return float64(lastSmellZ), nil })
+	interp.RegisterFunc("get_smell_tag", func(args ...any) (any, error) { return lastSmellTag, nil })
+	interp.RegisterFunc("get_smell_strength", func(args ...any) (any, error) { return lastSmellStrength, nil })
+
 	// --- emote ---
 	// set_emote(key, duration?, priority?) — queue an emote bubble above this
 	// entity. No-op if entity has no Emote component. Defaults: duration=3,
@@ -847,6 +928,8 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 				rlcombat.Hit(level, entity, e, true)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 				level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, entity)
+				ep := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				level.EmitScent(ep.GetX(), ep.GetY(), ep.GetZ(), world.SmellTagBlood, 3.0)
 				return float64(1), nil
 			}
 		}

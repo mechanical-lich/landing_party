@@ -1,7 +1,7 @@
 {
     "colonist": {
         "AIMemory": {},
-         "NeverSleep": {},
+        "NeverSleep": {},
         "Appearance": {
             "R": 255,
             "G": 255,
@@ -104,7 +104,9 @@
         "Health": {
             "MaxHealth": 20
         },
-        "Skills": { "Skills": [] },
+        "Skills": {
+            "Skills": []
+        },
         "Initiative": {
             "DefaultValue": 10,
             "Ticks": 1
@@ -131,6 +133,14 @@
             "BasicAttackDice": "1d4"
         },
         "Worker": {},
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "colonist",
+                    "strength": 1.0
+                }
+            ]
+        },
         "StatProgression": {},
         "Needs": {
             "MaxExhaustion": 300,

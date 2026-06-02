@@ -120,8 +120,9 @@ type HUDScreen struct {
 	// Entity detail panel
 	detailsPanel   *minui.Panel
 	detailsVBox    *minui.VBox
-	hoveredEntity  *ecs.Entity
-	selectedEntity *ecs.Entity
+	hoveredEntity   *ecs.Entity
+	selectedEntity  *ecs.Entity
+	pendingTileInfo *HoveredTileInfo
 
 	// Cursor
 	CursorImage *ebiten.Image
@@ -1259,17 +1260,9 @@ func (h *HUDScreen) RefreshGoalsTab(lines []string) {
 }
 
 func (h *HUDScreen) SetHoveredEntity(entity *ecs.Entity) {
-	if entity == h.hoveredEntity {
-		return
-	}
 	h.hoveredEntity = entity
 	h.selectedEntity = entity
-	if entity == nil {
-		h.detailsPanel.SetVisible(false)
-		return
-	}
-	h.updateDetailsContent()
-	h.detailsPanel.SetVisible(true)
+	h.refreshHoverPanel()
 }
 
 // HoveredTileInfo carries the data shown in the tile-hover detail panel.
@@ -1278,6 +1271,12 @@ func (h *HUDScreen) SetHoveredEntity(entity *ecs.Entity) {
 // Floor slot's tile name when present (e.g. "rock_floor", "regolith"). The
 // hover panel prefers FloorName whenever the Middle is air/empty, so a player
 // hovering a cavern reads "rock_floor" instead of the meaningless "air".
+// TileSmell is one tag/strength entry shown in the hover panel.
+type TileSmell struct {
+	Tag      string
+	Strength float32
+}
+
 type HoveredTileInfo struct {
 	Name                     string
 	FloorName                string
@@ -1285,26 +1284,53 @@ type HoveredTileInfo struct {
 	LightLevel               int
 	Radiation                int
 	Solid, Water, Air, Space bool
+	Smells                   []TileSmell
 }
 
-// SetHoveredTile shows tile info in the detail panel when no entity is under the cursor.
+// SetHoveredTile stores tile info to be rendered in the detail panel
+// alongside any hovered entity. Call with a zero-value info via ClearHover
+// to drop tile info.
 func (h *HUDScreen) SetHoveredTile(info HoveredTileInfo) {
-	h.hoveredEntity = nil
-	h.selectedEntity = nil
+	h.pendingTileInfo = &info
+	h.refreshHoverPanel()
+}
 
+// refreshHoverPanel rebuilds the details VBox from the current entity and
+// tile info. Either section is omitted if its source is nil. Hides the
+// panel if both are empty.
+func (h *HUDScreen) refreshHoverPanel() {
 	h.detailsPanel.RemoveChild(h.detailsVBox)
 	h.detailsVBox = minui.NewVBox("detailsContent")
 	h.detailsVBox.Spacing = 3
 	h.detailsPanel.AddChild(h.detailsVBox)
 
+	hasEntity := h.selectedEntity != nil
+	hasTile := h.pendingTileInfo != nil
+	if !hasEntity && !hasTile {
+		h.detailsPanel.SetVisible(false)
+		return
+	}
+
+	if hasEntity {
+		h.appendEntityDetails()
+	}
+	if hasTile {
+		h.appendTileDetails(h.pendingTileInfo)
+	}
+
+	h.resizeDetailPanel()
+	h.detailsPanel.SetVisible(true)
+}
+
+// appendTileDetails writes tile info into the existing detailsVBox. Used
+// by refreshHoverPanel; expects detailsVBox to already exist.
+func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 	labelID := 0
 	add := func(text string) {
-		h.detailsVBox.AddChild(minui.NewLabel(fmt.Sprintf("detail_%d", labelID), text))
+		h.detailsVBox.AddChild(minui.NewLabel(fmt.Sprintf("tile_%d", labelID), text))
 		labelID++
 	}
 
-	// Prefer the Floor name when standing on something through air/empty
-	// (caverns, surface). Falls back to Middle for solids, atmosphere, space.
 	displayName := info.Name
 	if (info.Air || info.Name == "" || info.Name == "air") && info.FloorName != "" {
 		displayName = info.FloorName
@@ -1331,17 +1357,21 @@ func (h *HUDScreen) SetHoveredTile(info HoveredTileInfo) {
 	if flags != "" {
 		add("Flags:" + flags)
 	}
-
-	h.resizeDetailPanel()
-	h.detailsPanel.SetVisible(true)
+	if len(info.Smells) > 0 {
+		add("Smells:")
+		for _, sm := range info.Smells {
+			add(fmt.Sprintf("  %s %.2f", sm.Tag, sm.Strength))
+		}
+	}
 }
 
 func (h *HUDScreen) ClearHover() {
-	if h.hoveredEntity == nil && !h.detailsPanel.IsVisible() {
+	if h.hoveredEntity == nil && h.pendingTileInfo == nil && !h.detailsPanel.IsVisible() {
 		return
 	}
 	h.hoveredEntity = nil
 	h.selectedEntity = nil
+	h.pendingTileInfo = nil
 	h.detailsPanel.SetVisible(false)
 }
 
@@ -1437,11 +1467,16 @@ func (h *HUDScreen) updateDetailsContent() {
 	h.detailsVBox = minui.NewVBox("detailsContent")
 	h.detailsVBox.Spacing = 3
 	h.detailsPanel.AddChild(h.detailsVBox)
+	h.appendEntityDetails()
+}
 
+// appendEntityDetails writes the selected entity's details into the
+// existing detailsVBox. Caller is responsible for VBox lifecycle and
+// visibility.
+func (h *HUDScreen) appendEntityDetails() {
 	if h.selectedEntity == nil {
 		return
 	}
-
 	entity := h.selectedEntity
 	labelID := 0
 	add := func(text string) {

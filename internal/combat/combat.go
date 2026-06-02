@@ -20,6 +20,7 @@ func MeleeAttack(level *world.Level, attacker *ecs.Entity, targetX, targetY, tar
 		rlcombat.Hit(level, attacker, target, false)
 		pc := attacker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, attacker)
+		level.EmitScent(targetX, targetY, targetZ, world.SmellTagBlood, 3.0)
 		return true
 	}
 	return false
@@ -59,6 +60,7 @@ func Shoot(level *world.Level, attacker *ecs.Entity, targetX, targetY, targetZ i
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
+		level.EmitScent(targetX, targetY, targetZ, world.SmellTagBlood, 3.0)
 	}
 	return true
 }

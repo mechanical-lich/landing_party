@@ -34,6 +34,8 @@ const (
 	Emote               ecs.ComponentType = "Emote"
 	Hearing             ecs.ComponentType = "Hearing"
 	Vision              ecs.ComponentType = "Vision"
+	Smell               ecs.ComponentType = "Smell"
+	ScentEmitter        ecs.ComponentType = "ScentEmitter"
 )
 
 // Shared component struct aliases from ml-rogue-lib

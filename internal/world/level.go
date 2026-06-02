@@ -60,6 +60,18 @@ type Level struct {
 	// within a tick.
 	SoundSeq uint64
 
+	// SmellMap is a sparse per-tag map of scent intensities at tiles.
+	// Decayed every round; one tag is diffused per round (sharded). Sub-
+	// epsilon entries are removed for sparsity.
+	SmellMap map[SmellTag]map[TileCoord]float32
+
+	// SmellTagOrder is the rotation order for sharded diffusion. Appended
+	// to when a new tag is first emitted on the level.
+	SmellTagOrder []SmellTag
+
+	// SmellDiffuseIndex is the next tag to diffuse (advances each round).
+	SmellDiffuseIndex int
+
 	// Z-band boundaries (inclusive). Set during generation.
 	SurfaceZ     int // the "ground" z-level
 	AtmosphereZ  int // first z-level of air above surface

@@ -35,6 +35,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -81,6 +93,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -129,6 +153,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -175,6 +211,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -223,6 +271,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -269,6 +329,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -317,6 +389,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -363,6 +447,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -411,6 +507,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -457,6 +565,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -505,6 +625,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -551,6 +683,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -599,6 +743,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -646,6 +802,18 @@
         "Vision": {
             "range": 12
         },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
+        },
         "Emote": {},
         "Skills": {},
         "Solid": {},
@@ -691,6 +859,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},
@@ -738,6 +918,18 @@
         },
         "Vision": {
             "range": 12
+        },
+        "Smell": {
+            "sensitivity": 0.2,
+            "sniffRadius": 4
+        },
+        "ScentEmitter": {
+            "emissions": [
+                {
+                    "tag": "rot",
+                    "strength": 1.0
+                }
+            ]
         },
         "Emote": {},
         "Skills": {},

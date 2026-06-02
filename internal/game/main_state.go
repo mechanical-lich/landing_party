@@ -272,8 +272,13 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(aiSystem)
 	s.systemManager.AddSystem(&systems.HearingSystem{})
 	s.systemManager.AddSystem(&systems.VisionSystem{})
+	s.systemManager.AddSystem(&systems.SmellSystem{})
 	s.systemManager.AddSystem(systems.NewFactionAISystem())
 	s.systemManager.AddSystem(&systems.ScriptedAISystem{})
+	// ScentSystem runs after the AI systems so passive emission happens
+	// at the entity's new tile (post-move). UpdateSystem (decay+diffuse)
+	// still runs at the start of stepWorld regardless of registration order.
+	s.systemManager.AddSystem(&systems.ScentSystem{})
 	s.systemManager.AddSystem(&systems.EmoteSystem{})
 	s.systemManager.AddSystem(&systems.NeedsSystem{})
 	s.systemManager.AddSystem(&systems.WorkerSystem{})
@@ -1888,12 +1893,61 @@ func (s *MainState) updateHovered() {
 	s.hoverTileY = tY
 	s.hoverActive = true
 
-	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
-		s.guiManager.SetHoveredEntity(entity)
+	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
+	entity := s.level.GetEntityAt(tX, tY, s.CameraZ)
+
+	if tile == nil && entity == nil {
+		s.guiManager.ClearHover()
+		if s.CursorMode == gui.CursorModeDefault {
+			s.guiManager.SetDefaultContext("", "", "")
+		} else if s.CursorMode == gui.CursorModeRelocate {
+			s.relocateModeBanner()
+		} else if s.CursorMode == gui.CursorModeStore {
+			s.storeModeBanner()
+		}
+		s.hoverActive = false
+		return
+	}
+
+	if tile != nil {
+		t := tile.(*world.Tile)
+		// Middle slot wins for display (walls, ore, doors). Floor is the fallback
+		// for cells where Middle is air/empty (caverns, open surface).
+		var def world.TileDefinition
+		if !t.Middle.IsEmpty() {
+			def = world.TileDefinitions[t.Middle.Type]
+		}
+		floorName := ""
+		if !t.Floor.IsEmpty() {
+			floorName = world.TileDefinitions[t.Floor.Type].Name
+		}
+		var smells []gui.TileSmell
+		for tag, tagMap := range s.level.SmellMap {
+			if v := tagMap[world.PackCoord(tX, tY, s.CameraZ)]; v >= 0.1 {
+				smells = append(smells, gui.TileSmell{Tag: string(tag), Strength: v})
+			}
+		}
+		s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
+			Name:       def.Name,
+			FloorName:  floorName,
+			X:          tX,
+			Y:          tY,
+			Z:          s.CameraZ,
+			LightLevel: t.LightLevel,
+			Radiation:  int(t.Radiation),
+			Solid:      def.Solid,
+			Water:      def.Water,
+			Air:        def.Air,
+			Space:      def.Space,
+			Smells:     smells,
+		})
+	}
+
+	s.guiManager.SetHoveredEntity(entity)
+
+	if entity != nil {
 		// Register the entity in the Encyclopedia (no-op if already known or
-		// no Description). This runs regardless of whether the player has
-		// unlocked the viewer, so the bestiary is populated the moment they
-		// research it. AddKnownEntity returns true exactly once per
+		// no Description). AddKnownEntity returns true exactly once per
 		// blueprint, so the message log gets one "Catalogued: …" line per
 		// new discovery without any extra dedup state.
 		if s.campaign != nil && entity.HasComponent(rlcomponents.Description) {
@@ -1906,53 +1960,8 @@ func (s *MainState) updateHovered() {
 				message.PostMessage("Encyclopedia", "Catalogued: "+name)
 			}
 		}
-		if s.CursorMode == gui.CursorModeDefault {
-			s.updateDefaultContext(tX, tY)
-		} else if s.CursorMode == gui.CursorModeRelocate {
-			s.updateRelocateContext(tX, tY, s.CameraZ)
-		} else if s.CursorMode == gui.CursorModeStore {
-			s.updateStoreContext(tX, tY, s.CameraZ)
-		}
-		return
 	}
 
-	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
-	if tile == nil {
-		s.guiManager.ClearHover()
-		if s.CursorMode == gui.CursorModeDefault {
-			s.guiManager.SetDefaultContext("", "", "")
-		} else if s.CursorMode == gui.CursorModeRelocate {
-			s.relocateModeBanner()
-		} else if s.CursorMode == gui.CursorModeStore {
-			s.storeModeBanner()
-		}
-		s.hoverActive = false
-		return
-	}
-	t := tile.(*world.Tile)
-	// Middle slot wins for display (walls, ore, doors). Floor is the fallback
-	// for cells where Middle is air/empty (caverns, open surface).
-	var def world.TileDefinition
-	if !t.Middle.IsEmpty() {
-		def = world.TileDefinitions[t.Middle.Type]
-	}
-	floorName := ""
-	if !t.Floor.IsEmpty() {
-		floorName = world.TileDefinitions[t.Floor.Type].Name
-	}
-	s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
-		Name:       def.Name,
-		FloorName:  floorName,
-		X:          tX,
-		Y:          tY,
-		Z:          s.CameraZ,
-		LightLevel: t.LightLevel,
-		Radiation:  int(t.Radiation),
-		Solid:      def.Solid,
-		Water:      def.Water,
-		Air:        def.Air,
-		Space:      def.Space,
-	})
 	if s.CursorMode == gui.CursorModeDefault {
 		s.updateDefaultContext(tX, tY)
 	} else if s.CursorMode == gui.CursorModeRelocate {
