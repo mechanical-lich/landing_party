@@ -24,7 +24,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -71,7 +71,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -118,7 +118,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -165,7 +165,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -212,7 +212,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -259,7 +259,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -306,7 +306,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -353,7 +353,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -400,7 +400,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -447,7 +447,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -494,7 +494,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -541,7 +541,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -588,7 +588,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -635,7 +635,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -681,7 +681,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }
@@ -728,7 +728,7 @@
             "Ticks": 1
         },
         "ScriptedAI": {
-            "script": "data/scripts/ai/test_ai.basic",
+            "script": "data/scripts/ai/humanoid_v2.basic",
             "vars": {
                 "ignored_factions": "wildlife"
             }

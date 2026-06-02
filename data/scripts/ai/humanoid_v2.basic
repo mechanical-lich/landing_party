@@ -1,0 +1,114 @@
+function on_turn()
+    # Senses-driven humanoid AI.
+    # Priority each turn:
+    #   1. Engage any currently visible enemy.
+    #   2. Pursue: if an enemy just left FOV this turn, target their last
+    #      known position.
+    #   3. React to fresh sound: set investigation target if we don't already
+    #      have a fresher one from a lost sighting.
+    #   4. Investigate: walk toward the active investigation target.
+    #   5. Wander.
+    #
+    # Faction filter (ignored_factions) is applied by the vision/enemy queries.
+
+    # Hostility roll (1-10) on first turn; persists for entity's life.
+    # Affects engagement, pursuit duration, and sound investigation.
+    hostility = get_var("hostility") + 0
+    if hostility = 0 then
+        hostility = rnd_int(10) + 1
+        set_var("hostility", hostility)
+    endif
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+    ranged = has_ranged_weapon()
+
+    # ---------- 1. Engage visible enemy ----------
+    if has_eyes() = 1 then
+        # First-sighting reaction (one-shot per appearance).
+        if newly_visible_enemies() > 0 then
+            set_emote("alert", 3, 2)
+        endif
+
+        if nearest_visible_enemy() = 1 then
+            tx = get_seen_x()
+            ty = get_seen_y()
+            tz = get_seen_z()
+
+            if hostility >= 4 then
+                # Cautious / aggressive: fight at range.
+                if ranged = 1 then
+                    if ranged_attack_at(tx, ty, tz) = 1 then
+                        return
+                    endif
+                endif
+                if dist(sx, sy, tx, ty) <= 1.5 then
+                    attack_at(tx, ty, tz)
+                else
+                    pathfind_step(tx, ty, tz)
+                endif
+                return
+            else
+                # Skittish: only attack if cornered (adjacent).
+                if dist(sx, sy, tx, ty) <= 1.5 then
+                    attack_at(tx, ty, tz)
+                    return
+                endif
+                # Otherwise fall through and wander away.
+            endif
+        endif
+
+        # ---------- 2. Pursue: just lost contact ----------
+        # Only if cautious or aggressive. Aggressive mobs pursue longer.
+        if hostility >= 4 then
+            if newly_hidden_enemies() > 0 then
+                set_var("investigate_x", get_lost_x())
+                set_var("investigate_y", get_lost_y())
+                set_var("investigate_z", get_lost_z())
+                ttl = 4
+                if hostility >= 7 then
+                    ttl = 10
+                endif
+                set_var("investigate_ttl", ttl)
+                set_emote("question", 3, 1)
+            endif
+        endif
+    endif
+
+    # ---------- 3. React to fresh sound ----------
+    # Sound only sets investigation if we don't already have a fresher visual goal.
+    if has_ears() = 1 then
+        if new_sounds() > 0 then
+            if hostility >= 4 then
+                if get_var("investigate_ttl") + 0 <= 0 then
+                    set_var("investigate_x", get_sound_x())
+                    set_var("investigate_y", get_sound_y())
+                    set_var("investigate_z", get_sound_z())
+                    set_var("investigate_ttl", 8)
+                    set_emote("question", 3, 1)
+                endif
+            endif
+        endif
+    endif
+
+    # ---------- 4. Investigate ----------
+    ttl = get_var("investigate_ttl") + 0
+    if ttl > 0 then
+        ix = get_var("investigate_x") + 0
+        iy = get_var("investigate_y") + 0
+        iz = get_var("investigate_z") + 0
+        if dist(sx, sy, ix, iy) <= 1.5 then
+            set_var("investigate_ttl", 0)
+        else
+            set_var("investigate_ttl", ttl - 1)
+            pathfind_step(ix, iy, iz)
+            return
+        endif
+    endif
+
+    # ---------- 5. Wander ----------
+    dx = rnd_int(3) - 1
+    dy = rnd_int(3) - 1
+    move_by(dx, dy)
+endfunction

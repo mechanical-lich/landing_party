@@ -1,10 +1,7 @@
 package world
 
 import (
-	"fmt"
-
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 )
 
 // SoundTag categorizes a sound for script-side filtering. Define common tags
@@ -57,7 +54,7 @@ func (l *Level) EmitSound(x, y, z int, loudness float32, tag SoundTag, source *e
 		Tick:     l.Tick,
 		Seq:      l.SoundSeq,
 	})
-	message.PostMessage("world", fmt.Sprintf("debug: emit %s loud=%v at (%d,%d,%d) tick=%d", tag, loudness, x, y, z, l.Tick))
+	//message.PostMessage("world", fmt.Sprintf("debug: emit %s loud=%v at (%d,%d,%d) tick=%d", tag, loudness, x, y, z, l.Tick))
 }
 
 // SweepExpiredSounds drops sound events older than SoundEventTTL relative to
