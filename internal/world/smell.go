@@ -37,9 +37,10 @@ const (
 	ScentTickInterval uint64 = 5
 	// ScentDiffuse is the fraction of a tile's strength that flows to each
 	// cardinal neighbor per diffusion pass. 4 * ScentDiffuse leaves the tile;
-	// the rest stays. With 0.05 the tile retains 80%, neighbors get 5% each —
-	// trails stay concentrated and decay drives persistence, not diffusion.
-	ScentDiffuse float32 = 0.05
+	// the rest stays. Mass-conserving: the source loses exactly what the
+	// neighbors gain. With 0.02 the source retains 92% per pass — slow
+	// spread, decay drives most of the fade.
+	ScentDiffuse float32 = 0.02
 	// ScentEpsilon is the drop-below-this-value threshold for sparse cleanup.
 	ScentEpsilon float32 = 0.05
 )
@@ -93,17 +94,17 @@ func (l *Level) DiffuseNextTag() {
 		return
 	}
 
-	// Diffusion is additive — the source keeps its full strength and a
-	// fraction is *radiated* to each cardinal neighbor. Decay (a separate
-	// per-tick pass) is the only loss term. This is non-conservative (mass
-	// can grow until decay balances it) but produces the trail behavior we
-	// want: source tiles stay strong while a halo builds around them.
+	// Conservative diffusion: source loses what neighbors gain, total mass
+	// preserved. Decay (a separate per-tick pass) is the only loss term.
+	// With ScentDiffuse low (0.02), the source barely drops per pass so
+	// trails stay concentrated while a faint halo builds outward.
 	next := make(map[TileCoord]float32, len(src))
 	dirs := [4][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
 	for coord, strength := range src {
 		x, y, z := coord.Unpack()
-		if strength >= ScentEpsilon {
-			next[coord] += strength
+		retained := strength * (1 - ScentDiffuse*4)
+		if retained >= ScentEpsilon {
+			next[coord] += retained
 		}
 		contrib := strength * ScentDiffuse
 		if contrib >= ScentEpsilon {

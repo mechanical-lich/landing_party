@@ -83,7 +83,9 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		if candidate == entity {
 			continue
 		}
-		if candidate.HasComponent(rlcomponents.Item) {
+		// Deployed Worker entities (recalled robots) are pickup targets too,
+		// not just rlcomponents.Item-tagged objects.
+		if candidate.HasComponent(rlcomponents.Item) || candidate.HasComponent(components.Worker) {
 			wc.CurrentTask.Action = task_requests.PickupAction
 			return true
 		}
@@ -600,11 +602,22 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 
 func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	if MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-		wc.InteractTicks = 0
-		return
+	// Re-resolve the target's current position each tick. A deployed
+	// Worker target (e.g. a robot) can shift one tile via the colonist
+	// swap rule when we try to step onto it, so the original Task.X/Y is
+	// stale by the time we arrive. Falling back to the task tile keeps
+	// the legacy "pick up whatever's on this tile" semantics for items.
+	tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
+	target, _ := wc.CurrentTask.Data.(*ecs.Entity)
+	if target != nil && target.HasComponent(rlcomponents.Position) {
+		tpc := target.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		tx, ty, tz = tpc.GetX(), tpc.GetY(), tpc.GetZ()
 	}
-	if pc.GetX() != wc.CurrentTask.X || pc.GetY() != wc.CurrentTask.Y {
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), tx, ty, tz, 1, 1, 0) {
+		if MoveTowardsTarget(level, entity, tx, ty, tz) {
+			wc.InteractTicks = 0
+			return
+		}
 		wc.CurrentTask.ReQueue()
 		wc.CurrentTask = nil
 		wc.InteractTicks = 0
@@ -615,7 +628,15 @@ func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	if wc.InteractTicks < pickupHoldTicks {
 		return
 	}
-	PickupItemFromTile(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, pc.GetZ())
+	// Pick up the specific target entity if we still have a handle on it
+	// (it may have shifted tiles via swap). Otherwise fall through to the
+	// tile-based pickup used by autonomous retrievals.
+	if target != nil && target.HasComponent(rlcomponents.Position) {
+		tpc := target.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		PickupItemFromTile(level, entity, tpc.GetX(), tpc.GetY(), tpc.GetZ())
+	} else {
+		PickupItemFromTile(level, entity, tx, ty, tz)
+	}
 	progression.AwardXP(entity, "Dex", progression.XPPerTask)
 	CompleteTaskWithMessage(entity, wc.CurrentTask, "Fetched item")
 	wc.InteractTicks = 0
@@ -879,6 +900,31 @@ func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.W
 			aiMemory.State = "idle"
 			return
 		}
+		// Non-stackable Material entities (e.g. a stowed robot) must be
+		// carried as the actual stored instance to preserve per-instance
+		// state — Settlement, AIMemory, Health damage. The mint-from-
+		// blueprint path below would re-create a fresh entity and reset
+		// all of that. Stackable Material falls through to the mint path
+		// since stacks are fungible by definition.
+		if isNonStackableBlueprint(srcSc, req.Blueprint) {
+			carried := 0
+			for ; carried < take; carried++ {
+				taken := srcSc.TakeOne(req.Blueprint)
+				if taken == nil {
+					break
+				}
+				inv.AddItem(taken)
+			}
+			if carried == 0 {
+				CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: withdraw failed")
+				aiMemory.State = "idle"
+				return
+			}
+			req.PickedUp = true
+			req.Carried = carried
+			wc.CurrentTask.Data = req
+			return
+		}
 		if !srcSc.DeductResource(req.Blueprint, take) {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: withdraw failed")
 			aiMemory.State = "idle"
@@ -924,40 +970,126 @@ func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		return
 	}
 
-	// Find the carried material entity in the bag.
+	// Find the carried payload in the bag. Non-Material entities (e.g. a
+	// stowed robot) are carried as themselves rather than as a Material
+	// stack, so don't require the Material component here.
 	var carried *ecs.Entity
 	for _, item := range inv.Bag {
-		if item.Blueprint == req.Blueprint && item.HasComponent(components.Material) {
+		if item.Blueprint == req.Blueprint {
 			carried = item
 			break
 		}
 	}
 	if carried == nil {
-		// Carried material went missing (eaten, dropped, …); task is done.
 		CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: load lost")
 		aiMemory.State = "idle"
 		return
 	}
+	// Non-stackable Material (e.g. robot) — each carried instance is its
+	// own entity. Stackable Material — one consolidated stack representing
+	// the whole load.
+	mc := carried.GetComponent(components.Material).(*components.MaterialComponent)
+	stackable := mc.IsStackable()
 
 	if req.DestEntity != nil && req.DestEntity.HasComponent(components.Storage) {
 		destSc := req.DestEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		if destSc.AddItem(carried) {
-			inv.RemoveItem(carried)
-			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
+		if stackable {
+			if destSc.AddItem(carried) {
+				inv.RemoveItem(carried)
+				CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
+				aiMemory.State = "idle"
+				return
+			}
+			dropMaterialAt(level, inv, req.Blueprint, req.Carried, pc.GetX(), pc.GetY(), pc.GetZ())
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: dest filter rejected, dropped")
 			aiMemory.State = "idle"
 			return
 		}
-		// Filter rejected (changed mid-trip) — drop on the ground next to the dest.
-		dropMaterialAt(level, inv, req.Blueprint, req.Carried, pc.GetX(), pc.GetY(), pc.GetZ())
-		CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: dest filter rejected, dropped")
+		// Non-stackable: deposit each carried instance individually so
+		// per-instance state is preserved through the move.
+		anyDeposited, anyRefused := false, false
+		for _, item := range append([]*ecs.Entity{}, inv.Bag...) {
+			if item.Blueprint != req.Blueprint {
+				continue
+			}
+			if destSc.AddItem(item) {
+				inv.RemoveItem(item)
+				anyDeposited = true
+			} else {
+				anyRefused = true
+			}
+		}
+		if anyRefused {
+			dropNonStackableBlueprintAt(level, entity, inv, req.Blueprint, pc.GetX(), pc.GetY(), pc.GetZ())
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: dest refused, dropped")
+		} else if anyDeposited {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
+		} else {
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: load lost")
+		}
 		aiMemory.State = "idle"
 		return
 	}
 
 	// Ground drop.
-	dropMaterialAt(level, inv, req.Blueprint, req.Carried, dx, dy, dz)
+	if stackable {
+		dropMaterialAt(level, inv, req.Blueprint, req.Carried, dx, dy, dz)
+	} else {
+		dropNonStackableBlueprintAt(level, entity, inv, req.Blueprint, dx, dy, dz)
+	}
 	CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocated "+carried.Blueprint)
 	aiMemory.State = "idle"
+}
+
+// isNonStackableBlueprint reports whether the first item in sc.Items matching
+// blueprint is a non-stackable Material (e.g. a stowed robot). Stackable
+// Material and non-Material entities both return false; the caller should
+// only reach this for items that are known to be present at all.
+func isNonStackableBlueprint(sc *components.StorageComponent, blueprint string) bool {
+	for _, it := range sc.Items {
+		if it.Blueprint != blueprint {
+			continue
+		}
+		if !it.HasComponent(components.Material) {
+			return false
+		}
+		mc := it.GetComponent(components.Material).(*components.MaterialComponent)
+		return !mc.IsStackable()
+	}
+	return false
+}
+
+// dropNonStackableBlueprintAt removes every bag item matching blueprint and
+// places it on the tile (x,y,z), giving any Worker-bearing item the carrier's
+// settlement and an idle AI state so it deploys instead of sitting inert.
+func dropNonStackableBlueprintAt(level *world.Level, carrier *ecs.Entity, inv *rlcomponents.InventoryComponent, blueprint string, x, y, z int) {
+	for _, item := range append([]*ecs.Entity{}, inv.Bag...) {
+		if item.Blueprint != blueprint {
+			continue
+		}
+		inv.RemoveItem(item)
+		if item.HasComponent(rlcomponents.Position) {
+			item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
+		} else {
+			item.AddComponent(&rlcomponents.PositionComponent{X: x, Y: y, Z: z})
+		}
+		level.AddEntity(item)
+		if item.HasComponent(components.Worker) && carrier.HasComponent(components.Settlement) {
+			sc := carrier.GetComponent(components.Settlement).(*components.SettlementComponent)
+			if item.HasComponent(components.Settlement) {
+				item.GetComponent(components.Settlement).(*components.SettlementComponent).Name = sc.Name
+			} else {
+				item.AddComponent(&components.SettlementComponent{Name: sc.Name})
+			}
+			if item.HasComponent(rlcomponents.AIMemory) {
+				am := item.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+				am.State = "idle"
+				am.CurrentSteps = nil
+			}
+			wc := item.GetComponent(components.Worker).(*components.WorkerComponent)
+			wc.CurrentTask = nil
+		}
+	}
 }
 
 // dropMaterialAt removes the carried material stack from inv and places a new

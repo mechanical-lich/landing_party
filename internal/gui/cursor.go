@@ -15,4 +15,6 @@ const (
 	CursorModeRogue                 CursorModeType = "rogue"
 	CursorModeRelocate              CursorModeType = "relocate"
 	CursorModeStore                 CursorModeType = "store"
+	CursorModeDrop                  CursorModeType = "drop"
+	CursorModePickup                CursorModeType = "pickup"
 )

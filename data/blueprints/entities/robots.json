@@ -1,0 +1,216 @@
+{
+    "construction_robot": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 288,
+            "SpriteY": 960
+        },
+        "Description": {
+            "Name": "Construction Robot",
+            "Faction": "colony",
+            "Species": "robot",
+            "Classification": "construction"
+        },
+        "Emote": {},
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Material": {
+            "Tags": ["basic_robot"]
+        },
+        "Light": {
+            "Level": 60,
+            "Range": 4
+        },
+        "NeverSleep": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "StatProgression": {},
+        "Stats": {
+            "Str": 12,
+            "Int": 8,
+            "Dex": 10,
+            "AC": 12,
+            "BasicAttackDice": "1d4"
+        },
+        "Worker": {
+            "AvailableTasks": [
+                "build"
+            ]
+        }
+    },
+    "excavator_robot": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 960
+        },
+        "Description": {
+            "Name": "Excavator Robot",
+            "Faction": "colony",
+            "Species": "robot",
+            "Classification": "excavator"
+        },
+        "Emote": {},
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Material": {
+            "Tags": ["basic_robot"]
+        },
+        "Light": {
+            "Level": 60,
+            "Range": 4
+        },
+        "NeverSleep": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "StatProgression": {},
+        "Stats": {
+            "Str": 12,
+            "Int": 6,
+            "Dex": 8,
+            "AC": 12,
+            "BasicAttackDice": "1d4"
+        },
+        "Worker": {
+            "AvailableTasks": [
+                "dig",
+                "mine"
+            ]
+        }
+    },
+    "hauler_robot": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 144,
+            "SpriteY": 960
+        },
+        "Description": {
+            "Name": "Hauler Robot",
+            "Faction": "colony",
+            "Species": "robot",
+            "Classification": "hauler"
+        },
+        "Emote": {},
+        "Health": {
+            "MaxHealth": 25
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Material": {
+            "Tags": ["basic_robot"]
+        },
+        "Light": {
+            "Level": 60,
+            "Range": 4
+        },
+        "NeverSleep": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "StatProgression": {},
+        "Stats": {
+            "Str": 12,
+            "Int": 6,
+            "Dex": 10,
+            "AC": 10,
+            "BasicAttackDice": "1d4"
+        },
+        "Worker": {
+            "AvailableTasks": [
+                "retrieve",
+                "relocate"
+            ]
+        }
+    },
+    "security_robot": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 960
+        },
+        "Description": {
+            "Name": "Security Robot",
+            "Faction": "colony",
+            "Species": "robot",
+            "Classification": "security"
+        },
+        "Emote": {},
+        "Health": {
+            "MaxHealth": 35
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "laser_pistol"
+            ]
+        },
+        "Material": {
+            "Tags": ["basic_robot"]
+        },
+        "Light": {
+            "Level": 80,
+            "Range": 5
+        },
+        "NeverSleep": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "StatProgression": {},
+        "Stats": {
+            "Str": 12,
+            "Int": 8,
+            "Dex": 12,
+            "AC": 14,
+            "BasicAttackDice": "1d4"
+        },
+        "Worker": {
+            "AvailableTasks": [
+                "attack"
+            ]
+        }
+    }
+}

@@ -113,6 +113,14 @@ type MainState struct {
 	// awaiting a destination-container click. nil = no item picked yet (or
 	// not in Store mode).
 	pendingStoreItem *ecs.Entity
+	// pendingDropColonist/Item carry the (colonist, item) pair chosen in the
+	// colonist inventory modal while the player is in CursorModeDrop picking
+	// a destination tile or storage container.
+	pendingDropColonist *ecs.Entity
+	pendingDropItem     *ecs.Entity
+	// pendingPickupColonist is the colonist whose modal Pickup button was
+	// clicked. Set while in CursorModePickup awaiting a target-item click.
+	pendingPickupColonist *ecs.Entity
 	smallMap          *SmallMapWidget
 	followEntity      *ecs.Entity
 	rogueEntity       *ecs.Entity
@@ -174,6 +182,7 @@ func (s *MainState) registerListeners() {
 	eq.RegisterListener(s, gui.UnequipItemRequestedEventType)
 	eq.RegisterListener(s, gui.SetTaskFilterEventType)
 	eq.RegisterListener(s, gui.DropOffRequestedEventType)
+	eq.RegisterListener(s, gui.PickupRequestedEventType)
 	eq.RegisterListener(s, gui.SetSelfDefendEventType)
 	eq.RegisterListener(s, gui.EnterRogueModeEventType)
 	eq.RegisterListener(s, gui.ExitRogueModeEventType)
@@ -786,6 +795,14 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.setPendingStoreItem(nil)
 			s.guiManager.SetDefaultContext("", "", "")
 		}
+		if s.CursorMode == gui.CursorModeDrop && ev.Mode != gui.CursorModeDrop {
+			s.clearPendingDrop()
+			s.guiManager.SetDefaultContext("", "", "")
+		}
+		if s.CursorMode == gui.CursorModePickup && ev.Mode != gui.CursorModePickup {
+			s.pendingPickupColonist = nil
+			s.guiManager.SetDefaultContext("", "", "")
+		}
 		s.CursorMode = ev.Mode
 		if ev.Mode == gui.CursorModeRelocate {
 			s.relocateModeBanner()
@@ -793,6 +810,12 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		if ev.Mode == gui.CursorModeStore {
 			s.setPendingStoreItem(nil)
 			s.storeModeBanner()
+		}
+		if ev.Mode == gui.CursorModeDrop {
+			s.dropModeBanner()
+		}
+		if ev.Mode == gui.CursorModePickup {
+			s.pickupModeBanner()
 		}
 	case gui.MainMenuEvent:
 		switch ev.Action {
@@ -892,6 +915,8 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		s.applyTaskFilter(ev.Colonist, ev.Action, ev.Enabled)
 	case gui.DropOffRequestedEvent:
 		s.requestDropOff(ev.Colonist, ev.Item)
+	case gui.PickupRequestedEvent:
+		s.requestPickup(ev.Colonist)
 	case gui.SetSelfDefendEvent:
 		s.applySelfDefend(ev.Colonist, ev.Enabled)
 	case gui.EnterRogueModeEvent:
@@ -1239,24 +1264,37 @@ func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled
 	}
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
 	a := task.TaskAction(action)
+	// Reject toggles for actions outside the chassis cap — these should
+	// never reach us since the modal hides them, but defensive against any
+	// stale event or scripted call.
+	if !wc.IsTaskAvailable(a) {
+		return
+	}
+	// universe is the set of actions the player can toggle: AvailableTasks
+	// when set, otherwise every FilterableAction.
+	universe := wc.AvailableTasks
+	if len(universe) == 0 {
+		universe = make([]task.TaskAction, 0, len(task_requests.FilterableActions))
+		for _, fa := range task_requests.FilterableActions {
+			universe = append(universe, fa.Action)
+		}
+	}
 	if enabled {
-		// Add to allowed list if not already present
 		for _, existing := range wc.AllowedTasks {
 			if existing == a {
 				return
 			}
 		}
 		wc.AllowedTasks = append(wc.AllowedTasks, a)
-		// If every filterable action is now allowed, clear the filter entirely
-		if len(wc.AllowedTasks) >= len(task_requests.FilterableActions) {
+		// Only collapse to nil ("no filter") for uncapped workers; for
+		// capped workers AllowedTasks stays explicit so the cap is
+		// preserved if AvailableTasks is ever later cleared.
+		if len(wc.AvailableTasks) == 0 && len(wc.AllowedTasks) >= len(universe) {
 			wc.AllowedTasks = nil
 		}
 	} else {
-		// Initialize with all filterable actions before removing one
 		if wc.AllowedTasks == nil {
-			for _, fa := range task_requests.FilterableActions {
-				wc.AllowedTasks = append(wc.AllowedTasks, fa.Action)
-			}
+			wc.AllowedTasks = append(wc.AllowedTasks, universe...)
 		}
 		for i, existing := range wc.AllowedTasks {
 			if existing == a {
@@ -1267,44 +1305,201 @@ func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled
 	}
 }
 
+// requestDropOff is fired from the colonist inventory modal's per-item Drop
+// button. It captures (colonist, item) as a pending selection and switches
+// the cursor into CursorModeDrop so the player can click a ground tile or
+// storage container as the destination.
 func (s *MainState) requestDropOff(colonist *ecs.Entity, item *ecs.Entity) {
+	if colonist == nil || item == nil {
+		return
+	}
+	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
+		return
+	}
+	s.pendingDropColonist = colonist
+	s.pendingDropItem = item
+	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDrop})
+}
+
+// clearPendingDrop resets the (colonist, item) selection used by CursorModeDrop.
+func (s *MainState) clearPendingDrop() {
+	s.pendingDropColonist = nil
+	s.pendingDropItem = nil
+}
+
+// requestPickup is fired from the colonist modal's Pickup button. It captures
+// the colonist and switches into CursorModePickup so the player can click an
+// item on the ground that this specific colonist will walk to and pick up.
+func (s *MainState) requestPickup(colonist *ecs.Entity) {
 	if colonist == nil {
 		return
 	}
-	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Settlement) {
+	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
 		return
 	}
-	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-	if len(inv.Bag) == 0 {
+	s.pendingPickupColonist = colonist
+	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModePickup})
+}
+
+// pickupModeBanner shows the static Pickup hint while the player is choosing
+// the item target.
+func (s *MainState) pickupModeBanner() {
+	if s.pendingPickupColonist == nil {
+		s.guiManager.SetDefaultContext("Pickup", "Open a colonist's detail view and start there.", "")
 		return
 	}
-	sc := colonist.GetComponent(components.Settlement).(*components.SettlementComponent)
-	var storage *ecs.Entity
-	for _, e := range append(s.level.Entities, s.level.StaticEntities...) {
-		if !e.HasComponent(components.Storage) {
-			continue
+	name := entityDisplayLabel(s.pendingPickupColonist)
+	s.guiManager.SetDefaultContext("Pickup ("+name+")", "Click an item on the ground.", "")
+}
+
+// handlePickupClick resolves the target-item click during CursorModePickup.
+// The target must be an entity with rlcomponents.Item (or a deployed Worker
+// — same rule as Store-mode recall). Assigns a Retrieve task scoped to the
+// selected colonist via Worker.CurrentTask so the settlement queue doesn't
+// hand it to whichever hauler picks it up first.
+func (s *MainState) handlePickupClick(tX, tY, tZ int) {
+	if s.pendingPickupColonist == nil {
+		message.AddMessage("Open a colonist's detail view first.")
+		return
+	}
+	target := s.level.GetEntityAt(tX, tY, tZ)
+	if target == nil || (!target.HasComponent(rlcomponents.Item) && !target.HasComponent(components.Worker)) {
+		message.AddMessage("Pick an item lying on the ground.")
+		return
+	}
+	if target == s.pendingPickupColonist {
+		return
+	}
+	colonist := s.pendingPickupColonist
+	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+	aiMemory := colonist.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		wc.CurrentTask.Stop()
+	}
+	// Use PickupAction (not Retrieve) — Retrieve walks to a storage container
+	// after pickup; the player asked for the item to go into the colonist's
+	// own bag and stay there.
+	t := &task.Task{
+		Action: task_requests.PickupAction,
+		Data:   target,
+		X:      tX, Y: tY, Z: tZ,
+		Escalated: true,
+	}
+	t.Start()
+	wc.CurrentTask = t
+	aiMemory.State = "task"
+	message.AddMessage(entityDisplayLabel(colonist) + ": pick up " + entityDisplayLabel(target) + ".")
+	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
+}
+
+// dropModeBanner shows the static Drop hint based on whether an item has
+// already been picked from a colonist's inventory.
+func (s *MainState) dropModeBanner() {
+	if s.pendingDropItem == nil {
+		s.guiManager.SetDefaultContext("Drop", "Open a colonist and pick an item from their bag.", "")
+		return
+	}
+	s.guiManager.SetDefaultContext("Drop "+entityDisplayLabel(s.pendingDropItem),
+		"Click a ground tile or storage container.", s.pendingDropItem.Blueprint)
+}
+
+// handleDropClick resolves the destination click during CursorModeDrop.
+// Without a pending item the click is ignored (the player still needs to open
+// a colonist modal and choose what to drop). With one, the destination is
+// either a storage container at the tile or the bare tile (ground drop).
+func (s *MainState) handleDropClick(tX, tY, tZ int) {
+	// Phase 1: no item picked yet. Treat a click on a colonist with a
+	// non-empty bag as "open this colonist's inventory so they can choose
+	// what to drop" — same gesture used by the Orders → Drop entry point.
+	if s.pendingDropItem == nil || s.pendingDropColonist == nil {
+		ent := s.level.GetEntityAt(tX, tY, tZ)
+		if ent != nil && ent.HasComponent(components.Worker) && ent.HasComponent(rlcomponents.Inventory) {
+			inv := ent.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+			if len(inv.Bag) == 0 {
+				message.AddMessage(entityDisplayLabel(ent) + " isn't carrying anything.")
+				return
+			}
+			s.openColonistModal(ent)
+			return
 		}
-		st := e.GetComponent(components.Storage).(*components.StorageComponent)
-		if st.OwnedBy == sc.Name {
-			storage = e
+		message.AddMessage("Open a colonist and pick an item to drop first.")
+		return
+	}
+	colonist := s.pendingDropColonist
+	item := s.pendingDropItem
+	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	// Guard against the item being lost between picking and clicking (e.g.
+	// the colonist was killed, or the item was equipped from the modal).
+	stillHas := false
+	for _, b := range inv.Bag {
+		if b == item {
+			stillHas = true
 			break
 		}
 	}
-	if storage == nil {
+	if !stillHas {
+		message.AddMessage(entityDisplayLabel(colonist) + " no longer carries that item.")
+		event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
 		return
 	}
-	storagePC := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+
+	// Resolve destination: storage container at the tile, else bare tile.
+	var destEntity *ecs.Entity
+	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
+		destEntity = ent
+	}
+	if destEntity == nil {
+		for _, se := range s.level.StaticEntities {
+			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
+				destEntity = se
+				break
+			}
+		}
+	}
+	if destEntity != nil {
+		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
+		if !destSc.Accepts(item) {
+			message.AddMessage(entityDisplayLabel(destEntity) + " won't accept " + entityDisplayLabel(item) + ".")
+			return
+		}
+	} else {
+		// Ground destination needs a walkable tile (matches the rest of the
+		// click handlers — anything else is just a misclick).
+		ti := s.level.GetTileAt(tX, tY, tZ)
+		if ti == nil {
+			return
+		}
+		tile := ti.(*world.Tile)
+		if tile.IsSolid() || tile.IsWater() {
+			message.AddMessage("Can't drop there.")
+			return
+		}
+	}
+
 	aiMemory := colonist.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
 	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
 	}
-	aiMemory.TargetX = storagePC.GetX()
-	aiMemory.TargetY = storagePC.GetY()
-	aiMemory.TargetZ = storagePC.GetZ()
 	wc.DropOffItem = item
+	wc.DropOffDestEntity = destEntity
+	if destEntity != nil {
+		pc := destEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		wc.DropOffX, wc.DropOffY, wc.DropOffZ = pc.GetX(), pc.GetY(), pc.GetZ()
+		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = pc.GetX(), pc.GetY(), pc.GetZ()
+		message.AddMessage("Queued: drop " + entityDisplayLabel(item) + " in " + entityDisplayLabel(destEntity) + ".")
+	} else {
+		wc.DropOffX, wc.DropOffY, wc.DropOffZ = tX, tY, tZ
+		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = tX, tY, tZ
+		message.AddMessage("Queued: drop " + entityDisplayLabel(item) + ".")
+	}
 	aiMemory.State = "dropoff"
+	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
 }
 
 func (s *MainState) handleInput() {
@@ -1679,6 +1874,10 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				s.handleRelocateClick(tX, tY, s.CameraZ)
 			case gui.CursorModeStore:
 				s.handleStoreClick(tX, tY, s.CameraZ)
+			case gui.CursorModeDrop:
+				s.handleDropClick(tX, tY, s.CameraZ)
+			case gui.CursorModePickup:
+				s.handlePickupClick(tX, tY, s.CameraZ)
 			}
 		}
 	}
@@ -2055,7 +2254,10 @@ func (s *MainState) handleStoreClick(tX, tY, tZ int) {
 	// Phase 1: pick an item.
 	if s.pendingStoreItem == nil {
 		ent := s.level.GetEntityAt(tX, tY, tZ)
-		if ent == nil || !ent.HasComponent(rlcomponents.Item) {
+		// A Worker-bearing entity (e.g. a deployed robot) counts as
+		// "pickupable" too — that's how the player recalls it back into
+		// inventory and then into a locker.
+		if ent == nil || (!ent.HasComponent(rlcomponents.Item) && !ent.HasComponent(components.Worker)) {
 			message.AddMessage("Pick an item lying on the ground first.")
 			return
 		}

@@ -13,8 +13,16 @@ type WorkerComponent struct {
 	// it while at the target and reset it on completion.
 	InteractTicks  int
 	LastTaskAction task.TaskAction
-	// AllowedTasks lists the task types this colonist will accept.
-	// nil or empty means no filter — all task types are allowed.
+	// AvailableTasks is the blueprint-level cap on what this worker is ever
+	// capable of doing — the universe of toggles shown in the colonist
+	// modal, AND the upper bound enforced at task-pick time. Empty = no
+	// cap (all FilterableActions are available). Robots set this to scope
+	// their chassis (e.g. excavator -> dig, mine); colonists leave it empty.
+	AvailableTasks []task.TaskAction
+	// AllowedTasks is the player's current per-worker filter — a subset of
+	// AvailableTasks (or of all FilterableActions when AvailableTasks is
+	// empty). nil means "no per-worker filter set"; for capped workers the
+	// effective accept list defaults to AvailableTasks in that case.
 	AllowedTasks []task.TaskAction
 	// SwapCooldown prevents a displaced colonist from being swapped again
 	// immediately, avoiding oscillation in tight corridors.
@@ -22,6 +30,14 @@ type WorkerComponent struct {
 	// DropOffItem is the specific inventory item to deposit when entering the
 	// "dropoff" state. Cleared after deposit.
 	DropOffItem *ecs.Entity
+	// DropOffDestEntity, when non-nil, is the specific storage container the
+	// dropoff state must deposit into. When nil the destination is a ground
+	// tile at (DropOffX, DropOffY, DropOffZ); the item is placed on the tile
+	// (and Worker-bearing entities are deployed into the settlement).
+	DropOffDestEntity *ecs.Entity
+	DropOffX          int
+	DropOffY          int
+	DropOffZ          int
 	// SelfDefend causes the worker to counter-attack when struck, if they have
 	// not already used their turn this tick. Defaults to true.
 	SelfDefend bool
@@ -44,3 +60,17 @@ type RogueExtractProgress struct {
 }
 
 func (w *WorkerComponent) GetType() ecs.ComponentType { return Worker }
+
+// IsTaskAvailable reports whether action is in the worker's chassis cap.
+// Empty AvailableTasks means "no cap" — every action is available.
+func (w *WorkerComponent) IsTaskAvailable(action task.TaskAction) bool {
+	if len(w.AvailableTasks) == 0 {
+		return true
+	}
+	for _, a := range w.AvailableTasks {
+		if a == action {
+			return true
+		}
+	}
+	return false
+}

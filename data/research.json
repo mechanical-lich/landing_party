@@ -126,5 +126,41 @@
         "cost": { "crystal": 5 },
         "required_building": "research_lab",
         "required_int": 8
+    },
+    "robotics": {
+        "name": "Robotics",
+        "description": "Servo control, power cells, and chassis fabrication. Unlocks the Robot Workbench and the Hauler Robot recipe.",
+        "duration": 200,
+        "cost": { "metal_ore": 8, "crystal": 4 },
+        "required_building": "research_lab",
+        "required_int": 10,
+        "requires_tech": "basic_metallurgy"
+    },
+    "excavator_robotics": {
+        "name": "Excavator Robotics",
+        "description": "Drilling rigs and reinforced manipulators for an autonomous mining unit.",
+        "duration": 180,
+        "cost": { "metal_ore": 8, "crystal": 4 },
+        "required_building": "research_lab",
+        "required_int": 10,
+        "requires_tech": "robotics"
+    },
+    "security_robotics": {
+        "name": "Security Robotics",
+        "description": "Targeting cortex and weapon mounts for an autonomous combat unit.",
+        "duration": 200,
+        "cost": { "metal_ore": 8, "crystal": 6 },
+        "required_building": "research_lab",
+        "required_int": 12,
+        "requires_tech": "robotics"
+    },
+    "construction_robotics": {
+        "name": "Construction Robotics",
+        "description": "Precision actuators and structural assembly routines for an autonomous builder.",
+        "duration": 180,
+        "cost": { "metal_ore": 8, "crystal": 4 },
+        "required_building": "research_lab",
+        "required_int": 10,
+        "requires_tech": "robotics"
     }
 }

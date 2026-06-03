@@ -95,6 +95,25 @@
         "Inanimate": {},
         "Solid": {}
     },
+    "robot_workbench": {
+        "Appearance": {
+            "R": 200,
+            "G": 200,
+            "B": 220,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "CraftingStation": {
+            "StationID": "robot_workbench"
+        },
+        "Description": {
+            "Name": "Robot Workbench",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
     "gun_bench": {
         "Appearance": {
             "R": 255,

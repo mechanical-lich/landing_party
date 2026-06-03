@@ -168,6 +168,17 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		wc.InteractTicks = 0
 	}
 
+	// Player-issued drop with an explicit destination always takes precedence
+	// over the legacy "whatever storage is at the target tile" fallback. The
+	// destination is either a specific storage container (DropOffDestEntity)
+	// or a ground tile (DropOffDestEntity nil with DropOffX/Y/Z set).
+	if wc != nil && wc.DropOffItem != nil && (wc.DropOffDestEntity != nil ||
+		(wc.DropOffX != 0 || wc.DropOffY != 0 || wc.DropOffZ != 0)) {
+		depositDirectedDropOff(level, entity, wc)
+		aiMemory.State = "idle"
+		return
+	}
+
 	storageEntity := level.GetEntityAt(aiMemory.TargetX, aiMemory.TargetY, pc.GetZ())
 	if storageEntity != nil && storageEntity.HasComponent(components.Storage) {
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
@@ -201,6 +212,98 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		}
 	}
 	aiMemory.State = "idle"
+}
+
+// depositDirectedDropOff places wc.DropOffItem at the destination chosen by
+// the player. For a storage destination the item is added to the container's
+// items list; for a bare ground tile the item is placed on the tile (and any
+// entity with a Worker component is registered with the carrier's settlement
+// and ticked from the live entities list — the "deploy" path for robots).
+func depositDirectedDropOff(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent) {
+	item := wc.DropOffItem
+	dest := wc.DropOffDestEntity
+	dx, dy, dz := wc.DropOffX, wc.DropOffY, wc.DropOffZ
+
+	if item == nil {
+		wc.DropOffDestEntity = nil
+		wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+		return
+	}
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+
+	if dest != nil && dest.HasComponent(components.Storage) {
+		storageC := dest.GetComponent(components.Storage).(*components.StorageComponent)
+		if !storageC.AddItem(item) {
+			// Container refused (e.g. tag-filter changed mid-walk); leave the
+			// destination intact so the worker doesn't pivot to ground-drop on
+			// the next tick — the player needs a real refusal, not a silent
+			// fallback. Clear DropOffItem so the dropoff state exits.
+			log.Printf("[DROP] %s refused %s — staying in bag", dest.Blueprint, item.Blueprint)
+			wc.DropOffItem = nil
+			wc.DropOffDestEntity = nil
+			wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+			return
+		}
+		inv.RemoveItem(item)
+		log.Printf("[DROP] deposited %s in %s", item.Blueprint, dest.Blueprint)
+		if item.HasComponent(rlcomponents.Description) {
+			dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+			event.GetQueuedInstance().QueueEvent(eventsystem.ItemStoredEvent{
+				ItemName:   dc.Name,
+				Blueprint:  item.Blueprint,
+				Settlement: storageC.OwnedBy,
+			})
+		}
+		wc.DropOffItem = nil
+		wc.DropOffDestEntity = nil
+		wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+		return
+	}
+
+	// Ground drop: take the item out of the bag, give it a position at the
+	// drop tile, and register it with the level. AddEntity routes to
+	// StaticEntities for Inanimate items and to Entities for everything else
+	// (e.g. a robot — which then gets ticked next round).
+	log.Printf("[DROP] ground-drop %s at (%d,%d,%d)", item.Blueprint, dx, dy, dz)
+	wc.DropOffItem = nil
+	wc.DropOffDestEntity = nil
+	wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+	inv.RemoveItem(item)
+	if item.HasComponent(rlcomponents.Position) {
+		item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(dx, dy, dz)
+	} else {
+		item.AddComponent(&rlcomponents.PositionComponent{X: dx, Y: dy, Z: dz})
+	}
+	level.AddEntity(item)
+
+	// Worker-bearing entities (robots) join the carrier's settlement and
+	// activate on touchdown, matching the print_colonist branch.
+	if item.HasComponent(components.Worker) && entity.HasComponent(components.Settlement) {
+		sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+		if item.HasComponent(components.Settlement) {
+			item.GetComponent(components.Settlement).(*components.SettlementComponent).Name = sc.Name
+		} else {
+			item.AddComponent(&components.SettlementComponent{Name: sc.Name})
+		}
+		if item.HasComponent(rlcomponents.AIMemory) {
+			am := item.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+			am.State = "idle"
+			am.CurrentSteps = nil
+		}
+		if item.HasComponent(components.Worker) {
+			wcRobot := item.GetComponent(components.Worker).(*components.WorkerComponent)
+			wcRobot.CurrentTask = nil
+		}
+		if item.HasComponent(rlcomponents.Description) {
+			dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+			message.PostMessage(rlentity.GetName(entity), "Deployed "+dc.Name+".")
+		}
+		return
+	}
+	if item.HasComponent(rlcomponents.Description) {
+		dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
+		message.PostMessage(rlentity.GetName(entity), "Dropped "+dc.Name+".")
+	}
 }
 
 func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
@@ -506,6 +609,10 @@ func isExtractionAction(action task.TaskAction) bool {
 	return action == task_requests.DigAction || action == task_requests.MineAction
 }
 
+// isActionAllowed reports whether action is currently enabled for the
+// worker. The factory seeds AllowedTasks from AvailableTasks at create
+// time, so checking AllowedTasks alone is sufficient — the chassis cap
+// is already baked in.
 func isActionAllowed(wc *components.WorkerComponent, action task.TaskAction) bool {
 	if wc.AllowedTasks == nil {
 		return true

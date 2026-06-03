@@ -80,6 +80,7 @@ type HUDScreen struct {
 	colonistModal         *minui.Modal
 	colonistScroll        *scrollingVBox // left: info + filters
 	colonistInvScroll     *scrollingVBox // right top: carried items
+	colonistPickupBtn     *minui.Button  // header-right: order this colonist to pick up an item
 	colonistStorageList   *minui.ListBox // right bottom: collective storage
 	colonistStorageBPs    []string
 	colonistStorageEntity *ecs.Entity
@@ -178,6 +179,7 @@ func (h *HUDScreen) Update() {
 	h.tooltipManager.Update()
 	h.listTooltip.Update()
 	h.selectionTooltip.Update()
+
 }
 
 func (h *HUDScreen) Draw(screen *ebiten.Image) {
@@ -314,6 +316,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 				{id: "dig", label: "Dig", description: "Order colonists to dig through terrain.", mode: CursorModeDig},
 				{id: "mine", label: "Mine", description: "Order colonists to mine ore deposits.", mode: CursorModeMine},
 				{id: "store", label: "Store", description: "Pick an item, then choose a storage container to put it in.", mode: CursorModeStore},
+				{id: "drop", label: "Drop", description: "Open a colonist, pick something from their bag, then click a destination (ground or storage).", mode: CursorModeDrop},
 				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
 				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
 				{id: "sleep", label: "Sleep", description: "Order a colonist to rest in a bed and restore health.", mode: CursorModeSleep},
@@ -726,8 +729,13 @@ func (h *HUDScreen) setupModals() {
 	h.colonistModal.AddChild(invHdr)
 
 	h.colonistInvScroll = newScrollingVBox("colonistInv", 4)
-	h.colonistInvScroll.SetBounds(minui.Rect{X: rX, Y: 58, Width: cColW, Height: 200})
+	h.colonistInvScroll.SetBounds(minui.Rect{X: rX, Y: 58, Width: cColW, Height: 174})
 	h.colonistModal.AddChild(h.colonistInvScroll)
+
+	const pickupBtnW, pickupBtnH = 140, 22
+	h.colonistPickupBtn = minui.NewButton("colonistPickupBtn", "Pickup item…")
+	h.colonistPickupBtn.SetBounds(minui.Rect{X: rX, Y: 238, Width: pickupBtnW, Height: pickupBtnH})
+	h.colonistModal.AddChild(h.colonistPickupBtn)
 
 	storageHdr := minui.NewLabel("colonistStorageHdr", "Available in Storage")
 	storageHdr.SetPosition(rX, 268)
@@ -859,6 +867,12 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 
 	// Populate the carrying panel
 	capturedColonist := colonist
+	if h.colonistPickupBtn != nil {
+		h.colonistPickupBtn.OnClick = func() {
+			event.GetQueuedInstance().QueueEvent(PickupRequestedEvent{Colonist: capturedColonist})
+			h.colonistModal.SetVisible(false)
+		}
+	}
 	if len(inv.Bag) == 0 {
 		empty := minui.NewLabel("inv_empty", "(nothing)")
 		h.colonistInvScroll.AddContent(empty)
@@ -872,7 +886,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
 				name = fmt.Sprintf("%s x%d", name, mc.Quantity)
 			}
-			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop Off]", name))
+			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop]", name))
 			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
 			capturedItem := item
 			mi.OnClick = func() {
@@ -1003,6 +1017,9 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		h.colonistScroll.AddContent(sdToggle)
 
 		for _, fa := range task_requests.FilterableActions {
+			if !wc.IsTaskAvailable(fa.Action) {
+				continue
+			}
 			capturedFA := fa
 			capturedColonist := colonist
 			toggle := minui.NewToggle(fmt.Sprintf("filter_%s", fa.Action), fa.Label)

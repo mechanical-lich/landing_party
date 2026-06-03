@@ -38,12 +38,27 @@ func FindLooseItemOnGround(level *world.Level, x, y, z int) *ecs.Entity {
 }
 
 func PickupItemFromTile(level *world.Level, entity *ecs.Entity, x, y, z int) {
-	tileEntity := level.GetEntityAt(x, y, z)
-	if tileEntity != nil && tileEntity.HasComponent(rlcomponents.Item) {
+	// Items are always pickupable; deployed Worker entities (robots) are too,
+	// at which point they leave the live ECS tick and become dormant in the
+	// carrier's bag — mirroring the inactive-in-locker state.
+	//
+	// Scan every entity at the tile rather than GetEntityAt — the carrier
+	// itself may be standing on the target tile and would otherwise pick
+	// itself up, vanishing from the level into its own bag.
+	var tileEntities []*ecs.Entity
+	level.GetEntitiesAt(x, y, z, &tileEntities)
+	for _, candidate := range tileEntities {
+		if candidate == entity {
+			continue
+		}
+		if !candidate.HasComponent(rlcomponents.Item) && !candidate.HasComponent(components.Worker) {
+			continue
+		}
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-		inv.AddItem(tileEntity)
-		level.RemoveEntity(tileEntity)
-		message.PostMessage(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", tileEntity.Blueprint))
+		inv.AddItem(candidate)
+		level.RemoveEntity(candidate)
+		message.PostMessage(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", candidate.Blueprint))
+		return
 	}
 }
 

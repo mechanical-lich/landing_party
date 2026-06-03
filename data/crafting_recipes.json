@@ -489,5 +489,40 @@
         "cost": { "metal_ore": 2, "crystal": 5 },
         "station": "advanced_armor_bench",
         "requires_tech": "advanced_radiation_shielding"
+    },
+    "hauler_robot": {
+        "name": "Print Hauler Robot",
+        "description": "Assemble a Hauler Robot. Moves items between containers and storage. No needs.",
+        "output": "hauler_robot",
+        "build_time": 120,
+        "cost": { "metal_ore": 10, "crystal": 3 },
+        "station": "robot_workbench"
+    },
+    "excavator_robot": {
+        "name": "Print Excavator Robot",
+        "description": "Assemble an Excavator Robot. Handles dig and mine tasks. No needs.",
+        "output": "excavator_robot",
+        "build_time": 140,
+        "cost": { "metal_ore": 12, "crystal": 4 },
+        "station": "robot_workbench",
+        "requires_tech": "excavator_robotics"
+    },
+    "security_robot": {
+        "name": "Print Security Robot",
+        "description": "Assemble a Security Robot. Engages hostiles in combat. No needs.",
+        "output": "security_robot",
+        "build_time": 160,
+        "cost": { "metal_ore": 12, "crystal": 6 },
+        "station": "robot_workbench",
+        "requires_tech": "security_robotics"
+    },
+    "construction_robot": {
+        "name": "Print Construction Robot",
+        "description": "Assemble a Construction Robot. Builds structures (does not craft). No needs.",
+        "output": "construction_robot",
+        "build_time": 140,
+        "cost": { "metal_ore": 12, "crystal": 4 },
+        "station": "robot_workbench",
+        "requires_tech": "construction_robotics"
     }
 }

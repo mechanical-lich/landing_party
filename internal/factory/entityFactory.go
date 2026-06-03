@@ -7,6 +7,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/task"
 )
 
 var jsonFactory = ecs.NewJSONFactory()
@@ -49,6 +50,16 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 					ic.AddItem(itemEntity)
 				}
 				ic.EquipAllBest()
+			}
+		}
+		// Seed AllowedTasks from AvailableTasks so a fresh capped worker
+		// (e.g. an excavator robot) starts with all its chassis-allowed
+		// actions enabled. After this the invariant AllowedTasks ⊆
+		// AvailableTasks holds by construction and the rest of the code
+		// can treat AllowedTasks as authoritative.
+		if wc, ok := comp.(*components.WorkerComponent); ok {
+			if len(wc.AvailableTasks) > 0 && wc.AllowedTasks == nil {
+				wc.AllowedTasks = append([]task.TaskAction{}, wc.AvailableTasks...)
 			}
 		}
 		return nil

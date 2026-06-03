@@ -237,5 +237,15 @@
         "cost": { "metal_ore": 5, "crystal": 4 },
         "category": "structures",
         "order": 13
+    },
+    "robot_workbench": {
+        "name": "Robot Workbench",
+        "description": "Fabricates autonomous robotic workers. Requires Robotics research.",
+        "build_time": 50,
+        "is_entity": true,
+        "required_tech": "robotics",
+        "cost": { "metal_ore": 8, "crystal": 4 },
+        "category": "structures",
+        "order": 14
     }
 }

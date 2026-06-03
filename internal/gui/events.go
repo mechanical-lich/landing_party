@@ -117,6 +117,17 @@ type DropOffRequestedEvent struct {
 
 func (e DropOffRequestedEvent) GetType() event.EventType { return DropOffRequestedEventType }
 
+const PickupRequestedEventType event.EventType = "pickup_requested"
+
+// PickupRequestedEvent is fired from the colonist modal's "Pickup..." button.
+// The handler should put the cursor into a pick-an-item mode and assign the
+// resulting item to this specific colonist.
+type PickupRequestedEvent struct {
+	Colonist *ecs.Entity
+}
+
+func (e PickupRequestedEvent) GetType() event.EventType { return PickupRequestedEventType }
+
 const SetSelfDefendEventType event.EventType = "set_self_defend"
 
 // SetSelfDefendEvent is fired when the player toggles self-defense on/off for a colonist.
