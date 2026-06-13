@@ -849,6 +849,21 @@ type StorageItemEntry struct {
 	Slot      string
 }
 
+// isEquippableItem reports whether an item entity is bound to a wearable/wieldable
+// equipment slot (as opposed to a consumable or raw material), and so can be
+// equipped directly from a colonist's bag.
+func isEquippableItem(item *ecs.Entity) bool {
+	if item == nil || !item.HasComponent(rlcomponents.Item) {
+		return false
+	}
+	switch item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent).Slot {
+	case rlcomponents.HandSlot, rlcomponents.OffHandSlot, rlcomponents.HeadSlot,
+		rlcomponents.TorsoSlot, rlcomponents.LegsSlot, rlcomponents.FeetSlot:
+		return true
+	}
+	return false
+}
+
 func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
 	if h.colonistModal == nil || colonist == nil {
 		return
@@ -886,17 +901,43 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
 				name = fmt.Sprintf("%s x%d", name, mc.Quantity)
 			}
-			mi := minui.NewMenuItem(fmt.Sprintf("inv_%d", i), fmt.Sprintf("%s  [Drop]", name))
-			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
 			capturedItem := item
-			mi.OnClick = func() {
+			// One row per carried item: the name, then its actions inline.
+			// Gear bound to an equipment slot gets an [Equip] action alongside
+			// [Drop] — the equip task short-circuits when the item is already on
+			// hand, so equipping from the bag needs no walk to storage.
+			row := minui.NewHBox(fmt.Sprintf("inv_row_%d", i))
+			row.Spacing = 6
+			row.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
+
+			nameLbl := minui.NewLabel(fmt.Sprintf("inv_name_%d", i), name)
+			nameLbl.SetBounds(minui.Rect{X: 0, Y: 0, Width: 156, Height: 22})
+			row.AddChild(nameLbl)
+
+			if isEquippableItem(item) {
+				bp := item.Blueprint
+				eq := minui.NewMenuItem(fmt.Sprintf("inv_equip_%d", i), "[Equip]")
+				eq.SetBounds(minui.Rect{X: 0, Y: 0, Width: 64, Height: 22})
+				eq.OnClick = func() {
+					// Equipping from the bag is instant and the handler rebuilds
+					// this modal in place, so keep it open for further changes.
+					event.GetQueuedInstance().QueueEvent(EquipItemRequestedEvent{ColonistEntity: capturedColonist, ItemBlueprint: bp})
+				}
+				row.AddChild(eq)
+			}
+
+			drop := minui.NewMenuItem(fmt.Sprintf("inv_drop_%d", i), "[Drop]")
+			drop.SetBounds(minui.Rect{X: 0, Y: 0, Width: 58, Height: 22})
+			drop.OnClick = func() {
 				event.GetQueuedInstance().QueueEvent(DropOffRequestedEvent{Colonist: capturedColonist, Item: capturedItem})
 				h.colonistModal.SetVisible(false)
 			}
+			row.AddChild(drop)
+
 			if ttTitle, ttDesc := itemTooltipText(item); ttTitle != "" || ttDesc != "" {
-				h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(item))
+				h.tooltipManager.Register(row, ttTitle, ttDesc, itemTooltipIcon(item))
 			}
-			h.colonistInvScroll.AddContent(mi)
+			h.colonistInvScroll.AddContent(row)
 		}
 	}
 

@@ -10,9 +10,9 @@ Each colonist has four stats:
 
 | Stat | Abbreviation | Effect |
 |------|-------------|--------|
-| Strength | Str | Increases melee damage |
-| Dexterity | Dex | Increases melee and ranged attack accuracy |
-| Intelligence | Int | Required minimum to perform high-tier research tasks |
+| Strength | Str | Melee damage, and **work speed** for physical tasks (dig, mine, build) |
+| Dexterity | Dex | Melee and ranged attack accuracy |
+| Intelligence | Int | Minimum to perform high-tier research, and **work speed** for research and crafting |
 | Constitution | Con | Reserved — no effect yet |
 
 ---
@@ -30,6 +30,10 @@ Colonists improve their stats through experience. Each time a colonist completes
 When a colonist accumulates enough XP, their stat **levels up** — permanently increasing that stat by 1. The XP required to reach each level grows: early levels are quick, later levels take sustained effort. Each stat caps at **10 levels** above its starting value.
 
 Level-ups appear as messages in the event log and are visible in the colonist detail panel (Str Lv.N / Dex Lv.N / Int Lv.N). Constitution is tracked but has no tasks that improve it yet.
+
+### Faster Work
+
+Strength and Intelligence don't just gate and unlock — they directly govern how fast a colonist works. A colonist with above-baseline Strength mines, digs, and builds proportionally faster; high Intelligence speeds research and crafting the same way. A fresh colonist works at the normal rate, and stats never slow a colonist below it — every point earned is a pure speed bonus. The effect compounds with stat progression: your veteran miners genuinely out-dig new recruits. Robots inherit this too, so a high-Strength excavator chassis out-works a fresh colonist at mining and digging the moment it is built.
 
 ---
 
@@ -65,6 +69,21 @@ Colonists do not take orders directly. They poll the settlement's **task queue**
 | Dropoff | Returning gathered resources to a storage container |
 | Find Food | Seeking a food item due to hunger |
 | Gather Materials | Collecting resources needed for a task |
+
+---
+
+## Equipment
+
+Left-click a colonist to open its **detail panel**, where you manage gear. Two item lists drive this:
+
+- **Carrying** — what the colonist holds in their bag. Each item shows its available actions inline: gear (weapons, armor) offers **[Equip]** and **[Drop]**; other items offer just **[Drop]**.
+- **Storage** — equippable items in settlement storage (and the ship hold). Click one to send the colonist to fetch and equip it.
+
+**Equipping carried gear is instant.** Clicking **[Equip]** on a bag item moves it straight into the matching slot with no walk to storage, and the panel stays open so you can outfit a colonist in one sitting. Equipping from **Storage** instead queues a task: the colonist walks to the locker, picks the item up, and equips it.
+
+Equipped items fill body slots — right/left hand, head, torso, legs, feet — listed under **Equipment** in the panel. Click **[Unequip]** beside a slot to send that item back to storage. Equipping into an occupied slot automatically returns the previously worn item to the colonist's bag, so swapping never loses gear.
+
+Gear drives a colonist's **ATK** and **DEF** modifiers (shown in the panel). Since their base combat stats are weak, weapons and armor are the main way to make colonists survivable.
 
 ---
 

@@ -27,6 +27,10 @@ type WorkerComponent struct {
 	// SwapCooldown prevents a displaced colonist from being swapped again
 	// immediately, avoiding oscillation in tight corridors.
 	SwapCooldown int
+	// WorkCarry accumulates the sub-unit remainder of stat-scaled task progress
+	// (see workerai.workStep). A worker advancing a task at e.g. 1.3 steps/tick
+	// banks the 0.3 here so fractional speed bonuses aren't lost to truncation.
+	WorkCarry float64
 	// DropOffItem is the specific inventory item to deposit when entering the
 	// "dropoff" state. Cleared after deposit.
 	DropOffItem *ecs.Entity

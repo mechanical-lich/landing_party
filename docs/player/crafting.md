@@ -24,7 +24,7 @@ Place a bench in a secure room, ideally near a storage locker so colonists can p
 1. Click a placed workbench to open its crafting menu.
 2. Select a recipe. Greyed-out recipes are missing materials or a required tech.
 3. The recipe is added to the settlement task queue.
-4. A colonist with sufficient Intelligence claims the task, hauls the required materials from storage, and works at the bench until the item is finished.
+4. A colonist with sufficient Intelligence claims the task, hauls the required materials from storage, and works at the bench until the item is finished. Higher-Intelligence colonists finish the work faster, so assign your smartest crew to the benches.
 5. Completed items appear in the bench's inventory — assign a colonist to pick them up, or have one haul the item to a storage locker.
 
 Multiple colonists can speed up production by running parallel crafting tasks at multiple benches of the same type.

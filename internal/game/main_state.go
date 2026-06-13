@@ -908,7 +908,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		}
 		s.openColonistModal(ev.Entity)
 	case gui.EquipItemRequestedEvent:
-		s.addEquipTask(ev.ColonistEntity, ev.ItemBlueprint)
+		s.equipItem(ev.ColonistEntity, ev.ItemBlueprint)
 	case gui.UnequipItemRequestedEvent:
 		s.addUnequipTask(ev.ColonistEntity, ev.Slot)
 	case gui.SetTaskFilterEvent:
@@ -1216,6 +1216,28 @@ func (s *MainState) openColonistModal(colonist *ecs.Entity) {
 		}
 	}
 	s.guiManager.ShowColonistModal(colonist, storageItems)
+}
+
+// equipItem equips an item onto the colonist. When the item is already carried
+// in the colonist's bag it is equipped immediately — no walk to storage is
+// needed — and the open colonist modal is refreshed in place so the change
+// shows without closing it. Otherwise it falls back to queueing an equip task
+// that fetches the item from settlement storage.
+func (s *MainState) equipItem(colonist *ecs.Entity, blueprint string) {
+	if colonist == nil {
+		return
+	}
+	if colonist.HasComponent(rlcomponents.Inventory) {
+		inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+		for _, item := range inv.Bag {
+			if item.Blueprint == blueprint {
+				inv.Equip(item)
+				s.openColonistModal(colonist) // rebuild the modal with the updated bag/slots
+				return
+			}
+		}
+	}
+	s.addEquipTask(colonist, blueprint)
 }
 
 func (s *MainState) addEquipTask(colonist *ecs.Entity, blueprint string) {

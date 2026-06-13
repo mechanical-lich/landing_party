@@ -365,7 +365,7 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	cr.Progress++
+	cr.Progress += workStep(wc, entity, "Int")
 	wc.CurrentTask.Data = cr
 	if cr.Progress >= cr.Required {
 		deductFromSettlementStorage(level, sc.Name, recipe.Cost)
@@ -424,7 +424,7 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		}
 		deductFromSettlementStorage(level, sc.Name, tech.Cost)
 	}
-	rr.Progress++
+	rr.Progress += workStep(wc, entity, "Int")
 	if rr.Progress >= rr.Required {
 		event.GetQueuedInstance().QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
 		progression.AwardXP(entity, "Int", progression.XPPerTask)
@@ -534,7 +534,8 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 	}
 
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
-		req.Progress++
+		prevProgress := req.Progress
+		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 
 		// Choppable entity branch — take it down and let CleanUpSystem fire
@@ -554,10 +555,17 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			return
 		}
 
-		// Tile branch — yield ore every 10 ticks so partial work isn't wasted.
-		// Drops land on the miner's tile so haulers can reach them without
-		// needing to stand on the (solid) ore deposit.
-		if req.Progress%10 == 0 {
+		// Tile branch — yield ore every 10 ticks of progress so partial work
+		// isn't wasted. Stat-scaled progress can advance several ticks at once,
+		// so yield once per 10-tick boundary crossed this step (capped at the
+		// deposit's content) rather than only on an exact multiple, which a fast
+		// miner could otherwise skip over. Drops land on the miner's tile so
+		// haulers can reach them without standing on the (solid) ore deposit.
+		yieldTo := req.Progress
+		if yieldTo > req.Required {
+			yieldTo = req.Required
+		}
+		for milestone := prevProgress/10 + 1; milestone <= yieldTo/10; milestone++ {
 			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
 			// Ore lives in the Middle slot.
 			tileName := ""
@@ -739,7 +747,7 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
 		// Progress lives in the request data so multiple workers share the same counter
-		buildRequest.Progress++
+		buildRequest.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = buildRequest
 		if buildRequest.Progress >= buildRequest.Required {
 			sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
@@ -836,7 +844,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			aiMemory.State = "idle"
 			return
 		}
-		req.Progress++
+		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
 			clearTileRadiation(tile)
