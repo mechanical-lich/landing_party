@@ -74,6 +74,16 @@ Per-site breakdown of the fleet census. Unlocks the **By Site** tab in the Globa
 
 ---
 
+### Geological Survey
+
+Deep-scans the planetary crust and plots every **ore, crystal, and radioactive deposit** on the minimap across the whole site — even areas your colonists have not yet explored. Each deposit type shows in its own color (ore orange, crystal cyan, radioactive green), so you can route miners straight to what you need instead of digging blind.
+
+(Independently of this research, deposits always give off a faint glow in colonist view, which helps you spot them in dark caverns once a colonist is near.)
+
+**Requires:** None
+
+---
+
 ### Archive Indexing
 
 Cross-references field observations into an indexed bestiary. Unlocks the **Encyclopedia** entry point on the Star Map. Entities continue to be recorded as you encounter them, even before this research finishes — once the research completes, the catalogue is already populated with everything your colonists have hovered over so far.

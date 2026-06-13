@@ -119,6 +119,14 @@
         "required_int": 12,
         "requires_tech": "global_inv_all"
     },
+    "resource_scanner": {
+        "name": "Geological Survey",
+        "description": "Orbital deep-scan of the planetary crust. Plots ore, crystal, and radioactive deposits on the minimap across the whole site — even areas your colonists have not yet explored.",
+        "duration": 140,
+        "cost": { "crystal": 4, "metal_ore": 3 },
+        "required_building": "research_lab",
+        "required_int": 9
+    },
     "encyclopedia": {
         "name": "Archive Indexing",
         "description": "Cross-references field observations into an indexed bestiary. Unlocks the Encyclopedia on the Star Map. Entities continue to be recorded as you encounter them, even before this research finishes.",

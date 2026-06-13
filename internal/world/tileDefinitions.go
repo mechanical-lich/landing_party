@@ -16,6 +16,10 @@ type TileVariant = rllayered.TileVariant
 type TileDefinition struct {
 	rllayered.TileDefinition
 	Space bool `json:"space"` // true for vacuum/void tiles above the atmosphere
+	// Mineable marks a tile as a resource deposit (ore, crystal, etc.). It is
+	// drawn distinctly on the minimap, and a resource-scanner upgrade reveals it
+	// there even before a colonist has discovered it.
+	Mineable bool `json:"mineable"`
 }
 
 // EmptyTileName is the engine-reserved sentinel. rllayered.Slot.IsEmpty

@@ -24,6 +24,10 @@ const (
 
 const mapModalDoubleClickTicks = 30 // ~0.5s at 60 TPS
 
+// techResourceScanner is the research key that reveals resource deposits on the
+// minimap (see internal/minimap and data/research.json).
+const techResourceScanner = "resource_scanner"
+
 type MapModal struct {
 	Visible bool
 	level   *world.Level

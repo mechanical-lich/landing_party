@@ -16,6 +16,12 @@ var (
 	colFloor  = color.RGBA{140, 148, 160, 255} // walkable floor
 	colWater  = color.RGBA{40, 90, 160, 255}   // water
 	colSpace  = color.RGBA{5, 5, 12, 255}      // space / vacuum
+
+	// Resource deposits — bright, saturated, and distinct from the terrain
+	// palette so they stand out as map markers.
+	colOre         = color.RGBA{210, 140, 50, 255}  // ore deposit — orange
+	colCrystal     = color.RGBA{90, 200, 220, 255}  // crystal vein — cyan
+	colRadioactive = color.RGBA{120, 220, 80, 255}  // radioactive ore — green
 )
 
 type Minimap struct {
@@ -24,6 +30,9 @@ type Minimap struct {
 	level         *world.Level
 	images        map[int]*ebiten.Image
 	buffers       map[int][]byte
+	// RevealResources, when true, plots mineable deposits on the minimap even on
+	// tiles a colonist has never seen — the effect of a resource-scanner upgrade.
+	RevealResources bool
 }
 
 func NewMinimap(level *world.Level, width, height int) *Minimap {
@@ -41,6 +50,16 @@ func (m *Minimap) InvalidateAll() {
 	m.images = make(map[int]*ebiten.Image)
 	m.buffers = make(map[int][]byte)
 	m.mu.Unlock()
+}
+
+// SetRevealResources toggles scanner reveal, regenerating the map only when the
+// state actually changes.
+func (m *Minimap) SetRevealResources(reveal bool) {
+	if m.RevealResources == reveal {
+		return
+	}
+	m.RevealResources = reveal
+	m.InvalidateAll()
 }
 
 func (m *Minimap) InvalidateZ(z int) {
@@ -145,11 +164,18 @@ func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
 			seen := m.level.GetSeen(tx, ty, z)
 
 			var c color.RGBA
-			if tile == nil {
+			switch {
+			case tile == nil:
 				c = colUnseen
-			} else if !seen {
-				c = colGhost
-			} else {
+			case !seen:
+				// A scanner upgrade plots deposits even where no colonist has
+				// explored; otherwise an undiscovered tile is a ghost outline.
+				if rc, ok := resourceColor(tile); ok && m.RevealResources {
+					c = rc
+				} else {
+					c = colGhost
+				}
+			default:
 				c = tileColor(tile)
 			}
 
@@ -164,8 +190,37 @@ func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
 	img.WritePixels(buf)
 }
 
+// resourceColor returns the minimap color for a mineable deposit tile and
+// whether the tile is one. Drives both the distinct color of a discovered
+// deposit and the scanner reveal of an undiscovered one.
+func resourceColor(tile *world.Tile) (color.RGBA, bool) {
+	slot := tile.Middle
+	if slot.IsEmpty() {
+		slot = tile.Floor
+	}
+	if slot.IsEmpty() {
+		return color.RGBA{}, false
+	}
+	def := world.TileDefinitions[slot.Type]
+	if !def.Mineable {
+		return color.RGBA{}, false
+	}
+	switch def.Name {
+	case "crystal_vein":
+		return colCrystal, true
+	case "radioactive_ore":
+		return colRadioactive, true
+	default:
+		return colOre, true
+	}
+}
+
 // tileColor picks a flat color for a seen tile based on its category.
 func tileColor(tile *world.Tile) color.RGBA {
+	// Mineable deposits get their own marker color, regardless of slot.
+	if rc, ok := resourceColor(tile); ok {
+		return rc
+	}
 	// Check Middle slot first (walls, ores, etc.), then Floor.
 	slot := tile.Middle
 	if slot.IsEmpty() {

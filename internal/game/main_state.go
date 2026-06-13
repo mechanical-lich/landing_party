@@ -331,6 +331,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.level = level
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(level)
+	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
@@ -401,6 +402,16 @@ func (s *MainState) hasTech(key string) bool {
 		return s.MainSettlement.HasTech(key)
 	}
 	return false
+}
+
+// refreshResourceScanner syncs the minimap's resource reveal to the current
+// research state. Safe to call at any time (no-op if the map isn't built yet);
+// the campaign field is assigned after construction, so this must run again once
+// the campaign is wired and whenever research completes.
+func (s *MainState) refreshResourceScanner() {
+	if s.mapModal != nil {
+		s.mapModal.mm.SetRevealResources(s.hasTech(techResourceScanner))
+	}
 }
 
 // unlockTech records a tech as researched in the appropriate store.
@@ -535,6 +546,7 @@ func (s *MainState) newGame() {
 	}
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level)
+	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
 	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
@@ -895,6 +907,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case eventsystem.ResearchDoneEvent:
 		s.unlockTech(ev.TechKey)
 		s.guiManager.SetKnownTechs(s.knownTechs())
+		s.refreshResourceScanner()
 	case gui.ColonistSelectedEvent:
 		if ev.Entity.HasComponent(rlcomponents.Position) {
 			pc := ev.Entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)

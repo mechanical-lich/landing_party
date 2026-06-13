@@ -433,6 +433,9 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 
 	ms.campaign = c
 	ms.wm = wm
+	// The campaign (which holds researched techs in campaign mode) is only wired
+	// up now, after MainState construction — re-sync anything that gates on it.
+	ms.refreshResourceScanner()
 	ms.storageInspector = newStorageInspectorModal(wm)
 	ms.storageInspector.OnBeginRelocate = func(source *ecs.Entity, blueprint string, maxAvail int) {
 		ms.BeginRelocate(source, blueprint, maxAvail)
