@@ -20,7 +20,7 @@
     },
     {
       "kind": "underground",
-      "tile": "crystal_vein"
+      "tile": "rock"
     },
     {
       "kind": "cavern",

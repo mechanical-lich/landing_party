@@ -14,7 +14,7 @@
         "biomes": ["volcanic_island", "shallow_sea"]
     },
     "features": [
-        { "kind": "ore_vein",  "count": 20, "biome": "volcanic_island", "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein",  "count": 5, "biome": "volcanic_island", "params": { "tile": "ore_deposit", "radius": 2 } },
         { "kind": "lava_lake", "count": 20, "biome": "volcanic_island", "params": { "tile": "lava", "radius": 3 } },
         { "kind": "lava_lake", "count": 6,  "biome": "volcanic_island", "params": { "tile": "lava", "radius": 5 } },
         { "kind": "radiation_pocket", "count": 4, "biome": "volcanic_island", "params": { "peak": 140, "radius": 3 } }

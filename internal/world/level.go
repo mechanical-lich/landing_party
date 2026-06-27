@@ -91,6 +91,14 @@ type Level struct {
 	// Maps tag → list of (x,y,z) anchor points.
 	Regions map[string][][3]int
 
+	// ResourceAmount holds the remaining yield of each mineable deposit tile
+	// (ore/crystal/radioactive), keyed by packed coordinate. Rolled at
+	// generation, decremented as a deposit is mined, and the tile is cleared
+	// when it reaches zero. Persisted in saves so partial mining survives
+	// save/load and campaign freeze — and so it can't be re-rolled by
+	// cancelling and re-issuing a mine order.
+	ResourceAmount map[TileCoord]int
+
 	// Lighting config — set from scenario at level creation.
 	LightMode    string // "day_night", "fixed", or "pitch_dark"
 	FixedAmbient int    // used when LightMode == "fixed"
@@ -132,12 +140,13 @@ func NewLevel(width, height, depth int) *Level {
 	base := rllayered.NewLevel(width, height, depth)
 	total := width * height * depth
 	level := &Level{
-		Level:         base,
-		Flags:         make(map[string]any),
-		Regions:       make(map[string][][3]int),
-		Visible:       make([]bool, total),
-		WorkerZLevels: make(map[int]bool),
-		op:            &ebiten.DrawImageOptions{},
+		Level:          base,
+		Flags:          make(map[string]any),
+		Regions:        make(map[string][][3]int),
+		ResourceAmount: make(map[TileCoord]int),
+		Visible:        make([]bool, total),
+		WorkerZLevels:  make(map[int]bool),
+		op:             &ebiten.DrawImageOptions{},
 		entitiesBuffer: make([]*ecs.Entity, 0, 16),
 	}
 	base.PathCostFunc = getPathCostFunction(level)

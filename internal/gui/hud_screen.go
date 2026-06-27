@@ -1341,6 +1341,9 @@ type HoveredTileInfo struct {
 	X, Y, Z                  int
 	LightLevel               int
 	Radiation                int
+	// ResourceAmount is the remaining yield of a mineable deposit tile (0 for
+	// non-deposits), shown so the player can gauge how much is left to mine.
+	ResourceAmount           int
 	Solid, Water, Air, Space bool
 	Smells                   []TileSmell
 }
@@ -1398,6 +1401,9 @@ func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 	add(fmt.Sprintf("Light: %d", info.LightLevel))
 	if info.Radiation > 0 {
 		add(fmt.Sprintf("Radiation: %d", info.Radiation))
+	}
+	if info.ResourceAmount > 0 {
+		add(fmt.Sprintf("Deposit: %d left", info.ResourceAmount))
 	}
 	flags := ""
 	if info.Solid {

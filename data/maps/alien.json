@@ -14,7 +14,8 @@
         "biomes": ["alien_forest", "crystal_field"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 25, "params": { "tile": "ore_deposit", "radius": 3 } },
+        { "kind": "ore_vein", "count": 6, "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein", "count": 8, "biome": "crystal_field", "params": { "tile": "crystal_vein", "radius": 2 } },
         { "kind": "crystal_grove", "count": 10, "biome": "crystal_field", "params": { "blueprint": "alien_crystal", "radius": 5 } },
         { "kind": "scatter_entity", "count": 1000, "biome": "alien_forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
         { "kind": "radiation_pocket", "count": 4, "params": { "peak": 180, "radius": 4 } }

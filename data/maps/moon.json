@@ -14,7 +14,7 @@
         "biomes": ["regolith", "crater"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 25, "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein", "count": 6, "params": { "tile": "ore_deposit", "radius": 2 } },
         { "kind": "radiation_pocket", "count": 8, "params": { "peak": 200, "radius": 5 } }
     ]
 }

@@ -62,6 +62,10 @@ type SaveData struct {
 	MapSizeW       int
 	MapSizeH       int
 	MapSizeZ       int
+	// ResourceAmount is the remaining yield of each mineable deposit tile, keyed
+	// by packed coordinate. Persisted so partial mining survives save/load and
+	// campaign freeze (and can't be reset by re-issuing a mine order).
+	ResourceAmount map[TileCoord]int `json:"ResourceAmount,omitempty"`
 }
 
 // encodeSlotRuns RLE-compresses one slot across a tile array.
@@ -296,6 +300,14 @@ func SaveLevel(level *Level) SaveData {
 	catalog := make([]string, len(TileIndexToName))
 	copy(catalog, TileIndexToName)
 
+	var resourceAmount map[TileCoord]int
+	if len(level.ResourceAmount) > 0 {
+		resourceAmount = make(map[TileCoord]int, len(level.ResourceAmount))
+		for k, v := range level.ResourceAmount {
+			resourceAmount[k] = v
+		}
+	}
+
 	return SaveData{
 		FloorRuns:      encodeFloorRuns(level.Data),
 		MiddleRuns:     encodeMiddleRuns(level.Data),
@@ -307,6 +319,7 @@ func SaveLevel(level *Level) SaveData {
 		MapSizeW:       level.GetWidth(),
 		MapSizeH:       level.GetHeight(),
 		MapSizeZ:       level.GetDepth(),
+		ResourceAmount: resourceAmount,
 	}
 }
 
@@ -345,6 +358,12 @@ func LoadSaveData(data SaveData) *Level {
 	for _, saveEntity := range data.Entities {
 		entity := RebuildEntity(saveEntity)
 		level.AddEntity(entity)
+	}
+
+	for k, v := range data.ResourceAmount {
+		if v > 0 {
+			level.ResourceAmount[k] = v
+		}
 	}
 
 	settlement.Settlements = data.Settlements

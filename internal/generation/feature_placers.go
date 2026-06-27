@@ -112,13 +112,20 @@ func placeScatterTile(level *world.Level, s FeatureSpec) error {
 
 // ore_vein — cluster of ore tiles underground.
 //
-//	params: tile (default "ore_deposit"), radius (default 3)
+//	params: tile (default "ore_deposit"), radius (default 3),
+//	        density (0..1 fill chance per cell in the disk, default 1.0 = solid)
 func placeOreVein(level *world.Level, s FeatureSpec) error {
 	tile := featureParamString(s, "tile", "ore_deposit")
 	if !requireTile(tile) {
 		return nil
 	}
 	radius := featureParamInt(s, "radius", 3)
+	// density is the per-cell chance to paint within the disk: 1.0 fills it
+	// solid, lower values scatter the vein. Clamped to (0, 1].
+	density := featureParamFloat(s, "density", 1.0)
+	if density <= 0 {
+		density = 1.0
+	}
 	count := s.Count
 	if count <= 0 {
 		count = 20
@@ -152,12 +159,13 @@ func placeOreVein(level *world.Level, s FeatureSpec) error {
 				if dx*dx+dy*dy > radius*radius {
 					continue
 				}
-				if rand.Intn(3) != 0 {
+				if density < 1.0 && rand.Float64() >= density {
 					continue
 				}
 				k := level.GetTerrainKind(cx+dx, cy+dy, cz)
 				if k == world.TKUnderground || k == world.TKSubsurface {
 					level.UpdateTileAt(cx+dx, cy+dy, cz, tile, world.RandomTileVariant(tile))
+					level.SetResourceAmount(cx+dx, cy+dy, cz, world.RollDepositRichness(tile))
 					anyPainted = true
 				}
 			}
@@ -244,6 +252,7 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec) error {
 				continue
 			}
 			world.SetTileTypeAndVariant(t, oreTile, world.RandomTileVariant(oreTile))
+			level.SetResourceAmount(ox, oy, z, world.RollDepositRichness(oreTile))
 		}
 	}
 	return nil

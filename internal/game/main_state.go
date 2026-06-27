@@ -2102,7 +2102,7 @@ func (s *MainState) addMineTask(x, y int) {
 		return
 	}
 	tileName := world.TileDefinitions[t.Middle.Type].Name
-	if tileName != "ore_deposit" && tileName != "crystal_vein" {
+	if !world.IsDepositTileName(tileName) {
 		return
 	}
 	s.MainSettlement.Tasks.AddTask(&task.Task{
@@ -2161,19 +2161,24 @@ func (s *MainState) updateHovered() {
 				smells = append(smells, gui.TileSmell{Tag: string(tag), Strength: v})
 			}
 		}
+		resourceAmt := 0
+		if !t.Middle.IsEmpty() && world.IsDepositTileName(def.Name) {
+			resourceAmt = s.level.ResourceAmountAt(tX, tY, s.CameraZ)
+		}
 		s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
-			Name:       def.Name,
-			FloorName:  floorName,
-			X:          tX,
-			Y:          tY,
-			Z:          s.CameraZ,
-			LightLevel: t.LightLevel,
-			Radiation:  int(t.Radiation),
-			Solid:      def.Solid,
-			Water:      def.Water,
-			Air:        def.Air,
-			Space:      def.Space,
-			Smells:     smells,
+			Name:           def.Name,
+			FloorName:      floorName,
+			X:              tX,
+			Y:              tY,
+			Z:              s.CameraZ,
+			LightLevel:     t.LightLevel,
+			Radiation:      int(t.Radiation),
+			ResourceAmount: resourceAmt,
+			Solid:          def.Solid,
+			Water:          def.Water,
+			Air:            def.Air,
+			Space:          def.Space,
+			Smells:         smells,
 		})
 	}
 

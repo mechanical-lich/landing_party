@@ -156,14 +156,10 @@ func placeUndergroundTile(level *world.Level, x, y, z, value int, cavern float64
 		return
 	}
 
-	switch {
-	case value >= 4:
-		level.UpdateTileAt(x, y, z, "ore_deposit", 0)
-	case value >= 3:
-		level.UpdateTileAt(x, y, z, "crystal_vein", 0)
-	default:
-		level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
-	}
+	// Deposits are placed deliberately by the ore_vein / radiation_pocket
+	// features (see feature_placers.go), not scattered through the Perlin pass —
+	// this keeps total resource supply controlled by the per-map feature counts.
+	level.UpdateTileAt(x, y, z, "rock", world.RandomTileVariant("rock"))
 }
 
 // placeScatter adds sparse surface details after the main pass.

@@ -101,7 +101,7 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		}
 		tileDef := world.TileDefinitions[tile.Middle.Type]
 		tileName := tileDef.Name
-		if tileName == "ore_deposit" || tileName == "crystal_vein" {
+		if world.IsDepositTileName(tileName) {
 			wc.CurrentTask.Action = task_requests.MineAction
 			wc.CurrentTask.Data = task_requests.MineRequest{X: tx, Y: ty, Z: tz, Required: 50}
 			return true
@@ -555,47 +555,53 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			return
 		}
 
-		// Tile branch — yield ore every 10 ticks of progress so partial work
-		// isn't wasted. Stat-scaled progress can advance several ticks at once,
-		// so yield once per 10-tick boundary crossed this step (capped at the
-		// deposit's content) rather than only on an exact multiple, which a fast
-		// miner could otherwise skip over. Drops land on the miner's tile so
-		// haulers can reach them without standing on the (solid) ore deposit.
-		yieldTo := req.Progress
-		if yieldTo > req.Required {
-			yieldTo = req.Required
+		// Tile branch — a deposit holds a rolled richness in level.ResourceAmount.
+		// Extract one stack every mineChunkTicks of progress, decrementing the
+		// stored amount (the single source of truth), and clear the tile once the
+		// deposit is empty. Because extraction draws down the persistent amount,
+		// cancelling and re-issuing a mine order resumes from what's left rather
+		// than re-rolling — no infinite-ore exploit. Drops land on the miner's
+		// tile so haulers can reach them without standing on the solid deposit.
+		const (
+			mineChunkTicks = 30 // progress ticks per extracted stack
+			mineChunkSize  = 10 // units per stack
+		)
+		tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
+		tile := level.GetTileAt(tx, ty, tz).(*world.Tile)
+		tileName := ""
+		if !tile.Middle.IsEmpty() {
+			tileName = world.TileDefinitions[tile.Middle.Type].Name
 		}
-		for milestone := prevProgress/10 + 1; milestone <= yieldTo/10; milestone++ {
-			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
-			// Ore lives in the Middle slot.
-			tileName := ""
-			if !tile.Middle.IsEmpty() {
-				tileName = world.TileDefinitions[tile.Middle.Type].Name
+		dropBlueprint := world.DepositDrop(tileName)
+
+		// Seed richness lazily if a deposit has no entry (legacy save, or a tile
+		// placed outside the feature placers) so every deposit is minable.
+		if dropBlueprint != "" && level.ResourceAmountAt(tx, ty, tz) <= 0 {
+			level.SetResourceAmount(tx, ty, tz, world.RollDepositRichness(tileName))
+		}
+
+		for milestone := prevProgress/mineChunkTicks + 1; dropBlueprint != "" && milestone <= req.Progress/mineChunkTicks; milestone++ {
+			got := level.ConsumeResource(tx, ty, tz, mineChunkSize)
+			if got <= 0 {
+				break
 			}
-			var dropBlueprint string
-			switch tileName {
-			case "ore_deposit":
-				dropBlueprint = "metal_ore"
-			case "crystal_vein":
-				dropBlueprint = "crystal"
-			case "radioactive_ore":
-				dropBlueprint = "radioactive_material"
-			}
-			if dropBlueprint != "" {
-				ore, err := factory.Create(dropBlueprint, pc.GetX(), pc.GetY(), pc.GetZ())
-				if err == nil {
-					level.AddEntity(ore)
-					queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
+			ore, err := factory.Create(dropBlueprint, pc.GetX(), pc.GetY(), pc.GetZ())
+			if err == nil {
+				if ore.HasComponent(components.Material) {
+					ore.GetComponent(components.Material).(*components.MaterialComponent).Quantity = got
 				}
+				level.AddEntity(ore)
+				queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
 			}
 		}
 
-		if req.Progress >= req.Required {
-			tile := level.GetTileAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z).(*world.Tile)
+		// Mined out once the deposit is empty (or the tile was never a deposit).
+		if dropBlueprint == "" || level.ResourceAmountAt(tx, ty, tz) <= 0 {
 			clearTileRadiation(tile)
 			// Layered mine: just remove the Middle. Floor stays.
-			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
-			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
+			level.ClearMiddle(tx, ty, tz)
+			level.SetResourceAmount(tx, ty, tz, 0) // drop any leftover entry
+			level.InvalidateSunColumn(tx, ty)
 			progression.AwardXP(entity, "Str", progression.XPPerTask)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Mined out deposit")
 			aiMemory.State = "idle"

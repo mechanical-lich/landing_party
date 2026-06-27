@@ -14,8 +14,8 @@
         "single": "asteroid_rock"
     },
     "features": [
-        { "kind": "ore_vein", "count": 40, "in_region": "asteroid", "jitter": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
-        { "kind": "ore_vein", "count": 15, "in_region": "asteroid", "jitter": 8, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "ore_vein", "count": 10, "in_region": "asteroid", "jitter": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein", "count": 4, "in_region": "asteroid", "jitter": 8, "params": { "tile": "crystal_vein", "radius": 2 } },
         { "kind": "radiation_pocket", "count": 6, "in_region": "asteroid", "jitter": 10, "params": { "peak": 220, "radius": 4 } }
     ]
 }
