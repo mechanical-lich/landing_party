@@ -38,6 +38,11 @@ func (s *MainState) stepWorld() {
 		s.systemManager.UpdateSystemsForEntity(s.level, entity)
 	}
 	s.cleanUpSystem.Update(s.level)
+	// Dispatch this planet's simulation events (kills, structures, research)
+	// to its own per-level listeners now that the tick's systems have run.
+	if s.level.Events != nil {
+		s.level.Events.HandleQueue()
+	}
 	s.collectDatapads()
 	effect.GetEffectManager().Update()
 	// A quest target may have just died during cleanup — resolve immediately

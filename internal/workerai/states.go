@@ -16,7 +16,6 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
@@ -203,7 +202,7 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 			inv.RemoveItem(item)
 			if item.HasComponent(rlcomponents.Description) {
 				dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
-				event.GetQueuedInstance().QueueEvent(eventsystem.ItemStoredEvent{
+				level.QueueEvent(eventsystem.ItemStoredEvent{
 					ItemName:   dc.Name,
 					Blueprint:  item.Blueprint,
 					Settlement: storageC.OwnedBy,
@@ -248,7 +247,7 @@ func depositDirectedDropOff(level *world.Level, entity *ecs.Entity, wc *componen
 		log.Printf("[DROP] deposited %s in %s", item.Blueprint, dest.Blueprint)
 		if item.HasComponent(rlcomponents.Description) {
 			dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
-			event.GetQueuedInstance().QueueEvent(eventsystem.ItemStoredEvent{
+			level.QueueEvent(eventsystem.ItemStoredEvent{
 				ItemName:   dc.Name,
 				Blueprint:  item.Blueprint,
 				Settlement: storageC.OwnedBy,

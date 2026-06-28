@@ -4,6 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/event"
 )
 
 // ZBand describes the semantic role of a z-level range.
@@ -91,6 +92,13 @@ type Level struct {
 	// Maps tag → list of (x,y,z) anchor points.
 	Regions map[string][][3]int
 
+	// Events is this level's own simulation event bus. Each planet fires and
+	// consumes its own sim events (deaths, structures, research, etc.) here so
+	// background planets don't cross-contaminate the live one. UI/input events
+	// stay on the global event.GetQueuedInstance() bus. See
+	// docs/developer/background_simulation.md.
+	Events *event.QueuedEventManager
+
 	// ResourceAmount holds the remaining yield of each mineable deposit tile
 	// (ore/crystal/radioactive), keyed by packed coordinate. Rolled at
 	// generation, decremented as a deposit is mined, and the tile is cleared
@@ -143,6 +151,7 @@ func NewLevel(width, height, depth int) *Level {
 		Level:          base,
 		Flags:          make(map[string]any),
 		Regions:        make(map[string][][3]int),
+		Events:         &event.QueuedEventManager{},
 		ResourceAmount: make(map[TileCoord]int),
 		Visible:        make([]bool, total),
 		WorkerZLevels:  make(map[int]bool),
@@ -151,6 +160,16 @@ func NewLevel(width, height, depth int) *Level {
 	}
 	base.PathCostFunc = getPathCostFunction(level)
 	return level
+}
+
+// QueueEvent queues a simulation event on this level's own event bus, to be
+// dispatched when the level is stepped. Nil-safe so zero-value levels (tests)
+// don't panic.
+func (l *Level) QueueEvent(evt event.EventData) {
+	if l.Events == nil {
+		l.Events = &event.QueuedEventManager{}
+	}
+	l.Events.QueueEvent(evt)
 }
 
 func (l *Level) visibleIdx(x, y, z int) int {

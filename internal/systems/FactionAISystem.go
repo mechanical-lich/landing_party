@@ -8,7 +8,6 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/utility"
 )
 
@@ -39,7 +38,7 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 			fac := entity.GetComponent(components.FactionAI).(*components.FactionAIComponent)
 			entity.RemoveComponent(components.FactionAI)
 			entity.AddComponent(&rlcomponents.DeadComponent{})
-			event.GetQueuedInstance().QueueEvent(eventsystem.EntityDiedEvent{
+			level.QueueEvent(eventsystem.EntityDiedEvent{
 				EntityName: entity.Blueprint,
 				Faction:    fac.Faction,
 				Blueprint:  entity.Blueprint,

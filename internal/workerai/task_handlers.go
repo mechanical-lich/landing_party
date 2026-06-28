@@ -21,7 +21,6 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
@@ -426,7 +425,7 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 	}
 	rr.Progress += workStep(wc, entity, "Int")
 	if rr.Progress >= rr.Required {
-		event.GetQueuedInstance().QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
+		level.QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
 		progression.AwardXP(entity, "Int", progression.XPPerTask)
 		if techFound {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
@@ -687,7 +686,7 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 	if rangedWeaponEntity != nil && combat.Shoot(level, entity, targetPC.GetX(), targetPC.GetY(), targetPC.GetZ(), rangedWeaponEntity) {
 		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
 		if target.HasComponent(rlcomponents.Dead) {
-			event.GetQueuedInstance().QueueEvent(eventsystem.EntityKilledEvent{
+			level.QueueEvent(eventsystem.EntityKilledEvent{
 				KillerName: rlentity.GetName(entity),
 				TargetName: rlentity.GetName(target),
 				Blueprint:  target.Blueprint,
@@ -705,7 +704,7 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		rlcombat.Hit(level, entity, target, true)
 		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
 		if target.HasComponent(rlcomponents.Dead) {
-			event.GetQueuedInstance().QueueEvent(eventsystem.EntityKilledEvent{
+			level.QueueEvent(eventsystem.EntityKilledEvent{
 				KillerName: rlentity.GetName(entity),
 				TargetName: rlentity.GetName(target),
 				Blueprint:  target.Blueprint,
@@ -815,7 +814,7 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				level.InvalidateSunColumn(buildRequest.X, buildRequest.Y)
 			}
 			removeMaterialsFromInventory(entity, buildable)
-			event.GetQueuedInstance().QueueEvent(eventsystem.StructureBuiltEvent{
+			level.QueueEvent(eventsystem.StructureBuiltEvent{
 				Type: buildRequest.Type, Settlement: sc.Name,
 				X: buildRequest.X, Y: buildRequest.Y, Z: buildRequest.Z,
 			})

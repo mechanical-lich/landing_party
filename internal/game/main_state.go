@@ -177,7 +177,6 @@ func (s *MainState) registerListeners() {
 	eq.RegisterListener(s, gui.ResearchStationClickedEventType)
 	eq.RegisterListener(s, gui.ResearchRequestedEventType)
 	eq.RegisterListener(s, gui.ColonistSelectedEventType)
-	eq.RegisterListener(s, eventsystem.ResearchDone)
 	eq.RegisterListener(s, gui.EquipItemRequestedEventType)
 	eq.RegisterListener(s, gui.UnequipItemRequestedEventType)
 	eq.RegisterListener(s, gui.SetTaskFilterEventType)
@@ -186,6 +185,24 @@ func (s *MainState) registerListeners() {
 	eq.RegisterListener(s, gui.SetSelfDefendEventType)
 	eq.RegisterListener(s, gui.EnterRogueModeEventType)
 	eq.RegisterListener(s, gui.ExitRogueModeEventType)
+}
+
+// registerLevelListeners wires the simulation listeners onto THIS level's own
+// event bus (not the global one), so each planet handles its own kills,
+// structures, and research independently — the basis for background simulation.
+// Called once when the level is associated with the MainState; the level bus is
+// never torn down on park, so a parked planet keeps handling its own events.
+// Must run after s.level is set. (MessageListener stays global; the dead
+// TaskCompleted listener and listener-less EntityDied/ItemStored are omitted.)
+func (s *MainState) registerLevelListeners() {
+	if s.level == nil || s.level.Events == nil {
+		return
+	}
+	ev := s.level.Events
+	ev.RegisterListener(s, eventsystem.ResearchDone) // state: unlock tech
+	ev.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
+	ev.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
+	ev.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
 }
 
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
@@ -299,16 +316,13 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.systemManager.AddSystem(&systems.ScriptSystem{})
 	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
 
-	eq := event.GetQueuedInstance()
-	// Shared singleton listeners must be registered exactly once for the
-	// process — newMainStateBase runs again on every campaign level swap, so
-	// guard them or messages/kills get dispatched N times.
+	// MessageListener feeds the global player log (driven by message.PostMessage,
+	// a separate global system), so it's registered once for the process. The
+	// simulation listeners (kills, structures, research) moved to each level's
+	// own event bus — see registerLevelListeners and
+	// docs/developer/background_simulation.md.
 	sharedListenersOnce.Do(func() {
-		eq.RegisterListener(&listeners.MessageListener{}, message.MessageEventType)
-		eq.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
-		eq.RegisterListener(&listeners.TaskListener{}, eventsystem.TaskCompleted)
-		eq.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
-		eq.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
+		event.GetQueuedInstance().RegisterListener(&listeners.MessageListener{}, message.MessageEventType)
 	})
 
 	s.registerListeners()
@@ -329,6 +343,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 		return nil, err
 	}
 	s.level = level
+	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(level)
 	s.refreshResourceScanner()
@@ -544,6 +559,7 @@ func (s *MainState) newGame() {
 		planetCfg := generation.DefaultPlanetConfig(mapZ)
 		s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
 	}
+	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level)
 	s.refreshResourceScanner()
