@@ -77,6 +77,17 @@
         "category": "structures",
         "order": 1
     },
+    "teleporter": {
+        "name": "Teleporter Storage",
+        "type": "teleporter",
+        "description": "A beam staging pad. Resources beamed to the ship land here for sorting; high capacity.",
+        "build_time": 8,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 4, "crystal": 2 },
+        "category": "structures",
+        "order": 3
+    },
     "mineral_bin": {
         "name": "Mineral Bin",
         "type": "mineral_bin",

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
@@ -147,10 +146,11 @@ func (s *StorageInspectorModal) sourceStorage() *components.StorageComponent {
 	return s.source.GetComponent(components.Storage).(*components.StorageComponent)
 }
 
-// isShipSource reports whether the inspector is viewing the ship hold.
+// isShipSource reports whether the inspector is viewing a container on the ship
+// (the discriminator is the level, since ship and site storage share the colony
+// owner).
 func (s *StorageInspectorModal) isShipSource() bool {
-	sc := s.sourceStorage()
-	return sc != nil && sc.OwnedBy == campaign.ShipSettlementName
+	return s.wm != nil && s.wm.IsShipEntity(s.source)
 }
 
 // entityDisplayLabel returns a readable name for the container.

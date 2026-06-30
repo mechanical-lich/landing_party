@@ -128,6 +128,39 @@ Consequences:
   planet dumps enemies onto your ship. (Not an issue yet: the ship is parked,
   not ticking.)
 
+## The ship is its own settlement (decided)
+
+The ship has its **own settlement**, distinct from the colony — name
+`"<colony> Ship"` (`wm.shipSettlementName`). This is forced by the simulation
+model: workers find their task queue via a **global, name-keyed lookup**
+(`settlement.Settlements[colonist.SettlementName].Tasks`), and build orders go
+into the level's `MainSettlement.Tasks`. If the ship shared the colony name it
+would collide with planet settlements in that one global map slot, so ship
+workers would pull the wrong queue. A distinct name keeps the ship's queue
+separate while the colony's current planet stays loaded.
+
+Consequences:
+- `buildShip` creates/assigns the ship settlement (`ensureShipSettlement`,
+  centered on the hull). Without a `MainSettlement`, build orders silently no-op
+  — that was the "can't build on the ship" bug.
+- Ship colonists are tagged with the ship settlement; **beaming re-tags** them
+  (ship ↔ colony) as they transfer levels (`tagColonistSettlement`).
+- Ship storage (starting locker + anything built aboard) is owned by the ship
+  settlement, so it all aggregates in the ship inventory automatically — which
+  also fixes the original "built containers don't show up" question.
+- `WorldManager.IsShipEntity` is used where code needs "is this on the ship"
+  (e.g. the storage inspector) rather than an owner check.
+
+> Earlier this was attempted as "unify on the colony owner," but the global
+> name-keyed task lookup makes a distinct ship settlement the correct shape.
+
+### Teleporter Storage
+
+A buildable `teleporter` ("Teleporter Storage", 50 cap) acts as the ship's
+**beam staging area**: `shipBeamHoldEntity` prefers it over plain lockers, so resources
+beamed up / quest rewards / seeded cargo land there for sorting. Falls back to
+the first container if no teleporter exists. ("If present, the beam prefers it.")
+
 ## Future
 
 - **Scenario `ship_effects`** — opt-in block letting a location's scenario drive

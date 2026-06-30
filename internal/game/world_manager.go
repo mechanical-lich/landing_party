@@ -125,10 +125,10 @@ func NewWorldManager(c *campaign.Campaign) *WorldManager {
 // hostiles) and is never frozen while the campaign is active.
 func (wm *WorldManager) buildShip() error {
 	c := wm.Campaign
-	colony := campaignColonyName(c)
+	shipName := wm.shipSettlementName()
 	cfg := SettlementConfig{
-		Name:         colony,
-		ColonyName:   colony,
+		Name:         shipName,
+		ColonyName:   shipName,
 		CampaignMode: true,
 		// The ship is an enclosed, powered hull — it lights itself, independent
 		// of whatever location the campaign is orbiting.
@@ -136,9 +136,12 @@ func (wm *WorldManager) buildShip() error {
 		LightingAmbient: 100,
 	}
 	// Resume the saved ship if this campaign has one, else build a fresh hull.
+	// The ship is its OWN settlement (distinct from the colony) so its build/task
+	// queue doesn't collide with planet settlements in the global name-keyed
+	// lookup; its storage is owned by that settlement. See the_ship.md.
 	level, err := loadLocationLevel(wm.shipSaveFile())
 	if err != nil || level == nil {
-		level = ship.BuildShipLevel(campaign.ShipSettlementName)
+		level = ship.BuildShipLevel(shipName)
 	}
 	ms, err := newMainStateFromLevel(level, cfg)
 	if err != nil {
@@ -146,6 +149,7 @@ func (wm *WorldManager) buildShip() error {
 	}
 	ms.campaign = c
 	ms.wm = wm
+	ms.MainSettlement = wm.ensureShipSettlement(shipName)
 	ms.gm.suppressSpawns = true // the ship is a safe haven; no hostile waves
 	// Frame the camera on the starting hull — the level is mostly empty void.
 	hx, hy, hz := ship.HullCenter()
@@ -164,6 +168,27 @@ func (wm *WorldManager) buildShip() error {
 	ms.teardown() // parked until visited
 	wm.shipLevel = ms
 	return nil
+}
+
+// shipSettlementName is the ship's own settlement — distinct from the colony so
+// its task queue and storage don't collide with planet settlements in the
+// global, name-keyed settlement lookup.
+func (wm *WorldManager) shipSettlementName() string {
+	return campaignColonyName(wm.Campaign) + " Ship"
+}
+
+// ensureShipSettlement returns the ship's settlement, reusing the one restored
+// from a save if present, else creating it centered on the hull.
+func (wm *WorldManager) ensureShipSettlement(name string) *settlement.Settlement {
+	if existing, ok := settlement.Settlements[name]; ok {
+		return existing
+	}
+	hx, hy, hz := ship.HullCenter()
+	s := settlement.NewSettlement(hx, hy, hz)
+	delete(settlement.Settlements, s.Name) // drop the auto-generated name key
+	s.Name = name
+	settlement.Settlements[name] = s
+	return s
 }
 
 // EnterShip re-attaches The Ship's parked MainState and returns it for the state
@@ -249,21 +274,48 @@ func SeedNewCampaign(c *campaign.Campaign) {
 	}
 }
 
-// shipLocker returns the ship's storage container (owned by ShipSettlementName),
-// or nil if the ship isn't built.
-func (wm *WorldManager) shipLocker() *components.StorageComponent {
+// shipBeamHoldEntity returns the storage container on the ship that should
+// receive beamed/seeded cargo — the "teleporter" pad if one exists (so it acts
+// as a staging area to sort from), otherwise the first storage container.
+func (wm *WorldManager) shipBeamHoldEntity() *ecs.Entity {
 	if wm.shipLevel == nil || wm.shipLevel.level == nil {
 		return nil
 	}
+	var first *ecs.Entity
 	for _, e := range wm.shipLevel.level.Entities {
-		if e != nil && e.HasComponent(components.Storage) {
-			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-			if sc.OwnedBy == campaign.ShipSettlementName {
-				return sc
-			}
+		if e == nil || !e.HasComponent(components.Storage) {
+			continue
+		}
+		if e.Blueprint == "teleporter" {
+			return e
+		}
+		if first == nil {
+			first = e
 		}
 	}
-	return nil
+	return first
+}
+
+// shipLocker returns the storage component of the ship's beam-hold container.
+func (wm *WorldManager) shipLocker() *components.StorageComponent {
+	e := wm.shipBeamHoldEntity()
+	if e == nil {
+		return nil
+	}
+	return e.GetComponent(components.Storage).(*components.StorageComponent)
+}
+
+// IsShipEntity reports whether e currently lives on the ship level.
+func (wm *WorldManager) IsShipEntity(e *ecs.Entity) bool {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil || e == nil {
+		return false
+	}
+	for _, se := range wm.shipLevel.level.Entities {
+		if se == e {
+			return true
+		}
+	}
+	return false
 }
 
 // addToShipHold drops qty of a resource blueprint into the ship's storage.
@@ -374,21 +426,10 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 	return fmt.Errorf("no storage locker on site — build one first")
 }
 
-// ShipHoldEntity returns the persistent ship-hold storage container entity,
-// or nil if none has been initialised yet.
+// ShipHoldEntity returns the ship's primary beam-hold storage container, or nil
+// if none exists.
 func (wm *WorldManager) ShipHoldEntity() *ecs.Entity {
-	if wm.shipLevel == nil || wm.shipLevel.level == nil {
-		return nil
-	}
-	for _, e := range wm.shipLevel.level.Entities {
-		if e != nil && e.HasComponent(components.Storage) {
-			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-			if sc.OwnedBy == campaign.ShipSettlementName {
-				return e
-			}
-		}
-	}
-	return nil
+	return wm.shipBeamHoldEntity()
 }
 
 // BeamResourceDown moves qty of blueprint from the ship hold into the first
@@ -402,7 +443,7 @@ func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {
 	}
 	colony := campaignColonyName(wm.Campaign)
 	p := storage.ShipProvider{Level: wm.ShipLevel()}
-	owners := []string{campaign.ShipSettlementName}
+	owners := []string{wm.shipSettlementName()}
 	if have := storage.CountResource(p, owners, blueprint); have < qty {
 		return fmt.Errorf("only %d %s in ship hold", have, blueprint)
 	}
@@ -749,9 +790,9 @@ func (wm *WorldManager) ShipColonists() []*ecs.Entity {
 	return out
 }
 
-// tagColonistForColony makes an entity a working colony member: cleared task,
+// tagColonistSettlement makes an entity a working colony member: cleared task,
 // colony settlement, worker component.
-func tagColonistForColony(colonist *ecs.Entity, colony string) {
+func tagColonistSettlement(colonist *ecs.Entity, colony string) {
 	if colonist.HasComponent(components.Settlement) {
 		colonist.GetComponent(components.Settlement).(*components.SettlementComponent).Name = colony
 	} else {
@@ -770,7 +811,7 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 		return
 	}
 	lvl := wm.shipLevel.level
-	colony := campaignColonyName(wm.Campaign)
+	shipName := wm.shipSettlementName()
 	cx, cy, cz := ship.HullCenter()
 	for i := 0; i < n; i++ {
 		ce, err := factory.Create("colonist", 0, 0, 0)
@@ -781,7 +822,7 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 		if ce.HasComponent(rlcomponents.Position) {
 			ce.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
 		}
-		tagColonistForColony(ce, colony)
+		tagColonistSettlement(ce, shipName)
 		lvl.AddEntity(ce)
 	}
 }
@@ -808,7 +849,7 @@ func (wm *WorldManager) BeamDown(rosterIdx int) error {
 	if colonist.HasComponent(rlcomponents.Position) {
 		colonist.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
 	}
-	tagColonistForColony(colonist, campaignColonyName(c))
+	tagColonistSettlement(colonist, campaignColonyName(c))
 	level.AddEntity(colonist)
 	return nil
 }
@@ -849,6 +890,7 @@ func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
 	if e.HasComponent(rlcomponents.Position) {
 		e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
 	}
+	tagColonistSettlement(e, wm.shipSettlementName()) // now a ship-settlement member
 	shipLvl.AddEntity(e)
 	return nil
 }

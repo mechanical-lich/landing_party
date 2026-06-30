@@ -214,7 +214,7 @@ func entityDisplayName(e *ecs.Entity) string {
 func (o *OverworldState) fuelAvailable() int {
 	return storage.CountResource(
 		storage.ShipProvider{Level: o.wm.ShipLevel()},
-		[]string{campaign.ShipSettlementName},
+		[]string{o.wm.shipSettlementName()},
 		"fuel",
 	)
 }
@@ -316,7 +316,7 @@ func (o *OverworldState) travel() {
 	if moving && cost > 0 {
 		storage.Deduct(
 			storage.ShipProvider{Level: o.wm.ShipLevel()},
-			[]string{campaign.ShipSettlementName},
+			[]string{o.wm.shipSettlementName()},
 			map[string]int{"fuel": cost},
 		)
 	}

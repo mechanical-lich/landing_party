@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/mlge/ui/minui"
@@ -239,7 +238,7 @@ func (g *GlobalInventoryModal) aggregateAllSummaries() map[string]int {
 	}
 	for bp, qty := range storage.Summarize(
 		storage.ShipProvider{Level: g.wm.ShipLevel()},
-		[]string{campaign.ShipSettlementName},
+		[]string{g.wm.shipSettlementName()},
 	) {
 		out[bp] += qty
 	}
@@ -313,7 +312,7 @@ func (g *GlobalInventoryModal) siteSummary(key string) map[string]int {
 	if key == "ship" {
 		return storage.Summarize(
 			storage.ShipProvider{Level: g.wm.ShipLevel()},
-			[]string{campaign.ShipSettlementName},
+			[]string{g.wm.shipSettlementName()},
 		)
 	}
 	loc := g.wm.Campaign.Locations[key]
@@ -323,7 +322,7 @@ func (g *GlobalInventoryModal) siteSummary(key string) map[string]int {
 	if key == g.wm.Campaign.CurrentLocationID && g.wm.current != nil && g.wm.current.level != nil {
 		return storage.Summarize(
 			storage.LevelProvider{Level: g.wm.current.level},
-			[]string{campaignColonyName(g.wm.Campaign)},
+			[]string{g.wm.shipSettlementName()},
 		)
 	}
 	return loc.StorageSummary

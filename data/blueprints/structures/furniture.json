@@ -56,6 +56,25 @@
             "Capacity": 20
         }
     },
+    "teleporter": {
+        "Appearance": {
+            "R": 120,
+            "G": 200,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 504
+        },
+        "Description": {
+            "Name": "Teleporter Storage",
+            "Faction": ""
+        },
+        "Solid": {},
+        "Storage": {
+            "Capacity": 50
+        }
+    },
     "mineral_bin": {
         "Appearance": {
             "R": 200,
