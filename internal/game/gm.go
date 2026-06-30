@@ -34,6 +34,11 @@ const maxLocationAttempts = 100
 // GameMaster manages the living world: hostile spawns, ambient creatures, etc.
 type GameMaster struct {
 	level *world.Level
+	// suppressSpawns disables hostile spawning entirely. Set for safe levels
+	// like The Ship, which reads the global (orbited location's) scenario but
+	// must never spawn that scenario's hostiles aboard. A future scenario
+	// ship_effects block will be the opt-in path for deliberate boardings.
+	suppressSpawns bool
 }
 
 func (gm *GameMaster) Init(level *world.Level) {
@@ -41,6 +46,11 @@ func (gm *GameMaster) Init(level *world.Level) {
 }
 
 func (gm *GameMaster) Update() {
+	// No spawning on safe levels, and never before a scenario is selected
+	// (Active() would panic — e.g. visiting The Ship at campaign start).
+	if gm.suppressSpawns || !scenario.HasActive() {
+		return
+	}
 	all := scenario.AllEnabled()
 	if len(all) == 0 {
 		return

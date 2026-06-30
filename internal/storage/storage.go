@@ -7,7 +7,6 @@ package storage
 import (
 	"sort"
 
-	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -28,15 +27,16 @@ func (p LevelProvider) Sources() [][]*ecs.Entity {
 	return [][]*ecs.Entity{p.Level.Entities, p.Level.StaticEntities}
 }
 
-// ShipProvider scans the persistent ship hold (rebuilt lazily, mutations are
-// flushed by ShipState.Sync at save time).
-type ShipProvider struct{ Ship *campaign.ShipState }
+// ShipProvider scans The Ship's level for its storage containers (owned by the
+// synthetic "ship" settlement). The ship is always loaded, so its hold is just
+// ordinary level storage.
+type ShipProvider struct{ Level *world.Level }
 
 func (p ShipProvider) Sources() [][]*ecs.Entity {
-	if p.Ship == nil {
+	if p.Level == nil {
 		return nil
 	}
-	return [][]*ecs.Entity{p.Ship.LiveHold()}
+	return [][]*ecs.Entity{p.Level.Entities, p.Level.StaticEntities}
 }
 
 // MultiProvider concatenates several providers (e.g. on-planet + ship hold).

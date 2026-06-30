@@ -333,9 +333,11 @@ func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
 		return nil, fmt.Errorf("campaign has no starting location")
 	}
 	cfg := campaign.GenerationConfig()
-	SeedNewCampaign(c, cfg.StartColonists, cfg.StartFuel)
+	SeedNewCampaign(c)
 	c.BindQuests()
 	wm := NewWorldManager(c)
+	wm.SeedShipCrew(cfg.StartColonists) // crew spawns aboard the ship
+	wm.StockShipLocker(cfg.StartFuel)   // and the hold is stocked
 	return NewOverworldState(c, wm), nil
 }
 

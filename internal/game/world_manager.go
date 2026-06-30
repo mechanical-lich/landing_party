@@ -11,14 +11,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
+	"github.com/mechanical-lich/landing_party/internal/ship"
 	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -48,6 +49,11 @@ type WorldManager struct {
 	// it is "parked": kept in memory with its level intact but its event
 	// listeners detached. Resume re-attaches and enters it.
 	current *MainState
+
+	// shipLevel is The Ship — the always-loaded home base (a parked MainState).
+	// Unlike locations it is never frozen to disk while the campaign is active,
+	// and it ticks in the background. See docs/developer/the_ship.md.
+	shipLevel *MainState
 
 	// Cached landing zone for the loaded location so every beam-down arrives
 	// at the same plaza (recomputed on Travel).
@@ -106,7 +112,116 @@ func freeLandingTile(level *world.Level, cx, cy, cz int) (int, int, int) {
 	return cx, cy, cz
 }
 
-func NewWorldManager(c *campaign.Campaign) *WorldManager { return &WorldManager{Campaign: c} }
+func NewWorldManager(c *campaign.Campaign) *WorldManager {
+	wm := &WorldManager{Campaign: c}
+	if err := wm.buildShip(); err != nil {
+		log.Printf("buildShip: %v", err)
+	}
+	return wm
+}
+
+// buildShip constructs The Ship's always-loaded MainState from the fixed
+// template and parks it. The ship has no scenario (so gm.Update spawns no
+// hostiles) and is never frozen while the campaign is active.
+func (wm *WorldManager) buildShip() error {
+	c := wm.Campaign
+	colony := campaignColonyName(c)
+	cfg := SettlementConfig{
+		Name:         colony,
+		ColonyName:   colony,
+		CampaignMode: true,
+		// The ship is an enclosed, powered hull — it lights itself, independent
+		// of whatever location the campaign is orbiting.
+		LightingMode:    "fixed",
+		LightingAmbient: 100,
+	}
+	// Resume the saved ship if this campaign has one, else build a fresh hull.
+	level, err := loadLocationLevel(wm.shipSaveFile())
+	if err != nil || level == nil {
+		level = ship.BuildShipLevel(campaign.ShipSettlementName)
+	}
+	ms, err := newMainStateFromLevel(level, cfg)
+	if err != nil {
+		return err
+	}
+	ms.campaign = c
+	ms.wm = wm
+	ms.gm.suppressSpawns = true // the ship is a safe haven; no hostile waves
+	// Frame the camera on the starting hull — the level is mostly empty void.
+	hx, hy, hz := ship.HullCenter()
+	cfg2 := config.Global()
+	sidebarTiles := 200/ms.TileSizeW + 1
+	viewW := cfg2.WorldWidth / ms.TileSizeW
+	viewH := cfg2.WorldHeight / ms.TileSizeH
+	ms.CameraX = hx - sidebarTiles - (viewW-sidebarTiles)/2
+	ms.CameraY = hy - viewH/2
+	ms.CameraZ = hz
+	ms.refreshResourceScanner()
+	ms.storageInspector = newStorageInspectorModal(wm)
+	ms.storageInspector.OnBeginRelocate = func(source *ecs.Entity, blueprint string, maxAvail int) {
+		ms.BeginRelocate(source, blueprint, maxAvail)
+	}
+	ms.teardown() // parked until visited
+	wm.shipLevel = ms
+	return nil
+}
+
+// EnterShip re-attaches The Ship's parked MainState and returns it for the state
+// machine — the ship-equivalent of EnterCurrent. The ship is never frozen, so it
+// is always available.
+func (wm *WorldManager) EnterShip() (*MainState, error) {
+	if wm.shipLevel == nil {
+		return nil, fmt.Errorf("the ship is not available")
+	}
+	// Clear the transition flags set when the ship last opened the Star Map,
+	// else it would bounce straight back.
+	wm.shipLevel.done = false
+	wm.shipLevel.next = nil
+	wm.shipLevel.reattach()
+	installCampaignStorageHook(wm.Campaign)
+	return wm.shipLevel, nil
+}
+
+// ShipLevel returns The Ship's level, or nil if it hasn't been built.
+func (wm *WorldManager) ShipLevel() *world.Level {
+	if wm.shipLevel == nil {
+		return nil
+	}
+	return wm.shipLevel.level
+}
+
+// shipSaveFile is the on-disk path for the ship level (always loaded, so unlike
+// locations it is written on every campaign save).
+func (wm *WorldManager) shipSaveFile() string {
+	return filepath.Join(campaignRoot(wm.Campaign.Name), "ship.json.gz")
+}
+
+// freezeShip writes the ship level to disk so its hold and (later) crew persist.
+func (wm *WorldManager) freezeShip() error {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
+		return nil
+	}
+	lvl := wm.shipLevel.level
+	sf := saveFile{
+		Meta: SaveMeta{
+			Name:     "ship",
+			SavedAt:  time.Now(),
+			MapSizeW: lvl.GetWidth(),
+			MapSizeH: lvl.GetHeight(),
+			MapSizeZ: lvl.GetDepth(),
+		},
+		WorldData: world.SaveLevel(lvl),
+	}
+	blob, err := marshalSaveFile(sf)
+	if err != nil {
+		return err
+	}
+	root := campaignRoot(wm.Campaign.Name)
+	if err := os.MkdirAll(root, 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(wm.shipSaveFile(), blob, 0644)
+}
 
 // startingResources lists every resource blueprint placed in the ship hold at
 // campaign start. Fuel is handled separately (caller-supplied quantity).
@@ -120,36 +235,10 @@ var startingResources = []string{
 
 const startingResourceQty = 100
 
-// SeedNewCampaign stocks a brand-new expedition: the ship begins with a fuel
-// reserve, 100 units of each resource type, and a small crew aboard so the
-// player can make the first planetfall immediately.
-func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
-	if hold := c.Ship.LiveHold(); len(hold) > 0 {
-		sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
-		if fuel > 0 {
-			if fe, err := factory.Create("fuel", 0, 0, 0); err == nil {
-				if fe.HasComponent(components.Material) {
-					fe.GetComponent(components.Material).(*components.MaterialComponent).Quantity = fuel
-				}
-				sc.AddItem(fe)
-			}
-		}
-		for _, bp := range startingResources {
-			if e, err := factory.Create(bp, 0, 0, 0); err == nil {
-				if e.HasComponent(components.Material) {
-					e.GetComponent(components.Material).(*components.MaterialComponent).Quantity = startingResourceQty
-				}
-				sc.AddItem(e)
-			}
-		}
-	}
-	for i := 0; i < colonists; i++ {
-		if ce, err := factory.Create("colonist", 0, 0, 0); err == nil {
-			c.Ship.Roster = append(c.Ship.Roster, world.EntityToSaveEntity(ce))
-		}
-	}
-	c.Ship.Sync()
-
+// SeedNewCampaign seeds a brand-new expedition's research state. The crew is
+// spawned onto the ship level via WorldManager.SeedShipCrew and the hold via
+// StockShipLocker, both once the ship level exists.
+func SeedNewCampaign(c *campaign.Campaign) {
 	// Debug aid: pre-research everything if config.unlockAllResearch is set so
 	// research-gated features (Encyclopedia, Global Inventory tiers, etc.) are
 	// immediately available on a fresh campaign.
@@ -160,16 +249,32 @@ func SeedNewCampaign(c *campaign.Campaign, colonists, fuel int) {
 	}
 }
 
-// addToHold drops `qty` of a resource blueprint into the ship hold.
-func addToHold(c *campaign.Campaign, blueprint string, qty int) {
+// shipLocker returns the ship's storage container (owned by ShipSettlementName),
+// or nil if the ship isn't built.
+func (wm *WorldManager) shipLocker() *components.StorageComponent {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
+		return nil
+	}
+	for _, e := range wm.shipLevel.level.Entities {
+		if e != nil && e.HasComponent(components.Storage) {
+			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if sc.OwnedBy == campaign.ShipSettlementName {
+				return sc
+			}
+		}
+	}
+	return nil
+}
+
+// addToShipHold drops qty of a resource blueprint into the ship's storage.
+func (wm *WorldManager) addToShipHold(blueprint string, qty int) {
 	if qty <= 0 {
 		return
 	}
-	hold := c.Ship.LiveHold()
-	if len(hold) == 0 {
+	sc := wm.shipLocker()
+	if sc == nil {
 		return
 	}
-	sc := hold[0].GetComponent(components.Storage).(*components.StorageComponent)
 	if e, err := factory.Create(blueprint, 0, 0, 0); err == nil {
 		if e.HasComponent(components.Material) {
 			e.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
@@ -178,13 +283,22 @@ func addToHold(c *campaign.Campaign, blueprint string, qty int) {
 	}
 }
 
+// StockShipLocker fills the ship's storage with a starting fuel reserve and a
+// base stock of each resource type. Call once after the ship is built.
+func (wm *WorldManager) StockShipLocker(fuel int) {
+	wm.addToShipHold("fuel", fuel)
+	for _, bp := range startingResources {
+		wm.addToShipHold(bp, startingResourceQty)
+	}
+}
+
 // applyQuestReward grants a completed quest's reward: fuel/resources into the
 // ship hold, and any new systems charted by SpawnSystems.
 func (wm *WorldManager) applyQuestReward(q *campaign.Quest) {
 	c := wm.Campaign
-	addToHold(c, "fuel", q.Reward.Fuel)
+	wm.addToShipHold("fuel", q.Reward.Fuel)
 	for bp, n := range q.Reward.Resources {
-		addToHold(c, bp, n)
+		wm.addToShipHold(bp, n)
 	}
 	if q.Reward.SpawnSystems > 0 {
 		for _, loc := range c.Expand(q.Reward.SpawnSystems) {
@@ -263,12 +377,15 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) error 
 // ShipHoldEntity returns the persistent ship-hold storage container entity,
 // or nil if none has been initialised yet.
 func (wm *WorldManager) ShipHoldEntity() *ecs.Entity {
-	if wm.Campaign == nil {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
 		return nil
 	}
-	for _, e := range wm.Campaign.Ship.LiveHold() {
+	for _, e := range wm.shipLevel.level.Entities {
 		if e != nil && e.HasComponent(components.Storage) {
-			return e
+			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if sc.OwnedBy == campaign.ShipSettlementName {
+				return e
+			}
 		}
 	}
 	return nil
@@ -284,7 +401,7 @@ func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {
 		return fmt.Errorf("no location loaded")
 	}
 	colony := campaignColonyName(wm.Campaign)
-	p := storage.ShipProvider{Ship: wm.Campaign.Ship}
+	p := storage.ShipProvider{Level: wm.ShipLevel()}
 	owners := []string{campaign.ShipSettlementName}
 	if have := storage.CountResource(p, owners, blueprint); have < qty {
 		return fmt.Errorf("only %d %s in ship hold", have, blueprint)
@@ -311,7 +428,7 @@ func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint stri
 		return fmt.Errorf("only %d %s here", have, blueprint)
 	}
 	sc.DeductResource(blueprint, qty)
-	addToHold(wm.Campaign, blueprint, qty)
+	wm.addToShipHold(blueprint, qty)
 	return nil
 }
 
@@ -618,27 +735,23 @@ func (wm *WorldManager) PlanetColonists() []*ecs.Entity {
 
 // BeamDown moves one ship-roster colonist (by index) onto the loaded level near
 // the landing plaza.
-func (wm *WorldManager) BeamDown(rosterIdx int) error {
-	c := wm.Campaign
-	if wm.current == nil || wm.current.level == nil {
-		return fmt.Errorf("no location loaded — Travel first")
+// ShipColonists returns the live worker entities aboard the ship — the roster.
+func (wm *WorldManager) ShipColonists() []*ecs.Entity {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
+		return nil
 	}
-	if rosterIdx < 0 || rosterIdx >= len(c.Ship.Roster) {
-		return fmt.Errorf("no colonist selected")
+	var out []*ecs.Entity
+	for _, e := range wm.shipLevel.level.Entities {
+		if e != nil && e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+			out = append(out, e)
+		}
 	}
-	se := c.Ship.Roster[rosterIdx]
-	level := wm.current.level
-	bx, by, bz := wm.landingZone()
-	x, y, z := freeLandingTile(level, bx, by, bz)
+	return out
+}
 
-	colonist := world.RebuildLiveEntity(se)
-	if colonist == nil {
-		return fmt.Errorf("could not rebuild colonist")
-	}
-	if colonist.HasComponent(rlcomponents.Position) {
-		colonist.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
-	}
-	colony := campaignColonyName(c)
+// tagColonistForColony makes an entity a working colony member: cleared task,
+// colony settlement, worker component.
+func tagColonistForColony(colonist *ecs.Entity, colony string) {
 	if colonist.HasComponent(components.Settlement) {
 		colonist.GetComponent(components.Settlement).(*components.SettlementComponent).Name = colony
 	} else {
@@ -649,25 +762,95 @@ func (wm *WorldManager) BeamDown(rosterIdx int) error {
 	} else {
 		colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
 	}
+}
+
+// SeedShipCrew spawns n starting colonists as entities inside the ship's hull.
+func (wm *WorldManager) SeedShipCrew(n int) {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
+		return
+	}
+	lvl := wm.shipLevel.level
+	colony := campaignColonyName(wm.Campaign)
+	cx, cy, cz := ship.HullCenter()
+	for i := 0; i < n; i++ {
+		ce, err := factory.Create("colonist", 0, 0, 0)
+		if err != nil {
+			continue
+		}
+		x, y, z := freeLandingTile(lvl, cx, cy, cz)
+		if ce.HasComponent(rlcomponents.Position) {
+			ce.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
+		}
+		tagColonistForColony(ce, colony)
+		lvl.AddEntity(ce)
+	}
+}
+
+// BeamDown transfers the roster-index colonist from the ship level to the
+// orbited planet's level.
+func (wm *WorldManager) BeamDown(rosterIdx int) error {
+	c := wm.Campaign
+	if wm.current == nil || wm.current.level == nil {
+		return fmt.Errorf("no location loaded — Travel first")
+	}
+	crew := wm.ShipColonists()
+	if rosterIdx < 0 || rosterIdx >= len(crew) {
+		return fmt.Errorf("no colonist selected")
+	}
+	colonist := crew[rosterIdx]
+	// Remove from the ship BEFORE repositioning: RemoveEntity clears the spatial
+	// index at the entity's current position, so moving it first would leave a
+	// stale occupant on the old ship tile.
+	wm.shipLevel.level.RemoveEntity(colonist)
+	level := wm.current.level
+	bx, by, bz := wm.landingZone()
+	x, y, z := freeLandingTile(level, bx, by, bz)
+	if colonist.HasComponent(rlcomponents.Position) {
+		colonist.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
+	}
+	tagColonistForColony(colonist, campaignColonyName(c))
 	level.AddEntity(colonist)
-	c.Ship.Roster = append(c.Ship.Roster[:rosterIdx], c.Ship.Roster[rosterIdx+1:]...)
 	return nil
 }
 
 // BeamUp moves one colonist from the loaded level back to the ship roster.
 func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
-	c := wm.Campaign
 	if wm.current == nil || wm.current.level == nil {
 		return fmt.Errorf("no location loaded")
 	}
-	if e != nil && e.HasComponent(components.Worker) {
+	if wm.shipLevel == nil || wm.shipLevel.level == nil {
+		return fmt.Errorf("the ship is not available")
+	}
+	if e == nil {
+		return fmt.Errorf("beam up: no colonist")
+	}
+	if cap := wm.Campaign.Ship.RosterCap; cap > 0 && len(wm.ShipColonists()) >= cap {
+		return fmt.Errorf("ship roster is full (%d/%d)", len(wm.ShipColonists()), cap)
+	}
+	// No beaming through ground.
+	if e.HasComponent(rlcomponents.Position) {
+		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if !campaign.OpenToSky(wm.current.level, pc.GetX(), pc.GetY(), pc.GetZ()) {
+			return fmt.Errorf("colonist is not open to the sky — no beaming through ground")
+		}
+	}
+	if e.HasComponent(components.Worker) {
 		wc := e.GetComponent(components.Worker).(*components.WorkerComponent)
 		if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
 			wc.CurrentTask.Stop()
 		}
 		wc.CurrentTask = nil
 	}
-	return campaign.BeamUp(wm.current.level, c.Ship, e)
+	// Transfer the entity from the planet level to a free tile in the ship hull.
+	wm.current.level.RemoveEntity(e)
+	shipLvl := wm.shipLevel.level
+	cx, cy, cz := ship.HullCenter()
+	x, y, z := freeLandingTile(shipLvl, cx, cy, cz)
+	if e.HasComponent(rlcomponents.Position) {
+		e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
+	}
+	shipLvl.AddEntity(e)
+	return nil
 }
 
 func campaignColonyName(c *campaign.Campaign) string {
@@ -690,7 +873,9 @@ func (wm *WorldManager) SaveCampaign(s *MainState) error {
 		}
 		c.Day = s.day
 	}
-	c.Ship.Sync()
+	if err := wm.freezeShip(); err != nil {
+		return err
+	}
 	root := campaignRoot(c.Name)
 	if err := os.MkdirAll(root, 0755); err != nil {
 		return err

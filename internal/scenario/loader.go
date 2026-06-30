@@ -54,6 +54,13 @@ func Active() *Scenario {
 	return active
 }
 
+// HasActive reports whether a scenario is currently selected. Lets callers that
+// run before any location is entered (e.g. The Ship, built at campaign start)
+// avoid the Active() panic and fall back to their own defaults.
+func HasActive() bool {
+	return active != nil
+}
+
 func AllEnabled() []Scenario {
 	return enabled
 }

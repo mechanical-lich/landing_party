@@ -11,7 +11,6 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/storage"
-	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/state"
@@ -31,6 +30,7 @@ type OverworldState struct {
 	shipList *minui.ListBox
 	planList *minui.ListBox
 	planEnts []*ecs.Entity
+	shipEnts []*ecs.Entity
 
 	beamDownBtn      *minui.Button
 	beamUpBtn        *minui.Button
@@ -41,6 +41,7 @@ type OverworldState struct {
 	globalInventory  *GlobalInventoryModal
 	travelBtn        *minui.Button
 	resumeBtn        *minui.Button
+	shipBtn          *minui.Button
 	saveBtn          *minui.Button
 	questBtn         *minui.Button
 
@@ -93,6 +94,11 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.resumeBtn.SetPosition(cx-90, btnY)
 	o.resumeBtn.SetSize(180, 36)
 	o.resumeBtn.OnClick = func() { o.resume() }
+
+	o.shipBtn = minui.NewButton("ow_ship", "Board Ship")
+	o.shipBtn.SetPosition(cx-300, btnY+46)
+	o.shipBtn.SetSize(140, 34)
+	o.shipBtn.OnClick = func() { o.boardShip() }
 
 	o.beamResBtn = minui.NewButton("ow_beam_res", "Beam Resources...")
 	o.beamResBtn.SetPosition(cx-150, btnY+46)
@@ -165,9 +171,10 @@ func (o *OverworldState) refreshLocations() {
 
 // refreshCrew rebuilds both the ship roster list and the loaded-planet list.
 func (o *OverworldState) refreshCrew() {
-	ship := make([]string, 0, len(o.campaign.Ship.Roster))
-	for i, se := range o.campaign.Ship.Roster {
-		ship = append(ship, fmt.Sprintf("%d. %s", i+1, colonistDisplayName(se)))
+	o.shipEnts = o.wm.ShipColonists()
+	ship := make([]string, 0, len(o.shipEnts))
+	for i, e := range o.shipEnts {
+		ship = append(ship, fmt.Sprintf("%d. %s", i+1, entityDisplayName(e)))
 	}
 	if len(ship) == 0 {
 		ship = []string{"(no colonists aboard)"}
@@ -185,13 +192,6 @@ func (o *OverworldState) refreshCrew() {
 		plan = []string{"(nobody planetside)"}
 	}
 	o.planList.SetItems(plan)
-}
-
-func colonistDisplayName(se *world.SaveEntity) string {
-	if se == nil {
-		return "?"
-	}
-	return entityDisplayName(world.RebuildLiveEntity(se))
 }
 
 func entityDisplayName(e *ecs.Entity) string {
@@ -213,7 +213,7 @@ func entityDisplayName(e *ecs.Entity) string {
 
 func (o *OverworldState) fuelAvailable() int {
 	return storage.CountResource(
-		storage.ShipProvider{Ship: o.campaign.Ship},
+		storage.ShipProvider{Level: o.wm.ShipLevel()},
 		[]string{campaign.ShipSettlementName},
 		"fuel",
 	)
@@ -263,7 +263,7 @@ func (o *OverworldState) beamDown() {
 		return
 	}
 	idx := o.shipList.SelectedIndex
-	if idx < 0 || idx >= len(o.campaign.Ship.Roster) {
+	if idx < 0 || idx >= len(o.shipEnts) {
 		o.status = "Select a colonist on the ship."
 		return
 	}
@@ -315,7 +315,7 @@ func (o *OverworldState) travel() {
 	}
 	if moving && cost > 0 {
 		storage.Deduct(
-			storage.ShipProvider{Ship: o.campaign.Ship},
+			storage.ShipProvider{Level: o.wm.ShipLevel()},
 			[]string{campaign.ShipSettlementName},
 			map[string]int{"fuel": cost},
 		)
@@ -336,6 +336,17 @@ func (o *OverworldState) resume() {
 	ms, err := o.wm.EnterCurrent()
 	if err != nil {
 		o.status = "Resume failed: " + err.Error()
+		return
+	}
+	o.next = ms
+	o.done = true
+}
+
+// boardShip enters The Ship — always available, never frozen.
+func (o *OverworldState) boardShip() {
+	ms, err := o.wm.EnterShip()
+	if err != nil {
+		o.status = "Board failed: " + err.Error()
 		return
 	}
 	o.next = ms
@@ -375,6 +386,7 @@ func (o *OverworldState) Update() state.StateInterface {
 	o.encyclopediaBtn.Update()
 	o.travelBtn.Update()
 	o.resumeBtn.Update()
+	o.shipBtn.Update()
 	o.saveBtn.Update()
 	o.questBtn.Update()
 	return o.next
@@ -419,6 +431,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.encyclopediaBtn.Draw(screen)
 	o.travelBtn.Draw(screen)
 	o.resumeBtn.Draw(screen)
+	o.shipBtn.Draw(screen)
 	o.saveBtn.Draw(screen)
 	o.questBtn.Draw(screen)
 

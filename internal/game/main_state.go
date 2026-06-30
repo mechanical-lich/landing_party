@@ -659,12 +659,14 @@ func (s *MainState) newGame() {
 }
 
 func (s *MainState) applyScenarioLighting(level *world.Level) {
-	sc := scenario.Active()
-	// Player override takes priority over scenario default.
+	// Player/config override wins. Otherwise fall back to the active scenario's
+	// lighting — but only if one is selected. The Ship is built at campaign
+	// start, before any location is entered, and supplies its own LightingMode.
 	if s.settlementCfg.LightingMode != "" {
 		level.LightMode = s.settlementCfg.LightingMode
 		level.FixedAmbient = s.settlementCfg.LightingAmbient
-	} else {
+	} else if scenario.HasActive() {
+		sc := scenario.Active()
 		level.LightMode = sc.Lighting.Mode
 		level.FixedAmbient = sc.Lighting.AmbientLevel
 	}
@@ -1695,7 +1697,11 @@ func (s *MainState) beamUpSelected() {
 		}
 		wc.CurrentTask = nil
 	}
-	if err := campaign.BeamUp(s.level, s.campaign.Ship, e); err != nil {
+	if s.wm == nil {
+		message.PostMessage("Ship", "No ship available.")
+		return
+	}
+	if err := s.wm.BeamUp(e); err != nil {
 		message.PostMessage("Ship", err.Error())
 		return
 	}
@@ -1714,7 +1720,11 @@ func (s *MainState) openStarMap() {
 		return
 	}
 	s.teardown()
-	s.wm.current = s
+	// The ship parks back into its own slot; only a location updates `current`
+	// (the orbited planet), so leaving the ship must not clobber it.
+	if s != s.wm.shipLevel {
+		s.wm.current = s
+	}
 	s.next = NewOverworldState(s.campaign, s.wm)
 	s.done = true
 }
@@ -2761,7 +2771,13 @@ func (s *MainState) checkTotalWipe() {
 	if stored < 0 {
 		stored = 0
 	}
-	if stored+countLevelColonists(s.level) > 0 {
+	// The ship crew lives on the ship level. Count it here, but avoid
+	// double-counting when the ship itself is the live level.
+	shipCrew := 0
+	if s.wm != nil && s.level != s.wm.ShipLevel() {
+		shipCrew = len(s.wm.ShipColonists())
+	}
+	if stored+countLevelColonists(s.level)+shipCrew > 0 {
 		return
 	}
 	c.Lost = true

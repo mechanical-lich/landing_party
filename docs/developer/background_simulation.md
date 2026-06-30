@@ -4,7 +4,10 @@ Goal: planets other than the one you're currently on keep simulating in the
 background as long as they're staffed, and the player is notified (and can
 intervene) when a colonist there comes under attack.
 
-Status: **planning / in progress.** Phase 1 (event routing) underway.
+Status: **Phase 1 complete and committed** (`43a9f67` — per-level event bus).
+Phase 2+ designed below, not yet built. The per-level event bus is the reusable
+foundation: each planet already fires/consumes its own sim events in isolation,
+which is what lets multiple planets tick without cross-contamination.
 
 ## Decisions (settled)
 
@@ -97,15 +100,109 @@ design:
 5. Delete the dead `TaskCompleted` listener/type (or leave the type, drop the
    listener).
 
-## Later phases
+## Phase 2 — background scheduler (designed, not built)
 
-- **Phase 2 — background scheduler.** Tick parked-staffed levels in `Update`,
-  skipping Lighting/FOV, on a per-frame time budget. Star-Map pause toggle.
-- **Phase 3 — notifications.** A new **`EntityDamagedEvent`** (combat currently
-  just decrements `HealthComponent` with no event) fired on damage; on an away
-  planet it raises the Pause/Travel/Ignore popup, per-incident with a cooldown.
-- **Phase 4 — polish.** World-clock rules, robot-staffing edge cases, save
-  integration for in-memory staffed planets.
+Splits into a small/safe piece (A) and a large/risky one (B), then C/D.
+
+### Part A — the background-tick path (`stepBackground`)
+
+A trimmed copy of `MainState.stepWorld` ([rogue.go](../../internal/game/rogue.go))
+that runs the logic/AI stack but skips the player-view systems. From auditing
+`stepWorld` and the system registrations in `newMainStateBase`
+([main_state.go](../../internal/game/main_state.go) ~lines 233–317):
+
+**Keep (logic/AI/senses — needed for an away planet to live and fight):**
+- `gm.Update()` — hostile-wave spawns (`GameMaster`, [gm.go](../../internal/game/gm.go)).
+  **This is what makes attacks happen while you're away.**
+- Initiative, FactionAI, ScriptedAI, **VisionSystem** (AI reads `vc.Visible`),
+  HearingSystem, ScentSystem, SmellSystem, NeedsSystem, WorkerSystem,
+  RadiationSystem, DoorSystem, FactionDoorSystem, ScriptSystem,
+  StatusConditionSystem, combat.
+- `cleanUpSystem.Update(level)` and `level.Events.HandleQueue()` (per-level bus).
+
+**Skip (live-view only):**
+- `LightingSystem`, `FOVSystem` — rendering/fog; not read by AI (FOVSystem
+  produces `level.Visible`/`Seen`, which no AI system consumes; VisionSystem does
+  its own LOS). Skipping FOV means the explored map doesn't update while away —
+  cosmetic, re-runs on return.
+- `EmoteSystem` (speech bubbles), `effect.GetEffectManager().Update()` (visual).
+- `collectDatapads()` (player-discovery flavor) — open decision, lean skip.
+- `forceQuestEval` — quests evaluate on the live planet / periodic tick.
+
+**Mechanism:** `ecs.SystemManager` has no skip/subset API. Build a **second
+`bgSystemManager`** containing only the logic systems, populated via a dual-add
+helper so there's a single source of truth:
+
+```
+addLogic := func(sys) { s.systemManager.AddSystem(sys); s.bgSystemManager.AddSystem(sys) }
+addRender := func(sys) { s.systemManager.AddSystem(sys) }   // live only
+```
+
+Part A is self-contained and unit-testable headless (assert a level advances —
+needs drain, AI acts, hostiles spawn — without any rendering system running).
+
+### Part B — WorldManager: single `current` → multi-loaded (the big one)
+
+Today `WorldManager` holds **one** `current *MainState`, and `Travel` **freezes
+the departed planet to disk** (`Freeze` → `loc_<id>.json.gz`, `wm.current = nil`).
+Background sim needs staffed planets to stay in memory:
+
+- Replace `current` with `loaded map[string]*MainState` + `currentID string`,
+  and a `Current()` accessor. **~18 `wm.current` references** in
+  [world_manager.go](../../internal/game/world_manager.go) migrate to `Current()`.
+- `Travel(dest)`: the departed planet **stays in `loaded` if staffed** (has any
+  `Worker`-component entity — colonists *or* robots, per decision #3); otherwise
+  `Freeze` it to disk and drop it from `loaded` as today.
+- **Save** must serialize *every* loaded planet, not just current
+  (`SaveCampaign` path).
+- Beam-up/down, `addToSite`, storage queries, etc. repoint to `Current()`.
+
+### Part C — scheduler
+
+In the game `Update` loop, after the live `stepWorld`: iterate `loaded` planets
+≠ current that have workers and call `stepBackground()`, **throttled** by a
+per-frame budget / reduced cadence (start ~1/4 the live rate, tunable). Honor a
+global pause flag.
+
+### Part D — Star-Map pause toggle
+
+A pause button on the Star Map (`OverworldState`) that freezes the whole world
+clock (decision #2), including background ticking.
+
+### Risks in Part B (checkpoint before building)
+
+- **Save format** — multiple in-memory planets must all serialize and restore;
+  touches the campaign save/load path.
+- **Beam logic** assumes the single `current`; audit against multi-loaded.
+- **Memory** — N staffed planets fully in RAM (currently unbounded).
+
+### Suggested order
+
+A → B → C → D, building/testing between. Part A first (safe, isolated,
+headless-testable); checkpoint before the Part B WorldManager refactor.
+
+### Open decisions for Phase 2
+
+1. `collectDatapads` on background planets — skip (lean) or keep?
+2. Throttle default — ~1/4 the live tick rate to start, or a specific target?
+3. Memory cap on simultaneously-loaded staffed planets — unbounded or capped?
+
+## Phase 3 — notifications
+
+- A new **`EntityDamagedEvent`** — combat currently just decrements
+  `HealthComponent` with **no event**, so this must be added and fired on damage.
+- On an away planet, the first such event raises the **Pause / Travel / Ignore**
+  popup, **per-incident with a cooldown** (decisions #6–9). Pause freezes the
+  whole world clock while the popup is up; Ignore lets the fight (and possible
+  death) play out.
+- This is where the **presentation-vs-state** seam from Phase 1 pays off:
+  background planets route their presentation events to notifications instead of
+  the live message log.
+
+## Phase 4 — polish
+
+World-clock rules, robot-staffing edge cases, save integration for in-memory
+staffed planets, notification batching/cooldown tuning.
 
 ## Open follow-ups discovered during the audit
 
@@ -113,3 +210,5 @@ design:
 - `MessageEvent` stays global for now; background-planet messages become
   notifications in Phase 3 rather than log lines.
 - `TaskCompletedEvent` is dead code — clean up.
+- Future: a dedicated "keep-this-planet-loaded" component (e.g. for hostiles) so
+  a planet can stay simulated even with no friendly workers (decision #3).

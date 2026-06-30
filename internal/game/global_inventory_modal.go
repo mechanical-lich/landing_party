@@ -238,7 +238,7 @@ func (g *GlobalInventoryModal) aggregateAllSummaries() map[string]int {
 		return out
 	}
 	for bp, qty := range storage.Summarize(
-		storage.ShipProvider{Ship: g.wm.Campaign.Ship},
+		storage.ShipProvider{Level: g.wm.ShipLevel()},
 		[]string{campaign.ShipSettlementName},
 	) {
 		out[bp] += qty
@@ -312,7 +312,7 @@ func (g *GlobalInventoryModal) siteSummary(key string) map[string]int {
 	}
 	if key == "ship" {
 		return storage.Summarize(
-			storage.ShipProvider{Ship: g.wm.Campaign.Ship},
+			storage.ShipProvider{Level: g.wm.ShipLevel()},
 			[]string{campaign.ShipSettlementName},
 		)
 	}

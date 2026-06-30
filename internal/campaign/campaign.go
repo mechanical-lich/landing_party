@@ -133,14 +133,11 @@ func (c *Campaign) MarkTargetKilled(questID string) {
 	c.KilledTargets[questID] = true
 }
 
-// StoredColonists totals colonists not on the live level: the ship roster plus
-// the recorded count left on every (frozen) location. The caller adds live
-// colonists on the active level to decide a total wipe.
+// StoredColonists totals colonists recorded on frozen locations. The ship's
+// crew lives on the ship level (counted separately by the wipe check) and is no
+// longer part of this tally.
 func (c *Campaign) StoredColonists() int {
 	n := 0
-	if c.Ship != nil {
-		n += len(c.Ship.Roster)
-	}
 	for _, loc := range c.Locations {
 		n += loc.Colonists
 	}
