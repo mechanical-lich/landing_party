@@ -55,6 +55,9 @@ type WorldManager struct {
 	// and it ticks in the background. See docs/developer/the_ship.md.
 	shipLevel *MainState
 
+	// paused stops all background ticking (the Star-Map pause toggle).
+	paused bool
+
 	// Cached landing zone for the loaded location so every beam-down arrives
 	// at the same plaza (recomputed on Travel).
 	landSet             bool
@@ -190,6 +193,22 @@ func (wm *WorldManager) ensureShipSettlement(name string) *settlement.Settlement
 	settlement.Settlements[name] = s
 	return s
 }
+
+// TickBackground advances the always-loaded background levels one step — for now
+// just The Ship — skipping whichever level is currently live (it ticks itself
+// via stepWorld) and honoring the pause flag.
+func (wm *WorldManager) TickBackground(live *MainState) {
+	if wm.paused {
+		return
+	}
+	if wm.shipLevel != nil && wm.shipLevel != live {
+		wm.shipLevel.stepBackground()
+	}
+}
+
+// SetPaused toggles the world clock (background ticking); Paused reports it.
+func (wm *WorldManager) SetPaused(p bool) { wm.paused = p }
+func (wm *WorldManager) Paused() bool     { return wm.paused }
 
 // EnterShip re-attaches The Ship's parked MainState and returns it for the state
 // machine — the ship-equivalent of EnterCurrent. The ship is never frozen, so it
@@ -335,12 +354,26 @@ func (wm *WorldManager) addToShipHold(blueprint string, qty int) {
 	}
 }
 
-// StockShipLocker fills the ship's storage with a starting fuel reserve and a
-// base stock of each resource type. Call once after the ship is built.
+// startingRations is how many ration packs the ship begins with so the crew has
+// food while planetside before food production is set up (needs tick in the
+// background — see docs/developer/the_ship.md).
+const startingRations = 20
+
+// StockShipLocker fills the ship's storage with a starting fuel reserve, a base
+// stock of each resource type, and a supply of rations. Call once after the ship
+// is built.
 func (wm *WorldManager) StockShipLocker(fuel int) {
 	wm.addToShipHold("fuel", fuel)
 	for _, bp := range startingResources {
 		wm.addToShipHold(bp, startingResourceQty)
+	}
+	// Rations are Food items (one per slot), so add them individually.
+	if sc := wm.shipLocker(); sc != nil {
+		for i := 0; i < startingRations; i++ {
+			if e, err := factory.Create("ration_pack", 0, 0, 0); err == nil {
+				sc.AddItem(e)
+			}
+		}
 	}
 }
 

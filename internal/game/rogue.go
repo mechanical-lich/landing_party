@@ -54,6 +54,31 @@ func (s *MainState) stepWorld() {
 	}
 }
 
+// stepBackground advances this level one tick using only the logic/AI systems
+// (no rendering — Lighting, FOV, Emote), for ticking a non-live level like The
+// Ship while the player is planetside or on the Star Map. Its per-level event
+// bus and cleanup still run; datapads/effects/quest-eval (live-view concerns)
+// are skipped. See docs/developer/the_ship.md.
+func (s *MainState) stepBackground() {
+	if s.level == nil {
+		return
+	}
+	s.tick++
+	s.level.Tick = uint64(s.tick)
+	s.gm.Update() // no-op on the ship (suppressSpawns); safe before any scenario
+	s.bgSystemManager.UpdateSystems(s.level)
+	for _, entity := range s.level.Entities {
+		if entity == nil || entity.HasComponent(rlcomponents.Inanimate) {
+			continue
+		}
+		s.bgSystemManager.UpdateSystemsForEntity(s.level, entity)
+	}
+	s.cleanUpSystem.Update(s.level)
+	if s.level.Events != nil {
+		s.level.Events.HandleQueue()
+	}
+}
+
 // advancePlayerTurn is called after the player commits an action in Rogue
 // mode. It advances the world by the controlled colonist's full recharge
 // period so every other entity recharges by exactly that amount and faster

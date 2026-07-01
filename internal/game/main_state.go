@@ -82,6 +82,9 @@ type MainState struct {
 	CursorMode        gui.CursorModeType
 	guiManager        *gui.GUIManager
 	systemManager     *ecs.SystemManager
+	// bgSystemManager mirrors systemManager minus the render-only systems, used
+	// to tick this level in the background (e.g. The Ship while you're planetside).
+	bgSystemManager *ecs.SystemManager
 	gm                *GameMaster
 	selectedEntity    *ecs.Entity
 	TileSizeW         int
@@ -208,7 +211,8 @@ func (s *MainState) registerLevelListeners() {
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s := &MainState{
 		CursorMode:    gui.CursorModeDefault,
-		systemManager: &ecs.SystemManager{},
+		systemManager:   &ecs.SystemManager{},
+		bgSystemManager: &ecs.SystemManager{},
 		op:            &ebiten.DrawImageOptions{},
 		TileSizeW:     config.Global().TileSizeW,
 		TileSizeH:     config.Global().TileSizeH,
@@ -221,6 +225,16 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 		buildMode:     "hull_wall",
 	}
 
+	// addLogic registers a system on both the live and background managers;
+	// addRender only on the live one (render-only systems are skipped when
+	// ticking a level in the background). Shared instances so stateful systems
+	// keep one state.
+	addLogic := func(sys ecs.SystemInterface) {
+		s.systemManager.AddSystem(sys)
+		s.bgSystemManager.AddSystem(sys)
+	}
+	addRender := func(sys ecs.SystemInterface) { s.systemManager.AddSystem(sys) }
+
 	s.initiativeSystem = &rlsystems.InitiativeSystem{
 		Speed: 1,
 		OnEntityTurn: func(entity *ecs.Entity) {
@@ -230,7 +244,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			}
 		},
 	}
-	s.systemManager.AddSystem(s.initiativeSystem)
+	addLogic(s.initiativeSystem)
 
 	s.cleanUpSystem = &rlsystems.CleanUpSystem{
 		OnEntityDead: func(levelInterface rlworld.LevelInterface, entity *ecs.Entity) {
@@ -295,26 +309,26 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	aiSystem.GetPath = func(levelInterface rlworld.LevelInterface, from, to rlworld.TileInterface, reuse []int) []int {
 		return fspath.GetPossiblePath(levelInterface.(*world.Level), from.(*world.Tile), to.(*world.Tile), reuse)
 	}
-	s.systemManager.AddSystem(aiSystem)
-	s.systemManager.AddSystem(&systems.HearingSystem{})
-	s.systemManager.AddSystem(&systems.VisionSystem{})
-	s.systemManager.AddSystem(&systems.SmellSystem{})
-	s.systemManager.AddSystem(systems.NewFactionAISystem())
-	s.systemManager.AddSystem(&systems.ScriptedAISystem{})
+	addLogic(aiSystem)
+	addLogic(&systems.HearingSystem{})
+	addLogic(&systems.VisionSystem{})
+	addLogic(&systems.SmellSystem{})
+	addLogic(systems.NewFactionAISystem())
+	addLogic(&systems.ScriptedAISystem{})
 	// ScentSystem runs after the AI systems so passive emission happens
 	// at the entity's new tile (post-move). UpdateSystem (decay+diffuse)
 	// still runs at the start of stepWorld regardless of registration order.
-	s.systemManager.AddSystem(&systems.ScentSystem{})
-	s.systemManager.AddSystem(&systems.EmoteSystem{})
-	s.systemManager.AddSystem(&systems.NeedsSystem{})
-	s.systemManager.AddSystem(&systems.WorkerSystem{})
-	s.systemManager.AddSystem(&systems.RadiationSystem{})
-	s.systemManager.AddSystem(&systems.LightingSystem{})
-	s.systemManager.AddSystem(&systems.FOVSystem{})
-	s.systemManager.AddSystem(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
-	s.systemManager.AddSystem(&systems.FactionDoorSystem{})
-	s.systemManager.AddSystem(&systems.ScriptSystem{})
-	s.systemManager.AddSystem(&rlsystems.StatusConditionSystem{})
+	addLogic(&systems.ScentSystem{})
+	addRender(&systems.EmoteSystem{})
+	addLogic(&systems.NeedsSystem{})
+	addLogic(&systems.WorkerSystem{})
+	addLogic(&systems.RadiationSystem{})
+	addRender(&systems.LightingSystem{})
+	addRender(&systems.FOVSystem{})
+	addLogic(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
+	addLogic(&systems.FactionDoorSystem{})
+	addLogic(&systems.ScriptSystem{})
+	addLogic(&rlsystems.StatusConditionSystem{})
 
 	// MessageListener feeds the global player log (driven by message.PostMessage,
 	// a separate global system), so it's registered once for the process. The
@@ -731,6 +745,10 @@ func (s *MainState) Update() state.StateInterface {
 	// commits an action (see advancePlayerTurn). Otherwise it runs in real time.
 	if !s.Paused && s.rogueEntity == nil {
 		s.stepWorld()
+		// Advance The Ship (and other background levels) alongside the live one.
+		if s.wm != nil {
+			s.wm.TickBackground(s)
+		}
 	}
 
 	if s.tick%30 == 0 {

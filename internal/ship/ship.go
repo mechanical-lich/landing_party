@@ -51,13 +51,14 @@ func BuildShipLevel(storageOwner string) *world.Level {
 			}
 		}
 	}
-	placeStorageLocker(level, ox+2, oy+2, HullDeck, storageOwner)
+	placeShipHold(level, ox+2, oy+2, HullDeck, storageOwner)
 	return level
 }
 
-// placeStorageLocker spawns a storage_locker owned by owner at (x,y,z).
-func placeStorageLocker(level *world.Level, x, y, z int, owner string) {
-	e, err := factory.Create("storage_locker", x, y, z)
+// placeShipHold spawns the ship's starting hold — a Teleporter Storage (the beam
+// staging pad, high capacity) owned by owner at (x,y,z).
+func placeShipHold(level *world.Level, x, y, z int, owner string) {
+	e, err := factory.Create("teleporter", x, y, z)
 	if err != nil {
 		return
 	}

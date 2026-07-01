@@ -354,6 +354,10 @@ func (o *OverworldState) boardShip() {
 }
 
 func (o *OverworldState) Update() state.StateInterface {
+	// The Ship keeps ticking in the background while you're on the Star Map.
+	if o.wm != nil {
+		o.wm.TickBackground(nil)
+	}
 	// Modals take full input priority while open.
 	if o.storageInspector.Visible {
 		o.storageInspector.Update()
