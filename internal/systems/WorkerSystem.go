@@ -81,6 +81,8 @@ func (s *WorkerSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Enti
 		aiMemory.State = "task"
 	case "findfood":
 		workerai.HandleFindFood(level, entity)
+	case "findbedroll":
+		workerai.HandleFindBedroll(level, entity)
 	case "haul":
 		workerai.HandleHaulState(level, entity)
 	}

@@ -22,73 +22,109 @@ func TestMain(m *testing.M) {
 }
 
 func midName(t *world.Tile) string {
-	if t.Middle.IsEmpty() {
+	if t == nil || t.Middle.IsEmpty() {
 		return ""
 	}
 	return world.TileDefinitions[t.Middle.Type].Name
 }
 
 func floorName(t *world.Tile) string {
-	if t.Floor.IsEmpty() {
+	if t == nil || t.Floor.IsEmpty() {
 		return ""
 	}
 	return world.TileDefinitions[t.Floor.Type].Name
 }
 
-func TestBuildShipLevel_LargeWithCentredHull(t *testing.T) {
+func TestBuildShipLevel_RoomsAndFloors(t *testing.T) {
 	lvl := BuildShipLevel("ship")
-
 	if lvl.GetWidth() != LevelWidth || lvl.GetHeight() != LevelHeight || lvl.GetDepth() != LevelDepth {
 		t.Fatalf("ship size = %dx%dx%d, want %dx%dx%d",
 			lvl.GetWidth(), lvl.GetHeight(), lvl.GetDepth(), LevelWidth, LevelHeight, LevelDepth)
 	}
 
-	ox, oy := (LevelWidth-HullSize)/2, (LevelHeight-HullSize)/2
-
-	// Hull region: floor everywhere, walls on the perimeter, open inside.
-	for dy := 0; dy < HullSize; dy++ {
-		for dx := 0; dx < HullSize; dx++ {
-			x, y := ox+dx, oy+dy
-			tile := lvl.GetTilePtr(x, y, HullDeck)
-			if got := floorName(tile); got != "hull_floor" {
-				t.Fatalf("hull floor at (%d,%d) = %q, want hull_floor", x, y, got)
-			}
-			perimeter := dx == 0 || dy == 0 || dx == HullSize-1 || dy == HullSize-1
-			mid := midName(tile)
-			if perimeter && mid != "hull_wall" {
-				t.Errorf("hull perimeter (%d,%d) = %q, want hull_wall", x, y, mid)
-			}
-			if !perimeter && mid != "" && !(x == ox+2 && y == oy+2) {
-				t.Errorf("hull interior (%d,%d) = %q, want empty", x, y, mid)
+	// Every room interior is walkable hull_floor with an empty middle.
+	for ry := 0; ry < roomsY; ry++ {
+		for rx := 0; rx < roomsX; rx++ {
+			ix, iy := roomInterior(rx, ry)
+			for dy := 0; dy < roomH; dy++ {
+				for dx := 0; dx < roomW; dx++ {
+					x, y := ix+dx, iy+dy
+					tile := lvl.GetTilePtr(x, y, HullDeck)
+					if floorName(tile) != "hull_floor" {
+						t.Fatalf("room (%d,%d) interior (%d,%d) floor=%q, want hull_floor", rx, ry, x, y, floorName(tile))
+					}
+					// interior may hold the ship hold at the start room's corner;
+					// otherwise the middle is open.
+				}
 			}
 		}
-	}
-
-	// Outside the hull is empty void.
-	if got := floorName(lvl.GetTilePtr(0, 0, HullDeck)); got != "" {
-		t.Errorf("corner (0,0) floor = %q, want empty void", got)
 	}
 }
 
-func TestBuildShipLevel_OneStorageLockerOwnedByShip(t *testing.T) {
+func TestBuildShipLevel_OuterHullIntact(t *testing.T) {
 	lvl := BuildShipLevel("ship")
-	ox, oy := (LevelWidth-HullSize)/2, (LevelHeight-HullSize)/2
-
-	var lockers []*ecs.Entity
-	for _, e := range lvl.Entities {
-		if e != nil && e.HasComponent(components.Storage) {
-			lockers = append(lockers, e)
+	gx, gy := gridOrigin()
+	// The outer perimeter of the grid must be solid hull_wall (never damaged),
+	// so digging never breaches the ship into space.
+	for lx := 0; lx < gridW(); lx++ {
+		for _, ly := range []int{0, gridH() - 1} {
+			if got := midName(lvl.GetTilePtr(gx+lx, gy+ly, HullDeck)); got != "hull_wall" {
+				t.Errorf("outer hull (%d,%d) = %q, want hull_wall", gx+lx, gy+ly, got)
+			}
 		}
 	}
-	if len(lockers) != 1 {
-		t.Fatalf("ship should have exactly 1 storage container, got %d", len(lockers))
+	for ly := 0; ly < gridH(); ly++ {
+		for _, lx := range []int{0, gridW() - 1} {
+			if got := midName(lvl.GetTilePtr(gx+lx, gy+ly, HullDeck)); got != "hull_wall" {
+				t.Errorf("outer hull (%d,%d) = %q, want hull_wall", gx+lx, gy+ly, got)
+			}
+		}
 	}
-	sc := lockers[0].GetComponent(components.Storage).(*components.StorageComponent)
-	if sc.OwnedBy != "ship" {
-		t.Errorf("locker OwnedBy = %q, want \"ship\"", sc.OwnedBy)
+}
+
+func TestBuildShipLevel_DoorwaysAreRubble(t *testing.T) {
+	lvl := BuildShipLevel("ship")
+	gx, gy := gridOrigin()
+	// Every doorway between adjacent rooms is a rubble pile to dig out.
+	for ry := 0; ry < roomsY; ry++ {
+		for rx := 0; rx < roomsX-1; rx++ {
+			lx := (rx + 1) * (roomW + 1)
+			ly := ry*(roomH+1) + 1 + roomH/2
+			if got := midName(lvl.GetTilePtr(gx+lx, gy+ly, HullDeck)); got != "rubble_pile" {
+				t.Errorf("h-doorway (%d,%d) = %q, want rubble_pile", gx+lx, gy+ly, got)
+			}
+		}
 	}
-	pc := lockers[0].GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	if pc.GetX() != ox+2 || pc.GetY() != oy+2 {
-		t.Errorf("locker at (%d,%d), want (%d,%d)", pc.GetX(), pc.GetY(), ox+2, oy+2)
+	for rx := 0; rx < roomsX; rx++ {
+		for ry := 0; ry < roomsY-1; ry++ {
+			ly := (ry + 1) * (roomH + 1)
+			lx := rx*(roomW+1) + 1 + roomW/2
+			if got := midName(lvl.GetTilePtr(gx+lx, gy+ly, HullDeck)); got != "rubble_pile" {
+				t.Errorf("v-doorway (%d,%d) = %q, want rubble_pile", gx+lx, gy+ly, got)
+			}
+		}
+	}
+}
+
+func TestBuildShipLevel_HoldInStartRoom(t *testing.T) {
+	lvl := BuildShipLevel("ship")
+	var holds []*ecs.Entity
+	for _, e := range lvl.Entities {
+		if e != nil && e.HasComponent(components.Storage) {
+			holds = append(holds, e)
+		}
+	}
+	if len(holds) != 1 {
+		t.Fatalf("ship should have exactly 1 hold, got %d", len(holds))
+	}
+	if holds[0].GetComponent(components.Storage).(*components.StorageComponent).OwnedBy != "ship" {
+		t.Errorf("hold owner = %q, want ship", holds[0].GetComponent(components.Storage).(*components.StorageComponent).OwnedBy)
+	}
+	// The hold sits inside the start room.
+	rx, ry := startRoom()
+	ix, iy := roomInterior(rx, ry)
+	pc := holds[0].GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if pc.GetX() < ix || pc.GetX() >= ix+roomW || pc.GetY() < iy || pc.GetY() >= iy+roomH {
+		t.Errorf("hold at (%d,%d) not inside start room [%d,%d)+%dx%d", pc.GetX(), pc.GetY(), ix, iy, roomW, roomH)
 	}
 }

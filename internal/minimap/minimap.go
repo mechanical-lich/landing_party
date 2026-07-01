@@ -202,7 +202,7 @@ func resourceColor(tile *world.Tile) (color.RGBA, bool) {
 		return color.RGBA{}, false
 	}
 	def := world.TileDefinitions[slot.Type]
-	if !def.Mineable {
+	if !world.IsDepositTileName(def.Name) {
 		return color.RGBA{}, false
 	}
 	switch def.Name {

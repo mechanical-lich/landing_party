@@ -1,0 +1,105 @@
+[
+    {
+        "name": "rubble_pile",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 720,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 744,
+                "spriteY": 72
+            },
+            {
+                "variant": 2,
+                "spriteX": 768,
+                "spriteY": 72
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "rubble_wall_h",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 432,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 456,
+                "spriteY": 72
+            },
+            {
+                "variant": 2,
+                "spriteX": 480,
+                "spriteY": 72
+            },
+            {
+                "variant": 3,
+                "spriteX": 504,
+                "spriteY": 72
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "rubble_wall_vl",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 528,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 552,
+                "spriteY": 72
+            },
+            {
+                "variant": 2,
+                "spriteX": 576,
+                "spriteY": 72
+            },
+            {
+                "variant": 3,
+                "spriteX": 600,
+                "spriteY": 72
+            }
+        ],
+        "resource": "scifi_world"
+    },
+    {
+        "name": "rubble_wall_vr",
+        "solid": true,
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 624,
+                "spriteY": 72
+            },
+            {
+                "variant": 1,
+                "spriteX": 648,
+                "spriteY": 72
+            },
+            {
+                "variant": 2,
+                "spriteX": 672,
+                "spriteY": 72
+            },
+            {
+                "variant": 3,
+                "spriteX": 696,
+                "spriteY": 72
+            }
+        ],
+        "resource": "scifi_world"
+    }
+]

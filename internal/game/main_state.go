@@ -324,7 +324,9 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	addLogic(&systems.WorkerSystem{})
 	addLogic(&systems.RadiationSystem{})
 	addRender(&systems.LightingSystem{})
-	addRender(&systems.FOVSystem{})
+	// FOVSystem is a light AI dependency, not purely render: findBed picks the
+	// nearest *visible* bed, so background colonists need FOV to discover beds.
+	addLogic(&systems.FOVSystem{})
 	addLogic(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	addLogic(&systems.FactionDoorSystem{})
 	addLogic(&systems.ScriptSystem{})

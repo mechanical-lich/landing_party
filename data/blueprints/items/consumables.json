@@ -63,6 +63,26 @@
             "Description": "Emergency medical supplies. Restores health when used."
         }
     },
+    "sleeping_bag": {
+        "Appearance": {
+            "R": 120,
+            "G": 90,
+            "B": 200,
+            "Resource": "scifi_items",
+            "SpriteX": 144,
+            "SpriteY": 64,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Sleeping Bag",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "bag",
+            "Description": "A portable bedroll. A colonist carrying one can bed down anywhere for a proper rest, no bunk required."
+        }
+    },
     "hydration_gel": {
         "Appearance": {
             "R": 100,

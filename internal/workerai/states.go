@@ -583,6 +583,46 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 	}
 }
 
+// HandleFindBedroll drives the find_bedroll state: walk to the nearest storage
+// holding a sleeping bag and take it into the bag. Once carried it's kept, so
+// the colonist can rest anywhere (see NeedsSystem's rest logic).
+func HandleFindBedroll(level *world.Level, entity *ecs.Entity) {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+
+	if aiMemory.TargetX == -1 && aiMemory.TargetY == -1 {
+		storage := FindClosestStorageWith(level, sc.Name, "sleeping_bag", pc.GetX(), pc.GetY(), pc.GetZ())
+		if storage == nil {
+			aiMemory.TargetX, aiMemory.TargetY = 0, 0
+			aiMemory.State = "idle"
+			return
+		}
+		spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = spc.GetX(), spc.GetY(), spc.GetZ()
+		return
+	}
+
+	if !MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+		var tileEntities []*ecs.Entity
+		level.GetEntitiesAt(aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, &tileEntities)
+		for _, e := range tileEntities {
+			if !e.HasComponent(components.Storage) {
+				continue
+			}
+			storageC := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if bag := storageC.TakeOne("sleeping_bag"); bag != nil && entity.HasComponent(rlcomponents.Inventory) {
+				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+				inv.AddItem(bag)
+				message.PostMessage(rlentity.GetName(entity), "Grabbed a sleeping bag")
+			}
+			break
+		}
+		aiMemory.TargetX, aiMemory.TargetY = -1, -1
+		aiMemory.State = "idle"
+	}
+}
+
 // workerQualifiesForTask returns false only when the task requires a minimum
 // Intelligence stat that the entity doesn't meet.
 func workerQualifiesForTask(entity *ecs.Entity, t *task.Task) bool {

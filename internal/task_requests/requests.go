@@ -107,6 +107,9 @@ type SleepRequest struct {
 type PassoutRequest struct {
 	Progress int // turns into current recovery cycle
 	Required int // turns per recovery cycle (typically 40)
+	// Bedroll is true when the rest is a proper sleep in a sleeping bag (in
+	// place, bed-quality recovery) rather than an exhaustion collapse.
+	Bedroll bool
 }
 
 // FilterableAction pairs a task action with the label shown in the colonist UI.

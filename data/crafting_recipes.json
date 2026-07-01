@@ -23,6 +23,14 @@
         "cost": { "biomass": 2 },
         "station": "basic_workbench"
     },
+    "sleeping_bag": {
+        "name": "Sleeping Bag",
+        "description": "A portable bedroll. A colonist carrying one rests properly anywhere, even with no bed.",
+        "output": "sleeping_bag",
+        "build_time": 15,
+        "cost": { "biomass": 3 },
+        "station": "basic_workbench"
+    },
 
     "knife": {
         "name": "Knife",

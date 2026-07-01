@@ -151,8 +151,34 @@ func assignRestTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		return
 	}
 
-	// No bed available. Only pass out when fully maxed — otherwise the
-	// colonist pushes through until a bed appears or exhaustion peaks.
+	// No bed available. A sleeping bag lets the colonist bed down in place with
+	// full (bed-quality) recovery instead of collapsing — used at the same point
+	// a bed would be, not only when maxed out.
+	if hasSleepingBag(entity) {
+		t := &task.Task{
+			Action: task_requests.PassoutAction,
+			X:      pc.GetX(), Y: pc.GetY(), Z: pc.GetZ(),
+			Data: &task_requests.PassoutRequest{Required: sleepCycleLength, Bedroll: true},
+		}
+		t.Start()
+		wc.CurrentTask = t
+		aiMemory.State = "task"
+		emotes.Set(entity, emotes.Sleep, 5, 2)
+		return
+	}
+
+	// No bag in hand — fetch one from settlement storage if available, then rest
+	// with it next cycle (mirrors the find_food fetch).
+	if entity.HasComponent(components.Settlement) {
+		scName := entity.GetComponent(components.Settlement).(*components.SettlementComponent).Name
+		if sleepingBagInStorage(level, scName) {
+			aiMemory.State = "findbedroll"
+			return
+		}
+	}
+
+	// No bed and no sleeping bag anywhere: only pass out when fully maxed —
+	// otherwise the colonist pushes through until a bed appears or exhaustion peaks.
 	if nc.Exhaustion < nc.MaxExhaustion {
 		return
 	}
@@ -165,6 +191,35 @@ func assignRestTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 	wc.CurrentTask = t
 	aiMemory.State = "task"
 	message.PostMessage(entityDisplayName(entity), "Passed out from exhaustion.")
+}
+
+// sleepingBagInStorage reports whether any settlement-owned container holds a
+// sleeping bag the colonist could go fetch.
+func sleepingBagInStorage(level *world.Level, settlementName string) bool {
+	for _, e := range level.Entities {
+		if e == nil || !e.HasComponent(components.Storage) {
+			continue
+		}
+		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+		if sc.OwnedBy == settlementName && sc.HasItem("sleeping_bag") {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSleepingBag reports whether the colonist is carrying a sleeping bag.
+func hasSleepingBag(entity *ecs.Entity) bool {
+	if !entity.HasComponent(rlcomponents.Inventory) {
+		return false
+	}
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	for _, item := range inv.Bag {
+		if item != nil && item.Blueprint == "sleeping_bag" {
+			return true
+		}
+	}
+	return false
 }
 
 // findBed returns the position of the best bed for this colonist: their known

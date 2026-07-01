@@ -503,7 +503,11 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	}
 
 	pr.Progress++
-	emotes.Set(entity, emotes.Sleeps, 2, 2)
+	if pr.Bedroll {
+		emotes.Set(entity, emotes.Sleep, 2, 2)
+	} else {
+		emotes.Set(entity, emotes.Sleeps, 2, 2)
+	}
 	if pr.Progress < pr.Required {
 		return
 	}
@@ -520,7 +524,11 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 		}
 	}
 
-	CompleteTaskWithMessage(entity, wc.CurrentTask, "Woke up after passing out")
+	msg := "Woke up after passing out"
+	if pr.Bedroll {
+		msg = "Woke up, rested in a sleeping bag"
+	}
+	CompleteTaskWithMessage(entity, wc.CurrentTask, msg)
 	aiMemory.State = "idle"
 }
 
@@ -830,6 +838,19 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 }
 
+// scrapPerRubble is the metal yielded by clearing one rubble tile.
+const scrapPerRubble = 4
+
+// isRubbleTile reports whether a tile is ship rubble (debris piles / damaged
+// walls) that yields scrap when dug out.
+func isRubbleTile(name string) bool {
+	switch name {
+	case "rubble_pile", "rubble_wall_h", "rubble_wall_vl", "rubble_wall_vr":
+		return true
+	}
+	return false
+}
+
 func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	req, ok := wc.CurrentTask.Data.(task_requests.DigRequest)
@@ -852,13 +873,24 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
+			// Salvage: clearing rubble yields a little scrap metal — the
+			// onboarding reward for cleaning up the ship.
+			if !tile.Middle.IsEmpty() && isRubbleTile(world.TileDefinitions[tile.Middle.Type].Name) {
+				if ore, err := factory.Create("metal_ore", pc.GetX(), pc.GetY(), pc.GetZ()); err == nil {
+					if ore.HasComponent(components.Material) {
+						ore.GetComponent(components.Material).(*components.MaterialComponent).Quantity = scrapPerRubble
+					}
+					level.AddEntity(ore)
+					queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
+				}
+			}
 			clearTileRadiation(tile)
 			// Layered dig: just remove the Middle. Floor stays as whatever
 			// was there.
 			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
 			progression.AwardXP(entity, "Str", progression.XPPerTask)
-			CompleteTaskWithMessage(entity, wc.CurrentTask, "Dug out tile")
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Cleared debris")
 			aiMemory.State = "idle"
 		}
 	} else {
