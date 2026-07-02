@@ -860,18 +860,17 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 	}
 }
 
-// BeamDown transfers the roster-index colonist from the ship level to the
-// orbited planet's level.
-func (wm *WorldManager) BeamDown(rosterIdx int) error {
+// BeamDown transfers a specific ship colonist to the orbited planet's level.
+// Takes the entity (not a roster index) so a background tick that reorders or
+// removes crew between selection and beam can't send down the wrong colonist.
+func (wm *WorldManager) BeamDown(colonist *ecs.Entity) error {
 	c := wm.Campaign
 	if wm.current == nil || wm.current.level == nil {
 		return fmt.Errorf("no location loaded — Travel first")
 	}
-	crew := wm.ShipColonists()
-	if rosterIdx < 0 || rosterIdx >= len(crew) {
+	if colonist == nil || !wm.IsShipEntity(colonist) {
 		return fmt.Errorf("no colonist selected")
 	}
-	colonist := crew[rosterIdx]
 	// Remove from the ship BEFORE repositioning: RemoveEntity clears the spatial
 	// index at the entity's current position, so moving it first would leave a
 	// stale occupant on the old ship tile.
@@ -898,8 +897,8 @@ func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
 	if e == nil {
 		return fmt.Errorf("beam up: no colonist")
 	}
-	if cap := wm.Campaign.Ship.RosterCap; cap > 0 && len(wm.ShipColonists()) >= cap {
-		return fmt.Errorf("ship roster is full (%d/%d)", len(wm.ShipColonists()), cap)
+	if s := wm.Campaign.Ship; s != nil && s.RosterCap > 0 && len(wm.ShipColonists()) >= s.RosterCap {
+		return fmt.Errorf("ship roster is full (%d/%d)", len(wm.ShipColonists()), s.RosterCap)
 	}
 	// No beaming through ground.
 	if e.HasComponent(rlcomponents.Position) {

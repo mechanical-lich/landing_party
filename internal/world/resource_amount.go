@@ -13,6 +13,10 @@ func depositRichnessRange(tileName string) (min, max int, ok bool) {
 		return 15, 60, true
 	case "radioactive_ore":
 		return 10, 40, true
+	// Ship rubble (debris piles / damaged walls) is a small scrap-metal deposit:
+	// clearing it is mined, not dug, and yields a little metal_ore.
+	case "rubble_pile", "rubble_wall_h", "rubble_wall_vl", "rubble_wall_vr":
+		return 3, 6, true
 	}
 	return 0, 0, false
 }
@@ -27,7 +31,7 @@ func IsDepositTileName(tileName string) bool {
 // or "" if the tile isn't a deposit.
 func DepositDrop(tileName string) string {
 	switch tileName {
-	case "ore_deposit":
+	case "ore_deposit", "rubble_pile", "rubble_wall_h", "rubble_wall_vl", "rubble_wall_vr":
 		return "metal_ore"
 	case "crystal_vein":
 		return "crystal"

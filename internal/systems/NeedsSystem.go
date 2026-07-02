@@ -172,6 +172,10 @@ func assignRestTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 	if entity.HasComponent(components.Settlement) {
 		scName := entity.GetComponent(components.Settlement).(*components.SettlementComponent).Name
 		if sleepingBagInStorage(level, scName) {
+			// Clear any stale target left by a prior task so HandleFindBedroll
+			// runs its storage search (mirrors the find_food transition above).
+			aiMemory.TargetX = -1
+			aiMemory.TargetY = -1
 			aiMemory.State = "findbedroll"
 			return
 		}
@@ -239,21 +243,22 @@ func findBed(level *world.Level, pc *rlcomponents.PositionComponent, nc *compone
 	// Find the nearest currently-visible bed (check both entity lists).
 	bestDist := -1
 	bx, by, bz := 0, 0, 0
-	allEntities := append(level.Entities, level.StaticEntities...)
-	for _, e := range allEntities {
-		if !e.HasComponent(components.Bed) || !e.HasComponent(rlcomponents.Position) {
-			continue
-		}
-		epc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		ex, ey, ez := epc.GetX(), epc.GetY(), epc.GetZ()
-		if ez != cz || !level.GetVisible(ex, ey, ez) {
-			continue
-		}
-		dx, dy := ex-cx, ey-cy
-		dist := dx*dx + dy*dy
-		if bestDist < 0 || dist < bestDist {
-			bestDist = dist
-			bx, by, bz = ex, ey, ez
+	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range ents {
+			if !e.HasComponent(components.Bed) || !e.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			epc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			ex, ey, ez := epc.GetX(), epc.GetY(), epc.GetZ()
+			if ez != cz || !level.GetVisible(ex, ey, ez) {
+				continue
+			}
+			dx, dy := ex-cx, ey-cy
+			dist := dx*dx + dy*dy
+			if bestDist < 0 || dist < bestDist {
+				bestDist = dist
+				bx, by, bz = ex, ey, ez
+			}
 		}
 	}
 
@@ -268,13 +273,15 @@ func findBed(level *world.Level, pc *rlcomponents.PositionComponent, nc *compone
 
 // bedExistsAt reports whether a bed entity is still present at (x, y, z).
 func bedExistsAt(level *world.Level, x, y, z int) bool {
-	for _, e := range append(level.Entities, level.StaticEntities...) {
-		if !e.HasComponent(components.Bed) || !e.HasComponent(rlcomponents.Position) {
-			continue
-		}
-		epc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if epc.GetX() == x && epc.GetY() == y && epc.GetZ() == z {
-			return true
+	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range ents {
+			if !e.HasComponent(components.Bed) || !e.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			epc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if epc.GetX() == x && epc.GetY() == y && epc.GetZ() == z {
+				return true
+			}
 		}
 	}
 	return false

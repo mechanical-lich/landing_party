@@ -322,7 +322,7 @@ func (g *GlobalInventoryModal) siteSummary(key string) map[string]int {
 	if key == g.wm.Campaign.CurrentLocationID && g.wm.current != nil && g.wm.current.level != nil {
 		return storage.Summarize(
 			storage.LevelProvider{Level: g.wm.current.level},
-			[]string{g.wm.shipSettlementName()},
+			[]string{campaignColonyName(g.wm.Campaign)},
 		)
 	}
 	return loc.StorageSummary

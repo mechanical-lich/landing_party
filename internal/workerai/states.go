@@ -589,6 +589,13 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 func HandleFindBedroll(level *world.Level, entity *ecs.Entity) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+	// The state persists on AIMemory across ticks/beams, so the colonist may
+	// have lost its settlement (e.g. re-tagged on beam) since entering it.
+	if !entity.HasComponent(components.Settlement) {
+		aiMemory.TargetX, aiMemory.TargetY = -1, -1
+		aiMemory.State = "idle"
+		return
+	}
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 
 	if aiMemory.TargetX == -1 && aiMemory.TargetY == -1 {

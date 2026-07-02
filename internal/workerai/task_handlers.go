@@ -290,9 +290,10 @@ func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	// Check if already in bag
+	// Gear the colonist already carries just equips in place. Consumables fall
+	// through to fetch another from storage so the player can stock up.
 	for _, item := range inv.Bag {
-		if item.Blueprint == req.ItemBlueprint {
+		if item.Blueprint == req.ItemBlueprint && components.ItemIsGear(item) {
 			inv.Equip(item)
 			wc.CurrentTask.Complete()
 			wc.CurrentTask = nil
@@ -316,7 +317,11 @@ func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
 		item := storageC.TakeOne(req.ItemBlueprint)
 		if item != nil {
-			inv.Equip(item)
+			if components.ItemIsGear(item) {
+				inv.Equip(item)
+			} else {
+				inv.AddItem(item) // carry consumables (rations, sleeping bags…) in the bag
+			}
 		}
 		wc.CurrentTask.Complete()
 		wc.CurrentTask = nil
@@ -567,11 +572,12 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		// stored amount (the single source of truth), and clear the tile once the
 		// deposit is empty. Because extraction draws down the persistent amount,
 		// cancelling and re-issuing a mine order resumes from what's left rather
-		// than re-rolling — no infinite-ore exploit. Drops land on the miner's
-		// tile so haulers can reach them without standing on the solid deposit.
+		// than re-rolling — no infinite-ore exploit. Drops land on a standable
+		// tile next to the miner (never the solid deposit), spreading out across
+		// neighbours as they pile up so haulers can reach each one.
 		const (
-			mineChunkTicks = 30 // progress ticks per extracted stack
-			mineChunkSize  = 10 // units per stack
+			mineChunkTicks = 3 // progress ticks per extracted unit
+			mineChunkSize  = 1 // units per stack (drop one resource at a time as mined)
 		)
 		tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
 		tile := level.GetTileAt(tx, ty, tz).(*world.Tile)
@@ -592,13 +598,14 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			if got <= 0 {
 				break
 			}
-			ore, err := factory.Create(dropBlueprint, pc.GetX(), pc.GetY(), pc.GetZ())
+			dropX, dropY, dropZ := dropTileNear(level, pc.GetX(), pc.GetY(), pc.GetZ())
+			ore, err := factory.Create(dropBlueprint, dropX, dropY, dropZ)
 			if err == nil {
 				if ore.HasComponent(components.Material) {
 					ore.GetComponent(components.Material).(*components.MaterialComponent).Quantity = got
 				}
 				level.AddEntity(ore)
-				queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
+				queueRetrieveTask(entity, ore, dropX, dropY, dropZ)
 			}
 		}
 
@@ -619,6 +626,42 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			wc.CurrentTask = nil
 		}
 	}
+}
+
+// dropTileNear picks where a mined resource lands: the first empty, standable
+// tile adjacent to (cx,cy,cz) — so successive drops spread out instead of
+// stacking on the miner — falling back to an occupied standable neighbour, and
+// finally the miner's own tile if none is standable.
+func dropTileNear(level *world.Level, cx, cy, cz int) (int, int, int) {
+	standable := func(x, y int) bool {
+		t, ok := level.GetTileAt(x, y, cz).(*world.Tile)
+		if !ok || t == nil || t.Floor.IsEmpty() {
+			return false
+		}
+		if !t.Middle.IsEmpty() {
+			if def := world.TileDefinitions[t.Middle.Type]; def.Solid || def.Water {
+				return false
+			}
+		}
+		return true
+	}
+	fx, fy, haveFallback := 0, 0, false
+	for _, d := range [][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}} {
+		x, y := cx+d[0], cy+d[1]
+		if !standable(x, y) {
+			continue
+		}
+		if level.GetEntityAt(x, y, cz) == nil {
+			return x, y, cz // empty standable neighbour
+		}
+		if !haveFallback {
+			fx, fy, haveFallback = x, y, true
+		}
+	}
+	if haveFallback {
+		return fx, fy, cz
+	}
+	return cx, cy, cz
 }
 
 func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
@@ -838,19 +881,6 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 }
 
-// scrapPerRubble is the metal yielded by clearing one rubble tile.
-const scrapPerRubble = 4
-
-// isRubbleTile reports whether a tile is ship rubble (debris piles / damaged
-// walls) that yields scrap when dug out.
-func isRubbleTile(name string) bool {
-	switch name {
-	case "rubble_pile", "rubble_wall_h", "rubble_wall_vl", "rubble_wall_vr":
-		return true
-	}
-	return false
-}
-
 func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	req, ok := wc.CurrentTask.Data.(task_requests.DigRequest)
@@ -873,17 +903,6 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
-			// Salvage: clearing rubble yields a little scrap metal — the
-			// onboarding reward for cleaning up the ship.
-			if !tile.Middle.IsEmpty() && isRubbleTile(world.TileDefinitions[tile.Middle.Type].Name) {
-				if ore, err := factory.Create("metal_ore", pc.GetX(), pc.GetY(), pc.GetZ()); err == nil {
-					if ore.HasComponent(components.Material) {
-						ore.GetComponent(components.Material).(*components.MaterialComponent).Quantity = scrapPerRubble
-					}
-					level.AddEntity(ore)
-					queueRetrieveTask(entity, ore, pc.GetX(), pc.GetY(), pc.GetZ())
-				}
-			}
 			clearTileRadiation(tile)
 			// Layered dig: just remove the Middle. Floor stays as whatever
 			// was there.

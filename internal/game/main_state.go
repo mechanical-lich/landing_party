@@ -698,7 +698,9 @@ func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
 	s.handleInput()
 	s.guiManager.SetKnownTechs(s.knownTechs())
-	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible || (s.storageInspector != nil && s.storageInspector.Visible))
+	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible ||
+		(s.storageInspector != nil && s.storageInspector.Visible) ||
+		s.guiManager.ModalOpen("colonistModal"))
 	s.guiManager.Update()
 	cfg2 := config.Global()
 	viewW2 := cfg2.WorldWidth / s.TileSizeW
@@ -1247,10 +1249,13 @@ func (s *MainState) openColonistModal(colonist *ecs.Entity) {
 			if !item.HasComponent(rlcomponents.Item) {
 				continue
 			}
-			ic := item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent)
-			if ic.Slot == rlcomponents.BagSlot || ic.Slot == "" {
+			// Skip bulk resources (metal_ore, biomass, fuel …) — those are for
+			// crafting/building, not carrying. Everything else is offerable:
+			// gear to equip, consumables/sleeping bags/medkits to carry.
+			if item.HasComponent(components.Material) {
 				continue
 			}
+			ic := item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent)
 			if seen[item.Blueprint] {
 				continue
 			}
@@ -1278,10 +1283,13 @@ func (s *MainState) equipItem(colonist *ecs.Entity, blueprint string) {
 	if colonist == nil {
 		return
 	}
+	// Only short-circuit for gear the colonist already carries — equip it in
+	// place. Consumables (rations, sleeping bags…) should always fetch another
+	// from storage even if one is already in the bag, so the player can stock up.
 	if colonist.HasComponent(rlcomponents.Inventory) {
 		inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 		for _, item := range inv.Bag {
-			if item.Blueprint == blueprint {
+			if item.Blueprint == blueprint && components.ItemIsGear(item) {
 				inv.Equip(item)
 				s.openColonistModal(colonist) // rebuild the modal with the updated bag/slots
 				return

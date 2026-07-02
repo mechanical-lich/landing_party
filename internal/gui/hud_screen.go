@@ -849,21 +849,6 @@ type StorageItemEntry struct {
 	Slot      string
 }
 
-// isEquippableItem reports whether an item entity is bound to a wearable/wieldable
-// equipment slot (as opposed to a consumable or raw material), and so can be
-// equipped directly from a colonist's bag.
-func isEquippableItem(item *ecs.Entity) bool {
-	if item == nil || !item.HasComponent(rlcomponents.Item) {
-		return false
-	}
-	switch item.GetComponent(rlcomponents.Item).(*rlcomponents.ItemComponent).Slot {
-	case rlcomponents.HandSlot, rlcomponents.OffHandSlot, rlcomponents.HeadSlot,
-		rlcomponents.TorsoSlot, rlcomponents.LegsSlot, rlcomponents.FeetSlot:
-		return true
-	}
-	return false
-}
-
 func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
 	if h.colonistModal == nil || colonist == nil {
 		return
@@ -914,7 +899,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			nameLbl.SetBounds(minui.Rect{X: 0, Y: 0, Width: 156, Height: 22})
 			row.AddChild(nameLbl)
 
-			if isEquippableItem(item) {
+			if components.ItemIsGear(item) {
 				bp := item.Blueprint
 				eq := minui.NewMenuItem(fmt.Sprintf("inv_equip_%d", i), "[Equip]")
 				eq.SetBounds(minui.Rect{X: 0, Y: 0, Width: 64, Height: 22})

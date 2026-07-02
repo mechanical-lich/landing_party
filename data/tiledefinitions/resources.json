@@ -2,6 +2,8 @@
     {
         "name": "ore_deposit",
         "solid": true,
+        "lightLevel": 30,
+        "lightRange": 2,
         "variants": [
             {
                 "variant": 0,
@@ -14,6 +16,8 @@
     {
         "name": "crystal_vein",
         "solid": true,
+        "lightLevel": 42,
+        "lightRange": 2,
         "variants": [
             {
                 "variant": 0,
@@ -26,6 +30,8 @@
     {
         "name": "radioactive_ore",
         "solid": true,
+        "lightLevel": 45,
+        "lightRange": 3,
         "variants": [
             {
                 "variant": 0,

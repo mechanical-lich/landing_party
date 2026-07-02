@@ -267,7 +267,7 @@ func (o *OverworldState) beamDown() {
 		o.status = "Select a colonist on the ship."
 		return
 	}
-	if err := o.wm.BeamDown(idx); err != nil {
+	if err := o.wm.BeamDown(o.shipEnts[idx]); err != nil {
 		o.status = err.Error()
 		return
 	}
