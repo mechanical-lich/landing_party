@@ -11,8 +11,13 @@ type WorkerComponent struct {
 	// InteractTicks holds the worker at an interaction (pickup/dropoff) for a
 	// few ticks so its work animation has time to play. The handlers increment
 	// it while at the target and reset it on completion.
-	InteractTicks  int
-	LastTaskAction task.TaskAction
+	InteractTicks int
+	// ApproachFailTicks counts consecutive ticks a worker has failed to advance
+	// toward an equip/unequip task's storage container. When it crosses the
+	// cancel threshold the task is abandoned (with a message) so a worker whose
+	// storage is walled off doesn't stay pinned to it forever. Reset on progress.
+	ApproachFailTicks int
+	LastTaskAction    task.TaskAction
 	// AvailableTasks is the blueprint-level cap on what this worker is ever
 	// capable of doing — the universe of toggles shown in the colonist
 	// modal, AND the upper bound enforced at task-pick time. Empty = no

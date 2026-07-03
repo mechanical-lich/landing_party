@@ -28,6 +28,11 @@ import (
 
 const sleepRecoveryPerCycle = 10
 
+// maxApproachFailTicks cancels an equip/unequip task after this many consecutive
+// ticks of failing to advance toward its storage container, so a worker whose
+// storage is unreachable doesn't stay pinned to the task forever.
+const maxApproachFailTicks = 5
+
 func CompleteTaskWithMessage(entity *ecs.Entity, t *task.Task, msg string) {
 	t.Complete()
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -176,10 +181,9 @@ func handleRetrieveTask(level *world.Level, entity *ecs.Entity, wc *components.W
 
 	tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
 
-	if !MoveTowardsTarget(level, entity, tx, ty, tz) {
+	if moved, pathFound := MoveTowardsTarget(level, entity, tx, ty, tz); !moved {
 		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), tx, ty, tz, 1, 1, 0) {
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+			releaseTaskAfterFailedMove(wc, pathFound)
 			aiMemory.State = "idle"
 			return
 		}
@@ -263,8 +267,9 @@ func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	}
 
 	storagePC := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	moved, _ := MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		wc.ApproachFailTicks = 0
 		storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
 		for _, bagItem := range append([]*ecs.Entity{}, inv.Bag...) {
 			if storageC.AddItem(bagItem) {
@@ -273,6 +278,17 @@ func handleUnequipTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 		}
 		wc.CurrentTask.Complete()
 		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+	if moved {
+		wc.ApproachFailTicks = 0
+		return
+	}
+	wc.ApproachFailTicks++
+	if wc.ApproachFailTicks >= maxApproachFailTicks {
+		wc.ApproachFailTicks = 0
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Can't reach storage — cancelled stowing gear")
 		aiMemory.State = "idle"
 	}
 }
@@ -312,8 +328,9 @@ func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 
 	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
+	moved, _ := MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		wc.ApproachFailTicks = 0
 		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
 		item := storageC.TakeOne(req.ItemBlueprint)
 		if item != nil {
@@ -325,6 +342,17 @@ func handleEquipTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		}
 		wc.CurrentTask.Complete()
 		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
+	if moved {
+		wc.ApproachFailTicks = 0
+		return
+	}
+	wc.ApproachFailTicks++
+	if wc.ApproachFailTicks >= maxApproachFailTicks {
+		wc.ApproachFailTicks = 0
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Can't reach storage — cancelled equipping "+req.ItemBlueprint)
 		aiMemory.State = "idle"
 	}
 }
@@ -348,12 +376,11 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ, 1, 1, 0) {
-		if !MoveTowardsTarget(level, entity, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ) {
+		if moved, pathFound := MoveTowardsTarget(level, entity, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ); !moved {
 			log.Printf("[CRAFT] %s can't reach workbench at (%d,%d,%d) from (%d,%d,%d)",
 				rlentity.GetName(entity), cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ,
 				pc.GetX(), pc.GetY(), pc.GetZ())
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+			releaseTaskAfterFailedMove(wc, pathFound)
 			aiMemory.State = "idle"
 		}
 		return
@@ -408,9 +435,8 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
-		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
+			releaseTaskAfterFailedMove(wc, pathFound)
 			aiMemory.State = "idle"
 		}
 		return
@@ -453,9 +479,8 @@ func handleSleepTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 
 	if !sr.OnBed {
 		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), sr.X, sr.Y, sr.Z, 1, 1, 0) {
-			if !MoveTowardsTarget(level, entity, sr.X, sr.Y, sr.Z) {
-				wc.CurrentTask.ReQueue()
-				wc.CurrentTask = nil
+			if moved, pathFound := MoveTowardsTarget(level, entity, sr.X, sr.Y, sr.Z); !moved {
+				releaseTaskAfterFailedMove(wc, pathFound)
 				aiMemory.State = "idle"
 			}
 			return
@@ -621,9 +646,8 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			aiMemory.State = "idle"
 		}
 	} else {
-		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
+			releaseTaskAfterFailedMove(wc, pathFound)
 		}
 	}
 }
@@ -678,12 +702,12 @@ func handlePickupTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		tx, ty, tz = tpc.GetX(), tpc.GetY(), tpc.GetZ()
 	}
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), tx, ty, tz, 1, 1, 0) {
-		if MoveTowardsTarget(level, entity, tx, ty, tz) {
+		moved, pathFound := MoveTowardsTarget(level, entity, tx, ty, tz)
+		if moved {
 			wc.InteractTicks = 0
 			return
 		}
-		wc.CurrentTask.ReQueue()
-		wc.CurrentTask = nil
+		releaseTaskAfterFailedMove(wc, pathFound)
 		wc.InteractTicks = 0
 		return
 	}
@@ -776,7 +800,7 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 
 func handleMoveTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	tx, ty, tz := wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z
-	if MoveTowardsTarget(level, entity, tx, ty, tz) {
+	if moved, _ := MoveTowardsTarget(level, entity, tx, ty, tz); moved {
 		return
 	}
 	// Arrived — inspect target tile and auto-detect action.
@@ -874,9 +898,8 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 			aiMemory.State = "idle"
 		}
 	} else {
-		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
+			releaseTaskAfterFailedMove(wc, pathFound)
 		}
 	}
 }
@@ -913,9 +936,8 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			aiMemory.State = "idle"
 		}
 	} else {
-		if !MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z) {
-			wc.CurrentTask.ReQueue()
-			wc.CurrentTask = nil
+		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
+			releaseTaskAfterFailedMove(wc, pathFound)
 		}
 	}
 }
@@ -946,9 +968,8 @@ func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		srcPC := req.Source.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		sx, sy, sz := srcPC.GetX(), srcPC.GetY(), srcPC.GetZ()
 		if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), sx, sy, sz, 1, 1, 0) {
-			if !MoveTowardsTarget(level, entity, sx, sy, sz) {
-				wc.CurrentTask.ReQueue()
-				wc.CurrentTask = nil
+			if moved, pathFound := MoveTowardsTarget(level, entity, sx, sy, sz); !moved {
+				releaseTaskAfterFailedMove(wc, pathFound)
 				aiMemory.State = "idle"
 			}
 			return
@@ -1024,7 +1045,7 @@ func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		dx, dy, dz = req.DestX, req.DestY, req.DestZ
 	}
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), dx, dy, dz, 1, 1, 0) {
-		if !MoveTowardsTarget(level, entity, dx, dy, dz) {
+		if moved, _ := MoveTowardsTarget(level, entity, dx, dy, dz); !moved {
 			// Can't reach — drop the load wherever we ended up so it isn't lost.
 			dropMaterialAt(level, inv, req.Blueprint, req.Carried, pc.GetX(), pc.GetY(), pc.GetZ())
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Relocate: blocked, dropped load")

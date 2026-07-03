@@ -15,7 +15,15 @@ import (
 
 // MoveTowardsTarget advances entity one step along a path to (targetX,targetY,targetZ).
 // Returns true if the entity moved, false if it has arrived or is blocked.
-func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY, targetZ int) bool {
+// MoveTowardsTarget advances the worker one step toward the target.
+// moved reports whether it moved/swapped this tick. pathFound reports whether a
+// route to the target exists; it is false ONLY when the pathfinder found no
+// path (or the target tile is out of bounds) — i.e. the target is genuinely
+// unreachable right now, as opposed to merely blocked by another colonist this
+// tick. This lets task handlers cool an unreachable task down (Stop) instead of
+// re-queueing it, so a lone worker doesn't spin on it forever. Callers that
+// don't care why a move failed can ignore pathFound with `moved, _ := …`.
+func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY, targetZ int) (moved bool, pathFound bool) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 
@@ -34,15 +42,16 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 		from := level.GetTileAt(pc.GetX(), pc.GetY(), pc.GetZ())
 		to := level.GetTileAt(targetX, targetY, targetZ)
 		if from == nil || to == nil {
-			return false
+			return false, false
 		}
 		aiMemory.CurrentSteps = fspath.GetPossiblePathForEntity(level, entity, from.(*world.Tile), to.(*world.Tile), aiMemory.CurrentSteps)
-		if len(aiMemory.CurrentSteps) == 0 {
-			log.Printf("[PATH] %s no path from (%d,%d,%d) to (%d,%d,%d)", rlentity.GetName(entity), pc.GetX(), pc.GetY(), pc.GetZ(), targetX, targetY, targetZ)
-		}
 		aiMemory.TargetX = targetX
 		aiMemory.TargetY = targetY
 		aiMemory.TargetZ = targetZ
+		if len(aiMemory.CurrentSteps) == 0 {
+			log.Printf("[PATH] %s no path from (%d,%d,%d) to (%d,%d,%d)", rlentity.GetName(entity), pc.GetX(), pc.GetY(), pc.GetZ(), targetX, targetY, targetZ)
+			return false, false
+		}
 	}
 
 	for len(aiMemory.CurrentSteps) > 1 {
@@ -60,16 +69,36 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 				rlentity.Move(entity, level, dx, dy, dz)
 			}
 			rlentity.Face(entity, dx, dy)
-			return true
+			return true, true
 		}
 		if tryColonistSwap(level, entity, pc, ntX, ntY, ntZ) {
 			aiMemory.CurrentSteps = aiMemory.CurrentSteps[1:]
-			return true
+			return true, true
 		}
 		aiMemory.CurrentSteps = nil
 		break
 	}
-	return false
+	// A path exists (or existed) but the worker couldn't advance this tick —
+	// a transient block, not a dead end.
+	return false, true
+}
+
+// releaseTaskAfterFailedMove hands the worker's current task back to the queue
+// after it couldn't advance toward the target. When the target was genuinely
+// unreachable (pathFound == false), the task is Stop()ped so the scheduler skips
+// it for a short cooldown and the worker picks other work instead of re-selecting
+// the same closest-but-unreachable task every tick; a transient block
+// (pathFound == true) is ReQueue()d for immediate retry.
+func releaseTaskAfterFailedMove(wc *components.WorkerComponent, pathFound bool) {
+	if wc.CurrentTask == nil {
+		return
+	}
+	if pathFound {
+		wc.CurrentTask.ReQueue()
+	} else {
+		wc.CurrentTask.Stop()
+	}
+	wc.CurrentTask = nil
 }
 
 func tryColonistSwap(level *world.Level, entity *ecs.Entity, pc *rlcomponents.PositionComponent, ntX, ntY, ntZ int) bool {

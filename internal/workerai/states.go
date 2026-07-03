@@ -149,7 +149,7 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	}
 
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, 1, 1, 0) {
-		if MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+		if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); moved {
 			if wc != nil {
 				wc.InteractTicks = 0
 			}
@@ -425,7 +425,7 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 			return
 		}
 		spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if !MoveTowardsTarget(level, entity, spc.GetX(), spc.GetY(), spc.GetZ()) {
+		if moved, _ := MoveTowardsTarget(level, entity, spc.GetX(), spc.GetY(), spc.GetZ()); !moved {
 			storageC := storage.GetComponent(components.Storage).(*components.StorageComponent)
 			before := len(inv.Bag)
 			kept := inv.Bag[:0]
@@ -463,7 +463,7 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	if !MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+	if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); !moved {
 		// Pick up any items at this tile
 		var tileEntities []*ecs.Entity
 		level.GetEntitiesAt(aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, &tileEntities)
@@ -552,7 +552,7 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	if !MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+	if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); !moved {
 		var tileEntities []*ecs.Entity
 		level.GetEntitiesAt(aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, &tileEntities)
 		for _, e := range tileEntities {
@@ -610,7 +610,7 @@ func HandleFindBedroll(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
-	if !MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ) {
+	if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); !moved {
 		var tileEntities []*ecs.Entity
 		level.GetEntitiesAt(aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, &tileEntities)
 		for _, e := range tileEntities {

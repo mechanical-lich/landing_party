@@ -191,7 +191,7 @@ func TestMoveTowardsTarget_StairLanding_ReachesDestination(t *testing.T) {
 	reachedTarget := false
 	for tick := 0; tick < 40; tick++ {
 		fspath.ResetFrameCounter()
-		moved := MoveTowardsTarget(lvl, worker, 7, 1, 1)
+		moved, _ := MoveTowardsTarget(lvl, worker, 7, 1, 1)
 		pc := worker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		if pc.GetX() == 7 && pc.GetY() == 1 && pc.GetZ() == 1 {
 			reachedTarget = true
