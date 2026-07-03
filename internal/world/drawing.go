@@ -292,9 +292,11 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 		}
 		return
 	}
-	// Floor → Middle → Ceiling. Each slot draws independently. Air/space
+	// Floor → Middle. Each slot draws independently. Air/space
 	// Middle slots are skipped — they're vision markers, not visuals, and
 	// painting them clobbers tiles drawn through them by the z-lookdown.
+	// (A cell's "ceiling" is the Floor of the cell above; it is drawn as that
+	// cell's own Floor, not here.)
 	if !tile.Floor.IsEmpty() {
 		floorSlot := tile.Floor
 		if TileDefinitions[floorSlot.Type].AutoTile > 0 && level != nil {
@@ -311,9 +313,6 @@ func drawTile(screen *ebiten.Image, level *Level, tile *Tile, screenX, screenY, 
 		(spaceMiddle && !tile.Floor.IsEmpty())
 	if !skipMiddle {
 		drawSlot(screen, level, tile, tile.Middle, true, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
-	}
-	if !tile.Ceiling.IsEmpty() {
-		drawSlot(screen, level, tile, tile.Ceiling, false, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
 	}
 }
 
@@ -350,7 +349,7 @@ func resolveFloorAutotileVariant(level *Level, tile *Tile) int {
 }
 
 // drawSlot renders one slot of a tile. autotileEligible is true only for the
-// Middle slot (Floor/Ceiling don't autotile in the POC).
+// Middle slot (Floor doesn't autotile in the POC).
 func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slot, autotileEligible bool, screenX, screenY, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
 	def := TileDefinitions[slot.Type]
 	if len(def.Variants) == 0 {

@@ -31,8 +31,6 @@ func SetTileTypeAndVariant(tile *Tile, tileName string, variant int) {
 	switch TileDefinitions[idx].LayerOf() {
 	case rllayered.LayerFloor:
 		tile.Floor = slot
-	case rllayered.LayerCeiling:
-		tile.Ceiling = slot
 	default:
 		tile.Middle = slot
 	}

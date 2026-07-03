@@ -6,7 +6,8 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
-// Tile is a layered cell with Floor/Middle/Ceiling slots.
+// Tile is a layered cell with Floor/Middle slots. A cell's ceiling is the
+// Floor of the cell above it (see rllayered.Tile).
 type Tile = rllayered.Tile
 
 // getPathCostFunction returns the game-specific A* cost function for the level.

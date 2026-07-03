@@ -47,9 +47,11 @@ type TileRun struct {
 }
 
 type SaveData struct {
-	FloorRuns   []TileRun `json:"FloorRuns,omitempty"`
-	MiddleRuns  []TileRun `json:"MiddleRuns,omitempty"`
-	CeilingRuns []TileRun `json:"CeilingRuns,omitempty"`
+	FloorRuns  []TileRun `json:"FloorRuns,omitempty"`
+	MiddleRuns []TileRun `json:"MiddleRuns,omitempty"`
+	// CeilingRuns was a third slot in older saves; the ceiling is now the Floor
+	// of the cell above (see rllayered.Tile). Old saves' CeilingRuns key is
+	// ignored on load — it was always empty, so nothing is lost.
 	// TileCatalog is a snapshot of TileIndexToName at save time. On load we
 	// rebuild an old-index -> current-index remap by name so re-ordering or
 	// splitting tile_definitions/*.json (which shifts indices) doesn't
@@ -95,9 +97,6 @@ func encodeFloorRuns(tiles []Tile) []TileRun {
 func encodeMiddleRuns(tiles []Tile) []TileRun {
 	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Middle.Type, t.Middle.Variant })
 }
-func encodeCeilingRuns(tiles []Tile) []TileRun {
-	return encodeSlotRuns(tiles, func(t *Tile) (int, int) { return t.Ceiling.Type, t.Ceiling.Variant })
-}
 
 // buildTileRemap returns a slice where remap[savedIdx] gives the current tile
 // index for the tile that lived at savedIdx in the saved catalog. Names absent
@@ -123,7 +122,7 @@ func buildTileRemap(savedCatalog []string) []int {
 // decodeLayeredTiles rebuilds a tile array from three parallel RLE streams.
 // Any stream may be empty (POC-era saves where ceilings were never painted).
 // remap, when non-nil, translates saved tile indices to current indices.
-func decodeLayeredTiles(floor, middle, ceiling []TileRun, remap []int) []Tile {
+func decodeLayeredTiles(floor, middle []TileRun, remap []int) []Tile {
 	total := 0
 	for _, r := range middle {
 		total += r.C
@@ -152,7 +151,6 @@ func decodeLayeredTiles(floor, middle, ceiling []TileRun, remap []int) []Tile {
 	}
 	apply(floor, func(t *Tile, typ, variant int) { t.Floor = rllayeredSlot(typ, variant) })
 	apply(middle, func(t *Tile, typ, variant int) { t.Middle = rllayeredSlot(typ, variant) })
-	apply(ceiling, func(t *Tile, typ, variant int) { t.Ceiling = rllayeredSlot(typ, variant) })
 	return tiles
 }
 
@@ -311,7 +309,6 @@ func SaveLevel(level *Level) SaveData {
 	return SaveData{
 		FloorRuns:      encodeFloorRuns(level.Data),
 		MiddleRuns:     encodeMiddleRuns(level.Data),
-		CeilingRuns:    encodeCeilingRuns(level.Data),
 		TileCatalog:    catalog,
 		Entities:       saveEntities,
 		StaticEntities: staticSaveEntities,
@@ -345,14 +342,13 @@ func LoadSaveData(data SaveData) *Level {
 	level := NewLevel(data.MapSizeW, data.MapSizeH, data.MapSizeZ)
 
 	remap := buildTileRemap(data.TileCatalog)
-	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, data.CeilingRuns, remap)
+	tiles := decodeLayeredTiles(data.FloorRuns, data.MiddleRuns, remap)
 	for i, tile := range tiles {
 		if i >= len(level.Data) {
 			break
 		}
 		level.Data[i].Floor = tile.Floor
 		level.Data[i].Middle = tile.Middle
-		level.Data[i].Ceiling = tile.Ceiling
 	}
 
 	for _, saveEntity := range data.Entities {
