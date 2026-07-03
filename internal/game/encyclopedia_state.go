@@ -59,7 +59,7 @@ func NewEncyclopediaState(c *campaign.Campaign, wm *WorldManager) *EncyclopediaS
 	e.backBtn.SetPosition(cx-105, cfg.ScreenHeight-70)
 	e.backBtn.SetSize(210, 36)
 	e.backBtn.OnClick = func() {
-		e.next = NewOverworldState(e.campaign, e.wm)
+		e.next = NewDashboardState(e.campaign, e.wm)
 		e.done = true
 	}
 
@@ -141,7 +141,7 @@ func (e *EncyclopediaState) selectedBlueprint() string {
 
 func (e *EncyclopediaState) Update() state.StateInterface {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		e.next = NewOverworldState(e.campaign, e.wm)
+		e.next = NewDashboardState(e.campaign, e.wm)
 		e.done = true
 		return e.next
 	}

@@ -44,6 +44,7 @@ type OverworldState struct {
 	shipBtn          *minui.Button
 	saveBtn          *minui.Button
 	questBtn         *minui.Button
+	dashBtn          *minui.Button
 
 	status string
 	done   bool
@@ -132,6 +133,14 @@ func NewOverworldState(c *campaign.Campaign, wm *WorldManager) *OverworldState {
 	o.questBtn.SetSize(130, 30)
 	o.questBtn.OnClick = func() {
 		o.next = NewQuestLogState(o.campaign, o.wm)
+		o.done = true
+	}
+
+	o.dashBtn = minui.NewButton("ow_dashboard", "< Dashboard")
+	o.dashBtn.SetPosition(cx-300, 142)
+	o.dashBtn.SetSize(130, 30)
+	o.dashBtn.OnClick = func() {
+		o.next = NewDashboardState(o.campaign, o.wm)
 		o.done = true
 	}
 
@@ -393,6 +402,7 @@ func (o *OverworldState) Update() state.StateInterface {
 	o.shipBtn.Update()
 	o.saveBtn.Update()
 	o.questBtn.Update()
+	o.dashBtn.Update()
 	return o.next
 }
 
@@ -438,6 +448,7 @@ func (o *OverworldState) Draw(screen *ebiten.Image) {
 	o.shipBtn.Draw(screen)
 	o.saveBtn.Draw(screen)
 	o.questBtn.Draw(screen)
+	o.dashBtn.Draw(screen)
 
 	if o.status != "" {
 		mlge_text.Draw(screen, o.status, 13, cx-300, cfg.ScreenHeight-40, color.RGBA{230, 160, 90, 255})

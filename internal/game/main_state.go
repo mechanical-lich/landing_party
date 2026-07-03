@@ -1753,7 +1753,7 @@ func (s *MainState) openStarMap() {
 	if s != s.wm.shipLevel {
 		s.wm.current = s
 	}
-	s.next = NewOverworldState(s.campaign, s.wm)
+	s.next = NewDashboardState(s.campaign, s.wm)
 	s.done = true
 }
 

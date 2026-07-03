@@ -48,7 +48,7 @@ func NewQuestLogState(c *campaign.Campaign, wm *WorldManager) *QuestLogState {
 	q.backBtn.SetPosition(cx+90, 620)
 	q.backBtn.SetSize(210, 36)
 	q.backBtn.OnClick = func() {
-		q.next = NewOverworldState(q.campaign, q.wm)
+		q.next = NewDashboardState(q.campaign, q.wm)
 		q.done = true
 	}
 
@@ -110,7 +110,7 @@ func (q *QuestLogState) acceptSelected() {
 
 func (q *QuestLogState) Update() state.StateInterface {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		q.next = NewOverworldState(q.campaign, q.wm)
+		q.next = NewDashboardState(q.campaign, q.wm)
 		q.done = true
 		return q.next
 	}

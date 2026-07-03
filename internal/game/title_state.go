@@ -157,7 +157,7 @@ func (ts *TitleState) confirmLoad() {
 	}
 	c.BindQuests()
 	wm := NewWorldManager(c)
-	ts.next = NewOverworldState(c, wm)
+	ts.next = NewDashboardState(c, wm)
 	ts.done = true
 }
 
@@ -338,7 +338,7 @@ func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
 	wm := NewWorldManager(c)
 	wm.SeedShipCrew(cfg.StartColonists) // crew spawns aboard the ship
 	wm.StockShipLocker(cfg.StartFuel)   // and the hold is stocked
-	return NewOverworldState(c, wm), nil
+	return NewDashboardState(c, wm), nil
 }
 
 func (ts *TitleState) Update() state.StateInterface {
