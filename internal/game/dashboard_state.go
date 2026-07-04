@@ -52,6 +52,11 @@ type DashboardState struct {
 	returnSiteBtn *minui.Button
 	saveBtn       *minui.Button
 
+	// storageInspector is the shared beam-resources modal, hosted here so it
+	// overlays the whole dashboard; the Inventory tab opens it.
+	storageInspector *StorageInspectorModal
+	inspectorWasOpen bool
+
 	status string
 	done   bool
 	next   state.StateInterface
@@ -59,17 +64,15 @@ type DashboardState struct {
 
 func NewDashboardState(c *campaign.Campaign, wm *WorldManager) *DashboardState {
 	d := &DashboardState{campaign: c, wm: wm}
+	d.storageInspector = newStorageInspectorModal(wm)
 
-	// Panels. Star Map and Crew are bridges/placeholders for now; they become
-	// fully inline panels as their dedicated implementations land. Quests,
-	// Global Inventory, and Encyclopedia are inline.
 	panels := []struct {
 		id, label string
 		panel     dashboardPanel
 	}{
 		{"starmap", "Star Map", newStarMapPanel(c, wm)},
 		{"crew", "Crew", newCrewPanel(c, wm)},
-		{"inventory", "Global Inventory", newGlobalInvPanel(c, wm)},
+		{"inventory", "Global Inventory", newGlobalInvPanel(c, wm, d.storageInspector)},
 		{"quests", "Quests", newQuestsPanel(c, wm)},
 		{"encyclopedia", "Encyclopedia", newEncyclopediaPanel(c, wm)},
 	}
@@ -162,6 +165,19 @@ func (d *DashboardState) Update() state.StateInterface {
 	if d.wm != nil {
 		d.wm.TickBackground(nil)
 	}
+	// The beam-resources modal takes full input priority while open.
+	if d.storageInspector.Visible {
+		d.storageInspector.Update()
+		d.inspectorWasOpen = true
+		return d.next
+	}
+	if d.inspectorWasOpen {
+		// Modal just closed — refresh the active panel so beamed totals update.
+		d.inspectorWasOpen = false
+		if d.active >= 0 && d.active < len(d.tabs) {
+			d.tabs[d.active].panel.Enter()
+		}
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		if d.wm.current != nil {
 			d.returnToSite()
@@ -221,6 +237,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	if d.status != "" {
 		mlge_text.Draw(screen, d.status, 13, 20, cfg.ScreenHeight-30, color.RGBA{230, 160, 90, 255})
 	}
+	d.storageInspector.Draw(screen)
 	minui.FlushOverlays(screen)
 }
 

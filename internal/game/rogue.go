@@ -3,7 +3,6 @@ package game
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -12,6 +11,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/gui"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"

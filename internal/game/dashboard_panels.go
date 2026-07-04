@@ -135,95 +135,60 @@ func (p *questsPanel) Draw(screen *ebiten.Image) {
 
 func (p *questsPanel) Transition() state.StateInterface { return nil }
 
-// ---- Star Map (bridge to the classic screen until step 2) --------------------
-
-type starMapPanel struct {
-	campaign *campaign.Campaign
-	wm       *WorldManager
-	openBtn  *minui.Button
-	pending  state.StateInterface
-}
-
-func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
-	p := &starMapPanel{campaign: c, wm: wm}
-	cfg := config.Global()
-	cx := cfg.ScreenWidth / 2
-	p.openBtn = minui.NewButton("dash_open_starmap", "Open Star Map")
-	p.openBtn.SetPosition(cx-110, dashContentTop+120)
-	p.openBtn.SetSize(220, 46)
-	p.openBtn.OnClick = func() { p.pending = NewOverworldState(p.campaign, p.wm) }
-	return p
-}
-
-func (p *starMapPanel) Enter()  {}
-func (p *starMapPanel) Update() { p.openBtn.Update() }
-func (p *starMapPanel) Draw(s *ebiten.Image) {
-	cfg := config.Global()
-	cx := cfg.ScreenWidth / 2
-	mlge_text.Draw(s, "Star Map", 22, cx-60, dashContentTop+40, dashTitleColor)
-	mlge_text.Draw(s, "The visual star map is coming here. For now, open the classic view to travel and beam crew.", 13, cx-330, dashContentTop+80, dashBodyColor)
-	p.openBtn.Draw(s)
-}
-func (p *starMapPanel) Transition() state.StateInterface {
-	t := p.pending
-	p.pending = nil
-	return t
-}
-
-// ---- Crew (placeholder until step 3) -----------------------------------------
-
-type crewPanel struct {
-	campaign *campaign.Campaign
-	wm       *WorldManager
-}
-
-func newCrewPanel(c *campaign.Campaign, wm *WorldManager) *crewPanel {
-	return &crewPanel{campaign: c, wm: wm}
-}
-
-func (p *crewPanel) Enter()  {}
-func (p *crewPanel) Update() {}
-func (p *crewPanel) Draw(s *ebiten.Image) {
-	cfg := config.Global()
-	cx := cfg.ScreenWidth / 2
-	mlge_text.Draw(s, "Crew", 22, cx-40, dashContentTop+40, dashTitleColor)
-	mlge_text.Draw(s, "Crew roster and per-colonist management coming soon.", 13, cx-220, dashContentTop+80, dashBodyColor)
-}
-func (p *crewPanel) Transition() state.StateInterface { return nil }
-
 // ---- Global Inventory (inline) -----------------------------------------------
 
-// globalInvPanel renders the cross-campaign storage view inline. It reuses the
-// GlobalInventoryModal's data methods (aggregateAllSummaries / collectSites /
-// siteSummary — the summarization logic) via a data-only instance that is never
-// shown as a modal; the tab layout is rendered here.
+// globalInvPanel renders the cross-campaign storage view inline, using
+// globalInventoryData for the summarization logic and laying out the tabs here.
 type globalInvPanel struct {
 	campaign        *campaign.Campaign
 	wm              *WorldManager
-	data            *GlobalInventoryModal
+	data            *globalInventoryData
+	inspector       *StorageInspectorModal
 	activeTab       string // "current" | "all" | "site"
 	selectedSiteKey string
 	siteKeys        []string
 	subTabs         []*minui.Button
 	body            []minui.Element
+	beamDownBtn     *minui.Button
+	beamUpBtn       *minui.Button
 	dirty           bool
 }
 
-func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager) *globalInvPanel {
-	return &globalInvPanel{campaign: c, wm: wm, data: newGlobalInventoryModal(wm)}
+func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager, inspector *StorageInspectorModal) *globalInvPanel {
+	p := &globalInvPanel{campaign: c, wm: wm, data: newGlobalInventoryData(wm), inspector: inspector}
+	sw := config.Global().ScreenWidth
+	p.beamDownBtn = minui.NewButton("dash_gi_beam_down", "Beam Down ▼")
+	p.beamDownBtn.SetPosition(sw-330, dashContentTop+6)
+	p.beamDownBtn.SetSize(150, 30)
+	p.beamDownBtn.OnClick = func() {
+		if hold := p.wm.ShipHoldEntity(); hold != nil {
+			p.inspector.Open(hold)
+		}
+	}
+	p.beamUpBtn = minui.NewButton("dash_gi_beam_up", "Beam Up ▲")
+	p.beamUpBtn.SetPosition(sw-170, dashContentTop+6)
+	p.beamUpBtn.SetSize(150, 30)
+	p.beamUpBtn.OnClick = func() {
+		if hold := p.wm.SiteHoldEntity(); hold != nil {
+			p.inspector.Open(hold)
+		}
+	}
+	return p
 }
 
 func (p *globalInvPanel) Enter() {
-	// Default to the highest tier the player has unlocked.
-	switch {
-	case p.campaign.HasTech(techGlobalInvDetailed):
-		p.activeTab = "site"
-	case p.campaign.HasTech(techGlobalInvAll):
-		p.activeTab = "all"
-	default:
-		p.activeTab = "current"
+	// Pick the default (highest-unlocked) tier only on first entry; later
+	// entries (tab switches, post-beam refresh) keep the current sub-tab.
+	if p.activeTab == "" {
+		switch {
+		case p.campaign.HasTech(techGlobalInvDetailed):
+			p.activeTab = "site"
+		case p.campaign.HasTech(techGlobalInvAll):
+			p.activeTab = "all"
+		default:
+			p.activeTab = "current"
+		}
 	}
-	p.selectedSiteKey = ""
 	p.dirty = true
 }
 
@@ -349,6 +314,12 @@ func (p *globalInvPanel) Update() {
 	for _, e := range p.body {
 		e.Update()
 	}
+	// Beam-resources controls are only meaningful while in orbit over a site.
+	if p.wm.current != nil {
+		p.beamUpBtn.SetEnabled(p.wm.SiteHoldEntity() != nil)
+		p.beamDownBtn.Update()
+		p.beamUpBtn.Update()
+	}
 }
 
 func (p *globalInvPanel) Draw(s *ebiten.Image) {
@@ -363,6 +334,10 @@ func (p *globalInvPanel) Draw(s *ebiten.Image) {
 	}
 	for _, e := range p.body {
 		e.Draw(s)
+	}
+	if p.wm.current != nil {
+		p.beamDownBtn.Draw(s)
+		p.beamUpBtn.Draw(s)
 	}
 }
 

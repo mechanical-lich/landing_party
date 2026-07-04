@@ -465,6 +465,26 @@ func (wm *WorldManager) ShipHoldEntity() *ecs.Entity {
 	return wm.shipBeamHoldEntity()
 }
 
+// SiteHoldEntity returns the first colony-owned storage container on the loaded
+// site — the beam-up source — or nil if no site is loaded or it has no storage.
+func (wm *WorldManager) SiteHoldEntity() *ecs.Entity {
+	if wm.current == nil || wm.current.level == nil {
+		return nil
+	}
+	colony := campaignColonyName(wm.Campaign)
+	for _, ents := range [][]*ecs.Entity{wm.current.level.Entities, wm.current.level.StaticEntities} {
+		for _, e := range ents {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
+			if e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy == colony {
+				return e
+			}
+		}
+	}
+	return nil
+}
+
 // BeamResourceDown moves qty of blueprint from the ship hold into the first
 // colony-owned storage container at the current site.
 func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {

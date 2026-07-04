@@ -48,12 +48,12 @@ import (
 )
 
 type SettlementConfig struct {
-	Name             string
-	ScenarioID       string
-	MapID            string // "" = random map
-	Seed             int64  // 0 = pick a random seed at generation time
-	LightingMode     string // "" = use scenario default
-	LightingAmbient  int    // only used when LightingMode == "fixed"
+	Name            string
+	ScenarioID      string
+	MapID           string // "" = random map
+	Seed            int64  // 0 = pick a random seed at generation time
+	LightingMode    string // "" = use scenario default
+	LightingAmbient int    // only used when LightingMode == "fixed"
 
 	// Campaign integration: when PartyEntities is non-empty, newGame beams
 	// those colonists in at the plaza instead of spawning the default squad.
@@ -73,45 +73,44 @@ type pendingRelocate struct {
 	qty       int
 }
 
-
 type MainState struct {
-	level             *world.Level
-	CameraX           int
-	CameraY           int
-	CameraZ           int
-	CursorMode        gui.CursorModeType
-	guiManager        *gui.GUIManager
-	systemManager     *ecs.SystemManager
+	level         *world.Level
+	CameraX       int
+	CameraY       int
+	CameraZ       int
+	CursorMode    gui.CursorModeType
+	guiManager    *gui.GUIManager
+	systemManager *ecs.SystemManager
 	// bgSystemManager mirrors systemManager minus the render-only systems, used
 	// to tick this level in the background (e.g. The Ship while you're planetside).
-	bgSystemManager *ecs.SystemManager
-	gm                *GameMaster
-	selectedEntity    *ecs.Entity
-	TileSizeW         int
-	TileSizeH         int
-	Paused            bool
-	MainSettlement    *settlement.Settlement
-	op                *ebiten.DrawImageOptions
-	initiativeSystem  *rlsystems.InitiativeSystem
-	cleanUpSystem     *rlsystems.CleanUpSystem
-	worldImage        *ebiten.Image
-	buildMode         string
-	tick              int
-	day               int
-	lastDay           int
-	mouseDragging     bool
-	lastDragTileX     int
-	lastDragTileY     int
-	hoverTileX        int
-	hoverTileY        int
-	hoverActive       bool
-	settlementCfg     SettlementConfig
-	done              bool
-	next              state.StateInterface
-	mapModal          *MapModal
-	cheatModal        *CheatModal
-	storageInspector  *StorageInspectorModal
-	pendingRelocate   *pendingRelocate
+	bgSystemManager  *ecs.SystemManager
+	gm               *GameMaster
+	selectedEntity   *ecs.Entity
+	TileSizeW        int
+	TileSizeH        int
+	Paused           bool
+	MainSettlement   *settlement.Settlement
+	op               *ebiten.DrawImageOptions
+	initiativeSystem *rlsystems.InitiativeSystem
+	cleanUpSystem    *rlsystems.CleanUpSystem
+	worldImage       *ebiten.Image
+	buildMode        string
+	tick             int
+	day              int
+	lastDay          int
+	mouseDragging    bool
+	lastDragTileX    int
+	lastDragTileY    int
+	hoverTileX       int
+	hoverTileY       int
+	hoverActive      bool
+	settlementCfg    SettlementConfig
+	done             bool
+	next             state.StateInterface
+	mapModal         *MapModal
+	cheatModal       *CheatModal
+	storageInspector *StorageInspectorModal
+	pendingRelocate  *pendingRelocate
 	// pendingStoreItem is the item picked in the first click of Store mode,
 	// awaiting a destination-container click. nil = no item picked yet (or
 	// not in Store mode).
@@ -124,18 +123,18 @@ type MainState struct {
 	// pendingPickupColonist is the colonist whose modal Pickup button was
 	// clicked. Set while in CursorModePickup awaiting a target-item click.
 	pendingPickupColonist *ecs.Entity
-	smallMap          *SmallMapWidget
-	followEntity      *ecs.Entity
-	rogueEntity       *ecs.Entity
-	rogueMoveTargetX  int
-	rogueMoveTargetY  int
-	rogueMoveTargetZ  int
-	rogueMoveActive   bool
-	rogueAutoMoveTick int
-	roguePath         [][2]int
-	campaign          *campaign.Campaign
-	wm                *WorldManager
-	starMapBtn        *minui.Button
+	smallMap              *SmallMapWidget
+	followEntity          *ecs.Entity
+	rogueEntity           *ecs.Entity
+	rogueMoveTargetX      int
+	rogueMoveTargetY      int
+	rogueMoveTargetZ      int
+	rogueMoveActive       bool
+	rogueAutoMoveTick     int
+	roguePath             [][2]int
+	campaign              *campaign.Campaign
+	wm                    *WorldManager
+	starMapBtn            *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
@@ -210,17 +209,17 @@ func (s *MainState) registerLevelListeners() {
 
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s := &MainState{
-		CursorMode:    gui.CursorModeDefault,
+		CursorMode:      gui.CursorModeDefault,
 		systemManager:   &ecs.SystemManager{},
 		bgSystemManager: &ecs.SystemManager{},
-		op:            &ebiten.DrawImageOptions{},
-		TileSizeW:     config.Global().TileSizeW,
-		TileSizeH:     config.Global().TileSizeH,
-		CameraX:       0,
-		CameraY:       0,
+		op:              &ebiten.DrawImageOptions{},
+		TileSizeW:       config.Global().TileSizeW,
+		TileSizeH:       config.Global().TileSizeH,
+		CameraX:         0,
+		CameraY:         0,
 		// CameraZ is initialised here, but newGame / newMainStateFromLevel
 		// overwrite it with the level's SurfaceZ once the level exists.
-		CameraZ: 0,
+		CameraZ:       0,
 		settlementCfg: cfg,
 		buildMode:     "hull_wall",
 	}

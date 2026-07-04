@@ -6,6 +6,7 @@
 saves/
 bin/
 dist/
+.claude/
 cpu.pprof
 mem.pprof
 data/config.local.json

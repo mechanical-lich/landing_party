@@ -10,10 +10,10 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/research"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/ui/minui"
-	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 )
 
 const (

@@ -44,7 +44,6 @@ type TitleState struct {
 	seedInput     *minui.TextInput
 	randomSeedBtn *minui.Button
 
-
 	mapPicker *minui.SelectBox
 	mapIDs    []string
 

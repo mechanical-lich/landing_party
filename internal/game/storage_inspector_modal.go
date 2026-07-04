@@ -101,8 +101,8 @@ type StorageInspectorModal struct {
 	filterValues []string // parallel to filterList items; "" = "All"
 
 	invList   *minui.ListBox
-	invBPs    []string      // parallel to invList items
-	invHdrLbl *minui.Label  // "Inventory (n/cap slots)" — kept live by refreshInventory
+	invBPs    []string     // parallel to invList items
+	invHdrLbl *minui.Label // "Inventory (n/cap slots)" — kept live by refreshInventory
 
 	allowedList *minui.ListBox
 	allowedTags []string // parallel to allowedList items (raw tag names)
