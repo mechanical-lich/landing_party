@@ -644,6 +644,16 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 
 	ms.campaign = c
 	ms.wm = wm
+	// Cache the generated map dimensions on the location so the Star Map can
+	// size its icon without loading the level.
+	if ms.level != nil {
+		loc.MapW, loc.MapH = ms.level.GetWidth(), ms.level.GetHeight()
+		// Capture a station's structure footprint for its Star Map icon
+		// (recomputed if the stored grid resolution no longer matches).
+		if loc.Kind == "station" && len(loc.StationFootprint) != stationFootprintDim {
+			loc.StationFootprint = stationFootprint(ms.level)
+		}
+	}
 	// The campaign (which holds researched techs in campaign mode) is only wired
 	// up now, after MainState construction — re-sync anything that gates on it.
 	ms.refreshResourceScanner()
@@ -657,6 +667,44 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	// Park it: detach listeners until the player Resumes.
 	ms.teardown()
 	return ms, nil
+}
+
+// stationFootprint downsamples a station level's structure into a square
+// occupancy grid (one row bitmask per entry: bit j of row i set = that region
+// contains a hull deck). Used to draw a map-shaped Star Map icon.
+func stationFootprint(level *world.Level) []uint16 {
+	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
+	if w <= 0 || h <= 0 {
+		return nil
+	}
+	rows := make([]uint16, stationFootprintDim)
+	for oy := 0; oy < stationFootprintDim; oy++ {
+		y0, y1 := oy*h/stationFootprintDim, (oy+1)*h/stationFootprintDim
+		for ox := 0; ox < stationFootprintDim; ox++ {
+			x0, x1 := ox*w/stationFootprintDim, (ox+1)*w/stationFootprintDim
+			if regionHasDeck(level, x0, x1, y0, y1, d) {
+				rows[oy] |= 1 << uint(ox)
+			}
+		}
+	}
+	return rows
+}
+
+// regionHasDeck reports whether any tile in the [x0,x1)×[y0,y1) column region
+// (across all Z) has a Floor — i.e. a hull deck marks the station's extent.
+func regionHasDeck(level *world.Level, x0, x1, y0, y1, d int) bool {
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			for z := 0; z < d; z++ {
+				if ti := level.GetTileAt(x, y, z); ti != nil {
+					if t, ok := ti.(*world.Tile); ok && !t.Floor.IsEmpty() {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 // spawnLocationFixtures materializes this location's quest fixtures (named

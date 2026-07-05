@@ -53,6 +53,17 @@ type Location struct {
 	// Global Inventory modal to display data from parked sites without
 	// loading the full level.
 	StorageSummary map[string]int `json:"storage_summary,omitempty"`
+
+	// MapW, MapH are the site's generated map dimensions, cached once the
+	// location has been built so the Star Map can size its icon without loading
+	// the level. Zero until the site has been generated (unvisited).
+	MapW int `json:"map_w,omitempty"`
+	MapH int `json:"map_h,omitempty"`
+
+	// StationFootprint is a downsampled occupancy grid (one row bitmask per
+	// entry) of a station's structure, captured at generation so the Star Map
+	// can draw a map-shaped icon. Only set for station-kind locations.
+	StationFootprint []uint16 `json:"station_footprint,omitempty"`
 }
 
 // QuestFixture describes one quest-placed entity for a location.

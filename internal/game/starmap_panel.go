@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -209,6 +210,42 @@ func (p *starMapPanel) homeLocation() *campaign.Location {
 	return nil
 }
 
+// clusterBoundaryPad is the screen-pixel margin added to the cluster boundary
+// so edge sites (and their icons) sit comfortably inside it.
+const clusterBoundaryPad = 48
+
+// clusterBounds returns the world-space centre and radius of a circle enclosing
+// all discovered non-Home sites (ok=false if there are none). Centred on the
+// cluster — not the ship — so it hugs the sites wherever the ship is.
+func (p *starMapPanel) clusterBounds() (cx, cy, radius float64, ok bool) {
+	minX, minY := math.Inf(1), math.Inf(1)
+	maxX, maxY := math.Inf(-1), math.Inf(-1)
+	n := 0
+	for _, id := range p.locIDs {
+		loc := p.campaign.Locations[id]
+		if loc == nil || loc.Kind == campaign.HomeKind {
+			continue
+		}
+		minX, maxX = math.Min(minX, loc.X), math.Max(maxX, loc.X)
+		minY, maxY = math.Min(minY, loc.Y), math.Max(maxY, loc.Y)
+		n++
+	}
+	if n == 0 {
+		return 0, 0, 0, false
+	}
+	cx, cy = (minX+maxX)/2, (minY+maxY)/2
+	for _, id := range p.locIDs {
+		loc := p.campaign.Locations[id]
+		if loc == nil || loc.Kind == campaign.HomeKind {
+			continue
+		}
+		if d := math.Hypot(loc.X-cx, loc.Y-cy); d > radius {
+			radius = d
+		}
+	}
+	return cx, cy, radius, true
+}
+
 func (p *starMapPanel) travel() {
 	loc := p.selectedLocation()
 	if loc == nil {
@@ -316,11 +353,24 @@ func (p *starMapPanel) fitView() {
 		p.camX, p.camY, p.zoom = 0, 0, 1
 		return
 	}
+	// Frame the working cluster, ignoring Home: it's a distant goal (its dashed
+	// line shows the direction) and including it drags the fit way out.
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
+	n := 0
 	for _, l := range locs {
+		if l.Kind == campaign.HomeKind {
+			continue
+		}
 		minX, maxX = math.Min(minX, l.X), math.Max(maxX, l.X)
 		minY, maxY = math.Min(minY, l.Y), math.Max(maxY, l.Y)
+		n++
+	}
+	if n == 0 { // only Home discovered — fall back to including it
+		for _, l := range locs {
+			minX, maxX = math.Min(minX, l.X), math.Max(maxX, l.X)
+			minY, maxY = math.Min(minY, l.Y), math.Max(maxY, l.Y)
+		}
 	}
 	if cur := p.campaign.CurrentLocation(); cur != nil {
 		p.camX, p.camY = cur.X, cur.Y
@@ -331,21 +381,26 @@ func (p *starMapPanel) fitView() {
 	zx := float64(p.canvasW-120) / spanX
 	zy := float64(p.canvasH-120) / spanY
 	p.fitZoom = math.Min(zx, zy)
-	// Zoom in past a pure fit-all so the central planets read large by default;
+	// Zoom in past a pure fit so the central cluster reads large by default;
 	// outer locations are a short pan away.
 	p.zoom = clampZoom(p.fitZoom * defaultZoomFactor)
 }
 
-// defaultZoomFactor tightens the initial fit-to-all view so the map opens
-// closer on the central cluster rather than showing the whole extent.
-const defaultZoomFactor = 1.75
+// defaultZoomFactor tightens the initial fit view (of the working cluster) so
+// the map opens closer on the central sites rather than showing the full extent.
+const defaultZoomFactor = 1.6
+
+const (
+	minZoom = 0.05
+	maxZoom = 64
+)
 
 func clampZoom(z float64) float64 {
-	if z < 0.05 {
-		return 0.05
+	if z < minZoom {
+		return minZoom
 	}
-	if z > 16 {
-		return 16
+	if z > maxZoom {
+		return maxZoom
 	}
 	return z
 }
@@ -413,7 +468,7 @@ func (p *starMapPanel) hitSelect(mx, my int) {
 		}
 		sx, sy := p.worldToScreen(loc.X, loc.Y)
 		d := math.Hypot(float64(sx)-float64(mx), float64(sy)-float64(my))
-		hitR := float64(kindRadius(loc.Kind)) + 8
+		hitR := float64(siteRadius(loc)) + 8
 		if d <= hitR && d < bestDist {
 			best, bestDist = i, d
 		}
@@ -433,13 +488,14 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	sel := p.selectedLocation()
 	cur := p.campaign.CurrentLocation()
 
-	// Fuel-range ring around the current position (1 fuel ≈ 1 world unit).
+	// Green boundary hugging all discovered non-Home sites; grows as more
+	// systems are charted.
+	if bx, by, br, ok := p.clusterBounds(); ok {
+		scx, scy := p.worldToScreen(bx, by)
+		vector.StrokeCircle(canvas, scx, scy, float32(br)*float32(p.zoom)+clusterBoundaryPad, 2, color.RGBA{120, 220, 160, 220}, true)
+	}
 	if cur != nil {
 		cx, cy := p.worldToScreen(cur.X, cur.Y)
-		r := float32(p.fuelAvailable()) * float32(p.zoom)
-		if r > 2 {
-			vector.StrokeCircle(canvas, cx, cy, r, 1, color.RGBA{60, 120, 90, 160}, true)
-		}
 		// Dashed line to Home — the goal of the run.
 		if home := p.homeLocation(); home != nil && home != cur {
 			hx, hy := p.worldToScreen(home.X, home.Y)
@@ -458,11 +514,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 			continue
 		}
 		sx, sy := p.worldToScreen(loc.X, loc.Y)
-		r := kindRadius(loc.Kind)
-		vector.DrawFilledCircle(canvas, sx, sy, r, kindColor(loc.Kind), true)
-		if loc == cur {
-			vector.StrokeCircle(canvas, sx, sy, r+5, 2, color.RGBA{120, 220, 160, 255}, true)
-		}
+		r := siteRadius(loc)
+		drawSiteIcon(canvas, loc, sx, sy, r)
 		if loc == sel {
 			vector.StrokeCircle(canvas, sx, sy, r+3, 2, color.RGBA{255, 230, 120, 255}, true)
 		}
@@ -519,41 +572,149 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	}
 }
 
-// ---- procedural icon styling ----
+// ---- procedural site icons ----
 
-func kindColor(kind string) color.RGBA {
-	switch kind {
-	case campaign.HomeKind:
-		return color.RGBA{255, 220, 120, 255}
-	case "planet":
-		return color.RGBA{90, 170, 255, 255}
-	case "gas_giant":
-		return color.RGBA{210, 160, 120, 255}
-	case "moon":
-		return color.RGBA{185, 195, 205, 255}
-	case "asteroid_field":
-		return color.RGBA{170, 140, 110, 255}
-	case "station":
-		return color.RGBA{150, 220, 200, 255}
-	default:
-		return color.RGBA{140, 200, 220, 255}
+const (
+	siteSizeScale       = 32.0 // map avg-dimension pixels per icon-radius pixel
+	minSiteRadius       = 4
+	maxSiteRadius       = 22
+	defaultSiteRadius   = 13 // shown until a site has been generated (size unknown)
+	minStationRadius    = 26 // stations render a map-footprint silhouette, so bigger
+	maxStationRadius    = 40
+	stationFootprintDim = 16 // resolution of a station's footprint icon grid
+)
+
+// siteRadius scales a site's icon by its generated map size (average of W and
+// H; Z is always small so it's ignored). Zero dimensions — an unvisited site
+// whose size isn't known yet — fall back to a default radius.
+func siteRadius(loc *campaign.Location) float32 {
+	if loc.MapW <= 0 || loc.MapH <= 0 {
+		return defaultSiteRadius
 	}
+	r := float64(loc.MapW+loc.MapH) / 2 / siteSizeScale
+	if loc.Kind == "station" {
+		// Stations draw a whole map-footprint silhouette, so render them larger
+		// (and within a higher range) than a planet dot for legibility.
+		if r < minStationRadius {
+			r = minStationRadius
+		}
+		if r > maxStationRadius {
+			r = maxStationRadius
+		}
+		return float32(r)
+	}
+	if r < minSiteRadius {
+		r = minSiteRadius
+	}
+	if r > maxSiteRadius {
+		r = maxSiteRadius
+	}
+	return float32(r)
 }
 
-func kindRadius(kind string) float32 {
-	switch kind {
-	case campaign.HomeKind:
-		return 11
-	case "gas_giant":
-		return 10
-	case "planet":
-		return 8
-	case "moon":
-		return 5
-	case "asteroid_field":
-		return 4
+// siteColor is a deterministic per-site colour derived from the location seed.
+func siteColor(loc *campaign.Location) color.RGBA {
+	rng := rand.New(rand.NewSource(loc.Seed*2654435761 + 1))
+	return hsvColor(rng.Float64()*360, 0.5, 0.92)
+}
+
+// hsvColor converts HSV (h in degrees, s,v in [0,1]) to an opaque RGBA.
+func hsvColor(h, s, v float64) color.RGBA {
+	c := v * s
+	x := c * (1 - math.Abs(math.Mod(h/60, 2)-1))
+	m := v - c
+	var r, g, b float64
+	switch {
+	case h < 60:
+		r, g, b = c, x, 0
+	case h < 120:
+		r, g, b = x, c, 0
+	case h < 180:
+		r, g, b = 0, c, x
+	case h < 240:
+		r, g, b = 0, x, c
+	case h < 300:
+		r, g, b = x, 0, c
 	default:
-		return 6
+		r, g, b = c, 0, x
+	}
+	return color.RGBA{uint8((r + m) * 255), uint8((g + m) * 255), uint8((b + m) * 255), 255}
+}
+
+// drawStationFootprint renders a station's captured structure grid as a mini
+// map-shaped icon within the 2r×2r box centred on (sx,sy). Returns false (so the
+// caller falls back to a placeholder) when no footprint has been captured.
+func drawStationFootprint(canvas *ebiten.Image, fp []uint16, sx, sy, r float32) bool {
+	if len(fp) != stationFootprintDim {
+		return false
+	}
+	any := false
+	for _, row := range fp {
+		if row != 0 {
+			any = true
+			break
+		}
+	}
+	if !any {
+		return false
+	}
+	cell := (r * 2) / float32(stationFootprintDim)
+	x0, y0 := sx-r, sy-r
+	col := color.RGBA{150, 220, 200, 255}
+	for row := 0; row < stationFootprintDim; row++ {
+		bits := fp[row]
+		for c := 0; c < stationFootprintDim; c++ {
+			if bits&(1<<uint(c)) != 0 {
+				vector.DrawFilledRect(canvas, x0+float32(c)*cell, y0+float32(row)*cell, cell+0.6, cell+0.6, col, false)
+			}
+		}
+	}
+	return true
+}
+
+// drawSiteIcon renders a location's procedural marker: a coloured disc for
+// planets/moons, a scatter of rocks for asteroid fields, and a "?" square for
+// stations. Home keeps its distinct gold disc.
+func drawSiteIcon(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r float32) {
+	// Home is always its distinct gold marker (it's the goal, never "visited").
+	if loc.Kind == campaign.HomeKind {
+		vector.DrawFilledCircle(canvas, sx, sy, r, color.RGBA{255, 220, 120, 255}, true)
+		return
+	}
+	// Unvisited sites are unknown: a muted disc with a "?" until you travel there.
+	if loc.MapW <= 0 || loc.MapH <= 0 {
+		vector.DrawFilledCircle(canvas, sx, sy, r, color.RGBA{55, 65, 85, 255}, true)
+		vector.StrokeCircle(canvas, sx, sy, r, 1.5, color.RGBA{130, 150, 180, 255}, true)
+		mlge_text.Draw(canvas, "?", float64(r)*1.5, int(sx)-int(r*0.4), int(sy)-int(r*0.9), color.RGBA{200, 215, 235, 255})
+		return
+	}
+	switch loc.Kind {
+	case "asteroid_field":
+		rng := rand.New(rand.NewSource(loc.Seed*40503 + 7))
+		rocks := 5 + int(r/3)
+		for i := 0; i < rocks; i++ {
+			a := rng.Float64() * 2 * math.Pi
+			d := rng.Float64() * float64(r)
+			rx := sx + float32(math.Cos(a)*d)
+			ry := sy + float32(math.Sin(a)*d)
+			rr := r*0.20 + float32(rng.Float64())*r*0.15
+			g := uint8(120 + rng.Intn(70))
+			vector.DrawFilledCircle(canvas, rx, ry, rr, color.RGBA{g, g - 25, g - 45, 255}, true)
+		}
+	case "station":
+		// Once generated, draw the station's actual map footprint; otherwise a
+		// "?" square placeholder.
+		if drawStationFootprint(canvas, loc.StationFootprint, sx, sy, r) {
+			return
+		}
+		side := int(r * 2)
+		box := minui.Rect{X: int(sx) - int(r), Y: int(sy) - int(r), Width: side, Height: side}
+		minui.DrawRect(canvas, box, color.RGBA{150, 220, 200, 255})
+		minui.DrawRectStroke(canvas, box, 1, color.RGBA{210, 245, 235, 255})
+		fs := float64(r) * 1.6
+		mlge_text.Draw(canvas, "?", fs, int(sx)-int(r*0.45), int(sy)-int(r*0.95), color.RGBA{20, 40, 40, 255})
+	default:
+		vector.DrawFilledCircle(canvas, sx, sy, r, siteColor(loc), true)
 	}
 }
 
