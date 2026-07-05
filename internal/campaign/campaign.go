@@ -2,6 +2,7 @@ package campaign
 
 import (
 	"math"
+	"strings"
 
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
@@ -46,8 +47,49 @@ type Campaign struct {
 	// finishes. Persisted across save/load.
 	KnownEntities []string `json:"known_entities,omitempty"`
 
+	// TravelEdges counts how many times the ship has jumped directly between
+	// each pair of locations, keyed by a canonical unordered pair. The Star Map
+	// draws these as trade-route lines that darken with use.
+	TravelEdges map[string]int `json:"travel_edges,omitempty"`
+
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
+}
+
+// travelEdgeKey builds the canonical (order-independent) key for a location pair.
+func travelEdgeKey(a, b string) string {
+	if a > b {
+		a, b = b, a
+	}
+	return a + "\x00" + b
+}
+
+// RecordTravel increments the traversal count for the fromID↔toID route.
+func (c *Campaign) RecordTravel(fromID, toID string) {
+	if fromID == "" || toID == "" || fromID == toID {
+		return
+	}
+	if c.TravelEdges == nil {
+		c.TravelEdges = map[string]int{}
+	}
+	c.TravelEdges[travelEdgeKey(fromID, toID)]++
+}
+
+// TravelRoute is one traversed route between two locations with its use count.
+type TravelRoute struct {
+	A, B  string
+	Count int
+}
+
+// TravelRoutes returns every recorded route, for rendering on the Star Map.
+func (c *Campaign) TravelRoutes() []TravelRoute {
+	out := make([]TravelRoute, 0, len(c.TravelEdges))
+	for k, n := range c.TravelEdges {
+		if i := strings.IndexByte(k, 0); i >= 0 {
+			out = append(out, TravelRoute{A: k[:i], B: k[i+1:], Count: n})
+		}
+	}
+	return out
 }
 
 // HomeKind marks the single "Home" destination; travelling there wins the run.

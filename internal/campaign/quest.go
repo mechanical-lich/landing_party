@@ -31,13 +31,13 @@ type QuestReward struct {
 // rule engine (resource_gathered, entity_killed, tech_researched,
 // structure_built, days_survived, ...) so quests share one evaluation path.
 type Quest struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Objective   objective.Rule `json:"objective"`
-	Reward      QuestReward    `json:"reward"`
-	AutoAccept  bool           `json:"auto_accept,omitempty"`
-	RequiresQuest string       `json:"requires_quest,omitempty"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Description   string         `json:"description"`
+	Objective     objective.Rule `json:"objective"`
+	Reward        QuestReward    `json:"reward"`
+	AutoAccept    bool           `json:"auto_accept,omitempty"`
+	RequiresQuest string         `json:"requires_quest,omitempty"`
 	// Location, when set, binds the quest to one overworld location: accepting
 	// the quest reveals that location, and the objective is only evaluated
 	// while the landing party is actually there.

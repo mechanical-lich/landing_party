@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -156,6 +157,9 @@ func (ts *TitleState) confirmLoad() {
 	}
 	c.BindQuests()
 	wm := NewWorldManager(c)
+	if err := wm.EnterStartingOrbit(); err != nil {
+		log.Printf("EnterStartingOrbit: %v", err)
+	}
 	ts.next = NewDashboardState(c, wm)
 	ts.done = true
 }
@@ -337,6 +341,9 @@ func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
 	wm := NewWorldManager(c)
 	wm.SeedShipCrew(cfg.StartColonists) // crew spawns aboard the ship
 	wm.StockShipLocker(cfg.StartFuel)   // and the hold is stocked
+	if err := wm.EnterStartingOrbit(); err != nil {
+		log.Printf("EnterStartingOrbit: %v", err)
+	}
 	return NewDashboardState(c, wm), nil
 }
 

@@ -25,4 +25,3 @@ func OpenToSky(level *world.Level, x, y, z int) bool {
 	}
 	return true
 }
-

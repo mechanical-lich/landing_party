@@ -488,6 +488,22 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	sel := p.selectedLocation()
 	cur := p.campaign.CurrentLocation()
 
+	// Trade routes: a dotted line between each pair of sites the ship has
+	// jumped between, darkening the more that route is travelled.
+	for _, route := range p.campaign.TravelRoutes() {
+		a, b := p.campaign.Locations[route.A], p.campaign.Locations[route.B]
+		if a == nil || b == nil {
+			continue
+		}
+		ax, ay := p.worldToScreen(a.X, a.Y)
+		bx, by := p.worldToScreen(b.X, b.Y)
+		alpha := 45 + (route.Count-1)*30
+		if alpha > 220 {
+			alpha = 220
+		}
+		drawDashedLine(canvas, ax, ay, bx, by, 2, 5, 1, color.RGBA{140, 175, 210, uint8(alpha)})
+	}
+
 	// Green boundary hugging all discovered non-Home sites; grows as more
 	// systems are charted.
 	if bx, by, br, ok := p.clusterBounds(); ok {

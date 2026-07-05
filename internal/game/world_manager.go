@@ -808,6 +808,7 @@ func (wm *WorldManager) Travel(locID string) error {
 	if dest == nil {
 		return fmt.Errorf("travel: unknown location %q", locID)
 	}
+	from := c.CurrentLocationID // origin of this jump, for the travel-route log
 	if wm.current != nil {
 		if c.CurrentLocationID == locID {
 			return nil // already loaded
@@ -817,6 +818,9 @@ func (wm *WorldManager) Travel(locID string) error {
 		}
 		wm.current = nil
 	}
+	// Log the traversed route (both real, distinct locations) so the Star Map
+	// can draw trade lines that darken with repeated use.
+	c.RecordTravel(from, locID)
 	// Reaching Home ends the run in victory — no level to generate or land.
 	if dest.Kind == campaign.HomeKind {
 		c.CurrentLocationID = locID
@@ -838,6 +842,27 @@ func (wm *WorldManager) Travel(locID string) error {
 		}
 		message.PostMessage("Mission", fmt.Sprintf("New contracts received (%d).", added))
 	}
+	return nil
+}
+
+// EnterStartingOrbit parks the campaign's current location so a session begins
+// already in orbit of it — no fuel cost, no travel-quest roll — rather than "in
+// transit". No-op if a location is already loaded or the current site is Home.
+func (wm *WorldManager) EnterStartingOrbit() error {
+	c := wm.Campaign
+	if wm.current != nil || c == nil || c.CurrentLocationID == "" {
+		return nil
+	}
+	loc := c.Locations[c.CurrentLocationID]
+	if loc == nil || loc.Kind == campaign.HomeKind {
+		return nil
+	}
+	ms, err := wm.buildParked(c.CurrentLocationID)
+	if err != nil {
+		return err
+	}
+	wm.current = ms
+	wm.landSet = false
 	return nil
 }
 
