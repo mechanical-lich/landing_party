@@ -134,7 +134,7 @@ type MainState struct {
 	roguePath             [][2]int
 	campaign              *campaign.Campaign
 	wm                    *WorldManager
-	starMapBtn            *minui.Button
+	dashboardBtn            *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
@@ -142,8 +142,8 @@ type MainState struct {
 }
 
 const (
-	starMapBtnW = 120
-	starMapBtnH = 26
+	dashboardBtnW = 120
+	dashboardBtnH = 26
 )
 
 // sharedListenersOnce guards process-wide singleton listeners against being
@@ -343,11 +343,11 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.registerListeners()
 
 	// Sit just left of the minimap's "Follow" button, top-aligned with it.
-	s.starMapBtn = minui.NewButton("star_map_btn", "Star Map")
+	s.dashboardBtn = minui.NewButton("dashboard_btn", "Dashboard")
 	followBtnX := (config.Global().ScreenWidth - smallMapSize - smallMapMargin) - followBtnW - 2
-	s.starMapBtn.SetPosition(followBtnX-starMapBtnW-6, smallMapMargin)
-	s.starMapBtn.SetSize(starMapBtnW, starMapBtnH)
-	s.starMapBtn.OnClick = func() { s.openStarMap() }
+	s.dashboardBtn.SetPosition(followBtnX-dashboardBtnW-6, smallMapMargin)
+	s.dashboardBtn.SetSize(dashboardBtnW, dashboardBtnH)
+	s.dashboardBtn.OnClick = func() { s.openDashboard() }
 
 	return s, nil
 }
@@ -727,7 +727,7 @@ func (s *MainState) Update() state.StateInterface {
 		s.smallMap.Update()
 	}
 	if s.wm != nil && !s.mapModal.Visible && !s.guiManager.GetInputFocused() {
-		s.starMapBtn.Update()
+		s.dashboardBtn.Update()
 	}
 	s.mapModal.Update()
 	s.cheatModal.Update()
@@ -806,7 +806,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 		s.smallMap.Draw(screen)
 	}
 	if s.wm != nil && !s.mapModal.Visible {
-		s.starMapBtn.Draw(screen)
+		s.dashboardBtn.Draw(screen)
 	}
 	s.mapModal.Draw(screen)
 	s.cheatModal.Draw(screen)
@@ -1703,7 +1703,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyO) && s.wm != nil {
-		s.openStarMap()
+		s.openDashboard()
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyB) && s.campaign != nil {
 		s.beamUpSelected()
@@ -1738,11 +1738,11 @@ func (s *MainState) beamUpSelected() {
 	message.PostMessage("Ship", "Colonist beamed up to the ship.")
 }
 
-// openStarMap parks the live location (keeps it in memory, detaches its event
-// listeners) and switches to the Star Map. The level is not serialized here —
+// openDashboard parks the live location (keeps it in memory, detaches its event
+// listeners) and switches to the Dashboard. The level is not serialized here —
 // it stays loaded so colonists can be shuffled, and is only frozen to disk on
 // Travel-away or Save.
-func (s *MainState) openStarMap() {
+func (s *MainState) openDashboard() {
 	if s.wm == nil {
 		return
 	}
@@ -1802,10 +1802,10 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	}
 	if s.wm != nil {
 		fx := (config.Global().ScreenWidth - smallMapSize - smallMapMargin) - followBtnW - 2
-		bx := fx - starMapBtnW - 6
+		bx := fx - dashboardBtnW - 6
 		by := smallMapMargin
-		if cXg >= bx && cXg <= bx+starMapBtnW && cYg >= by && cYg <= by+starMapBtnH {
-			return // Star Map button
+		if cXg >= bx && cXg <= bx+dashboardBtnW && cYg >= by && cYg <= by+dashboardBtnH {
+			return // Dashboard button
 		}
 	}
 
