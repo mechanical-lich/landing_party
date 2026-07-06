@@ -24,6 +24,32 @@ func displayName(blueprint string, desc *rlcomponents.DescriptionComponent) stri
 	return blueprint
 }
 
+// synthDescription builds a short natural-language summary from an entry's
+// structured fields, so a card always has a readable description even before any
+// LongDescription lore is authored.
+func synthDescription(blueprint string, desc *rlcomponents.DescriptionComponent) string {
+	if desc == nil {
+		return "An unidentified object; no data on record."
+	}
+	subject := strings.TrimSpace(desc.Classification + " " + desc.Species)
+	if subject == "" {
+		subject = desc.Name
+	}
+	if subject == "" {
+		subject = blueprint
+	}
+	subject = strings.ToLower(subject)
+	article := "A"
+	if len(subject) > 0 && strings.ContainsRune("aeiou", rune(subject[0])) {
+		article = "An"
+	}
+	s := article + " " + subject + "."
+	if desc.Faction != "" {
+		s += " Faction: " + desc.Faction + "."
+	}
+	return s
+}
+
 // drawWrapped renders text wrapping on word boundaries to fit maxW pixels per
 // line, estimating characters at fontSize*6/10 wide. Returns the Y below the
 // last line drawn so callers can stack further content.

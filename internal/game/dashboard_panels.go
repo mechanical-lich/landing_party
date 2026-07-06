@@ -454,21 +454,31 @@ func (p *encyclopediaPanel) Draw(screen *ebiten.Image) {
 	titleY := detailY + 10
 	mlge_text.Draw(screen, displayName(bp, desc), 24, titleX, titleY, color.RGBA{230, 240, 255, 255})
 
+	// Structured attributes — always shown, whatever the entry carries.
 	subY := titleY + 30
-	if desc != nil && desc.Faction != "" {
-		mlge_text.Draw(screen, "Faction: "+desc.Faction, 13, titleX, subY, color.RGBA{170, 200, 240, 255})
+	attr := func(label, val string) {
+		if val == "" {
+			return
+		}
+		mlge_text.Draw(screen, label+": "+val, 13, titleX, subY, color.RGBA{170, 200, 240, 255})
 		subY += 18
 	}
-	if desc != nil && len(desc.Tags) > 0 {
-		mlge_text.Draw(screen, "Tags: "+strings.Join(desc.Tags, ", "), 13, titleX, subY, color.RGBA{170, 200, 240, 255})
+	if desc != nil {
+		attr("Species", desc.Species)
+		attr("Class", desc.Classification)
+		attr("Faction", desc.Faction)
+		attr("Tags", strings.Join(desc.Tags, ", "))
 	}
 
-	bodyY := detailY + 110
-	bodyText := "No description recorded."
-	if desc != nil && desc.LongDescription != "" {
-		bodyText = desc.LongDescription
+	// Body: a synthesized summary always, then any authored lore beneath it.
+	bodyY := detailY + 88
+	if subY+16 > bodyY {
+		bodyY = subY + 16
 	}
-	drawWrapped(screen, bodyText, 14, detailX, bodyY, detailW, 22, color.RGBA{200, 220, 240, 255})
+	bodyY = drawWrapped(screen, synthDescription(bp, desc), 14, detailX, bodyY, detailW, 22, color.RGBA{200, 220, 240, 255}) + 12
+	if desc != nil && desc.LongDescription != "" {
+		drawWrapped(screen, desc.LongDescription, 14, detailX, bodyY, detailW, 22, color.RGBA{180, 205, 230, 255})
+	}
 
 	mlge_text.Draw(screen, "id: "+bp, 11, detailX, cfg.ScreenHeight-40, color.RGBA{90, 110, 130, 200})
 }
