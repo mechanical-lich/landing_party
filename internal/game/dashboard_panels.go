@@ -147,7 +147,7 @@ type globalInvPanel struct {
 	activeTab       string // "current" | "all" | "site"
 	selectedSiteKey string
 	siteKeys        []string
-	subTabs         []*minui.Button
+	subTabBar       *minui.TabBar
 	body            []minui.Element
 	beamDownBtn     *minui.Button
 	beamUpBtn       *minui.Button
@@ -157,6 +157,10 @@ type globalInvPanel struct {
 func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager, inspector *StorageInspectorModal) *globalInvPanel {
 	p := &globalInvPanel{campaign: c, wm: wm, data: newGlobalInventoryData(wm), inspector: inspector}
 	sw := config.Global().ScreenWidth
+	p.subTabBar = minui.NewTabBar("dash_gi_tabs", minui.Rect{X: 20, Y: dashContentTop + 4, Width: 520, Height: 28}, minui.TabsTop)
+	p.subTabBar.Style.ActiveFill = color.RGBA{6, 8, 16, 255}
+	p.subTabBar.Style.FontSize = 13
+	p.subTabBar.OnChange = func(id string) { p.activeTab = id; p.dirty = true }
 	p.beamDownBtn = minui.NewButton("dash_gi_beam_down", "Beam Down ▼")
 	p.beamDownBtn.SetPosition(sw-330, dashContentTop+6)
 	p.beamDownBtn.SetSize(150, 30)
@@ -194,35 +198,19 @@ func (p *globalInvPanel) Enter() {
 
 func (p *globalInvPanel) rebuild() {
 	p.dirty = false
-	p.subTabs = nil
 	p.body = nil
 	cfg := config.Global()
 
-	x := 20
-	addTab := func(id, label string) {
-		text := label
-		if id == p.activeTab {
-			text = "▸ " + label
-		}
-		b := minui.NewButton("dash_gi_tab_"+id, text)
-		b.SetPosition(x, dashContentTop+6)
-		b.SetSize(150, 30)
-		if id == p.activeTab {
-			b.SetEnabled(false)
-		} else {
-			id := id
-			b.OnClick = func() { p.activeTab = id; p.dirty = true }
-		}
-		p.subTabs = append(p.subTabs, b)
-		x += 156
-	}
-	addTab("current", "Current Site")
+	// Sub-tabs, gated by research tier.
+	p.subTabBar.Tabs = nil
+	p.subTabBar.AddTab("current", "Current Site")
 	if p.campaign.HasTech(techGlobalInvAll) {
-		addTab("all", "All Sites")
+		p.subTabBar.AddTab("all", "All Sites")
 	}
 	if p.campaign.HasTech(techGlobalInvDetailed) {
-		addTab("site", "By Site")
+		p.subTabBar.AddTab("site", "By Site")
 	}
+	p.subTabBar.SetActive(p.activeTab)
 
 	bodyX, bodyY := 20, dashContentTop+46
 	fullW := cfg.ScreenWidth - 40
@@ -305,12 +293,10 @@ func (p *globalInvPanel) Update() {
 	if !p.campaign.HasTech(techGlobalInvCurrent) {
 		return
 	}
-	if p.dirty || p.subTabs == nil {
+	if p.dirty || p.body == nil {
 		p.rebuild()
 	}
-	for _, b := range p.subTabs {
-		b.Update()
-	}
+	p.subTabBar.Update()
 	for _, e := range p.body {
 		e.Update()
 	}
@@ -329,9 +315,7 @@ func (p *globalInvPanel) Draw(s *ebiten.Image) {
 		mlge_text.Draw(s, "Requires Inventory Survey research.", 13, cx-160, dashContentTop+80, dashLockedColor)
 		return
 	}
-	for _, b := range p.subTabs {
-		b.Draw(s)
-	}
+	p.subTabBar.Draw(s)
 	for _, e := range p.body {
 		e.Draw(s)
 	}

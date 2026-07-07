@@ -14,7 +14,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.9.9
 	github.com/mechanical-lich/mechanical-basic v1.2.0
 	github.com/mechanical-lich/ml-rogue-lib v1.15.0
-	github.com/mechanical-lich/mlge v1.9.3
+	github.com/mechanical-lich/mlge v1.10.0
 	github.com/stretchr/testify v1.11.1
 )
 

@@ -32,8 +32,6 @@ type dashboardPanel interface {
 type dashTab struct {
 	id    string
 	label string
-	btn   *minui.Button
-	x, w  int
 	panel dashboardPanel
 }
 
@@ -46,6 +44,7 @@ type DashboardState struct {
 	wm       *WorldManager
 
 	tabs   []dashTab
+	tabBar *minui.TabBar
 	active int
 
 	returnShipBtn *minui.Button
@@ -77,20 +76,17 @@ func NewDashboardState(c *campaign.Campaign, wm *WorldManager) *DashboardState {
 		{"encyclopedia", "Encyclopedia", newEncyclopediaPanel(c, wm)},
 	}
 
-	x := 20
-	for _, p := range panels {
-		w := len(p.label)*9 + 22
-		i := len(d.tabs)
-		btn := minui.NewButton("dash_tab_"+p.id, p.label)
-		btn.SetPosition(x, 8)
-		btn.SetSize(w, 34)
-		btn.OnClick = func() { d.selectTab(i) }
-		d.tabs = append(d.tabs, dashTab{id: p.id, label: p.label, btn: btn, x: x, w: w, panel: p.panel})
-		x += w + 4
-	}
-
 	cfg := config.Global()
 	sw := cfg.ScreenWidth
+	d.tabBar = minui.NewTabBar("dash_tabs", minui.Rect{X: 16, Y: 6, Width: sw - 20, Height: 40}, minui.TabsTop)
+	d.tabBar.Style.ActiveFill = color.RGBA{6, 8, 16, 255} // = page bg, so the active tab opens into the page
+	d.tabBar.Style.FontSize = 15
+	for _, p := range panels {
+		d.tabs = append(d.tabs, dashTab{id: p.id, label: p.label, panel: p.panel})
+		d.tabBar.AddTab(p.id, p.label)
+	}
+	d.tabBar.OnChange = func(id string) { d.selectTabByID(id) }
+
 	d.saveBtn = minui.NewButton("dash_save", "Save")
 	d.saveBtn.SetPosition(sw-110, 8)
 	d.saveBtn.SetSize(90, 34)
@@ -119,6 +115,15 @@ func (d *DashboardState) selectTab(i int) {
 	d.active = i
 	d.status = ""
 	d.tabs[i].panel.Enter()
+}
+
+func (d *DashboardState) selectTabByID(id string) {
+	for i := range d.tabs {
+		if d.tabs[i].id == id {
+			d.selectTab(i)
+			return
+		}
+	}
 }
 
 func (d *DashboardState) returnToShip() {
@@ -187,9 +192,7 @@ func (d *DashboardState) Update() state.StateInterface {
 		return d.next
 	}
 
-	for i := range d.tabs {
-		d.tabs[i].btn.Update()
-	}
+	d.tabBar.Update()
 	d.returnSiteBtn.SetEnabled(d.wm.current != nil)
 	d.returnShipBtn.Update()
 	d.returnSiteBtn.Update()
@@ -211,14 +214,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	cfg := config.Global()
 	screen.Fill(color.RGBA{6, 8, 16, 255})
 
-	for i := range d.tabs {
-		d.tabs[i].btn.Draw(screen)
-	}
-	// Accent underline beneath the active tab.
-	if d.active >= 0 && d.active < len(d.tabs) {
-		t := d.tabs[d.active]
-		minui.DrawRect(screen, minui.Rect{X: t.x, Y: 42, Width: t.w, Height: 3}, color.RGBA{120, 200, 255, 255})
-	}
+	d.tabBar.Draw(screen)
 	d.returnShipBtn.Draw(screen)
 	d.returnSiteBtn.Draw(screen)
 	d.saveBtn.Draw(screen)

@@ -134,7 +134,7 @@ type MainState struct {
 	roguePath             [][2]int
 	campaign              *campaign.Campaign
 	wm                    *WorldManager
-	dashboardBtn            *minui.Button
+	dashboardBtn          *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
@@ -145,6 +145,11 @@ const (
 	dashboardBtnW = 120
 	dashboardBtnH = 26
 )
+
+// sidebarWidth is the on-planet HUD sidebar width in pixels. Camera framing
+// offsets the view by this so the followed entity isn't hidden behind it; keep
+// the HUD panel (gui.setupSidebar) in sync.
+const sidebarWidth = 216
 
 // sharedListenersOnce guards process-wide singleton listeners against being
 // re-registered on every campaign level swap.
@@ -368,7 +373,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
 		cfg := config.Global()
-		sidebarTiles := 200/s.TileSizeW + 1
+		sidebarTiles := sidebarWidth/s.TileSizeW + 1
 		viewW := cfg.WorldWidth / s.TileSizeW
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
@@ -383,7 +388,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.CameraZ = level.SurfaceZ
 	x, y := s.gm.GetFreeSpaceAtZ(s.CameraZ)
 	if x != -1 {
-		sidebarTiles := 200/s.TileSizeW + 1
+		sidebarTiles := sidebarWidth/s.TileSizeW + 1
 		viewW := gcfg.WorldWidth / s.TileSizeW
 		viewH := gcfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
@@ -584,7 +589,7 @@ func (s *MainState) newGame() {
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
 		cfg := config.Global()
-		sidebarTiles := 200/s.TileSizeW + 1
+		sidebarTiles := sidebarWidth/s.TileSizeW + 1
 		viewW := cfg.WorldWidth / s.TileSizeW
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
@@ -612,7 +617,7 @@ func (s *MainState) newGame() {
 
 	if x != -1 {
 		// Position camera centred on the starting area.
-		sidebarTiles := 200/s.TileSizeW + 1
+		sidebarTiles := sidebarWidth/s.TileSizeW + 1
 		viewW := cfg.WorldWidth / s.TileSizeW
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
@@ -648,7 +653,7 @@ func (s *MainState) newGame() {
 		spawnX, spawnY, spawnZ = findStartingPlaza(s.level, startingZ, 5)
 	}
 	if spawnX != -1 && s.MainSettlement != nil {
-		sidebarTiles := 200/s.TileSizeW + 1
+		sidebarTiles := sidebarWidth/s.TileSizeW + 1
 		viewW := cfg.WorldWidth / s.TileSizeW
 		viewH := cfg.WorldHeight / s.TileSizeH
 		s.CameraX = spawnX - sidebarTiles - (viewW-sidebarTiles)/2
@@ -713,7 +718,7 @@ func (s *MainState) Update() state.StateInterface {
 	if s.followEntity != nil && (s.CursorMode == gui.CursorModeFollow || s.rogueEntity != nil) {
 		if s.followEntity.HasComponent(rlcomponents.Position) && !s.followEntity.HasComponent(rlcomponents.Dead) {
 			pc := s.followEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			sidebarTiles := 200/s.TileSizeW + 1
+			sidebarTiles := sidebarWidth/s.TileSizeW + 1
 			s.CameraX = pc.GetX() - sidebarTiles - (viewW2-sidebarTiles)/2
 			s.CameraY = pc.GetY() - viewH2/2
 			s.CameraZ = pc.GetZ()
@@ -951,7 +956,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		if ev.Entity.HasComponent(rlcomponents.Position) {
 			pc := ev.Entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 			cfg := config.Global()
-			sidebarTiles := 200/s.TileSizeW + 1
+			sidebarTiles := sidebarWidth/s.TileSizeW + 1
 			viewW := cfg.WorldWidth / s.TileSizeW
 			viewH := cfg.WorldHeight / s.TileSizeH
 			s.CameraX = pc.GetX() - sidebarTiles - (viewW-sidebarTiles)/2
@@ -2168,7 +2173,7 @@ func (s *MainState) addMineTask(x, y int) {
 func (s *MainState) updateHovered() {
 	cfg := config.Global()
 	cX, cY := ebiten.CursorPosition()
-	const sidebarW = 200
+	const sidebarW = sidebarWidth
 	if cX < sidebarW || cX >= cfg.WorldWidth || cY < 0 || cY >= cfg.WorldHeight {
 		s.guiManager.ClearHover()
 		s.hoverActive = false

@@ -212,7 +212,7 @@ func (h *HUDScreen) setupHUDElements() {
 	h.uiGUI.AddElement(h.messagesTextArea)
 
 	h.resourceBar = minui.NewResourceBar("resourceBar")
-	h.resourceBar.SetBounds(minui.Rect{X: 210, Y: sh - 35, Width: 400, Height: 30})
+	h.resourceBar.SetBounds(minui.Rect{X: hudSidebarW + 4, Y: sh - 35, Width: 400, Height: 30})
 	h.resourceBar.AddResource("metal_ore", nil, 0)
 	h.resourceBar.AddResource("crystal", nil, 0)
 	h.resourceBar.AddResource("food", nil, 0)
@@ -222,7 +222,7 @@ func (h *HUDScreen) setupHUDElements() {
 	theme := h.uiGUI.GetTheme()
 	h.selectionTooltip = minui.NewTooltip("selectionTooltip")
 	h.selectionTooltip.SetTheme(theme)
-	h.selectionTooltip.SetPosition(210, 8)
+	h.selectionTooltip.SetPosition(hudSidebarW+4, 8)
 	h.selectionTooltip.Hide()
 
 	h.rogueExitButton = minui.NewButton("rogueExit", "Exit Control Mode (X)")
@@ -255,10 +255,14 @@ func (h *HUDScreen) HideRogueExit() {
 	}
 }
 
+// hudSidebarW is the on-planet HUD sidebar width; HUD elements to its right
+// offset by it. Keep in sync with game.sidebarWidth.
+const hudSidebarW = 216
+
 func (h *HUDScreen) setupSidebar() {
 	sh := config.Global().ScreenHeight
 
-	h.sidebarTabPanel = minui.NewTabPanel("sidebar", 200, sh)
+	h.sidebarTabPanel = minui.NewTabPanel("sidebar", hudSidebarW, sh)
 	h.sidebarTabPanel.SetPosition(0, 0)
 	h.sidebarTabPanel.TabPosition = minui.TabsTop
 	h.sidebarTabPanel.TabHeight = 28
@@ -519,7 +523,7 @@ func (h *HUDScreen) setSelectionLabel(title, desc string, icon *minui.Icon) {
 	}
 	h.selectionTooltip.SetContent(title, desc, icon)
 	h.selectionTooltip.Layout()
-	h.selectionTooltip.SetPosition(210, 8)
+	h.selectionTooltip.SetPosition(hudSidebarW+4, 8)
 	h.selectionTooltip.Show()
 }
 

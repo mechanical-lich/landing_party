@@ -119,7 +119,7 @@ func (cm *CheatModal) centerCameraOn(x, y, z int) {
 	cfg := config.Global()
 	viewW := cfg.WorldWidth / cm.ms.TileSizeW
 	viewH := cfg.WorldHeight / cm.ms.TileSizeH
-	sidebarTiles := 200/cm.ms.TileSizeW + 1
+	sidebarTiles := sidebarWidth/cm.ms.TileSizeW + 1
 	cm.ms.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
 	cm.ms.CameraY = y - viewH/2
 	cm.ms.CameraZ = z

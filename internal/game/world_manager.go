@@ -157,7 +157,7 @@ func (wm *WorldManager) buildShip() error {
 	// Frame the camera on the starting hull — the level is mostly empty void.
 	hx, hy, hz := ship.HullCenter()
 	cfg2 := config.Global()
-	sidebarTiles := 200/ms.TileSizeW + 1
+	sidebarTiles := sidebarWidth/ms.TileSizeW + 1
 	viewW := cfg2.WorldWidth / ms.TileSizeW
 	viewH := cfg2.WorldHeight / ms.TileSizeH
 	ms.CameraX = hx - sidebarTiles - (viewW-sidebarTiles)/2
