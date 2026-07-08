@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -752,6 +753,7 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 			}
 			ctx := &setupContext{
 				Level:      level,
+				rng:        rand.New(rand.NewSource(loc.Seed + int64(h))),
 				bindTarget: func(qid, npc string) { c.BindQuestTargetName(qid, npc) },
 			}
 			p := ctx.topParams()

@@ -41,16 +41,27 @@ func DepositDrop(tileName string) string {
 	return ""
 }
 
-// RollDepositRichness rolls a deposit's total yield for the given tile type,
-// biased toward the low end (squared roll) so the maximum is a rare find.
-// Returns 0 for non-deposit tiles.
-func RollDepositRichness(tileName string) int {
+// rollDepositRichness maps a uniform roll f∈[0,1) to a yield within the tile's
+// range, biased toward the low end (squared) so the maximum is a rare find.
+func rollDepositRichness(tileName string, f float64) int {
 	min, max, ok := depositRichnessRange(tileName)
 	if !ok {
 		return 0
 	}
-	r := rand.Float64()
-	return min + int(float64(max-min)*r*r)
+	return min + int(float64(max-min)*f*f)
+}
+
+// RollDepositRichness rolls a deposit's total yield from the global RNG, for
+// gameplay-time deposits (e.g. mined rubble) where reproducibility is moot.
+// Returns 0 for non-deposit tiles.
+func RollDepositRichness(tileName string) int {
+	return rollDepositRichness(tileName, rand.Float64())
+}
+
+// RollDepositRichnessRng rolls a deposit's yield from a supplied source, so
+// world generation reproduces deposit richness for a given location seed.
+func RollDepositRichnessRng(tileName string, rng *rand.Rand) int {
+	return rollDepositRichness(tileName, rng.Float64())
 }
 
 // ResourceAmountAt returns the remaining yield of the deposit at (x,y,z), or 0

@@ -538,47 +538,42 @@ func (s *MainState) newGame() {
 		s.settlementCfg.ScenarioID = activeScenario.ID
 	}
 
-	if md != nil {
-		opts := generation.BuildWorldOptions{
-			Width:         mapW,
-			Height:        mapH,
-			Depth:         mapZ,
-			Seed:          seed,
-			Terrain:       md.Terrain,
-			TerrainParams: md.TerrainParams,
-			BiomeMapType:  md.BiomeMap.Type,
-			BiomeMapScale: md.BiomeMap.Scale,
-			BiomeIDs:      md.BiomeMap.Biomes,
-			BiomeSingle:   md.BiomeMap.Single,
-		}
-		for _, fb := range md.Features {
+	// md is always non-nil here (mapdef.Random() guarantees it above, and
+	// md.Size.Roll already dereferenced it). BuildWorld is the single terrain
+	// path; it returns a usable (if degraded) level even on partial failure.
+	opts := generation.BuildWorldOptions{
+		Width:         mapW,
+		Height:        mapH,
+		Depth:         mapZ,
+		Seed:          seed,
+		Terrain:       md.Terrain,
+		TerrainParams: md.TerrainParams,
+		BiomeMapType:  md.BiomeMap.Type,
+		BiomeMapScale: md.BiomeMap.Scale,
+		BiomeIDs:      md.BiomeMap.Biomes,
+		BiomeSingle:   md.BiomeMap.Single,
+	}
+	for _, fb := range md.Features {
+		opts.Features = append(opts.Features, generation.FeatureSpec{
+			Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+			InRegion: fb.InRegion, Jitter: fb.Jitter,
+			MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
+		})
+	}
+	if activeScenario != nil {
+		for _, fb := range activeScenario.Features {
 			opts.Features = append(opts.Features, generation.FeatureSpec{
 				Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
 				InRegion: fb.InRegion, Jitter: fb.Jitter,
 				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
 			})
 		}
-		if activeScenario != nil {
-			for _, fb := range activeScenario.Features {
-				opts.Features = append(opts.Features, generation.FeatureSpec{
-					Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
-					InRegion: fb.InRegion, Jitter: fb.Jitter,
-					MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
-				})
-			}
-		}
-		level, err := generation.BuildWorld(opts)
-		if err != nil {
-			log.Printf("BuildWorld: %v (falling back to legacy planet)", err)
-			planetCfg := generation.DefaultPlanetConfig(mapZ)
-			s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
-		} else {
-			s.level = level
-		}
-	} else {
-		planetCfg := generation.DefaultPlanetConfig(mapZ)
-		s.level = generation.NewPlanetLevel(mapW, mapH, mapZ, planetCfg)
 	}
+	level, err := generation.BuildWorld(opts)
+	if err != nil {
+		log.Printf("BuildWorld %s: %v (using degraded level)", mapID, err)
+	}
+	s.level = level
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level)
@@ -640,7 +635,7 @@ func (s *MainState) newGame() {
 				s.level.Flags["settlement_name"] = name
 			}
 			s.level.Flags["colonist_faction"] = "colony"
-			RunSetupScripts(sc.SetupScripts, s.level)
+			RunSetupScripts(sc.SetupScripts, s.level, seed)
 		}
 	}
 

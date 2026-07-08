@@ -153,9 +153,9 @@ func paintKind(level *world.Level, x, y, z int, k world.TerrainKind) {
 	level.SetTerrainKind(x, y, z, k)
 
 	if floorName := floorForKind(k); floorName != "" {
-		level.SetFloor(x, y, z, floorName, world.RandomTileVariant(floorName))
+		level.SetFloor(x, y, z, floorName, world.TileVariantAt(floorName, x, y, z))
 	}
 	if middleName := middleForKind(k); middleName != "" {
-		level.SetMiddle(x, y, z, middleName, world.RandomTileVariant(middleName))
+		level.SetMiddle(x, y, z, middleName, world.TileVariantAt(middleName, x, y, z))
 	}
 }

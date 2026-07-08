@@ -2,7 +2,6 @@ package generation
 
 import (
 	"log"
-	"math/rand"
 	"sort"
 
 	"github.com/aquilax/go-perlin"
@@ -156,6 +155,5 @@ func (AsteroidFieldPrimer) Prime(level *world.Level, params map[string]any, seed
 	}
 
 	log.Printf("AsteroidFieldPrimer: %d asteroids kept (of %d candidates)", len(asts), len(sizes)-1)
-	_ = rand.Int // reserved for future jitter
 	return nil
 }

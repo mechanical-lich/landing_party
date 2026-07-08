@@ -638,7 +638,10 @@ func (v *Viewer) stamp(tx, ty int) {
 	name := v.scripts[v.scriptIdx]
 	// Clear cache so an edited script picks up its new source on next stamp.
 	game.ClearStructureScriptCache()
-	if err := game.RunStructureScriptWithParams(v.level, name, tx, ty, v.stampW, v.stampH, v.buildParams()); err != nil {
+	// Seed from the stamp position so previews are reproducible yet vary as you
+	// move the cursor around the canvas.
+	seed := int64(tx)*2654435761 + int64(ty)*40503
+	if err := game.RunStructureScriptWithParams(v.level, name, tx, ty, v.stampW, v.stampH, v.buildParams(), seed); err != nil {
 		v.status = fmt.Sprintf("error: %v", err)
 		log.Printf("stamp %s @ (%d,%d) %dx%d: %v", name, tx, ty, v.stampW, v.stampH, err)
 		return

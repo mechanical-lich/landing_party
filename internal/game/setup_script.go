@@ -21,6 +21,12 @@ import (
 type setupContext struct {
 	Level *world.Level
 
+	// rng is the seed-derived source every registered script function draws
+	// from, so setup/structure placement reproduces from the location seed.
+	// Never nil — each entry point (RunSetupScripts, RunStructureScript*,
+	// quest fixtures) supplies one.
+	rng *rand.Rand
+
 	// paramStack holds one frame per active gen_structure call. set_param/
 	// get_param operate on the top frame; gen_structure pushes a copy of the
 	// caller's frame so seeded params flow down without children leaking up.
@@ -110,17 +116,18 @@ func ClearStructureScriptCache() {
 // RunStructureScript stamps a named structure script onto level at (x,y) with
 // the given width and height. Used by tools (e.g. structure-viewer) that want
 // to invoke the same script dispatch the runtime generator uses, without a
-// surrounding scenario / quest context.
-func RunStructureScript(level *world.Level, name string, x, y, w, h int) error {
-	return RunStructureScriptWithParams(level, name, x, y, w, h, nil)
+// surrounding scenario / quest context. seed makes the script's randomness
+// reproducible.
+func RunStructureScript(level *world.Level, name string, x, y, w, h int, seed int64) error {
+	return RunStructureScriptWithParams(level, name, x, y, w, h, nil, seed)
 }
 
 // RunStructureScriptWithParams is like RunStructureScript but seeds the
 // top param frame with the given key/value pairs so the script can read them
 // via get_param(...). Mirrors the way the runtime dispatcher seeds quest_id
 // before calling runGenStructure.
-func RunStructureScriptWithParams(level *world.Level, name string, x, y, w, h int, params map[string]any) error {
-	ctx := &setupContext{Level: level}
+func RunStructureScriptWithParams(level *world.Level, name string, x, y, w, h int, params map[string]any, seed int64) error {
+	ctx := &setupContext{Level: level, rng: rand.New(rand.NewSource(seed))}
 	if len(params) > 0 {
 		top := ctx.topParams()
 		for k, val := range params {
@@ -130,22 +137,24 @@ func RunStructureScriptWithParams(level *world.Level, name string, x, y, w, h in
 	return runGenStructure(ctx, name, x, y, w, h)
 }
 
-// RunSetupScripts executes each .basic file listed in the scenario's setup_scripts.
-// Each script must define function on_setup().
-func RunSetupScripts(scripts []string, level *world.Level) {
+// RunSetupScripts executes each .basic file listed in the scenario's
+// setup_scripts. Each script must define function on_setup(). All scripts share
+// one seed-derived RNG so a given location's setup phase reproduces exactly.
+func RunSetupScripts(scripts []string, level *world.Level, seed int64) {
+	rng := rand.New(rand.NewSource(seed))
 	for _, path := range scripts {
-		if err := runSetupScript(path, level); err != nil {
+		if err := runSetupScript(path, level, rng); err != nil {
 			log.Printf("setup script %s: %v", path, err)
 		}
 	}
 }
 
-func runSetupScript(path string, level *world.Level) error {
+func runSetupScript(path string, level *world.Level, rng *rand.Rand) error {
 	code, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read: %w", err)
 	}
-	ctx := &setupContext{Level: level}
+	ctx := &setupContext{Level: level, rng: rng}
 	interp := basic.NewMechanicalBasic()
 	registerSetupFuncs(interp, ctx)
 	if err := interp.Load(string(code)); err != nil {
@@ -184,7 +193,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			return nil, nil
 		}
 		t := tI.(*world.Tile)
-		world.SetTileTypeAndVariant(t, tileName, world.RandomTileVariant(tileName))
+		world.SetTileTypeAndVariant(t, tileName, world.TileVariantAt(tileName, x, y, z))
 		return nil, nil
 	})
 
@@ -246,7 +255,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			e.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent).OwnedBy = owner
 			// Door must sit in a walkable cell: floor underneath, nothing
 			// blocking the middle. Clear the wall that carve_room stamped.
-			level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+			level.SetFloor(x, y, z, "hull_floor", world.TileVariantAt("hull_floor", x, y, z))
 			level.ClearMiddle(x, y, z)
 		}
 		if e.HasComponent(components.Storage) {
@@ -350,8 +359,8 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		w := level.GetWidth()
 		h := level.GetHeight()
 		for attempt := 0; attempt < 200; attempt++ {
-			x := rand.Intn(w)
-			y := rand.Intn(h)
+			x := ctx.rng.Intn(w)
+			y := ctx.rng.Intn(h)
 			tI := level.GetTileAt(x, y, z)
 			if tI == nil {
 				continue
@@ -414,7 +423,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		if n <= 0 {
 			return float64(0), nil
 		}
-		return float64(rand.Intn(n)), nil
+		return float64(ctx.rng.Intn(n)), nil
 	})
 	interp.RegisterFunc("dist", func(args ...any) (any, error) {
 		if len(args) < 4 {
@@ -505,10 +514,10 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		w, h, depth := level.GetWidth(), level.GetHeight(), level.GetDepth()
 		for i := 0; i < count; i++ {
-			cx := rand.Intn(w)
-			cy := rand.Intn(h)
-			z := rand.Intn(depth)
-			r := 1 + rand.Intn(maxR)
+			cx := ctx.rng.Intn(w)
+			cy := ctx.rng.Intn(h)
+			z := ctx.rng.Intn(depth)
+			r := 1 + ctx.rng.Intn(maxR)
 			for dy := -r; dy <= r; dy++ {
 				for dx := -r; dx <= r; dx++ {
 					dist2 := dx*dx + dy*dy
@@ -528,10 +537,10 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			}
 			// Plant 1–3 radioactive_ore tiles within a 1-tile cluster at
 			// the centre, only on tiles that aren't air/space/water.
-			oreSeeds := 1 + rand.Intn(3)
+			oreSeeds := 1 + ctx.rng.Intn(3)
 			for j := 0; j < oreSeeds; j++ {
-				ox := cx + rand.Intn(3) - 1
-				oy := cy + rand.Intn(3) - 1
+				ox := cx + ctx.rng.Intn(3) - 1
+				oy := cy + ctx.rng.Intn(3) - 1
 				t := level.GetTilePtr(ox, oy, z)
 				if t == nil || t.Middle.IsEmpty() {
 					continue
@@ -540,7 +549,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 				if def.Air || def.Space || def.Water {
 					continue
 				}
-				world.SetTileTypeAndVariant(t, "radioactive_ore", world.RandomTileVariant("radioactive_ore"))
+				world.SetTileTypeAndVariant(t, "radioactive_ore", world.TileVariantAt("radioactive_ore", ox, oy, z))
 			}
 		}
 		return nil, nil
@@ -574,9 +583,9 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		h := level.GetHeight()
 		depth := level.GetDepth()
 		for attempt := 0; attempt < 500; attempt++ {
-			x := rand.Intn(w)
-			y := rand.Intn(h)
-			z := rand.Intn(depth)
+			x := ctx.rng.Intn(w)
+			y := ctx.rng.Intn(h)
+			z := ctx.rng.Intn(depth)
 			if level.GetTerrainKind(x, y, z) != world.TKCavern {
 				continue
 			}
@@ -649,9 +658,9 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		for dy := 0; dy < h; dy++ {
 			for dx := 0; dx < w; dx++ {
 				edge := dx == 0 || dy == 0 || dx == w-1 || dy == h-1
-				level.SetFloor(x+dx, y+dy, z, floorTile, world.RandomTileVariant(floorTile))
+				level.SetFloor(x+dx, y+dy, z, floorTile, world.TileVariantAt(floorTile, x+dx, y+dy, z))
 				if edge {
-					level.SetMiddle(x+dx, y+dy, z, wallTile, world.RandomTileVariant(wallTile))
+					level.SetMiddle(x+dx, y+dy, z, wallTile, world.TileVariantAt(wallTile, x+dx, y+dy, z))
 				} else {
 					level.ClearMiddle(x+dx, y+dy, z)
 				}
@@ -673,7 +682,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		tile := fmt.Sprint(args[5])
 		for dy := 0; dy < h; dy++ {
 			for dx := 0; dx < w; dx++ {
-				level.UpdateTileAt(x+dx, y+dy, z, tile, world.RandomTileVariant(tile))
+				level.UpdateTileAt(x+dx, y+dy, z, tile, world.TileVariantAt(tile, x+dx, y+dy, z))
 			}
 		}
 		return nil, nil
@@ -721,9 +730,9 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 					continue
 				}
 				x, y := cx+dx, cy+dy
-				level.SetFloor(x, y, z, floorTile, world.RandomTileVariant(floorTile))
+				level.SetFloor(x, y, z, floorTile, world.TileVariantAt(floorTile, x, y, z))
 				if d2 > inner {
-					level.SetMiddle(x, y, z, wallTile, world.RandomTileVariant(wallTile))
+					level.SetMiddle(x, y, z, wallTile, world.TileVariantAt(wallTile, x, y, z))
 				} else {
 					level.ClearMiddle(x, y, z)
 				}
@@ -745,7 +754,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		for dy := -r; dy <= r; dy++ {
 			for dx := -r; dx <= r; dx++ {
 				if dx*dx+dy*dy <= r*r {
-					level.UpdateTileAt(cx+dx, cy+dy, z, tile, world.RandomTileVariant(tile))
+					level.UpdateTileAt(cx+dx, cy+dy, z, tile, world.TileVariantAt(tile, cx+dx, cy+dy, z))
 				}
 			}
 		}
@@ -763,7 +772,9 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		count := int(toSetupFloat(args[1]))
 		spec := generation.FeatureSpec{Kind: kind, Count: count}
 		if p := generation.GetFeature(kind); p != nil {
-			_ = p(level, spec)
+			// Draw from the setup context's seeded RNG so script-driven
+			// placement reproduces from the location seed like the rest of gen.
+			_ = p(level, spec, ctx.rng)
 		}
 		return nil, nil
 	})

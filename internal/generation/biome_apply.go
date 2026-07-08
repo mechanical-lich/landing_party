@@ -48,13 +48,13 @@ func ApplyBiomes(level *world.Level) {
 					continue
 				}
 				if matched.Tile != "" {
-					level.UpdateTileAt(x, y, z, matched.Tile, world.RandomTileVariant(matched.Tile))
+					level.UpdateTileAt(x, y, z, matched.Tile, world.TileVariantAt(matched.Tile, x, y, z))
 				}
 				if matched.Floor != "" {
-					level.SetFloor(x, y, z, matched.Floor, world.RandomTileVariant(matched.Floor))
+					level.SetFloor(x, y, z, matched.Floor, world.TileVariantAt(matched.Floor, x, y, z))
 				}
 				if matched.Middle != "" {
-					level.SetMiddle(x, y, z, matched.Middle, world.RandomTileVariant(matched.Middle))
+					level.SetMiddle(x, y, z, matched.Middle, world.TileVariantAt(matched.Middle, x, y, z))
 				}
 				if matched.Radiation > 0 {
 					if t := level.GetTilePtr(x, y, z); t != nil {

@@ -9,6 +9,25 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
+// PlanetConfig controls which z-levels map to which semantic bands.
+type PlanetConfig struct {
+	SurfaceZ    int
+	AtmosphereZ int
+	SpaceZ      int
+}
+
+// DefaultPlanetConfig derives the semantic z-bands from the level depth: the
+// surface sits at the midpoint, with atmosphere just above and space a few
+// levels higher.
+func DefaultPlanetConfig(depth int) PlanetConfig {
+	surface := depth / 2
+	return PlanetConfig{
+		SurfaceZ:    surface,
+		AtmosphereZ: surface + 1,
+		SpaceZ:      surface + 3,
+	}
+}
+
 // PlanetPrimer paints a layered planet: bedrock at z=0, underground rock with
 // caverns, a single surface band, atmosphere, and space at the top. Used for
 // Earth-like, moon, and alien scenarios — the differences come from biomes

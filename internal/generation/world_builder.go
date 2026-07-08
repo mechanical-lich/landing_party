@@ -40,9 +40,12 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Best-effort: seed the global RNG so incidental rand use during priming
-	// and feature placement is reproducible for a given seed.
-	rand.Seed(opts.Seed)
+	// All non-primer randomness (feature placement) draws from this local,
+	// seed-derived source so a given location reproduces exactly. Primers get
+	// the raw seed and manage their own noise/RNG. Tile-variant selection is
+	// position-hashed (world.TileVariantAt), which is why the concurrent primer
+	// pass needs no shared RNG.
+	rng := rand.New(rand.NewSource(opts.Seed))
 	level := world.NewLevel(opts.Width, opts.Height, opts.Depth)
 	if err := primer.Prime(level, opts.TerrainParams, opts.Seed); err != nil {
 		return level, fmt.Errorf("primer %s: %w", opts.Terrain, err)
@@ -61,18 +64,18 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		// Collect and run features declared in each active biome.
 		for _, id := range opts.BiomeIDs {
 			if b := GetBiome(id); b != nil && len(b.Features) > 0 {
-				PlaceFeatures(level, b.Features)
+				PlaceFeatures(level, b.Features, rng)
 			}
 		}
 		if opts.BiomeSingle != "" {
 			if b := GetBiome(opts.BiomeSingle); b != nil && len(b.Features) > 0 {
-				PlaceFeatures(level, b.Features)
+				PlaceFeatures(level, b.Features, rng)
 			}
 		}
 	}
 
 	if len(opts.Features) > 0 {
-		PlaceFeatures(level, opts.Features)
+		PlaceFeatures(level, opts.Features, rng)
 	}
 
 	log.Printf("BuildWorld: %s primer + %d biomes + %d features",

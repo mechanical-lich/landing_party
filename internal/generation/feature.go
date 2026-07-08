@@ -21,8 +21,10 @@ type FeatureSpec struct {
 }
 
 // FeaturePlacer places a single instance of a feature at a chosen anchor.
-// The placer is responsible for picking suitable locations.
-type FeaturePlacer func(level *world.Level, spec FeatureSpec) error
+// The placer is responsible for picking suitable locations. rng is a
+// seed-derived, single-threaded source shared across a build so placement is
+// reproducible for a given location seed.
+type FeaturePlacer func(level *world.Level, spec FeatureSpec, rng *rand.Rand) error
 
 var featurePlacers = map[string]FeaturePlacer{}
 
@@ -36,17 +38,48 @@ func GetFeature(kind string) FeaturePlacer {
 	return featurePlacers[kind]
 }
 
-// PlaceFeatures runs every spec in order. Failures are logged but don't abort.
-func PlaceFeatures(level *world.Level, specs []FeatureSpec) {
+// PlaceFeatures runs every spec in order, drawing all placement randomness from
+// rng. Failures are logged but don't abort.
+func PlaceFeatures(level *world.Level, specs []FeatureSpec, rng *rand.Rand) {
 	for _, s := range specs {
 		p := GetFeature(s.Kind)
 		if p == nil {
 			log.Printf("PlaceFeatures: unknown feature kind %q", s.Kind)
 			continue
 		}
-		if err := p(level, s); err != nil {
+		if err := p(level, s, rng); err != nil {
 			log.Printf("PlaceFeatures %s: %v", s.Kind, err)
 		}
+	}
+}
+
+// placeAnchors is the shared body for count-based, surface-scattered features:
+// it repeatedly picks an in-biome center and calls place() until `count`
+// instances land or the attempt budget (8×count) runs out, then logs any
+// shortfall so authors can tell when a map or biome is too small for the
+// requested count. place() returns true when it consumed the anchor.
+func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount int, place func(cx, cy int) bool) {
+	count := s.Count
+	if count <= 0 {
+		count = defCount
+	}
+	maxAttempts := count * 8
+	placed := 0
+	for tries := 0; placed < count && tries < maxAttempts; tries++ {
+		cx, cy, ok := pickFeatureCenter(level, s, rng)
+		if !ok {
+			break // spec asked for a region with no anchors
+		}
+		if !columnMatchesBiome(level, cx, cy, s.Biome) {
+			continue
+		}
+		if place(cx, cy) {
+			placed++
+		}
+	}
+	if placed < count {
+		log.Printf("feature %q: placed %d/%d (map or biome %q too small for the requested count)",
+			s.Kind, placed, count, s.Biome)
 	}
 }
 
@@ -63,7 +96,7 @@ func columnMatchesBiome(level *world.Level, x, y int, biome string) bool {
 // spec.InRegion (jittered around a random region anchor) when set, else
 // falling back to a uniform random column. Returns (-1, -1, false) if the
 // spec asks for a region that has no anchors.
-func pickFeatureCenter(level *world.Level, s FeatureSpec) (int, int, bool) {
+func pickFeatureCenter(level *world.Level, s FeatureSpec, rng *rand.Rand) (int, int, bool) {
 	if s.InRegion != "" {
 		anchors := level.Regions[s.InRegion]
 		if len(anchors) == 0 {
@@ -73,21 +106,21 @@ func pickFeatureCenter(level *world.Level, s FeatureSpec) (int, int, bool) {
 		if jitter <= 0 {
 			jitter = 6
 		}
-		a := anchors[randIntn(len(anchors))]
-		dx := randIntn(jitter*2+1) - jitter
-		dy := randIntn(jitter*2+1) - jitter
+		a := anchors[randIntn(rng, len(anchors))]
+		dx := randIntn(rng, jitter*2+1) - jitter
+		dy := randIntn(rng, jitter*2+1) - jitter
 		return a[0] + dx, a[1] + dy, true
 	}
-	return randIntn(level.GetWidth()), randIntn(level.GetHeight()), true
+	return randIntn(rng, level.GetWidth()), randIntn(rng, level.GetHeight()), true
 }
 
-// randIntn wraps rand.Intn but tolerates n<=0 (returns 0). Saves repetitive
+// randIntn wraps rng.Intn but tolerates n<=0 (returns 0). Saves repetitive
 // guards in placers.
-func randIntn(n int) int {
+func randIntn(rng *rand.Rand, n int) int {
 	if n <= 0 {
 		return 0
 	}
-	return rand.Intn(n)
+	return rng.Intn(n)
 }
 
 func featureParamInt(s FeatureSpec, key string, def int) int {
@@ -106,8 +139,10 @@ func errFeature(kind, msg string) error {
 }
 
 // StructureRunnerFunc is the signature of the structure-script dispatcher.
-// Registered by the game package at startup to avoid a circular import.
-type StructureRunnerFunc func(level *world.Level, name string, x, y, w, h int) error
+// Registered by the game package at startup to avoid a circular import. seed
+// makes the invoked script's randomness reproducible; the stamp placer derives
+// it from the build's RNG so the whole level reproduces from one location seed.
+type StructureRunnerFunc func(level *world.Level, name string, x, y, w, h int, seed int64) error
 
 var structureRunner StructureRunnerFunc
 
@@ -117,11 +152,11 @@ func SetStructureRunner(fn StructureRunnerFunc) {
 	structureRunner = fn
 }
 
-func runStructure(level *world.Level, name string, x, y, w, h int) error {
+func runStructure(level *world.Level, name string, x, y, w, h int, seed int64) error {
 	if structureRunner == nil {
 		return fmt.Errorf("stamp: structure runner not registered")
 	}
-	return structureRunner(level, name, x, y, w, h)
+	return structureRunner(level, name, x, y, w, h, seed)
 }
 
 var warnedUnknownTile = map[string]bool{}

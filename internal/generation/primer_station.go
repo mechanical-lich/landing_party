@@ -29,11 +29,13 @@ func init() {
 //	min_room         int (default 4)
 //	max_room         int (default 8)
 //
-// Prime ignores seed directly — it uses the package global rand, which
-// BuildWorld seeds for reproducibility before priming.
+// All layout randomness draws from a seed-derived local RNG so a given
+// location reproduces its station exactly, independent of any other generation.
 func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
+
+	rng := rand.New(rand.NewSource(seed))
 
 	floors := paramInt(params, "floors", d)
 	if floors > d {
@@ -76,7 +78,7 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, s
 
 		// Spokes — 3 or 4 radial hallways.
 		angles := make([]float64, spokes)
-		angleOffset := rand.Float64() * math.Pi
+		angleOffset := rng.Float64() * math.Pi
 		for i := 0; i < spokes; i++ {
 			angles[i] = angleOffset + float64(i)*2*math.Pi/float64(spokes)
 		}
@@ -95,13 +97,13 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, s
 		// Bud rooms off existing hull-floor cells. We pick a floor tile that
 		// has at least one solid neighbor and try to attach a rectangular
 		// room there with a door connecting them.
-		rooms := budRooms(level, z, budAttempts, minR, maxR)
+		rooms := budRooms(level, z, budAttempts, minR, maxR, rng)
 
 		// Drop a small "node" room at the end of each spoke for visual
 		// punctuation.
 		for _, p := range spokeEndpoints {
-			rw := minR + rand.Intn(3)
-			rh := minR + rand.Intn(3)
+			rw := minR + rng.Intn(3)
+			rh := minR + rng.Intn(3)
 			rx := p[0] - rw/2
 			ry := p[1] - rh/2
 			if rx < 1 || ry < 1 || rx+rw >= w-1 || ry+rh >= h-1 {
@@ -115,7 +117,7 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, s
 			doorY := p[1] + dy
 			if level.GetTerrainKind(doorX, doorY, z) == world.TKStructure {
 				// Knock through the wall: keep the Floor, clear the Middle.
-				level.SetFloor(doorX, doorY, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+				level.SetFloor(doorX, doorY, z, "hull_floor", world.TileVariantAt("hull_floor", doorX, doorY, z))
 				level.ClearMiddle(doorX, doorY, z)
 			}
 			rooms = append(rooms, rect{rx, ry, rw, rh})
@@ -140,8 +142,8 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, s
 	// Middle; the hull_floor underneath keeps the cell walkable.
 	for z := 0; z < floors-1; z++ {
 		sx, sy := cx+2, cy
-		level.SetFloor(sx, sy, z, "hull_floor", world.RandomTileVariant("hull_floor"))
-		level.SetFloor(sx, sy, z+1, "hull_floor", world.RandomTileVariant("hull_floor"))
+		level.SetFloor(sx, sy, z, "hull_floor", world.TileVariantAt("hull_floor", sx, sy, z))
+		level.SetFloor(sx, sy, z+1, "hull_floor", world.TileVariantAt("hull_floor", sx, sy, z+1))
 		level.SetMiddle(sx, sy, z, "stairs_up", 0)
 		level.SetMiddle(sx, sy, z+1, "stairs_down", 0)
 		level.SetTerrainKind(sx, sy, z, world.TKStructure)
@@ -166,7 +168,7 @@ func (AbandonedStationPrimer) Prime(level *world.Level, params map[string]any, s
 				if level.GetTerrainKind(x, y, ceilZ) == world.TKStructure {
 					continue
 				}
-				level.SetFloor(x, y, ceilZ, "hull_floor", world.RandomTileVariant("hull_floor"))
+				level.SetFloor(x, y, ceilZ, "hull_floor", world.TileVariantAt("hull_floor", x, y, ceilZ))
 				level.SetTerrainKind(x, y, ceilZ, world.TKStructure)
 			}
 		}
@@ -185,9 +187,9 @@ type rect struct{ x, y, ww, hh int }
 // by a previous interior pass (lets corridors / doorways punch through).
 func stampStationCell(level *world.Level, x, y, z int, isWall bool) {
 	preserveInterior := level.GetTerrainKind(x, y, z) == world.TKStructure && interiorMiddle(level, x, y, z)
-	level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+	level.SetFloor(x, y, z, "hull_floor", world.TileVariantAt("hull_floor", x, y, z))
 	if isWall && !preserveInterior {
-		level.SetMiddle(x, y, z, "hull_wall", world.RandomTileVariant("hull_wall"))
+		level.SetMiddle(x, y, z, "hull_wall", world.TileVariantAt("hull_wall", x, y, z))
 	} else if !isWall {
 		level.ClearMiddle(x, y, z)
 	}
@@ -271,14 +273,14 @@ func carveStationLine(level *world.Level, x0, y0, x1, y1, z, width int) {
 // budRooms scans existing wall tiles, picks ones adjacent to floor on the
 // inside, and tries to attach a rectangular room on the outside with a door
 // at the contact wall.
-func budRooms(level *world.Level, z, attempts, minR, maxR int) []rect {
+func budRooms(level *world.Level, z, attempts, minR, maxR int, rng *rand.Rand) []rect {
 	w, h := level.GetWidth(), level.GetHeight()
 	rooms := []rect{}
 
 	for tries := 0; tries < attempts; tries++ {
 		// Pick a random wall tile.
-		x := 2 + rand.Intn(w-4)
-		y := 2 + rand.Intn(h-4)
+		x := 2 + rng.Intn(w-4)
+		y := 2 + rng.Intn(h-4)
 		if currentTileName(level, x, y, z) != "hull_wall" {
 			continue
 		}
@@ -295,8 +297,8 @@ func budRooms(level *world.Level, z, attempts, minR, maxR int) []rect {
 		if outDX == 0 && outDY == 0 {
 			continue
 		}
-		rw := minR + rand.Intn(maxR-minR+1)
-		rh := minR + rand.Intn(maxR-minR+1)
+		rw := minR + rng.Intn(maxR-minR+1)
+		rh := minR + rng.Intn(maxR-minR+1)
 		var rx, ry int
 		if outDX != 0 {
 			// Room extends horizontally.
@@ -331,7 +333,7 @@ func budRooms(level *world.Level, z, attempts, minR, maxR int) []rect {
 		}
 		stampRoom(level, rx, ry, z, rw, rh)
 		// Knock a door at the bud wall: clear the Middle, keep Floor.
-		level.SetFloor(x, y, z, "hull_floor", world.RandomTileVariant("hull_floor"))
+		level.SetFloor(x, y, z, "hull_floor", world.TileVariantAt("hull_floor", x, y, z))
 		level.ClearMiddle(x, y, z)
 		rooms = append(rooms, rect{rx, ry, rw, rh})
 	}
