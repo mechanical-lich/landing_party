@@ -32,8 +32,10 @@ type BuildWorldOptions struct {
 }
 
 // BuildWorld constructs a level by running primer → biome map → biome apply
-// → features. Returns the level even on partial failure so callers can still
-// render something for debugging.
+// → features. For any valid dimensions it returns a non-nil level even when the
+// primer lookup or a later phase fails (so callers can render something), with
+// the error describing what went wrong. Only invalid dimensions return a nil
+// level.
 func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	if opts.Width <= 0 || opts.Height <= 0 || opts.Depth <= 0 {
 		return nil, fmt.Errorf("BuildWorld: invalid dimensions %dx%dx%d", opts.Width, opts.Height, opts.Depth)
@@ -41,22 +43,26 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	if opts.Terrain == "" {
 		opts.Terrain = "planet"
 	}
-	primer, err := GetPrimer(opts.Terrain)
-	if err != nil {
-		return nil, err
-	}
 	// All non-primer randomness (feature placement) draws from this local,
 	// seed-derived source so a given location reproduces exactly. Primers get
 	// the raw seed and manage their own noise/RNG. Tile-variant selection is
 	// position-hashed (world.TileVariantAt), which is why the concurrent primer
 	// pass needs no shared RNG.
 	rng := rand.New(rand.NewSource(opts.Seed))
+	// Allocate before the primer lookup so an unknown/unregistered terrain still
+	// yields a usable (empty) level rather than nil — callers render an empty
+	// world instead of nil-panicking. (Invalid dimensions above are the only
+	// path that can't allocate and thus still returns nil.)
 	level := world.NewLevel(opts.Width, opts.Height, opts.Depth)
 	// Scale areal feature counts by how the rolled footprint compares to the
 	// map's typical (midpoint) footprint, so density is constant across the
 	// size roll. placeAnchors reads this off the level.
 	if opts.ReferenceArea > 0 {
 		level.FeatureAreaScale = float64(opts.Width*opts.Height) / float64(opts.ReferenceArea)
+	}
+	primer, err := GetPrimer(opts.Terrain)
+	if err != nil {
+		return level, err
 	}
 	if err := primer.Prime(level, opts.TerrainParams, opts.Seed); err != nil {
 		return level, fmt.Errorf("primer %s: %w", opts.Terrain, err)

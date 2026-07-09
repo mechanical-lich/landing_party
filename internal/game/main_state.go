@@ -574,6 +574,12 @@ func (s *MainState) newGame() {
 	if err != nil {
 		log.Printf("BuildWorld %s: %v (using degraded level)", mapID, err)
 	}
+	if level == nil {
+		// Only reachable if the rolled dimensions were invalid, which the map
+		// loader's SizeBlock validation prevents. Guard anyway so a bad map
+		// degrades to an empty world instead of nil-panicking below.
+		level = world.NewLevel(mapW, mapH, mapZ)
+	}
 	s.level = level
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()

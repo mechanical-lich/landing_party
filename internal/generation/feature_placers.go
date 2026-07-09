@@ -32,6 +32,11 @@ func placeScatterEntity(level *world.Level, s FeatureSpec, rng *rand.Rand) error
 	if bp == "" {
 		return errFeature("scatter_entity", "params.blueprint required")
 	}
+	// Skip the whole feature if the blueprint is unknown — otherwise every
+	// anchor attempt re-hits the same failing factory.Create.
+	if !factory.BlueprintExists(bp) {
+		return nil
+	}
 	wantKind := featureParamString(s, "kind", "surface")
 	placeAnchors(level, s, rng, 50, func(cx, cy int) bool {
 		surfZ := level.GetSurfaceZ(cx, cy)
@@ -202,6 +207,11 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec, rng *rand.Rand) err
 //	params: blueprint (default "alien_crystal"), radius (default 4)
 func placeCrystalGrove(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	bp := featureParamString(s, "blueprint", "alien_crystal")
+	// Skip the whole feature if the blueprint is unknown — otherwise every
+	// anchor attempt re-hits the same failing factory.Create.
+	if !factory.BlueprintExists(bp) {
+		return nil
+	}
 	radius := featureParamInt(s, "radius", 4)
 	placeAnchors(level, s, rng, 8, func(cx, cy int) bool {
 		surfZ := level.GetSurfaceZ(cx, cy)
@@ -226,7 +236,7 @@ func placeCrystalGrove(level *world.Level, s FeatureSpec, rng *rand.Rand) error 
 				}
 				e, err := factory.Create(bp, tx, ty, surfZ)
 				if err != nil {
-					return anySpawned // blueprint missing, bail
+					return anySpawned // unexpected create failure; keep what landed
 				}
 				level.AddEntity(e)
 				anySpawned = true
