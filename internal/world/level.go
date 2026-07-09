@@ -78,6 +78,14 @@ type Level struct {
 	AtmosphereZ  int // first z-level of air above surface
 	SpaceZ       int // first z-level of vacuum/space
 
+	// FeatureAreaScale multiplies areal feature counts (ore veins, scatters,
+	// etc.) so resource density stays constant across the map-size roll: a map
+	// that rolls larger than its typical footprint gets proportionally more.
+	// Set by generation.BuildWorld from rolledArea/referenceArea. 0 means unset
+	// and is treated as 1 (see FeatureAreaMultiplier). Generation-only; not
+	// persisted.
+	FeatureAreaScale float64
+
 	// Terrain skeleton produced by a TerrainPrimer. Indexed by (z*H + y)*W + x.
 	// Empty until a primer fills it.
 	Terrain []TerrainKind
@@ -130,6 +138,16 @@ type Level struct {
 	lightOverlay   *ebiten.Image
 	lightPixels    []byte
 	lightW, lightH int
+}
+
+// FeatureAreaMultiplier returns the areal-feature count multiplier, defaulting
+// to 1 when FeatureAreaScale is unset (0) so callers never divide density to
+// zero on levels built without a reference area.
+func (l *Level) FeatureAreaMultiplier() float64 {
+	if l.FeatureAreaScale <= 0 {
+		return 1
+	}
+	return l.FeatureAreaScale
 }
 
 // EffectiveSunIntensity returns the ambient light level for the current frame.

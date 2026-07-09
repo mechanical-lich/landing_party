@@ -14,12 +14,12 @@
         "biomes": ["tundra", "forest", "plains", "desert"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 6, "params": { "tile": "ore_deposit", "radius": 2 } },
-        { "kind": "ore_vein", "count": 4, "params": { "tile": "crystal_vein", "radius": 2 } },
-        { "kind": "radiation_pocket", "count": 2, "biome": "desert", "params": { "peak": 160, "radius": 4 } },
-        { "kind": "scatter_entity", "count": 80, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
-        { "kind": "scatter_tile", "count": 80,  "biome": "tundra", "params": { "tile": "ice", "kind": "surface" } },
-        { "kind": "lava_lake",   "count": 12,  "biome": "tundra", "params": { "tile": "ice", "radius": 3 } },
-        { "kind": "lava_lake",   "count": 4,   "biome": "tundra", "params": { "tile": "ice", "radius": 5 } }
+        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
+        { "kind": "ore_vein", "count": 2, "count_max": 6, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "radiation_pocket", "count": 1, "count_max": 3, "biome": "desert", "params": { "peak": 160, "radius": 4 } },
+        { "kind": "scatter_entity", "count": 50, "count_max": 120, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
+        { "kind": "scatter_tile", "count": 50, "count_max": 120, "biome": "tundra", "params": { "tile": "ice", "kind": "surface" } },
+        { "kind": "lava_lake", "count": 8, "count_max": 16, "biome": "tundra", "params": { "tile": "ice", "radius": 3 } },
+        { "kind": "lava_lake", "count": 2, "count_max": 6, "biome": "tundra", "params": { "tile": "ice", "radius": 5 } }
     ]
 }

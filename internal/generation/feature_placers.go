@@ -281,10 +281,7 @@ func placeDerelictPod(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	if bp == "" {
 		return errFeature("derelict_pod", "params.blueprint required")
 	}
-	count := s.Count
-	if count <= 0 {
-		count = 1
-	}
+	count := rollCount(s, rng, 1)
 	w, h := level.GetWidth(), level.GetHeight()
 	for placed := 0; placed < count; placed++ {
 		for attempt := 0; attempt < 200; attempt++ {
@@ -324,10 +321,7 @@ func placeFaunaSpawner(level *world.Level, s FeatureSpec, rng *rand.Rand) error 
 	if bp == "" {
 		return errFeature("fauna_spawner", "params.blueprint required")
 	}
-	count := s.Count
-	if count <= 0 {
-		count = 10
-	}
+	count := rollCount(s, rng, 10)
 	w, h := level.GetWidth(), level.GetHeight()
 	for placed := 0; placed < count; placed++ {
 		for attempt := 0; attempt < 100; attempt++ {
@@ -371,10 +365,7 @@ func placeBotanyBay(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	}
 	plant := featureParamString(s, "plant_blueprint", "")
 	radius := featureParamInt(s, "radius", 3)
-	count := s.Count
-	if count <= 0 {
-		count = 1
-	}
+	count := rollCount(s, rng, 1)
 	anchors := level.Regions["station_room_large"]
 	for i := 0; i < count; i++ {
 		var cx, cy, cz int
@@ -418,10 +409,7 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	}
 	w := featureParamInt(s, "w", 9)
 	h := featureParamInt(s, "h", 7)
-	count := s.Count
-	if count <= 0 {
-		count = 1
-	}
+	count := rollCount(s, rng, 1)
 	placed := 0
 	for attempt := 0; placed < count && attempt < count*20; attempt++ {
 		cx, cy, ok := pickFeatureCenter(level, s, rng)
@@ -456,10 +444,7 @@ func placeStructure(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 		return errFeature("structure", "params.blueprint required")
 	}
 	region := featureParamString(s, "region", "")
-	count := s.Count
-	if count <= 0 {
-		count = 1
-	}
+	count := rollCount(s, rng, 1)
 	anchors := level.Regions[region]
 	for i := 0; i < count; i++ {
 		var x, y, z int

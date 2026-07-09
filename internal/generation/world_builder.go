@@ -24,6 +24,11 @@ type BuildWorldOptions struct {
 	BiomeIDs      []string
 	BiomeSingle   string
 	Features      []FeatureSpec
+	// ReferenceArea is the map's expected footprint (width×height at the size
+	// range midpoints). Areal feature counts are scaled by
+	// Width*Height / ReferenceArea so resource density stays constant across the
+	// size roll. 0 disables scaling (counts used as authored).
+	ReferenceArea int
 }
 
 // BuildWorld constructs a level by running primer → biome map → biome apply
@@ -47,6 +52,12 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	// pass needs no shared RNG.
 	rng := rand.New(rand.NewSource(opts.Seed))
 	level := world.NewLevel(opts.Width, opts.Height, opts.Depth)
+	// Scale areal feature counts by how the rolled footprint compares to the
+	// map's typical (midpoint) footprint, so density is constant across the
+	// size roll. placeAnchors reads this off the level.
+	if opts.ReferenceArea > 0 {
+		level.FeatureAreaScale = float64(opts.Width*opts.Height) / float64(opts.ReferenceArea)
+	}
 	if err := primer.Prime(level, opts.TerrainParams, opts.Seed); err != nil {
 		return level, fmt.Errorf("primer %s: %w", opts.Terrain, err)
 	}

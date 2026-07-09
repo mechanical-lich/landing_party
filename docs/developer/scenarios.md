@@ -85,10 +85,10 @@ The optional `world` block configures terrain generation, biome distribution, an
         "biomes": ["tundra", "forest", "plains", "desert"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 30, "params": { "tile": "ore_deposit", "radius": 3 } },
-        { "kind": "ore_vein", "count": 15, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 3 } },
+        { "kind": "ore_vein", "count": 2, "count_max": 6, "params": { "tile": "crystal_vein", "radius": 2 } },
         { "kind": "radiation_pocket", "count": 2, "biome": "desert", "params": { "peak": 160, "radius": 4 } },
-        { "kind": "scatter_entity", "count": 80, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } }
+        { "kind": "scatter_entity", "count": 50, "count_max": 120, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } }
     ]
 }
 ```
@@ -106,11 +106,21 @@ Each entry in `features` has:
 | Field | Description |
 |-------|-------------|
 | `kind` | Feature kind. Built-ins: `ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `fauna_spawner`, `derelict_pod`, `botany_bay`, `structure`, `stamp`. |
-| `count` | Number of placements to attempt |
+| `count` | Number of placements to attempt. When `count_max` is set this is the **minimum** of a rolled range. |
+| `count_max` | Optional. When greater than `count`, the placement count is rolled uniformly in `[count, count_max]` per generation, so sibling maps of the same type vary instead of reading as copies. Omit (or set ≤ `count`) for a fixed count. |
 | `biome` | Optional. Restricts placement to columns whose biome matches this ID. |
 | `params` | Per-kind parameters (e.g. `tile`, `radius`, `blueprint`, `peak`). |
 
 Features can also be defined per-biome inside the biome JSON; those run for any column tagged with that biome regardless of scenario.
+
+#### Count rolling and area scaling
+
+Two things adjust the authored count at generation time, both deterministically (derived from the location seed, so the same seed reproduces exactly):
+
+1. **Range roll** — if `count_max > count`, the count is rolled in `[count, count_max]`. Applies to every feature kind.
+2. **Area scaling** — the *areal* kinds (`ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`) then multiply their rolled count by `rolledArea / referenceArea`, where the reference is the map's expected footprint (`SizeBlock` width×height midpoints). This keeps resource **density** constant across the map-size roll instead of thinning out on larger maps. Singular/region-anchored kinds (`derelict_pod`, `botany_bay`, `structure`, `stamp`, `fauna_spawner`) roll their range but are **not** area-scaled.
+
+The final count is `round(roll × areaScale)`, floored at 1 so an authored feature never drops to zero. Order is roll → scale, so a planet varies on both axes: two `earth_like` worlds might land at ~4 vs ~9 ore veins.
 
 ---
 

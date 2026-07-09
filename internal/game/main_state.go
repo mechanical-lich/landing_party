@@ -552,10 +552,11 @@ func (s *MainState) newGame() {
 		BiomeMapScale: md.BiomeMap.Scale,
 		BiomeIDs:      md.BiomeMap.Biomes,
 		BiomeSingle:   md.BiomeMap.Single,
+		ReferenceArea: md.Size.MidArea(),
 	}
 	for _, fb := range md.Features {
 		opts.Features = append(opts.Features, generation.FeatureSpec{
-			Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+			Kind: fb.Kind, Count: fb.Count, CountMax: fb.CountMax, Biome: fb.Biome,
 			InRegion: fb.InRegion, Jitter: fb.Jitter,
 			MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
 		})
@@ -563,7 +564,7 @@ func (s *MainState) newGame() {
 	if activeScenario != nil {
 		for _, fb := range activeScenario.Features {
 			opts.Features = append(opts.Features, generation.FeatureSpec{
-				Kind: fb.Kind, Count: fb.Count, Biome: fb.Biome,
+				Kind: fb.Kind, Count: fb.Count, CountMax: fb.CountMax, Biome: fb.Biome,
 				InRegion: fb.InRegion, Jitter: fb.Jitter,
 				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
 			})

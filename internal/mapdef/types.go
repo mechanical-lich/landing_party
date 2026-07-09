@@ -65,6 +65,16 @@ func (s SizeBlock) Validate() error {
 	return nil
 }
 
+// MidArea returns the map's expected footprint: the product of the width and
+// height range midpoints. Generation uses it as the reference area for
+// density-scaling areal feature counts, so a map's resource density stays
+// constant across its size roll instead of thinning out on larger rolls.
+func (s SizeBlock) MidArea() int {
+	midW := (s.W.Min + s.W.Max) / 2
+	midH := (s.H.Min + s.H.Max) / 2
+	return midW * midH
+}
+
 // Roll picks one (w, h, z) triple from this size block using a seeded rng so
 // runs of the same campaign reproduce.
 func (s SizeBlock) Roll(seed int64) (w, h, z int) {
@@ -85,8 +95,13 @@ type BiomeMapBlock struct {
 
 // FeatureBlock mirrors generation.FeatureSpec.
 type FeatureBlock struct {
-	Kind     string         `json:"kind"`
+	Kind string `json:"kind"`
+	// Count is how many instances to place. When CountMax > Count it acts as
+	// the minimum and the actual number is rolled in [Count, CountMax] per
+	// generation, so sibling maps of the same type vary instead of reading as
+	// area-scaled copies of one another.
 	Count    int            `json:"count"`
+	CountMax int            `json:"count_max,omitempty"`
 	Biome    string         `json:"biome,omitempty"`
 	InRegion string         `json:"in_region,omitempty"`
 	Jitter   int            `json:"jitter,omitempty"`

@@ -61,9 +61,19 @@ Generation runs in three phases (`internal/generation/`):
 
 1. **Primer**: paints a default tile per terrain kind so a column has reasonable defaults even without a biome map.
 2. **Biome application**: if the scenario provides a `world.biome_map`, each surface column samples temperature/humidity noise and the matching biome's `rules` paint the entire vertical column. See [Biomes](biomes.md).
-3. **Features**: scenario-level and biome-level `features` (ore veins, radiation pockets, scattered entities) are placed in order.
+3. **Features**: map-, scenario-, and biome-level `features` (ore veins, radiation pockets, scattered entities) are placed in order. A feature's `count` may be a fixed number or a rolled `[count, count_max]` range, and the areal kinds are additionally scaled by map area so density stays constant across the size roll — see [Scenarios → Feature Specs](scenarios.md#feature-specs).
 
-Surface variation is driven by **Perlin noise**; underground levels use a cavern-carving algorithm. Generation parameters (noise scale, cavern density, feature counts) are configurable per scenario via the `world` block — see [Scenarios](scenarios.md#world-block).
+Surface variation is driven by **Perlin noise**; underground levels use a cavern-carving algorithm. Generation parameters (noise scale, cavern density, feature counts) are configurable per map in `data/maps/*.json` and augmented per scenario via the `world` block — see [Scenarios](scenarios.md#world-block).
+
+### Determinism
+
+Generation is fully reproducible from a location's seed:
+
+- Each location derives its size and terrain from `seed`; primers seed their Perlin/RNG sources from it.
+- Feature placement, station layout, and setup/structure scripts draw from a single seed-derived `*rand.Rand` (never the global RNG), so the same seed reproduces the same map.
+- Tile **variant** selection is hashed from tile position (`world.TileVariantAt`) rather than drawn from an RNG, so it stays reproducible even though primers paint across multiple goroutines.
+
+The only intentionally non-reproducible generation randomness is gameplay-time deposit richness for mined rubble (`world.RollDepositRichness`), which is created during play rather than at generation.
 
 ---
 

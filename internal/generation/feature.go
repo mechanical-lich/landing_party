@@ -3,6 +3,7 @@ package generation
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -10,8 +11,12 @@ import (
 
 // FeatureSpec is the JSON shape for a feature placement directive.
 type FeatureSpec struct {
-	Kind     string         `json:"kind"`
+	Kind string `json:"kind"`
+	// Count is the instance count. When CountMax > Count it is the minimum and
+	// the count is rolled in [Count, CountMax] (see rollCount), adding
+	// per-location variety on top of any area scaling.
 	Count    int            `json:"count"`
+	CountMax int            `json:"count_max,omitempty"`
 	Biome    string         `json:"biome,omitempty"`     // restrict to columns with this biome ("" = any)
 	InRegion string         `json:"in_region,omitempty"` // pick anchors from level.Regions[name]
 	Jitter   int            `json:"jitter,omitempty"`    // random offset around region anchor (default 6)
@@ -53,15 +58,36 @@ func PlaceFeatures(level *world.Level, specs []FeatureSpec, rng *rand.Rand) {
 	}
 }
 
+// rollCount resolves a feature's instance count. When CountMax exceeds the
+// (defaulted) Count, the number is rolled uniformly in [Count, CountMax] from
+// rng so sibling locations differ; otherwise the fixed Count is used. def is
+// the placer's fallback when Count is unset. Area scaling, where it applies, is
+// layered on top of this roll by the caller (see placeAnchors).
+func rollCount(s FeatureSpec, rng *rand.Rand, def int) int {
+	min := s.Count
+	if min <= 0 {
+		min = def
+	}
+	if s.CountMax > min {
+		return min + rng.Intn(s.CountMax-min+1)
+	}
+	return min
+}
+
 // placeAnchors is the shared body for count-based, surface-scattered features:
 // it repeatedly picks an in-biome center and calls place() until `count`
 // instances land or the attempt budget (8×count) runs out, then logs any
 // shortfall so authors can tell when a map or biome is too small for the
 // requested count. place() returns true when it consumed the anchor.
 func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount int, place func(cx, cy int) bool) {
-	count := s.Count
-	if count <= 0 {
-		count = defCount
+	count := rollCount(s, rng, defCount)
+	// Scale by the map's size roll so areal density is constant. Round to
+	// nearest, but never drop an authored feature to zero.
+	if m := level.FeatureAreaMultiplier(); m != 1 {
+		count = int(math.Round(float64(count) * m))
+		if count < 1 {
+			count = 1
+		}
 	}
 	maxAttempts := count * 8
 	placed := 0

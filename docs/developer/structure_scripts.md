@@ -37,6 +37,8 @@ Scripts are source-cached; the file is read once per process lifetime and the pa
 
 Structure scripts share the same builtin set as scenario setup scripts, plus the following additions.
 
+> **Determinism:** any randomness a script uses (e.g. `rnd_int`, `place_feature`, and tile-variant selection) draws from a per-location seeded source, so a given location reproduces its structures exactly. Stamps derive their seed from the world-gen stream; quest fixtures from the location seed. Authoring scripts need no special handling — just avoid reaching for wall-clock time.
+
 ### `gen_structure(name, x, y, w, h)`
 
 Invokes another structure script by name, stamping it into the given footprint. The child script inherits the parent's param frame (a copy — changes do not propagate back up). Recursion depth is capped at 8.

@@ -32,7 +32,7 @@ The loader is `internal/generation/biome.go`: every `.json` file in `data/biomes
 | `temp_range` | [2]float | Min/max normalized temperature (0..1) where this biome is eligible |
 | `humidity_range` | [2]float | Min/max normalized humidity (0..1) where this biome is eligible |
 | `rules` | []BiomeRule | Ordered list of terrain-kind → tile mappings. First match wins. |
-| `features` | []FeatureSpec | Optional biome-scoped features (ore veins, scatter entities, etc.) |
+| `features` | []FeatureSpec | Optional biome-scoped features (ore veins, scatter entities, etc.). Same schema as scenario/map features — including `count`/`count_max` range rolling and area scaling. See [Scenarios → Feature Specs](scenarios.md#feature-specs). |
 
 ### BiomeRule
 
