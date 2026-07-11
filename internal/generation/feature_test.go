@@ -42,6 +42,30 @@ func TestRollCount(t *testing.T) {
 	}
 }
 
+func TestRollRange(t *testing.T) {
+	rng := rand.New(rand.NewSource(3))
+	// max <= min → fixed at min (covers unset radius_max == 0).
+	if got := rollRange(rng, 2, 0); got != 2 {
+		t.Fatalf("unset max: got %d, want 2", got)
+	}
+	if got := rollRange(rng, 3, 3); got != 3 {
+		t.Fatalf("equal: got %d, want 3", got)
+	}
+	// max > min → within [min, max], spanning both ends.
+	lo, hi := false, false
+	for i := 0; i < 2000; i++ {
+		v := rollRange(rng, 2, 4)
+		if v < 2 || v > 4 {
+			t.Fatalf("out of range: %d", v)
+		}
+		lo = lo || v == 2
+		hi = hi || v == 4
+	}
+	if !lo || !hi {
+		t.Fatalf("range never hit an endpoint (lo=%v hi=%v)", lo, hi)
+	}
+}
+
 // Same seed must reproduce the same roll sequence — sibling locations differ
 // only because their seeds differ, not because the roll is nondeterministic.
 func TestRollCountDeterministic(t *testing.T) {

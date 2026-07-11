@@ -15,8 +15,8 @@
         "biomes": ["tundra"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
-        { "kind": "ore_vein", "count": 2, "count_max": 5, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2, "radius_max": 4 } },
+        { "kind": "ore_vein", "count": 2, "count_max": 5, "params": { "tile": "crystal_vein", "radius": 2, "radius_max": 3 } },
         { "kind": "lava_lake", "count": 14, "count_max": 26, "params": { "tile": "ice", "radius": 4 } },
         { "kind": "lava_lake", "count": 4, "count_max": 9, "params": { "tile": "ice", "radius": 8 } },
         { "kind": "radiation_pocket", "count": 2, "count_max": 5, "params": { "peak": 100, "radius": 3 } }

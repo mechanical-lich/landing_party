@@ -16,8 +16,8 @@
         "biomes": ["tundra", "forest", "plains", "desert"]
     },
     "features": [
-        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2 } },
-        { "kind": "ore_vein", "count": 2, "count_max": 6, "params": { "tile": "crystal_vein", "radius": 2 } },
+        { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2, "radius_max": 4 } },
+        { "kind": "ore_vein", "count": 2, "count_max": 6, "params": { "tile": "crystal_vein", "radius": 2, "radius_max": 3 } },
         { "kind": "radiation_pocket", "count": 1, "count_max": 3, "biome": "desert", "params": { "peak": 160, "radius": 4 } },
         { "kind": "scatter_entity", "count": 50, "count_max": 120, "biome": "forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
         { "kind": "scatter_tile", "count": 50, "count_max": 120, "biome": "tundra", "params": { "tile": "ice", "kind": "surface" } },

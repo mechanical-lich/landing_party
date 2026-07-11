@@ -74,6 +74,15 @@ func rollCount(s FeatureSpec, rng *rand.Rand, def int) int {
 	return min
 }
 
+// rollRange returns min, or a uniform value in [min, max] when max > min. Used
+// for per-instance size ranges (e.g. ore_vein radius) drawn from the seeded rng.
+func rollRange(rng *rand.Rand, min, max int) int {
+	if max > min {
+		return min + rng.Intn(max-min+1)
+	}
+	return min
+}
+
 // placeAnchors is the shared body for count-based, surface-scattered features:
 // it repeatedly picks a candidate center and calls place() until `count`
 // instances land or the attempt budget (8×count) runs out, then logs any

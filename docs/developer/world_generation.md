@@ -1,6 +1,6 @@
 # World Generation — Developer Guide
 
-World generation creates the multi-level map the colony is placed on. It is driven by scenario configuration and tile definitions.
+World generation creates the multi-level map the colony is placed on. It is driven primarily by **map definitions** (`data/maps/*.json` → `internal/mapdef`) — terrain primer, size, biome map, and features — with the scenario augmenting them (extra features, spawn rules). Everything derives from the location seed, so a given seed reproduces exactly (see [Determinism](#determinism)).
 
 ---
 

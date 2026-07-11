@@ -105,7 +105,7 @@ Each entry in `features` has:
 
 | Field | Description |
 |-------|-------------|
-| `kind` | Feature kind. Built-ins: `ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `fauna_spawner`, `derelict_pod`, `botany_bay`, `structure`, `stamp`. |
+| `kind` | Feature kind. Built-ins: `ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `fauna_spawner`, `derelict_pod`, `botany_bay`, `structure`, `stamp`, `cave_spawner`, `buried_spawner`. |
 | `count` | Number of placements to attempt. When `count_max` is set this is the **minimum** of a rolled range. |
 | `count_max` | Optional. When greater than `count`, the placement count is rolled uniformly in `[count, count_max]` per generation, so sibling maps of the same type vary instead of reading as copies. Omit (or set ≤ `count`) for a fixed count. |
 | `biome` | Optional. Restricts placement to columns of this biome. Placement samples the biome's columns directly, so a restricted feature fills its count even when the biome is a small fraction of a large map (rather than a uniform sampler mostly missing it). |
@@ -113,12 +113,47 @@ Each entry in `features` has:
 
 Features can also be defined per-biome inside the biome JSON; those run for any column tagged with that biome regardless of scenario.
 
+#### Placer kinds
+
+Each `kind` places something specific; `params` are per-kind (defaults in parentheses; `req` = required). All kinds also accept `count`/`count_max`; the surface/underground kinds additionally accept `biome` (restrict to a biome) and `in_region`/`jitter` (place near a tagged region anchor).
+
+| Kind | Places | Where | Key params | Area-scaled |
+|------|--------|-------|------------|:-----------:|
+| `ore_vein` | deposit tiles | underground rock | `tile` (`ore_deposit`), `radius` (3), `radius_max` (opt; rolls each vein's radius in `[radius, radius_max]`), `density` (1.0), `min_z`/`max_z` | ✓ |
+| `radiation_pocket` | radiation field + ore seeds | surface (or `min_z`/`max_z`) | `peak` (180), `radius` (4), `ore_tile` (`radioactive_ore`) | ✓ |
+| `crystal_grove` | crystal entities | surface | `blueprint` (`alien_crystal`), `radius` (4) | ✓ |
+| `lava_lake` | lava tiles | surface | `tile` (`lava`), `radius` (5) | ✓ |
+| `scatter_tile` | single tiles | surface of a `kind` | `tile` (req), `kind` (`surface`) | ✓ |
+| `scatter_entity` | single entities | surface of a `kind` | `blueprint` (req), `kind` (`surface`) | ✓ |
+| `fauna_spawner` | entities | open air above surface | `blueprint` (req) | — |
+| `derelict_pod` | entity | open air above surface | `blueprint` (req) | — |
+| `botany_bay` | soil tiles + plants | tagged station room, else surface | `tile` (`dirt`), `plant_blueprint`, `radius` (3) | — |
+| `structure` | entity | `region` anchor, else surface | `blueprint` (req), `region` | — |
+| `stamp` | runs a structure script | surface | `script` (req), `w` (9), `h` (7) | — |
+| `cave_spawner` | entities | open cavern tiles | `blueprint` (req), `zone` (`any`) | ✓ |
+| `buried_spawner` | entities | inside solid rock | `blueprint` (req), `zone` (`any`) | ✓ |
+
+Unknown blueprints/tiles skip cleanly (one-time warning), and every placer logs a shortfall when it can't fill its count.
+
+#### Cave and buried spawners
+
+`cave_spawner` and `buried_spawner` place entities *below or inside the terrain* rather than on the surface — the way to populate caverns and mountains (which surface placers skip):
+
+- **`cave_spawner`** spawns in **open cavern tiles** (`TKCavern`) — cave-dwelling creatures, loot. Reached by mining in.
+- **`buried_spawner`** spawns **inside solid rock** — buried caches, fossils, dormant creatures revealed when the rock is mined out. (Use a blueprint that behaves sensibly while encased.)
+
+Both take `params.blueprint` (required) and `params.zone`, which filters by elevation relative to the surface: `"underground"` (below), `"mountain"` (above, i.e. inside mountains), or `"any"` (default). Counts roll (`count`/`count_max`) and area-scale like other features. Example:
+
+```json
+{ "kind": "cave_spawner", "count": 3, "count_max": 8, "params": { "blueprint": "cave_lurker", "zone": "mountain" } }
+```
+
 #### Count rolling and area scaling
 
 Two things adjust the authored count at generation time, both deterministically (derived from the location seed, so the same seed reproduces exactly):
 
 1. **Range roll** — if `count_max > count`, the count is rolled in `[count, count_max]`. Applies to every feature kind.
-2. **Area scaling** — the *areal* kinds (`ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`) then multiply their rolled count by `rolledArea / referenceArea`, where the reference is the map's expected footprint (`SizeBlock` width×height midpoints). This keeps resource **density** constant across the map-size roll instead of thinning out on larger maps. Singular/region-anchored kinds (`derelict_pod`, `botany_bay`, `structure`, `stamp`, `fauna_spawner`) roll their range but are **not** area-scaled.
+2. **Area scaling** — the *areal* kinds (`ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `cave_spawner`, `buried_spawner`) then multiply their rolled count by `rolledArea / referenceArea`, where the reference is the map's expected footprint (`SizeBlock` width×height midpoints). This keeps **density** constant across the map-size roll instead of thinning out on larger maps. Singular/region-anchored kinds (`derelict_pod`, `botany_bay`, `structure`, `stamp`, `fauna_spawner`) roll their range but are **not** area-scaled.
 
 The final count is `round(roll × areaScale)`, floored at 1 so an authored feature never drops to zero. Order is roll → scale, so a planet varies on both axes: two `earth_like` worlds might land at ~4 vs ~9 ore veins.
 

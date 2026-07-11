@@ -1,6 +1,7 @@
 package generation
 
 import (
+	"log"
 	"math"
 	"math/rand"
 
@@ -20,6 +21,111 @@ func init() {
 	RegisterFeature("scatter_tile", placeScatterTile)
 	RegisterFeature("scatter_entity", placeScatterEntity)
 	RegisterFeature("stamp", placeStamp)
+	RegisterFeature("cave_spawner", placeCaveSpawner)
+	RegisterFeature("buried_spawner", placeBuriedSpawner)
+}
+
+// spawnTargets collects the (x,y,z) tiles a cave/buried spawner may use: open
+// cavern tiles when solid is false, solid rock (underground/subsurface) when
+// true. zone filters by elevation relative to the surface: "underground"
+// (below), "mountain" (above), else both. Built in a fixed order so sampling
+// from it stays reproducible.
+func spawnTargets(level *world.Level, solid bool, zone string) [][3]int {
+	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
+	surfZ := level.SurfaceZ
+	var out [][3]int
+	for z := 0; z < d; z++ {
+		switch zone {
+		case "underground":
+			if z >= surfZ {
+				continue
+			}
+		case "mountain":
+			if z <= surfZ {
+				continue
+			}
+		}
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				k := level.GetTerrainKind(x, y, z)
+				match := k == world.TKCavern
+				if solid {
+					match = k == world.TKUnderground || k == world.TKSubsurface
+				}
+				if match {
+					out = append(out, [3]int{x, y, z})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// spawnInTiles places up to a rolled/area-scaled count of bp at random unoccupied
+// tiles from targets. Shared by the cave and buried spawners.
+func spawnInTiles(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string, targets [][3]int, defCount int) {
+	count := rollCount(s, rng, defCount)
+	if m := level.FeatureAreaMultiplier(); m != 1 {
+		count = int(math.Round(float64(count) * m))
+		if count < 1 {
+			count = 1
+		}
+	}
+	zone := featureParamString(s, "zone", "any")
+	if len(targets) == 0 {
+		log.Printf("feature %q: placed 0/%d (no matching tiles for zone %q)", s.Kind, count, zone)
+		return
+	}
+	placed := 0
+	for tries := 0; placed < count && tries < count*8; tries++ {
+		t := targets[rng.Intn(len(targets))]
+		if level.GetEntityAt(t[0], t[1], t[2]) != nil {
+			continue
+		}
+		e, err := factory.Create(bp, t[0], t[1], t[2])
+		if err != nil {
+			return
+		}
+		level.AddEntity(e)
+		placed++
+	}
+	if placed < count {
+		log.Printf("feature %q: placed %d/%d (not enough free tiles for zone %q)", s.Kind, placed, count, zone)
+	}
+}
+
+// cave_spawner — spawns entities in open cavern tiles (cave-dwelling creatures,
+// loot), reached by mining in.
+//
+//	params: blueprint (required), zone ("any"|"underground"|"mountain", default any)
+func placeCaveSpawner(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
+	bp := featureParamString(s, "blueprint", "")
+	if bp == "" {
+		return errFeature("cave_spawner", "params.blueprint required")
+	}
+	if !factory.BlueprintExists(bp) {
+		return nil
+	}
+	zone := featureParamString(s, "zone", "any")
+	spawnInTiles(level, s, rng, bp, spawnTargets(level, false, zone), 10)
+	return nil
+}
+
+// buried_spawner — spawns entities inside solid rock, revealed by mining
+// (buried caches, fossils, dormant creatures).
+//
+//	params: blueprint (required), zone ("any"|"underground"|"mountain", default any)
+func placeBuriedSpawner(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
+	bp := featureParamString(s, "blueprint", "")
+	if bp == "" {
+		return errFeature("buried_spawner", "params.blueprint required")
+	}
+	if !factory.BlueprintExists(bp) {
+		return nil
+	}
+	zone := featureParamString(s, "zone", "any")
+	spawnInTiles(level, s, rng, bp, spawnTargets(level, true, zone), 5)
+	return nil
 }
 
 // scatter_entity — sparse single-entity decoration on surface tiles matching
@@ -88,6 +194,7 @@ func placeScatterTile(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 // ore_vein — cluster of ore tiles underground.
 //
 //	params: tile (default "ore_deposit"), radius (default 3),
+//	        radius_max (optional; when > radius, each vein's radius rolls in [radius, radius_max]),
 //	        density (0..1 fill chance per cell in the disk, default 1.0 = solid)
 func placeOreVein(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	tile := featureParamString(s, "tile", "ore_deposit")
@@ -95,6 +202,7 @@ func placeOreVein(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 		return nil
 	}
 	radius := featureParamInt(s, "radius", 3)
+	radiusMax := featureParamInt(s, "radius_max", 0)
 	// density is the per-cell chance to paint within the disk: 1.0 fills it
 	// solid, lower values scatter the vein. Clamped to (0, 1].
 	density := featureParamFloat(s, "density", 1.0)
@@ -115,10 +223,11 @@ func placeOreVein(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			return false
 		}
 		cz := minZ + randIntn(rng, maxZ-minZ+1)
+		r := rollRange(rng, radius, radiusMax) // per-vein size
 		anyPainted := false
-		for dy := -radius; dy <= radius; dy++ {
-			for dx := -radius; dx <= radius; dx++ {
-				if dx*dx+dy*dy > radius*radius {
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if dx*dx+dy*dy > r*r {
 					continue
 				}
 				if density < 1.0 && rng.Float64() >= density {
@@ -463,10 +572,22 @@ func placeStructure(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			a := anchors[i]
 			x, y, z = a[0], a[1], a[2]
 		} else {
-			x = rng.Intn(level.GetWidth())
-			y = rng.Intn(level.GetHeight())
-			z = level.GetSurfaceZ(x, y)
-			if z < 0 {
+			// Find a standable surface column — mountain columns are solid at
+			// the surface z, so a naive GetSurfaceZ would bury the entity.
+			found := false
+			for attempt := 0; attempt < 40; attempt++ {
+				x = rng.Intn(level.GetWidth())
+				y = rng.Intn(level.GetHeight())
+				z = level.GetSurfaceZ(x, y)
+				if z < 0 {
+					continue
+				}
+				if t := level.GetTilePtr(x, y, z); t != nil && !t.IsSolid() {
+					found = true
+					break
+				}
+			}
+			if !found {
 				continue
 			}
 		}
