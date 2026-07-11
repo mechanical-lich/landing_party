@@ -3,6 +3,12 @@ name: Nightly
 on:
   schedule:
     - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build and release even if dev is unchanged since the last nightly'
+        type: boolean
+        default: false
 
 jobs:
   check:
@@ -26,7 +32,9 @@ jobs:
         run: |
           CURRENT_SHA=$(git rev-parse HEAD)
           LAST_SHA=$(git rev-parse -q --verify refs/tags/nightly-latest^{commit} || echo "")
-          if [ "$CURRENT_SHA" = "$LAST_SHA" ]; then
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$CURRENT_SHA" = "$LAST_SHA" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
