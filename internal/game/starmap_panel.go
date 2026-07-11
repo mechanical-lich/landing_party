@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"math"
 	"math/rand"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -54,11 +55,18 @@ type starMapPanel struct {
 
 	locateBtn   *minui.Button
 	travelBtn   *minui.Button
+	scanBtn     *minui.Button
 	beamDownBtn *minui.Button
 	beamUpBtn   *minui.Button
 
 	status  string
 	pending state.StateInterface
+
+	scanModal  *minui.Modal
+	scanLabel  *minui.Label
+	scanLabel2 *minui.Label
+	scanOkBtn  *minui.Button
+	scanOpen   bool
 }
 
 func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
@@ -107,6 +115,29 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 	p.beamUpBtn.SetSize(250, 30)
 	p.beamUpBtn.OnClick = p.beamUp
 
+	p.scanBtn = minui.NewButton("sm_scan", "Scan")
+	p.scanBtn.SetPosition(880, btnY)
+	p.scanBtn.SetSize(180, 30)
+	p.scanBtn.OnClick = p.scan
+
+	p.scanModal = minui.NewModal("sm_scan_result", "Scan Report", 480, 170)
+	p.scanModal.SetPosition((sw-480)/2, (sh-170)/2)
+	p.scanModal.OnClose = func() { p.scanOpen = false }
+	p.scanLabel = minui.NewLabel("sm_scan_l1", "")
+	p.scanLabel.SetSize(440, 22)
+	p.scanLabel.SetPosition(24, 18)
+	p.scanModal.AddChild(p.scanLabel)
+	p.scanLabel2 = minui.NewLabelWithColor("sm_scan_l2", "", color.RGBA{170, 190, 220, 255})
+	p.scanLabel2.SetSize(440, 22)
+	p.scanLabel2.SetPosition(24, 52)
+	p.scanModal.AddChild(p.scanLabel2)
+	p.scanOkBtn = minui.NewButton("sm_scan_ok", "Ok")
+	p.scanOkBtn.SetPosition(190, 100)
+	p.scanOkBtn.SetSize(100, 28)
+	p.scanOkBtn.OnClick = p.closeScanModal
+	p.scanModal.AddChild(p.scanOkBtn)
+	p.scanModal.SetVisible(false)
+
 	p.refreshLocations()
 	p.refreshCrew()
 	return p
@@ -115,10 +146,27 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 // ---- data ----
 
 func (p *starMapPanel) refreshLocations() {
+	// Remember the selected location by ID: DiscoveredLocations comes from a Go
+	// map (random order), so we sort for a stable list and restore selection by
+	// identity rather than index — otherwise a refresh (e.g. after a scan) would
+	// silently jump the selection to a different location.
+	prevID := ""
+	if i := p.locList.SelectedIndex; i >= 0 && i < len(p.locIDs) {
+		prevID = p.locIDs[i]
+	}
+
+	locs := p.campaign.DiscoveredLocations()
+	sort.Slice(locs, func(a, b int) bool {
+		fa, fb := p.campaign.FuelCost(locs[a].ID), p.campaign.FuelCost(locs[b].ID)
+		if fa != fb {
+			return fa < fb // nearest first (current location, fuel 0, leads)
+		}
+		return locs[a].ID < locs[b].ID
+	})
+
 	p.locIDs = p.locIDs[:0]
 	var labels []string
-	sel := p.locList.SelectedIndex
-	for _, loc := range p.campaign.DiscoveredLocations() {
+	for _, loc := range locs {
 		p.locIDs = append(p.locIDs, loc.ID)
 		tag := ""
 		if loc.ID == p.campaign.CurrentLocationID && p.wm.current != nil {
@@ -135,10 +183,16 @@ func (p *starMapPanel) refreshLocations() {
 		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s", loc.Name, loc.Kind, scenarioName, p.campaign.FuelCost(loc.ID), tag))
 	}
 	p.locList.SetItems(labels)
-	if sel >= 0 && sel < len(labels) {
-		p.locList.SelectedIndex = sel
-	} else if len(labels) > 0 {
-		p.locList.SelectedIndex = 0
+
+	p.locList.SelectedIndex = 0
+	for i, id := range p.locIDs {
+		if id == prevID {
+			p.locList.SelectedIndex = i
+			break
+		}
+	}
+	if len(labels) == 0 {
+		p.locList.SelectedIndex = -1
 	}
 }
 
@@ -172,6 +226,16 @@ func (p *starMapPanel) selectedLocation() *campaign.Location {
 		return nil
 	}
 	return p.campaign.Locations[p.locIDs[i]]
+}
+
+// selectByID selects the destination row for the given location ID, if present.
+func (p *starMapPanel) selectByID(id string) {
+	for i, lid := range p.locIDs {
+		if lid == id {
+			p.locList.SelectedIndex = i
+			return
+		}
+	}
 }
 
 func (p *starMapPanel) fuelAvailable() int {
@@ -281,6 +345,51 @@ func (p *starMapPanel) travel() {
 	p.refreshCrew()
 }
 
+// scan runs one ship-scanner sweep from the current location: it spends fuel,
+// then may chart a new nearby world (chance and reach scale with the scanner's
+// research level).
+func (p *starMapPanel) scan() {
+	level := p.campaign.ScannerLevel()
+	if level < 1 {
+		p.showScanResult("No ship scanner installed.", "Research Ship Scanner to sweep for new worlds.")
+		return
+	}
+	cost := p.campaign.ScanFuelCost()
+	if p.fuelAvailable() < cost {
+		p.showScanResult("Not enough fuel to scan.", fmt.Sprintf("Have %d, need %d.", p.fuelAvailable(), cost))
+		return
+	}
+	storage.Deduct(
+		storage.ShipProvider{Level: p.wm.ShipLevel()},
+		[]string{p.wm.shipSettlementName()},
+		map[string]int{"fuel": cost},
+	)
+	if found := p.campaign.Scan(level); found != nil {
+		p.showScanResult(
+			fmt.Sprintf("Detected: %s", found.Name),
+			fmt.Sprintf("A %s, %d fuel away.   (−%d fuel)", found.Kind, p.campaign.FuelCost(found.ID), cost),
+		)
+	} else {
+		p.showScanResult("No new worlds detected.", fmt.Sprintf("(−%d fuel)", cost))
+	}
+	// Stay on the world we scanned from, not wherever the list re-sorts to.
+	p.refreshLocations()
+	p.selectByID(p.campaign.CurrentLocationID)
+}
+
+// showScanResult opens the scan-report modal with a headline and a detail line.
+func (p *starMapPanel) showScanResult(line1, line2 string) {
+	p.scanLabel.Text = line1
+	p.scanLabel2.Text = line2
+	p.scanModal.SetVisible(true)
+	p.scanOpen = true
+}
+
+func (p *starMapPanel) closeScanModal() {
+	p.scanModal.SetVisible(false)
+	p.scanOpen = false
+}
+
 func (p *starMapPanel) beamDown() {
 	if p.wm.current == nil {
 		p.status = "Travel to a location before beaming down."
@@ -325,10 +434,27 @@ func (p *starMapPanel) Enter() {
 }
 
 func (p *starMapPanel) Update() {
+	// The scan-report modal takes input priority while open.
+	if p.scanOpen {
+		p.scanModal.Update()
+		return
+	}
 	p.handleCanvasInput()
 	p.locList.Update()
 	p.locateBtn.Update()
 	p.travelBtn.Update()
+
+	// Ship scanner: label shows the fuel cost; disabled without a scanner or
+	// enough fuel.
+	if level := p.campaign.ScannerLevel(); level < 1 {
+		p.scanBtn.Text = "Scan (locked)"
+		p.scanBtn.SetEnabled(false)
+	} else {
+		cost := p.campaign.ScanFuelCost()
+		p.scanBtn.Text = fmt.Sprintf("Scan (%d fuel)", cost)
+		p.scanBtn.SetEnabled(p.fuelAvailable() >= cost)
+	}
+	p.scanBtn.Update()
 
 	inOrbit := p.wm.current != nil
 	p.beamDownBtn.SetEnabled(inOrbit)
@@ -555,6 +681,7 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	p.planList.Draw(screen)
 	p.locateBtn.Draw(screen)
 	p.travelBtn.Draw(screen)
+	p.scanBtn.Draw(screen)
 	p.beamDownBtn.Draw(screen)
 	p.beamUpBtn.Draw(screen)
 
@@ -585,6 +712,10 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 
 	if p.status != "" {
 		mlge_text.Draw(screen, p.status, 13, 20, sh-30, color.RGBA{230, 160, 90, 255})
+	}
+
+	if p.scanOpen {
+		p.scanModal.Draw(screen)
 	}
 }
 

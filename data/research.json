@@ -170,5 +170,49 @@
         "required_building": "research_lab",
         "required_int": 10,
         "requires_tech": "robotics"
+    },
+    "ship_scanner_1": {
+        "name": "Ship Scanner",
+        "description": "A basic long-range scanner. From the star map you can sweep nearby space for undiscovered worlds (10% per scan, out to 25 fuel).",
+        "duration": 60,
+        "cost": { "metal_ore": 3 },
+        "required_building": "research_lab",
+        "required_int": 8
+    },
+    "ship_scanner_2": {
+        "name": "Enhanced Scanner Array",
+        "description": "Better sensitivity and reach: each scan hits 20% out to 50 fuel.",
+        "duration": 140,
+        "cost": { "metal_ore": 8, "crystal": 3 },
+        "required_building": "research_lab",
+        "required_int": 10,
+        "requires_tech": "ship_scanner_1"
+    },
+    "ship_scanner_3": {
+        "name": "Deep-Space Scanner",
+        "description": "Detects distant worlds: each scan hits 30% out to 100 fuel.",
+        "duration": 220,
+        "cost": { "metal_ore": 14, "crystal": 6 },
+        "required_building": "research_lab",
+        "required_int": 12,
+        "requires_tech": "ship_scanner_2"
+    },
+    "scan_efficiency_1": {
+        "name": "Scan Optimization",
+        "description": "Streamlines the scan cycle, halving the fuel each sweep burns (200 → 100).",
+        "duration": 100,
+        "cost": { "metal_ore": 5, "crystal": 2 },
+        "required_building": "research_lab",
+        "required_int": 9,
+        "requires_tech": "ship_scanner_1"
+    },
+    "scan_efficiency_2": {
+        "name": "Scan Calibration",
+        "description": "Fine-tunes the scanner to cut scan fuel cost further (100 → 50).",
+        "duration": 180,
+        "cost": { "metal_ore": 10, "crystal": 4 },
+        "required_building": "research_lab",
+        "required_int": 11,
+        "requires_tech": "scan_efficiency_1"
     }
 }

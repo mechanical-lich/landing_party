@@ -164,11 +164,12 @@ by data templates + a tuning file:
   When a structure script is specified the script is the sole authority on what
   spawns and who the target is; see [Structure Scripts](structure_scripts.md).
 - **Tuning:** `data/generation.json` → `campaign.GenConfig` (`genConfig()`,
-  cached; defaults if the file/fields are absent). Holds `home_radius`,
+  loaded fresh each call so config/content edits apply without a restart;
+  defaults if the file/fields are absent). Holds `home_radius`,
   `start_fuel`/`start_colonists`/`roster_cap`, nearby count/radius,
   `travel_quest_one_in`/`_max`, `contract_one_in`, `new_system_one_in`,
-  `min_separation`, and expansion placement knobs. `campaign.GenerationConfig()`
-  exposes it.
+  `min_separation`, and expansion placement knobs (`expansion_gap_min`/`_rand`,
+  `home_cap_frac`, `home_bias`). `campaign.GenerationConfig()` exposes it.
 - **Placement invariants:** all coordinate rolls (nearby systems and
   `placeTowardHome`) run through `placeSeparated`, which re-rolls until the spot
   is at least `min_separation` from every existing location (falling back to the
@@ -188,8 +189,14 @@ by data templates + a tuning file:
   re-derived.
 - **Progressive expansion:** a quest reward with `spawn_systems > 0` calls
   `Campaign.Expand(n)` on completion — seeded by `Seed + GenSeq`, it charts new
-  systems marching the frontier toward Home (`placeTowardHome`), appends their
-  quests, bumps `GenSeq`, and re-binds. The overworld grows as you play.
+  systems, appends their quests, bumps `GenSeq`, and re-binds. The overworld
+  grows as you play. Each new system **buds off an anchor** (`expansionAnchor` —
+  usually the player's current location so exploration grows around them,
+  sometimes a random discovered system so the network spreads) in a random
+  bearing pulled toward Home by `home_bias` (`blendAngle`). The result is a
+  branching network that trends home while still offering lateral directions to
+  explore, rather than a single corridor. Overshooting Home is clamped
+  (`home_cap_frac`).
 - **Travel roll:** every actual jump (`WorldManager.Travel` to a non-Home
   system) calls `Campaign.MaybeTravelQuests` — a **1-in-6** chance to generate
   **1d4** quests, each bound to a random discovered system or a freshly charted
@@ -197,6 +204,17 @@ by data templates + a tuning file:
   roll varies per jump even on a miss while staying deterministic. This keeps
   the run from stalling as long as the player keeps moving, independent of
   `spawn_systems` quests.
+- **Ship scanner:** a **player-triggered**, fuel-costed reveal (the **Scan**
+  button on the star map), separate from the automatic quest/datapad reveals.
+  `Campaign.Scan(level)` rolls the scanner's chance and, on success, charts a new
+  world in a random direction within the scanner's range (`placeNear`), revealed
+  and stocked with datapad quests; the caller (star-map panel) spends the fuel
+  first (a miss still costs fuel). `ScanSeq` (persisted) seeds each roll so it
+  varies per scan and reproduces. Two research chains drive it: **power** —
+  `ship_scanner_1/2/3` set `ScannerLevel()` (0 = no scanner), indexing
+  `scanner_tiers` (chance + range); **cost** — `scan_efficiency_1/2` advance
+  `ScanFuelCost()` down the `scan_fuel_costs` array. Both are tunable in
+  `data/generation.json` (and, since `genConfig` is uncached, live-editable).
 - **Win:** `WorldManager.Travel` to the Home location sets `Campaign.Won`
   (no level is generated/landed); `OverworldState` shows the victory screen.
 - **Lose:** `MainState.checkTotalWipe` (each quest tick) ends the run if no

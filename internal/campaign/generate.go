@@ -267,39 +267,134 @@ func tagSlice(t string) []string {
 	return []string{t}
 }
 
-// placeTowardHome picks coordinates beyond the current explored frontier,
-// biased toward Home so the run progresses without ever overshooting it.
+// placeTowardHome charts a new system a short hop from an existing "anchor"
+// system, in a direction that's biased toward Home but otherwise free — so the
+// map grows as a branching network that trends home rather than a single
+// corridor. The anchor is usually the player's current location (exploration
+// grows around them), sometimes a random discovered system (so the network
+// spreads). Overshooting Home is clamped away.
 func (c *Campaign) placeTowardHome(rng *rand.Rand) (float64, float64) {
 	cfg := genConfig()
-	frontier := c.frontierRadius()
-	home := c.HomeLocation()
-	hang := 0.0
-	if home != nil {
-		hang = math.Atan2(home.Y, home.X)
+	ax, ay := c.expansionAnchor(rng)
+	homeAng := 0.0
+	if home := c.HomeLocation(); home != nil {
+		homeAng = math.Atan2(home.Y-ay, home.X-ax)
 	}
+	capR := cfg.HomeRadius * cfg.HomeCapFrac
 	return c.placeSeparated(func() (float64, float64) {
-		r := frontier + cfg.ExpansionGapMin + rng.Float64()*cfg.ExpansionGapRand
-		if cap := cfg.HomeRadius * cfg.HomeCapFrac; r > cap {
-			r = cap
+		// A random bearing pulled toward Home by HomeBias.
+		ang := blendAngle(rng.Float64()*2*math.Pi, homeAng, cfg.HomeBias)
+		gap := cfg.ExpansionGapMin + rng.Float64()*cfg.ExpansionGapRand
+		x := ax + math.Cos(ang)*gap
+		y := ay + math.Sin(ang)*gap
+		if r := math.Hypot(x, y); r > capR && r > 0 {
+			x *= capR / r
+			y *= capR / r
 		}
-		ang := hang + (rng.Float64()-0.5)*cfg.AngleJitter
-		return math.Cos(ang) * r, math.Sin(ang) * r
+		return x, y
 	})
 }
 
-// frontierRadius is the distance of the farthest non-Home location from the
-// origin — the edge of explored space the expansion marches past.
-func (c *Campaign) frontierRadius() float64 {
-	frontier := 0.0
-	for _, loc := range c.Locations {
-		if loc.Kind == HomeKind {
-			continue
-		}
-		if d := math.Hypot(loc.X, loc.Y); d > frontier {
-			frontier = d
+// expansionAnchor picks the existing location a new system buds from: usually
+// the player's current location (so exploration grows where they are),
+// sometimes a random discovered system (so the network spreads rather than only
+// trailing the player). Falls back to the origin.
+func (c *Campaign) expansionAnchor(rng *rand.Rand) (float64, float64) {
+	if cur := c.Locations[c.CurrentLocationID]; cur != nil && cur.Kind != HomeKind {
+		if rng.Intn(3) != 0 { // ~2/3 of the time, grow from the current location
+			return cur.X, cur.Y
 		}
 	}
-	return frontier
+	// Sorted by ID so the selection (and RNG draw) is deterministic despite
+	// Go's randomized map iteration.
+	systems := make([]*Location, 0, len(c.Locations))
+	for _, l := range c.Locations {
+		if l.Discovered && l.Kind != HomeKind {
+			systems = append(systems, l)
+		}
+	}
+	if len(systems) == 0 {
+		return 0, 0
+	}
+	sort.Slice(systems, func(i, j int) bool { return systems[i].ID < systems[j].ID })
+	a := systems[rng.Intn(len(systems))]
+	return a.X, a.Y
+}
+
+// blendAngle rotates a toward b by fraction t (0 = a, 1 = b) along the shortest
+// arc.
+func blendAngle(a, b, t float64) float64 {
+	diff := math.Mod(b-a, 2*math.Pi)
+	if diff < -math.Pi {
+		diff += 2 * math.Pi
+	} else if diff > math.Pi {
+		diff -= 2 * math.Pi
+	}
+	return a + diff*t
+}
+
+// Scan runs one ship-scanner sweep from the current location. It rolls the
+// scanner's chance (by power level) and, on success, charts a new nearby planet
+// within the scanner's range — revealed and stocked with hidden datapad quests.
+// Returns the revealed location, or nil if the scan found nothing (or there is
+// no scanner). The caller spends the fuel; the roll advances every call (hit or
+// miss) so repeated scans differ, and is deterministic/persisted via ScanSeq.
+func (c *Campaign) Scan(level int) *Location {
+	if level < 1 {
+		return nil
+	}
+	tiers := genConfig().ScannerTiers
+	if len(tiers) == 0 {
+		return nil
+	}
+	idx := level - 1
+	if idx >= len(tiers) {
+		idx = len(tiers) - 1
+	}
+	tier := tiers[idx]
+	cur := c.Locations[c.CurrentLocationID]
+	if cur == nil {
+		return nil
+	}
+	lt, qt, err := loadGenTemplates()
+	if err != nil {
+		return nil
+	}
+	c.ScanSeq++
+	rng := rand.New(rand.NewSource(c.Seed + int64(c.ScanSeq)*2246822519))
+	if rng.Float64() >= tier.Chance {
+		return nil // scan came back empty
+	}
+	x, y := c.placeNear(rng, cur.X, cur.Y, tier.Range)
+	a := weightedArchetype(rng, lt)
+	loc := c.newLocation(rng, a, x, y, "")
+	loc.Discovered = true
+	c.addDatapadQuests(rng, qt, a, loc)
+	c.BindQuests()
+	return loc
+}
+
+// placeNear returns min-separated coordinates within maxDist of (cx, cy) in a
+// random direction — the scanner reveals a nearby world in any direction, not
+// just toward Home. Overshooting Home is clamped away.
+func (c *Campaign) placeNear(rng *rand.Rand, cx, cy, maxDist float64) (float64, float64) {
+	cfg := genConfig()
+	minD := cfg.ExpansionGapMin
+	if minD >= maxDist {
+		minD = maxDist * 0.3
+	}
+	capR := cfg.HomeRadius * cfg.HomeCapFrac
+	return c.placeSeparated(func() (float64, float64) {
+		ang := rng.Float64() * 2 * math.Pi
+		r := minD + rng.Float64()*(maxDist-minD)
+		x := cx + math.Cos(ang)*r
+		y := cy + math.Sin(ang)*r
+		if d := math.Hypot(x, y); d > capR && d > 0 {
+			x *= capR / d
+			y *= capR / d
+		}
+		return x, y
+	})
 }
 
 // tooClose reports whether (x,y) lands within minSep of any existing location,

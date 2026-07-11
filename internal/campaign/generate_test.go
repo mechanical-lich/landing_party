@@ -60,6 +60,164 @@ func TestGenerateCampaignShape(t *testing.T) {
 	}
 }
 
+func TestBlendAngle(t *testing.T) {
+	near := func(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
+	sameDir := func(x, y float64) bool { return near(math.Cos(x), math.Cos(y)) && near(math.Sin(x), math.Sin(y)) }
+
+	if got := blendAngle(1.0, 2.0, 0); !near(got, 1.0) {
+		t.Errorf("t=0 should be a: %v", got)
+	}
+	if got := blendAngle(1.0, 2.0, 0.5); !near(got, 1.5) {
+		t.Errorf("t=0.5 midpoint: %v", got)
+	}
+	if got := blendAngle(1.0, 2.0, 1); !sameDir(got, 2.0) {
+		t.Errorf("t=1 should be b: %v", got)
+	}
+	// Shortest arc across the ±pi seam (should go the short way, not +2pi).
+	if got := blendAngle(3.0, -3.0, 1); !sameDir(got, -3.0) {
+		t.Errorf("seam: %v", got)
+	}
+	if got := blendAngle(0.2, -0.2, 1); !near(got, -0.2) {
+		t.Errorf("small arc: %v", got)
+	}
+}
+
+// Expansion should trend toward Home (most new systems in the home direction,
+// and the frontier moving closer) while still branching laterally so the player
+// has other directions to explore.
+func TestExpansionBranchesTowardHome(t *testing.T) {
+	useRepoData(t)
+	arc := func(d float64) float64 {
+		d = math.Mod(d, 2*math.Pi)
+		if d < -math.Pi {
+			d += 2 * math.Pi
+		} else if d > math.Pi {
+			d -= 2 * math.Pi
+		}
+		return d
+	}
+	minToHome := func(c *Campaign, hx, hy float64) float64 {
+		m := math.MaxFloat64
+		for _, l := range c.Locations {
+			if l.Kind == HomeKind {
+				continue
+			}
+			if d := math.Hypot(hx-l.X, hy-l.Y); d < m {
+				m = d
+			}
+		}
+		return m
+	}
+	for _, seed := range []int64{1, 4242} {
+		c := genCampaign(t, seed)
+		home := c.HomeLocation()
+		homeAng := math.Atan2(home.Y, home.X)
+		before := minToHome(c, home.X, home.Y)
+		existing := map[string]bool{}
+		for id := range c.Locations {
+			existing[id] = true
+		}
+		c.Expand(40)
+
+		fwd, lat := 0, 0
+		for id, l := range c.Locations {
+			if existing[id] || l.Kind == HomeKind {
+				continue
+			}
+			off := math.Abs(arc(math.Atan2(l.Y, l.X) - homeAng))
+			if off < math.Pi/4 {
+				fwd++
+			} else if off < 3*math.Pi/4 {
+				lat++
+			}
+		}
+		if fwd < 5 {
+			t.Errorf("seed %d: only %d systems trend toward home", seed, fwd)
+		}
+		if lat < 3 {
+			t.Errorf("seed %d: only %d lateral systems — not branching", seed, lat)
+		}
+		if after := minToHome(c, home.X, home.Y); after > before {
+			t.Errorf("seed %d: expansion moved the frontier away from home (%.0f -> %.0f)", seed, before, after)
+		}
+	}
+}
+
+func TestScannerResearchLevels(t *testing.T) {
+	useRepoData(t)
+	c := genCampaign(t, 1)
+	if c.ScannerLevel() != 0 {
+		t.Fatalf("fresh scanner level = %d, want 0", c.ScannerLevel())
+	}
+	if c.ScanFuelCost() != 200 {
+		t.Fatalf("base scan cost = %d, want 200", c.ScanFuelCost())
+	}
+	c.UnlockTech("ship_scanner_1")
+	c.UnlockTech("ship_scanner_2")
+	c.UnlockTech("ship_scanner_3")
+	if c.ScannerLevel() != 3 {
+		t.Fatalf("scanner level = %d, want 3", c.ScannerLevel())
+	}
+	c.UnlockTech("scan_efficiency_1")
+	if c.ScanFuelCost() != 100 {
+		t.Fatalf("scan cost after efficiency_1 = %d, want 100", c.ScanFuelCost())
+	}
+	c.UnlockTech("scan_efficiency_2")
+	if c.ScanFuelCost() != 50 {
+		t.Fatalf("scan cost after efficiency_2 = %d, want 50", c.ScanFuelCost())
+	}
+}
+
+func TestScanReveals(t *testing.T) {
+	useRepoData(t)
+	// Level 0 (no scanner) never scans.
+	if c0 := genCampaign(t, 7); c0.Scan(0) != nil {
+		t.Fatal("level 0 should not scan")
+	}
+
+	c := genCampaign(t, 7)
+	c.UnlockTech("ship_scanner_1")
+	c.UnlockTech("ship_scanner_2")
+	c.UnlockTech("ship_scanner_3") // level 3: 30% / range 100
+	cur := c.Locations[c.CurrentLocationID]
+
+	var revealed *Location
+	for i := 0; i < 100 && revealed == nil; i++ {
+		revealed = c.Scan(3)
+	}
+	if revealed == nil {
+		t.Fatal("no reveal in 100 scans at 30%")
+	}
+	if !revealed.Discovered {
+		t.Error("revealed location should be discovered")
+	}
+	if d := math.Hypot(revealed.X-cur.X, revealed.Y-cur.Y); d > 100+1e-6 {
+		t.Errorf("revealed %.1f from current, exceeds range 100", d)
+	}
+}
+
+func TestScanDeterministic(t *testing.T) {
+	useRepoData(t)
+	run := func() (int, float64, float64) {
+		c := genCampaign(t, 55)
+		c.UnlockTech("ship_scanner_1")
+		n := 0
+		var lx, ly float64
+		for i := 0; i < 20; i++ {
+			if loc := c.Scan(1); loc != nil {
+				n++
+				lx, ly = loc.X, loc.Y
+			}
+		}
+		return n, lx, ly
+	}
+	n1, x1, y1 := run()
+	n2, x2, y2 := run()
+	if n1 != n2 || x1 != x2 || y1 != y2 {
+		t.Fatalf("scan non-deterministic: (%d,%.2f,%.2f) vs (%d,%.2f,%.2f)", n1, x1, y1, n2, x2, y2)
+	}
+}
+
 func TestTooClose(t *testing.T) {
 	c := &Campaign{Locations: map[string]*Location{
 		"a": {X: 0, Y: 0},

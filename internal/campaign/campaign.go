@@ -30,6 +30,9 @@ type Campaign struct {
 	// jump (even on a miss) so the 1d6 chance actually varies, while staying
 	// deterministic and persisted.
 	TravelSeq int `json:"travel_seq,omitempty"`
+	// ScanSeq counts ship-scanner sweeps; combined with Seed it makes each
+	// scan's roll/placement deterministic and reproducible across save/load.
+	ScanSeq int `json:"scan_seq,omitempty"`
 	// Won/Lost are terminal campaign states (reached Home / total wipe).
 	Won  bool `json:"won,omitempty"`
 	Lost bool `json:"lost,omitempty"`
@@ -120,6 +123,40 @@ func (c *Campaign) UnlockTech(key string) {
 	if !c.HasTech(key) {
 		c.KnownTechs = append(c.KnownTechs, key)
 	}
+}
+
+// Ship-scanner research chains. A level is the count of consecutive techs
+// researched from the front of each chain.
+var (
+	scannerPowerTechs   = []string{"ship_scanner_1", "ship_scanner_2", "ship_scanner_3"}
+	scanEfficiencyTechs = []string{"scan_efficiency_1", "scan_efficiency_2"}
+)
+
+func (c *Campaign) techChainLevel(chain []string) int {
+	n := 0
+	for _, k := range chain {
+		if !c.HasTech(k) {
+			break
+		}
+		n++
+	}
+	return n
+}
+
+// ScannerLevel is the ship scanner's power level (0 = no scanner researched).
+func (c *Campaign) ScannerLevel() int { return c.techChainLevel(scannerPowerTechs) }
+
+// ScanFuelCost is the fuel one scan burns at the current efficiency research.
+func (c *Campaign) ScanFuelCost() int {
+	costs := genConfig().ScanFuelCosts
+	if len(costs) == 0 {
+		return 0
+	}
+	lvl := c.techChainLevel(scanEfficiencyTechs)
+	if lvl >= len(costs) {
+		lvl = len(costs) - 1
+	}
+	return costs[lvl]
 }
 
 // KnownTechSet returns KnownTechs as a set for O(1) lookup.

@@ -19,7 +19,14 @@
   "expansion_gap_min": 18,
   "expansion_gap_rand": 32,
   "home_cap_frac": 0.9,
-  "angle_jitter": 1.1,
+  "home_bias": 0.35,
 
-  "min_separation": 5
+  "min_separation": 5,
+
+  "scanner_tiers": [
+    { "chance": 0.10, "range": 25 },
+    { "chance": 0.20, "range": 50 },
+    { "chance": 0.30, "range": 100 }
+  ],
+  "scan_fuel_costs": [200, 100, 50]
 }

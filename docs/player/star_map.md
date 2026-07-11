@@ -64,6 +64,25 @@ Make fuel by refining it: the **Refine Fuel Cell** recipe (basic workbench)
 turns biomass + ore into fuel. Refined fuel stays at the site by default — to
 spend it on travel, **beam it up** to the ship hold first (see below).
 
+## Scanning for new worlds
+
+Once you research a **Ship Scanner**, a **Scan** button appears on the star map.
+A scan sweeps space around your current location and *may* reveal a new world to
+travel to. Each scan **costs fuel and can come up empty** — it's a gamble you
+spend fuel on, so scan when you want somewhere new to go (or a direction to
+branch off toward).
+
+Research improves it two ways:
+
+- **Scanner tier** (`Ship Scanner` → `Enhanced Scanner Array` → `Deep-Space
+  Scanner`) raises the odds and the reach — a better scanner finds worlds more
+  often and **farther away** (which then cost more fuel to actually reach).
+- **Scan efficiency** (`Scan Optimization`, `Scan Calibration`) cuts the fuel
+  each scan burns (200 → 100 → 50).
+
+The button shows the current fuel cost and greys out if you can't afford it or
+have no scanner yet.
+
 ## Beaming colonists
 
 Colonists move between the ship and the loaded location on the Star Map:
