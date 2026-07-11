@@ -15,6 +15,7 @@ jobs:
         with:
           ref: dev
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Compute tag name
         id: tag
@@ -22,11 +23,9 @@ jobs:
 
       - name: Check for new commits since last nightly
         id: compare
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CURRENT_SHA=$(git rev-parse HEAD)
-          LAST_SHA=$(gh release view nightly-latest --json targetCommitish -q .targetCommitish 2>/dev/null || echo "")
+          LAST_SHA=$(git rev-parse -q --verify refs/tags/nightly-latest^{commit} || echo "")
           if [ "$CURRENT_SHA" = "$LAST_SHA" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
