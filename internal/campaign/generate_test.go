@@ -170,8 +170,8 @@ func TestScannerResearchLevels(t *testing.T) {
 
 func TestScanReveals(t *testing.T) {
 	useRepoData(t)
-	// Level 0 (no scanner) never scans.
-	if c0 := genCampaign(t, 7); c0.Scan(0) != nil {
+	// Level 0 (no scanner) never scans (and doesn't "run").
+	if c0 := genCampaign(t, 7); func() bool { l, r := c0.Scan(0); return l != nil || r }() {
 		t.Fatal("level 0 should not scan")
 	}
 
@@ -183,7 +183,7 @@ func TestScanReveals(t *testing.T) {
 
 	var revealed *Location
 	for i := 0; i < 100 && revealed == nil; i++ {
-		revealed = c.Scan(3)
+		revealed, _ = c.Scan(3)
 	}
 	if revealed == nil {
 		t.Fatal("no reveal in 100 scans at 30%")
@@ -204,7 +204,7 @@ func TestScanDeterministic(t *testing.T) {
 		n := 0
 		var lx, ly float64
 		for i := 0; i < 20; i++ {
-			if loc := c.Scan(1); loc != nil {
+			if loc, _ := c.Scan(1); loc != nil {
 				n++
 				lx, ly = loc.X, loc.Y
 			}

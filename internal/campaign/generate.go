@@ -336,16 +336,19 @@ func blendAngle(a, b, t float64) float64 {
 // Scan runs one ship-scanner sweep from the current location. It rolls the
 // scanner's chance (by power level) and, on success, charts a new nearby planet
 // within the scanner's range — revealed and stocked with hidden datapad quests.
-// Returns the revealed location, or nil if the scan found nothing (or there is
-// no scanner). The caller spends the fuel; the roll advances every call (hit or
-// miss) so repeated scans differ, and is deterministic/persisted via ScanSeq.
-func (c *Campaign) Scan(level int) *Location {
+//
+// The bool reports whether the scan actually ran: true means it executed (the
+// caller should charge fuel — a genuine miss returns (nil, true)); false means a
+// precondition failed (no scanner, no current location, templates unavailable)
+// and no fuel should be spent. The roll advances every run (hit or miss) so
+// repeated scans differ, and is deterministic/persisted via ScanSeq.
+func (c *Campaign) Scan(level int) (*Location, bool) {
 	if level < 1 {
-		return nil
+		return nil, false
 	}
 	tiers := genConfig().ScannerTiers
 	if len(tiers) == 0 {
-		return nil
+		return nil, false
 	}
 	idx := level - 1
 	if idx >= len(tiers) {
@@ -354,16 +357,17 @@ func (c *Campaign) Scan(level int) *Location {
 	tier := tiers[idx]
 	cur := c.Locations[c.CurrentLocationID]
 	if cur == nil {
-		return nil
+		return nil, false
 	}
 	lt, qt, err := loadGenTemplates()
 	if err != nil {
-		return nil
+		return nil, false
 	}
+	// The scan runs from here — a miss still counts (the caller charges fuel).
 	c.ScanSeq++
 	rng := rand.New(rand.NewSource(c.Seed + int64(c.ScanSeq)*2246822519))
 	if rng.Float64() >= tier.Chance {
-		return nil // scan came back empty
+		return nil, true // ran, came back empty
 	}
 	x, y := c.placeNear(rng, cur.X, cur.Y, tier.Range)
 	a := weightedArchetype(rng, lt)
@@ -371,7 +375,7 @@ func (c *Campaign) Scan(level int) *Location {
 	loc.Discovered = true
 	c.addDatapadQuests(rng, qt, a, loc)
 	c.BindQuests()
-	return loc
+	return loc, true
 }
 
 // placeNear returns min-separated coordinates within maxDist of (cx, cy) in a

@@ -359,12 +359,18 @@ func (p *starMapPanel) scan() {
 		p.showScanResult("Not enough fuel to scan.", fmt.Sprintf("Have %d, need %d.", p.fuelAvailable(), cost))
 		return
 	}
+	found, ran := p.campaign.Scan(level)
+	if !ran {
+		// Precondition failed (e.g. templates unavailable) — don't charge fuel.
+		p.showScanResult("Scan systems offline.", "Unable to complete the sweep.")
+		return
+	}
 	storage.Deduct(
 		storage.ShipProvider{Level: p.wm.ShipLevel()},
 		[]string{p.wm.shipSettlementName()},
 		map[string]int{"fuel": cost},
 	)
-	if found := p.campaign.Scan(level); found != nil {
+	if found != nil {
 		p.showScanResult(
 			fmt.Sprintf("Detected: %s", found.Name),
 			fmt.Sprintf("A %s, %d fuel away.   (−%d fuel)", found.Kind, p.campaign.FuelCost(found.ID), cost),
