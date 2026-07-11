@@ -11,11 +11,17 @@ The world is divided into semantic altitude bands. Each band has a range of Z in
 | Band | Description |
 |------|-------------|
 | Underground | Caverns, ore deposits, rock tunnels below the surface |
-| Surface | Open regolith, the main colony layer |
-| Atmosphere | Raised structures and upper platforms |
-| Space | Orbital layer (scenario-dependent, currently unused) |
+| Surface | Open regolith, the main colony layer (flat) |
+| Sky | Air where flat, **mountains** (solid rock + interior caverns) where terrain rises |
+| Space | Vacuum cap at the very top |
 
 Z-level metadata is stored in `internal/world/level.go`. Each `Level` struct carries its band, lighting mode, and current sun intensity.
+
+**Band allocation** (`generation.DefaultPlanetConfig`): bedrock at z=0, an underground band (rock + caverns), the single surface near the middle, then a tall "sky" band and a thin space cap. The surface is floored at `surfaceZ >= 4` so **every** size roll keeps an underground cavern band (caverns carve z in `[2, surfaceZ-2]`) and real mining depth, where a plain `depth/2` split used to collapse them to zero on shallow maps. Planet `z` ranges are ~12–14 (moon ~10–12) to leave room for both underground and mountains.
+
+**The surface is a single, flat, walkable z-level** — it is *not* a heightmap. The default colonist pathfinder (`internal/path`) can only change z via stairs (no ramps/slopes exist), so a varying-height surface would strand colonists on unreachable terraces.
+
+**Mountains** rise *above* the flat surface instead: where a low-frequency 2D noise field exceeds a threshold, the sky band is filled with solid rock (`PlanetPrimer` + `mountainHeight`), carved with interior caverns from the same 3D cave noise. At the colony layer a mountain reads as a rock obstacle you path around; its interior is reached exactly like the underground — mine into the base and build stairs up (building a stairs tile auto-carves its matched pair through rock). Params (per map `terrain_params`): `mountain_frequency` (~fraction of the map that is mountainous, default 0.15; Perlin concentrates near its midpoint, so the noise is spread before thresholding and the fraction is approximate) and `mountain_scale` (range breadth). Peak height is capped so the space layer stays clear. Note mountain and underground cave systems are separated by the solid surface layers today; through-surface shafts linking them would be a future addition.
 
 ---
 

@@ -5,9 +5,10 @@
     "size": {
         "w": { "min": 256, "max": 384 },
         "h": { "min": 256, "max": 384 },
-        "z": { "min": 6, "max": 8 }
+        "z": { "min": 10, "max": 12 }
     },
     "terrain": "planet",
+    "terrain_params": { "mountain_frequency": 0.3 },
     "biome_map": {
         "type": "perlin_temp_humidity",
         "scale": 60,
