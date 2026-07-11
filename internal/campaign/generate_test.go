@@ -17,7 +17,6 @@ func useRepoData(t *testing.T) {
 	QuestTemplatePath = "../../data/quest_templates.json"
 	GenerationConfigPath = "../../data/generation.json"
 	lore.NamesPath = "../../data/names.json"
-	genCfgCache = nil // force reload against the repo config
 }
 
 func genCampaign(t *testing.T, seed int64) *Campaign {

@@ -64,14 +64,11 @@ func defaultGenConfig() GenConfig {
 	}
 }
 
-var genCfgCache *GenConfig
-
-// genConfig loads (and caches) the tuning config, layering the file over
-// defaults so partial files work.
+// genConfig loads the tuning config fresh each call, layering the file over
+// defaults so partial files work. Deliberately uncached so edits to
+// data/generation.json (e.g. a content update) take effect without a restart;
+// it is only read at generation/travel time, never in a hot path.
 func genConfig() GenConfig {
-	if genCfgCache != nil {
-		return *genCfgCache
-	}
 	cfg := defaultGenConfig()
 	if b, err := os.ReadFile(GenerationConfigPath); err == nil {
 		_ = json.Unmarshal(b, &cfg) // unmarshal overlays only present fields
@@ -88,6 +85,5 @@ func genConfig() GenConfig {
 	if cfg.NewSystemOneIn < 1 {
 		cfg.NewSystemOneIn = 1
 	}
-	genCfgCache = &cfg
 	return cfg
 }
