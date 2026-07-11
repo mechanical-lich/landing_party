@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       skip: ${{ steps.compare.outputs.skip }}
-      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,9 +17,9 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Compute tag name
-        id: tag
-        run: echo "tag=nightly-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+      - name: Compute version string
+        id: version
+        run: echo "version=nightly-$(date -u '+%Y-%m-%d')-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Check for new commits since last nightly
         id: compare
@@ -80,12 +80,12 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 1
-        run: go build -ldflags="-s -w -X github.com/mechanical-lich/landing_party/internal/buildinfo.Version=${{ needs.check.outputs.tag }}" -o dist/landing-party${{ matrix.suffix }} ./cmd/game
+        run: go build -ldflags="-s -w -X github.com/mechanical-lich/landing_party/internal/buildinfo.Version=${{ needs.check.outputs.version }}" -o dist/landing-party${{ matrix.suffix }} ./cmd/game
 
       - name: Stage release archive
         shell: bash
         run: |
-          ARCHIVE=landing-party-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          ARCHIVE=landing-party-nightly-${{ matrix.name }}-${{ matrix.goarch }}
           mkdir -p staging/$ARCHIVE
           cp dist/landing-party${{ matrix.suffix }} staging/$ARCHIVE/
           cp -r data staging/$ARCHIVE/
@@ -94,20 +94,20 @@ jobs:
       - name: Zip (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          ARCHIVE=landing-party-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
+          ARCHIVE=landing-party-nightly-${{ matrix.name }}-${{ matrix.goarch }}
           cd staging && zip -r ../$ARCHIVE.zip $ARCHIVE/
 
       - name: Zip (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $archive = "landing-party-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}"
+          $archive = "landing-party-nightly-${{ matrix.name }}-${{ matrix.goarch }}"
           Compress-Archive -Path "staging/$archive" -DestinationPath "$archive.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: landing-party-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}
-          path: landing-party-${{ needs.check.outputs.tag }}-${{ matrix.name }}-${{ matrix.goarch }}.zip
+          name: landing-party-nightly-${{ matrix.name }}-${{ matrix.goarch }}
+          path: landing-party-nightly-${{ matrix.name }}-${{ matrix.goarch }}.zip
 
   release:
     needs: [check, build]
@@ -125,15 +125,18 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: Create or update nightly-latest tag
+      - name: Move nightly-latest tag to current commit
         run: |
           git tag -f nightly-latest
           git push origin nightly-latest --force
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.check.outputs.tag }}
-          name: ${{ needs.check.outputs.tag }}
+          tag_name: nightly-latest
+          name: Nightly (latest)
+          body: |
+            Rolling nightly build from the tip of `dev`. Assets are replaced each night.
+
+            Version: `${{ needs.check.outputs.version }}`
           files: dist/*.zip
           prerelease: true
-          generate_release_notes: true
