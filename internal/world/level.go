@@ -308,6 +308,28 @@ func (l *Level) SetBiome(x, y int, biome string) {
 	l.BiomeMap[y*l.GetWidth()+x] = biome
 }
 
+// ColumnsWithBiome returns the (x, y) columns whose biome label equals id, in
+// row-major order. Feature placement samples from this directly so a
+// biome-restricted feature finds its tiles even when the biome is a small
+// fraction of a large map (uniform sampling would mostly miss it). Returns nil
+// if the level has no biome map.
+func (l *Level) ColumnsWithBiome(id string) [][2]int {
+	if l.BiomeMap == nil {
+		return nil
+	}
+	w, h := l.GetWidth(), l.GetHeight()
+	cols := make([][2]int, 0, len(l.BiomeMap)/8)
+	for y := 0; y < h; y++ {
+		base := y * w
+		for x := 0; x < w; x++ {
+			if l.BiomeMap[base+x] == id {
+				cols = append(cols, [2]int{x, y})
+			}
+		}
+	}
+	return cols
+}
+
 func (l *Level) GetSurfaceZ(x, y int) int {
 	if l.SurfaceMap == nil || x < 0 || y < 0 || x >= l.GetWidth() || y >= l.GetHeight() {
 		return -1

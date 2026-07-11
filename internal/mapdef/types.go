@@ -87,10 +87,11 @@ func (s SizeBlock) Roll(seed int64) (w, h, z int) {
 
 // BiomeMapBlock mirrors generation.BiomeMapConfig.
 type BiomeMapBlock struct {
-	Type   string   `json:"type"`
-	Scale  float64  `json:"scale"`
-	Biomes []string `json:"biomes"`
-	Single string   `json:"single"`
+	Type           string   `json:"type"`
+	Scale          float64  `json:"scale"`
+	Biomes         []string `json:"biomes"`
+	Single         string   `json:"single"`
+	LatitudeWeight float64  `json:"latitude_weight"`
 }
 
 // FeatureBlock mirrors generation.FeatureSpec.

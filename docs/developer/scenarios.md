@@ -108,7 +108,7 @@ Each entry in `features` has:
 | `kind` | Feature kind. Built-ins: `ore_vein`, `radiation_pocket`, `crystal_grove`, `lava_lake`, `scatter_entity`, `scatter_tile`, `fauna_spawner`, `derelict_pod`, `botany_bay`, `structure`, `stamp`. |
 | `count` | Number of placements to attempt. When `count_max` is set this is the **minimum** of a rolled range. |
 | `count_max` | Optional. When greater than `count`, the placement count is rolled uniformly in `[count, count_max]` per generation, so sibling maps of the same type vary instead of reading as copies. Omit (or set ≤ `count`) for a fixed count. |
-| `biome` | Optional. Restricts placement to columns whose biome matches this ID. |
+| `biome` | Optional. Restricts placement to columns of this biome. Placement samples the biome's columns directly, so a restricted feature fills its count even when the biome is a small fraction of a large map (rather than a uniform sampler mostly missing it). |
 | `params` | Per-kind parameters (e.g. `tile`, `radius`, `blueprint`, `peak`). |
 
 Features can also be defined per-biome inside the biome JSON; those run for any column tagged with that biome regardless of scenario.

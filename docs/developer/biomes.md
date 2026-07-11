@@ -56,6 +56,7 @@ A scenario picks biomes via the `world.biome_map` block:
     "biome_map": {
         "type": "perlin_temp_humidity",
         "scale": 80,
+        "latitude_weight": 0.7,
         "biomes": ["tundra", "forest", "plains", "desert"]
     }
 }
@@ -63,11 +64,12 @@ A scenario picks biomes via the `world.biome_map` block:
 
 | Field | Description |
 |-------|-------------|
-| `type` | Distribution strategy. `perlin_temp_humidity` samples two Perlin fields (temperature and humidity) per surface column. |
+| `type` | Distribution strategy. `perlin_temp_humidity` samples two Perlin fields (temperature and humidity) per surface column. `uniform` paints a single biome (`single`). |
 | `scale` | Noise scale; larger = bigger contiguous biome regions. |
-| `biomes` | The candidate biome IDs. The biome whose `temp_range` and `humidity_range` contain the column's sampled (T, H) is chosen. |
+| `latitude_weight` | 0..1 (default 0). Blends a pole-to-equator gradient into **temperature**: 0 = pure noise (isotropic blobs); 1 = pure bands (cold at the top/bottom edges, warm in the middle). Humidity stays pure noise. Raise it so temperature-keyed biomes (polar tundra, equatorial desert) reliably appear and read as climate bands. |
+| `biomes` | The candidate biome IDs, matched against each column's sampled (T, H). |
 
-If no listed biome covers a column's (T, H), the primer's default tiles remain — you should choose ranges that tile the (T, H) unit square if you want full coverage.
+**Matching.** Each column is assigned by its `temp_range`/`humidity_range`, resolving ambiguity by **nearest centroid** (the center of a biome's T/H box): when a point falls in exactly one box it uses that biome; when it falls in several (overlapping ranges) or none (a gap), the biome whose centroid is closest wins. This means the result never depends on the order biomes are listed, and gaps no longer dump into the first-listed biome. Note that because the noise concentrates near the middle of the T/H square, biomes with centrally-placed centroids get the largest share; use `latitude_weight` (and centroid placement) to give extreme biomes a foothold.
 
 ---
 
@@ -93,5 +95,5 @@ If no listed biome covers a column's (T, H), the primer's default tiles remain �
 2. Set a unique `id` and the `temp_range` / `humidity_range` covering where this biome should appear.
 3. Define one `rules` entry per `kind` you care about. Always include `surface`, `subsurface`, `underground`, `cavern`, `atmosphere`, `space`, and `bedrock` so the entire vertical column has tiles.
 4. Reference any new tile types in `data/tiledefinitions/tile_definitions.json` first.
-5. Add the new biome ID to the `biomes` array of any scenario's `world.biome_map` that should include it. Make sure the new biome's (T, H) range overlaps the scenario's noise output.
+5. Add the new biome ID to the `biomes` array of any scenario's `world.biome_map` that should include it. Placement is nearest-centroid, so the ranges don't have to tile the (T, H) square perfectly — but the biome's territory is the region of climate space closest to its centroid, so place that centroid where you want it to appear (and remember the noise clusters near the middle).
 6. (Optional) Add `features` for biome-scoped feature spawning. Scenario-level `world.features` can also target biomes via the `biome` field.

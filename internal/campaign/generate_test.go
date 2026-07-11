@@ -1,6 +1,7 @@
 package campaign
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -57,6 +58,53 @@ func TestGenerateCampaignShape(t *testing.T) {
 	}
 	if discovered < 4 {
 		t.Fatalf("expected >=4 discovered locations (start+home+nearby), got %d", discovered)
+	}
+}
+
+func TestTooClose(t *testing.T) {
+	c := &Campaign{Locations: map[string]*Location{
+		"a": {X: 0, Y: 0},
+		"b": {X: 100, Y: 0},
+	}}
+	if !c.tooClose(3, 4, 6) { // distance 5 from "a", under minSep 6
+		t.Fatal("a point 5 away should be too close at minSep 6")
+	}
+	if c.tooClose(50, 0, 6) { // far from both
+		t.Fatal("the midpoint should not be too close")
+	}
+	if c.tooClose(0.1, 0, 0) { // minSep <= 0 disables the check
+		t.Fatal("minSep <= 0 must disable the separation check")
+	}
+}
+
+// Every generated location should sit at least MinSeparation from every other
+// (so star-map icons don't overlap) and carry a unique name.
+func TestGenerateSeparationAndUniqueNames(t *testing.T) {
+	useRepoData(t)
+	minSep := genConfig().MinSeparation
+	if minSep <= 0 {
+		t.Fatalf("expected positive min_separation from repo config, got %v", minSep)
+	}
+	for _, seed := range []int64{1, 7, 42, 99, 1234, 20240} {
+		c := genCampaign(t, seed)
+		names := make(map[string]string) // name -> owning id
+		locs := make([]*Location, 0, len(c.Locations))
+		for id, l := range c.Locations {
+			if prev, dup := names[l.Name]; dup {
+				t.Fatalf("seed %d: duplicate name %q on %s and %s", seed, l.Name, prev, id)
+			}
+			names[l.Name] = id
+			locs = append(locs, l)
+		}
+		for i := 0; i < len(locs); i++ {
+			for j := i + 1; j < len(locs); j++ {
+				d := math.Hypot(locs[i].X-locs[j].X, locs[i].Y-locs[j].Y)
+				if d < minSep {
+					t.Fatalf("seed %d: %s and %s are %.2f apart (< min_separation %.1f)",
+						seed, locs[i].ID, locs[j].ID, d, minSep)
+				}
+			}
+		}
 	}
 }
 

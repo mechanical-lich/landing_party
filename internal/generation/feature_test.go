@@ -3,6 +3,8 @@ package generation
 import (
 	"math/rand"
 	"testing"
+
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
 func TestRollCount(t *testing.T) {
@@ -57,5 +59,48 @@ func TestRollCountDeterministic(t *testing.T) {
 		if a[i] != b[i] {
 			t.Fatalf("non-deterministic at %d: %d vs %d", i, a[i], b[i])
 		}
+	}
+}
+
+// A biome-restricted feature must fill its count by sampling that biome's
+// columns directly — even when the biome is a tiny fraction of a large map,
+// which would starve a uniform sampler. This is the fix for the recurring
+// "placed 1/20 ... biome too small" shortfalls.
+func TestPlaceAnchorsBiomeTargeted(t *testing.T) {
+	level := world.NewLevel(100, 100, 3)
+	level.AllocTerrain()
+	// Paint a 10×10 desert block: 100 of 10,000 columns (1%).
+	for y := 0; y < 100; y++ {
+		for x := 0; x < 100; x++ {
+			b := "plains"
+			if x < 10 && y < 10 {
+				b = "desert"
+			}
+			level.SetBiome(x, y, b)
+		}
+	}
+	rng := rand.New(rand.NewSource(1))
+
+	var placed [][2]int
+	s := FeatureSpec{Kind: "scatter_tile", Count: 20, Biome: "desert"}
+	placeAnchors(level, s, rng, 50, func(cx, cy int) bool {
+		placed = append(placed, [2]int{cx, cy})
+		return true
+	})
+	if len(placed) != 20 {
+		t.Fatalf("placed %d, want 20 (biome-targeted sampling should fill the count)", len(placed))
+	}
+	for _, c := range placed {
+		if got := level.GetBiome(c[0], c[1]); got != "desert" {
+			t.Fatalf("placement at (%d,%d) is in %q, want desert", c[0], c[1], got)
+		}
+	}
+
+	// An absent biome places nothing and doesn't panic.
+	got := 0
+	absent := FeatureSpec{Kind: "scatter_tile", Count: 5, Biome: "no_such_biome"}
+	placeAnchors(level, absent, rng, 50, func(cx, cy int) bool { got++; return true })
+	if got != 0 {
+		t.Fatalf("absent biome should place 0, got %d", got)
 	}
 }

@@ -34,6 +34,11 @@ type GenConfig struct {
 	ExpansionGapRand float64 `json:"expansion_gap_rand"`
 	HomeCapFrac      float64 `json:"home_cap_frac"`
 	AngleJitter      float64 `json:"angle_jitter"`
+
+	// MinSeparation is the smallest allowed distance between any two locations,
+	// so systems don't stack into overlapping star-map icons. Placement re-rolls
+	// to satisfy it. 0 disables the check.
+	MinSeparation float64 `json:"min_separation"`
 }
 
 func defaultGenConfig() GenConfig {
@@ -55,6 +60,7 @@ func defaultGenConfig() GenConfig {
 		ExpansionGapRand: 32,
 		HomeCapFrac:      0.9,
 		AngleJitter:      1.1,
+		MinSeparation:    5,
 	}
 }
 

@@ -19,5 +19,7 @@
   "expansion_gap_min": 18,
   "expansion_gap_rand": 32,
   "home_cap_frac": 0.9,
-  "angle_jitter": 1.1
+  "angle_jitter": 1.1,
+
+  "min_separation": 5
 }

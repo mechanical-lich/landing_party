@@ -420,13 +420,14 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	w := featureParamInt(s, "w", 9)
 	h := featureParamInt(s, "h", 7)
 	count := rollCount(s, rng, 1)
+	next, ok := featureSampler(level, s, rng)
+	if !ok {
+		return nil // region/biome not present on this map
+	}
 	placed := 0
 	for attempt := 0; placed < count && attempt < count*20; attempt++ {
-		cx, cy, ok := pickFeatureCenter(level, s, rng)
-		if !ok {
-			break
-		}
-		if !columnMatchesBiome(level, cx, cy, s.Biome) {
+		cx, cy := next()
+		if s.InRegion != "" && !columnMatchesBiome(level, cx, cy, s.Biome) {
 			continue
 		}
 		surfZ := level.GetSurfaceZ(cx, cy)

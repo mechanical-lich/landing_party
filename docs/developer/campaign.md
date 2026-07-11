@@ -166,8 +166,16 @@ by data templates + a tuning file:
 - **Tuning:** `data/generation.json` → `campaign.GenConfig` (`genConfig()`,
   cached; defaults if the file/fields are absent). Holds `home_radius`,
   `start_fuel`/`start_colonists`/`roster_cap`, nearby count/radius,
-  `travel_quest_one_in`/`_max`, `contract_one_in`, `new_system_one_in`, and
-  expansion placement knobs. `campaign.GenerationConfig()` exposes it.
+  `travel_quest_one_in`/`_max`, `contract_one_in`, `new_system_one_in`,
+  `min_separation`, and expansion placement knobs. `campaign.GenerationConfig()`
+  exposes it.
+- **Placement invariants:** all coordinate rolls (nearby systems and
+  `placeTowardHome`) run through `placeSeparated`, which re-rolls until the spot
+  is at least `min_separation` from every existing location (falling back to the
+  last roll after a bounded number of tries, so generation never stalls). Each
+  location's name comes from `uniqueName`, which re-rolls (then appends a numeric
+  suffix) so no two systems share a name. Both keep the seed reproducible — the
+  retry count is a deterministic function of campaign state.
 - **`GenerateCampaign(name, seed)`** builds: a far, **visible `Home`**
   (`Kind == HomeKind`) at `home_radius` so its distance-priced fuel cost is
   huge; a **start** system at the origin; `nearby_min..max` nearby systems;

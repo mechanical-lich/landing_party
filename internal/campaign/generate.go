@@ -18,6 +18,15 @@ var (
 	QuestTemplatePath    = "data/quest_templates.json"
 )
 
+const (
+	// separationAttempts bounds how many times placement re-rolls to satisfy
+	// MinSeparation before giving up and using the last roll (so gen never stalls).
+	separationAttempts = 16
+	// nameAttempts bounds how many name rolls we try for uniqueness before
+	// falling back to a numeric suffix.
+	nameAttempts = 12
+)
+
 type locArchetype struct {
 	ID        string   `json:"id"`
 	Kind      string   `json:"kind"`
@@ -144,9 +153,12 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 		nearby += rng.Intn(cfg.NearbyMax - cfg.NearbyMin + 1)
 	}
 	for i := 0; i < nearby; i++ {
-		ang := rng.Float64() * 2 * math.Pi
-		r := cfg.NearbyRadiusMin + rng.Float64()*(cfg.NearbyRadiusMax-cfg.NearbyRadiusMin)
-		near := c.newSystem(rng, lt, qt, weightedArchetype(rng, lt), math.Cos(ang)*r, math.Sin(ang)*r, "")
+		x, y := c.placeSeparated(func() (float64, float64) {
+			ang := rng.Float64() * 2 * math.Pi
+			r := cfg.NearbyRadiusMin + rng.Float64()*(cfg.NearbyRadiusMax-cfg.NearbyRadiusMin)
+			return math.Cos(ang) * r, math.Sin(ang) * r
+		})
+		near := c.newSystem(rng, lt, qt, weightedArchetype(rng, lt), x, y, "")
 		near.Discovered = true
 	}
 
@@ -258,6 +270,26 @@ func tagSlice(t string) []string {
 // placeTowardHome picks coordinates beyond the current explored frontier,
 // biased toward Home so the run progresses without ever overshooting it.
 func (c *Campaign) placeTowardHome(rng *rand.Rand) (float64, float64) {
+	cfg := genConfig()
+	frontier := c.frontierRadius()
+	home := c.HomeLocation()
+	hang := 0.0
+	if home != nil {
+		hang = math.Atan2(home.Y, home.X)
+	}
+	return c.placeSeparated(func() (float64, float64) {
+		r := frontier + cfg.ExpansionGapMin + rng.Float64()*cfg.ExpansionGapRand
+		if cap := cfg.HomeRadius * cfg.HomeCapFrac; r > cap {
+			r = cap
+		}
+		ang := hang + (rng.Float64()-0.5)*cfg.AngleJitter
+		return math.Cos(ang) * r, math.Sin(ang) * r
+	})
+}
+
+// frontierRadius is the distance of the farthest non-Home location from the
+// origin — the edge of explored space the expansion marches past.
+func (c *Campaign) frontierRadius() float64 {
 	frontier := 0.0
 	for _, loc := range c.Locations {
 		if loc.Kind == HomeKind {
@@ -267,18 +299,59 @@ func (c *Campaign) placeTowardHome(rng *rand.Rand) (float64, float64) {
 			frontier = d
 		}
 	}
-	cfg := genConfig()
-	home := c.HomeLocation()
-	hang := 0.0
-	if home != nil {
-		hang = math.Atan2(home.Y, home.X)
+	return frontier
+}
+
+// tooClose reports whether (x,y) lands within minSep of any existing location,
+// so systems don't stack into overlapping star-map icons. minSep <= 0 disables.
+func (c *Campaign) tooClose(x, y, minSep float64) bool {
+	if minSep <= 0 {
+		return false
 	}
-	r := frontier + cfg.ExpansionGapMin + rng.Float64()*cfg.ExpansionGapRand
-	if cap := cfg.HomeRadius * cfg.HomeCapFrac; r > cap {
-		r = cap
+	for _, loc := range c.Locations {
+		if math.Hypot(loc.X-x, loc.Y-y) < minSep {
+			return true
+		}
 	}
-	ang := hang + (rng.Float64()-0.5)*cfg.AngleJitter
-	return math.Cos(ang) * r, math.Sin(ang) * r
+	return false
+}
+
+// placeSeparated re-rolls gen until it yields coordinates at least
+// MinSeparation from every existing location, or the attempt budget is spent —
+// then it uses the last roll so generation never stalls. gen must draw only
+// from the seeded rng so the outcome stays reproducible (the number of retries
+// is itself deterministic given the campaign state).
+func (c *Campaign) placeSeparated(gen func() (float64, float64)) (float64, float64) {
+	minSep := genConfig().MinSeparation
+	var x, y float64
+	for i := 0; i < separationAttempts; i++ {
+		x, y = gen()
+		if !c.tooClose(x, y, minSep) {
+			break
+		}
+	}
+	return x, y
+}
+
+// uniqueName rolls location names until it finds one not already in use, then
+// falls back to a numeric suffix, so two systems never share a name.
+func (c *Campaign) uniqueName(rng *rand.Rand) string {
+	used := make(map[string]bool, len(c.Locations))
+	for _, loc := range c.Locations {
+		used[loc.Name] = true
+	}
+	for i := 0; i < nameAttempts; i++ {
+		if n := genName(rng); !used[n] {
+			return n
+		}
+	}
+	// Pool exhausted (or an unlucky streak) — disambiguate with a suffix.
+	base := genName(rng)
+	n := base
+	for i := 2; used[n]; i++ {
+		n = fmt.Sprintf("%s %d", base, i)
+	}
+	return n
 }
 
 // newLocation creates one location from an archetype (no quests) and appends
@@ -291,7 +364,7 @@ func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idH
 	}
 	loc := &Location{
 		ID:         id,
-		Name:       genName(rng),
+		Name:       c.uniqueName(rng),
 		Kind:       a.Kind,
 		MapID:      pick(rng, a.Maps),
 		ScenarioID: pick(rng, a.Scenarios),

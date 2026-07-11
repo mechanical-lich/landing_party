@@ -11,6 +11,7 @@
     "biome_map": {
         "type": "perlin_temp_humidity",
         "scale": 80,
+        "latitude_weight": 0.7,
         "biomes": ["tundra", "forest", "plains", "desert"]
     },
     "features": [

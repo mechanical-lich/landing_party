@@ -75,10 +75,11 @@ func rollCount(s FeatureSpec, rng *rand.Rand, def int) int {
 }
 
 // placeAnchors is the shared body for count-based, surface-scattered features:
-// it repeatedly picks an in-biome center and calls place() until `count`
+// it repeatedly picks a candidate center and calls place() until `count`
 // instances land or the attempt budget (8×count) runs out, then logs any
-// shortfall so authors can tell when a map or biome is too small for the
-// requested count. place() returns true when it consumed the anchor.
+// shortfall. place() returns true when it consumed the anchor. Candidates come
+// from featureSampler, which draws biome-restricted features directly from that
+// biome's columns so a rare biome on a large map still fills its count.
 func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount int, place func(cx, cy int) bool) {
 	count := rollCount(s, rng, defCount)
 	// Scale by the map's size roll so areal density is constant. Round to
@@ -89,14 +90,18 @@ func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount in
 			count = 1
 		}
 	}
+	next, ok := featureSampler(level, s, rng)
+	if !ok {
+		log.Printf("feature %q: placed 0/%d (%s not present on this map)", s.Kind, count, sampleSource(s))
+		return
+	}
 	maxAttempts := count * 8
 	placed := 0
 	for tries := 0; placed < count && tries < maxAttempts; tries++ {
-		cx, cy, ok := pickFeatureCenter(level, s, rng)
-		if !ok {
-			break // spec asked for a region with no anchors
-		}
-		if !columnMatchesBiome(level, cx, cy, s.Biome) {
+		cx, cy := next()
+		// The region sampler jitters off anchors and doesn't guarantee the
+		// biome; the biome and uniform samplers already do.
+		if s.InRegion != "" && !columnMatchesBiome(level, cx, cy, s.Biome) {
 			continue
 		}
 		if place(cx, cy) {
@@ -104,8 +109,8 @@ func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount in
 		}
 	}
 	if placed < count {
-		log.Printf("feature %q: placed %d/%d (map or biome %q too small for the requested count)",
-			s.Kind, placed, count, s.Biome)
+		log.Printf("feature %q: placed %d/%d (not enough placeable tiles in %s)",
+			s.Kind, placed, count, sampleSource(s))
 	}
 }
 
@@ -118,26 +123,55 @@ func columnMatchesBiome(level *world.Level, x, y int, biome string) bool {
 	return level.GetBiome(x, y) == biome
 }
 
-// pickFeatureCenter chooses an (x, y) for one feature instance, honouring
-// spec.InRegion (jittered around a random region anchor) when set, else
-// falling back to a uniform random column. Returns (-1, -1, false) if the
-// spec asks for a region that has no anchors.
-func pickFeatureCenter(level *world.Level, s FeatureSpec, rng *rand.Rand) (int, int, bool) {
-	if s.InRegion != "" {
+// sampleSource describes where a feature draws candidates from, for logging.
+func sampleSource(s FeatureSpec) string {
+	switch {
+	case s.InRegion != "":
+		return fmt.Sprintf("region %q", s.InRegion)
+	case s.Biome != "":
+		return fmt.Sprintf("biome %q", s.Biome)
+	default:
+		return "the map"
+	}
+}
+
+// featureSampler builds a candidate-center generator for one feature,
+// precomputing the pool once so per-attempt cost is O(1). A biome-restricted
+// feature (without a region) samples directly from that biome's columns —
+// otherwise a biome that's a small fraction of a large map starves the uniform
+// sampler even though it has ample tiles. Returns ok=false when the feature can
+// never place (empty region, or the biome is absent from this map).
+func featureSampler(level *world.Level, s FeatureSpec, rng *rand.Rand) (next func() (int, int), ok bool) {
+	switch {
+	case s.InRegion != "":
 		anchors := level.Regions[s.InRegion]
 		if len(anchors) == 0 {
-			return -1, -1, false
+			return nil, false
 		}
 		jitter := s.Jitter
 		if jitter <= 0 {
 			jitter = 6
 		}
-		a := anchors[randIntn(rng, len(anchors))]
-		dx := randIntn(rng, jitter*2+1) - jitter
-		dy := randIntn(rng, jitter*2+1) - jitter
-		return a[0] + dx, a[1] + dy, true
+		return func() (int, int) {
+			a := anchors[randIntn(rng, len(anchors))]
+			return a[0] + randIntn(rng, jitter*2+1) - jitter,
+				a[1] + randIntn(rng, jitter*2+1) - jitter
+		}, true
+	case s.Biome != "":
+		cols := level.ColumnsWithBiome(s.Biome)
+		if len(cols) == 0 {
+			return nil, false
+		}
+		return func() (int, int) {
+			c := cols[randIntn(rng, len(cols))]
+			return c[0], c[1]
+		}, true
+	default:
+		w, h := level.GetWidth(), level.GetHeight()
+		return func() (int, int) {
+			return randIntn(rng, w), randIntn(rng, h)
+		}, true
 	}
-	return randIntn(rng, level.GetWidth()), randIntn(rng, level.GetHeight()), true
 }
 
 // randIntn wraps rng.Intn but tolerates n<=0 (returns 0). Saves repetitive

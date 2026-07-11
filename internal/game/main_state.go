@@ -548,11 +548,12 @@ func (s *MainState) newGame() {
 		Seed:          seed,
 		Terrain:       md.Terrain,
 		TerrainParams: md.TerrainParams,
-		BiomeMapType:  md.BiomeMap.Type,
-		BiomeMapScale: md.BiomeMap.Scale,
-		BiomeIDs:      md.BiomeMap.Biomes,
-		BiomeSingle:   md.BiomeMap.Single,
-		ReferenceArea: md.Size.MidArea(),
+		BiomeMapType:        md.BiomeMap.Type,
+		BiomeMapScale:       md.BiomeMap.Scale,
+		BiomeLatitudeWeight: md.BiomeMap.LatitudeWeight,
+		BiomeIDs:            md.BiomeMap.Biomes,
+		BiomeSingle:         md.BiomeMap.Single,
+		ReferenceArea:       md.Size.MidArea(),
 	}
 	for _, fb := range md.Features {
 		opts.Features = append(opts.Features, generation.FeatureSpec{

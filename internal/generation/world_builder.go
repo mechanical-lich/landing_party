@@ -19,11 +19,12 @@ type BuildWorldOptions struct {
 	Seed          int64
 	Terrain       string
 	TerrainParams map[string]any
-	BiomeMapType  string
-	BiomeMapScale float64
-	BiomeIDs      []string
-	BiomeSingle   string
-	Features      []FeatureSpec
+	BiomeMapType        string
+	BiomeMapScale       float64
+	BiomeLatitudeWeight float64
+	BiomeIDs            []string
+	BiomeSingle         string
+	Features            []FeatureSpec
 	// ReferenceArea is the map's expected footprint (width×height at the size
 	// range midpoints). Areal feature counts are scaled by
 	// Width*Height / ReferenceArea so resource density stays constant across the
@@ -70,10 +71,11 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 
 	if opts.BiomeMapType != "" || len(opts.BiomeIDs) > 0 {
 		BuildBiomeMap(level, BiomeMapConfig{
-			Type:   opts.BiomeMapType,
-			Scale:  opts.BiomeMapScale,
-			Biomes: opts.BiomeIDs,
-			Single: opts.BiomeSingle,
+			Type:           opts.BiomeMapType,
+			Scale:          opts.BiomeMapScale,
+			Biomes:         opts.BiomeIDs,
+			Single:         opts.BiomeSingle,
+			LatitudeWeight: opts.BiomeLatitudeWeight,
 		}, opts.Seed)
 		ApplyBiomes(level)
 		ExposeMountainTops(level)
