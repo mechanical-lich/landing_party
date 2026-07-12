@@ -40,11 +40,11 @@ Entity dots on the minimap use the following color coding:
 
 | Input | Action |
 |-------|--------|
-| O | Open the Star Map (parks the current location; nothing is lost) |
-| Star Map button | Same as O — top-right of the screen, just left of Follow |
+| O | Open the **Dashboard** — star map, crew, inventory, quests, encyclopedia (parks the current location; nothing is lost) |
+| Dashboard button | Same as O — top-right of the screen, just left of Follow |
 | B | Beam the selected colonist up to the ship roster (must be open to the sky) |
 
-On the Star Map: select a location and **Travel Here** to move the ship there
+On the Dashboard's **Star Map** tab: select a location and **Travel Here** to move the ship there
 (spends fuel), **Beam Down >** / **< Beam Up** to move the selected colonist
 between the ship and the loaded location, **Resume / Land** (or `Esc`) to enter
 the location and play, and **Save Expedition** to save. See

@@ -1,6 +1,6 @@
 # Biomes — Developer Guide
 
-Biomes describe how a column of the world is painted from space down through bedrock. Each biome is a small JSON file in `data/biomes/`. A scenario's `world.biome_map` selects which biomes are eligible and how they are distributed across the surface.
+Biomes describe how a column of the world is painted from space down through bedrock. Each biome is a small JSON file in `data/biomes/`. A **map's** `biome_map` (`data/maps/*.json`) selects which biomes are eligible and how they are distributed across the surface.
 
 The loader is `internal/generation/biome.go`: every `.json` file in `data/biomes/` is read once at startup and registered by its `id`. Missing the directory entirely is non-fatal (scenarios that don't use a biome map still produce playable terrain via the primer).
 
@@ -40,7 +40,7 @@ The loader is `internal/generation/biome.go`: every `.json` file in `data/biomes
 |-------|------|-------------|
 | `kind` | string | Terrain kind: `space`, `atmosphere`, `surface`, `subsurface`, `underground`, `cavern`, `bedrock`, `water` |
 | `y_offset` | int? | Optional Z offset relative to that column's surface. Negative = below, positive = above. If omitted the rule matches any Z of that kind. |
-| `tile` | string | Tile type ID from `data/tiledefinitions/tile_definitions.json` |
+| `tile` | string | Tile type ID (see [Tile Definitions](tile_definitions.md)) |
 | `radiation` | int | Optional baseline radiation level for tiles painted by this rule |
 
 Rules are evaluated in order; the first rule whose `kind` (and optional `y_offset`) matches is applied. This lets you, for example, paint the topmost subsurface tile differently from deeper subsurface.
@@ -49,7 +49,7 @@ Rules are evaluated in order; the first rule whose `kind` (and optional `y_offse
 
 ## How Biomes Are Selected
 
-A scenario picks biomes via the `world.biome_map` block:
+A map picks biomes via its `biome_map` block:
 
 ```json
 "world": {
@@ -94,6 +94,6 @@ A scenario picks biomes via the `world.biome_map` block:
 1. Create a new file in `data/biomes/` (e.g. `swamp.json`). The filename is for humans only — `id` is what matters.
 2. Set a unique `id` and the `temp_range` / `humidity_range` covering where this biome should appear.
 3. Define one `rules` entry per `kind` you care about. Always include `surface`, `subsurface`, `underground`, `cavern`, `atmosphere`, `space`, and `bedrock` so the entire vertical column has tiles.
-4. Reference any new tile types in `data/tiledefinitions/tile_definitions.json` first.
-5. Add the new biome ID to the `biomes` array of any scenario's `world.biome_map` that should include it. Placement is nearest-centroid, so the ranges don't have to tile the (T, H) square perfectly — but the biome's territory is the region of climate space closest to its centroid, so place that centroid where you want it to appear (and remember the noise clusters near the middle).
-6. (Optional) Add `features` for biome-scoped feature spawning. Scenario-level `world.features` can also target biomes via the `biome` field.
+4. Define any new tile types first (see [Tile Definitions](tile_definitions.md)).
+5. Add the new biome ID to the `biomes` array of any map's `biome_map` that should include it. Placement is nearest-centroid, so the ranges don't have to tile the (T, H) square perfectly — but the biome's territory is the region of climate space closest to its centroid, so place that centroid where you want it to appear (and remember the noise clusters near the middle).
+6. (Optional) Add `features` for biome-scoped feature spawning. Map- and scenario-level `features` can also target biomes via the `biome` field.

@@ -27,37 +27,7 @@ Z-level metadata is stored in `internal/world/level.go`. Each `Level` struct car
 
 ## Tile Definitions
 
-Tile types are defined in `data/tiledefinitions/tile_definitions.json`.
-
-```json
-"regolith": {
-    "Name": "Regolith",
-    "Passable": true,
-    "Opaque": false,
-    "Variants": ["regolith_a", "regolith_b"],
-    "ResourceRef": ""
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `Name` | string | Display name |
-| `Passable` | bool | Whether entities can move through this tile |
-| `Opaque` | bool | Whether this tile blocks line of sight |
-| `Variants` | []string | Sprite variant keys for visual variety |
-| `ResourceRef` | string | Resource ID that can be harvested from this tile (e.g., `"ore"`, `"crystal"`) |
-
-### Current Tile Types
-
-| ID | Passable | Opaque | Resource |
-|----|----------|--------|----------|
-| `space` | false | false | — |
-| `air` | true | false | — |
-| `regolith` | true | false | — |
-| `rock` | false | true | — |
-| `bedrock` | false | true | — |
-| `ore_deposit` | false | true | `ore` |
-| `crystal_vein` | false | true | `crystal` |
+Tiles are loaded from every `*.json` file in the `data/tiledefinitions/` directory (not a single file), each an array of `TileDefinition` objects (`name`, `layer`, `solid`, `variants`, `resource`, …). The **layered** tile model gives every cell a `Floor` and a `Middle` slot; a tile paints into the slot its `layer` field names. Mineable deposits are identified in code (`world.DepositDrop` / `world.IsDepositTileName`), not by a tile field. See **[Tile Definitions](tile_definitions.md)** for the full schema, loader, and how to add a tile.
 
 ---
 
@@ -66,10 +36,10 @@ Tile types are defined in `data/tiledefinitions/tile_definitions.json`.
 Generation runs in three phases (`internal/generation/`):
 
 1. **Primer**: paints a default tile per terrain kind so a column has reasonable defaults even without a biome map.
-2. **Biome application**: if the scenario provides a `world.biome_map`, each surface column samples temperature/humidity noise and the matching biome's `rules` paint the entire vertical column. See [Biomes](biomes.md).
+2. **Biome application**: if the map defines a `biome_map`, each surface column samples temperature/humidity noise and the nearest-matching biome's `rules` paint the entire vertical column. See [Biomes](biomes.md).
 3. **Features**: map-, scenario-, and biome-level `features` (ore veins, radiation pockets, scattered entities) are placed in order. A feature's `count` may be a fixed number or a rolled `[count, count_max]` range, and the areal kinds are additionally scaled by map area so density stays constant across the size roll — see [Scenarios → Feature Specs](scenarios.md#feature-specs).
 
-Surface variation is driven by **Perlin noise**; underground levels use a cavern-carving algorithm. Generation parameters (noise scale, cavern density, feature counts) are configurable per map in `data/maps/*.json` and augmented per scenario via the `world` block — see [Scenarios](scenarios.md#world-block).
+Surface variation is driven by **Perlin noise**; underground levels use a cavern-carving algorithm. Generation parameters (size, primer, noise scale, cavern density, features, mountains) live per map in `data/maps/*.json`; a scenario can layer on extra `features` — see [Scenarios](scenarios.md#features).
 
 ### Determinism
 
@@ -97,7 +67,4 @@ Visibility range for colonists and the player camera is derived from ambient int
 
 ## Adding a New Tile Type
 
-1. Add an entry to `data/tiledefinitions/tile_definitions.json` with a unique key.
-2. Set `Passable`, `Opaque`, and optionally `ResourceRef`.
-3. Add sprite variants to the tileset and reference them in `Variants`.
-4. Reference the tile type in generation code (`internal/generation/`) or scenario spawn constraints (`TileConstraints`) as needed.
+See **[Tile Definitions → Adding a Tile](tile_definitions.md)**. Once defined, reference the tile from a biome's `rules` ([Biomes](biomes.md)), a feature's `params` (e.g. `ore_vein`'s `tile`), a `spawn_rules` `tiles` list, or generation code in `internal/generation/`.

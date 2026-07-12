@@ -24,9 +24,7 @@ If you are on Ubuntu chances are all you need is:
 `sudo apt install libc6-dev libglu1-mesa-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config`
 
 
-After installing ebiten dependencies you'll need to run the following command to get all the go deps.
-
-`make vendor`
+Go modules fetch the Go dependencies automatically the first time you build or run — no separate step is needed. To pre-fetch them: `go mod download`.
 
 ## Running/Building
 `make run`
@@ -43,7 +41,7 @@ To test with a local copy of the mlge library add this to the mod file.  It assu
 - **Q/E**: Up/Down Z Level
 - **Scroll Wheel/Pinch**: Zoom in/out
 - **M**: Minimap hotkey
-- **O** / Star Map button: Open the Star Map (ship / overworld)
+- **O** / Dashboard button: Open the Dashboard (star map, crew, inventory, quests, encyclopedia)
 - **B**: Beam the selected colonist up to the ship
 - **Esc**: Open pause menu
 

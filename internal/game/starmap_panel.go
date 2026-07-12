@@ -67,6 +67,12 @@ type starMapPanel struct {
 	scanLabel2 *minui.Label
 	scanOkBtn  *minui.Button
 	scanOpen   bool
+
+	// Scanner state, refreshed on Enter/scan/travel (not per frame) — it only
+	// changes on research or a config edit, both of which route through
+	// refreshLocations.
+	scanLevel int
+	scanCost  int
 }
 
 func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
@@ -194,6 +200,11 @@ func (p *starMapPanel) refreshLocations() {
 	if len(labels) == 0 {
 		p.locList.SelectedIndex = -1
 	}
+
+	// Cache the scanner state (level + fuel cost) here rather than reading it
+	// per frame in Update — it only changes on research or a config edit.
+	p.scanLevel = p.campaign.ScannerLevel()
+	p.scanCost = p.campaign.ScanFuelCost()
 }
 
 func (p *starMapPanel) refreshCrew() {
@@ -451,14 +462,14 @@ func (p *starMapPanel) Update() {
 	p.travelBtn.Update()
 
 	// Ship scanner: label shows the fuel cost; disabled without a scanner or
-	// enough fuel.
-	if level := p.campaign.ScannerLevel(); level < 1 {
+	// enough fuel. Level/cost are cached (see refreshLocations); only fuel is
+	// read live here, and it's in-memory.
+	if p.scanLevel < 1 {
 		p.scanBtn.Text = "Scan (locked)"
 		p.scanBtn.SetEnabled(false)
 	} else {
-		cost := p.campaign.ScanFuelCost()
-		p.scanBtn.Text = fmt.Sprintf("Scan (%d fuel)", cost)
-		p.scanBtn.SetEnabled(p.fuelAvailable() >= cost)
+		p.scanBtn.Text = fmt.Sprintf("Scan (%d fuel)", p.scanCost)
+		p.scanBtn.SetEnabled(p.fuelAvailable() >= p.scanCost)
 	}
 	p.scanBtn.Update()
 

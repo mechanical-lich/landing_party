@@ -3,7 +3,6 @@ package campaign
 import (
 	"encoding/json"
 	"os"
-	"time"
 )
 
 // GenerationConfigPath is the data-driven tuning file for campaign
@@ -92,29 +91,14 @@ func defaultGenConfig() GenConfig {
 	}
 }
 
-var (
-	genCfgCache     *GenConfig
-	genCfgCachePath string
-	genCfgCacheMod  time.Time
-)
-
-// genConfig loads the tuning config, layering the file over defaults so partial
-// files work. The parsed result is cached keyed on the file's path + mtime, so
-// edits to data/generation.json are still picked up live (the cache invalidates
-// when the file changes) — but a hot caller (the star map polls ScanFuelCost
-// every frame) pays only a cheap os.Stat, not a read + JSON unmarshal + allocs.
+// genConfig loads the tuning config fresh each call, layering the file over
+// defaults so partial files work. Deliberately uncached so edits to
+// data/generation.json take effect without a restart. Callers must NOT read it
+// on a hot path (e.g. per frame): read it once when the relevant state changes
+// and reuse the value.
 func genConfig() GenConfig {
-	path := GenerationConfigPath
-	var mod time.Time
-	if info, err := os.Stat(path); err == nil {
-		mod = info.ModTime()
-	}
-	if genCfgCache != nil && genCfgCachePath == path && genCfgCacheMod.Equal(mod) {
-		return *genCfgCache
-	}
-
 	cfg := defaultGenConfig()
-	if b, err := os.ReadFile(path); err == nil {
+	if b, err := os.ReadFile(GenerationConfigPath); err == nil {
 		_ = json.Unmarshal(b, &cfg) // unmarshal overlays only present fields
 	}
 	if cfg.TravelQuestOneIn < 1 {
@@ -134,9 +118,5 @@ func genConfig() GenConfig {
 	} else if cfg.HomeBias > 1 {
 		cfg.HomeBias = 1
 	}
-
-	genCfgCache = &cfg
-	genCfgCachePath = path
-	genCfgCacheMod = mod
 	return cfg
 }
