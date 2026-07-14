@@ -5,7 +5,7 @@ go 1.25.5
 toolchain go1.26.4
 
 //replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
-//replace github.com/mechanical-lich/mlge => ../mlge
+replace github.com/mechanical-lich/mlge => ../mlge
 
 //replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
 

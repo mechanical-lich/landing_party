@@ -200,14 +200,14 @@ func (ts *TitleState) buildNewSettlementScreen() {
 	ts.scenarioPicker = minui.NewSelectBox("scenario_picker", []string{"Random"})
 	ts.scenarioPicker.SetPosition(cx-150, 444)
 	ts.scenarioPicker.SetSize(300, 28)
-	ts.scenarioPicker.SelectByIndex(0)
+	ts.scenarioPicker.SelectByIndexQuiet(0)
 
 	// Lighting override
 	ts.lightingModes = []string{"", world.LightModedayNight, world.LightModeFixed, world.LightModePitchDark}
 	ts.lightingPicker = minui.NewSelectBox("lighting_picker", []string{"Scenario Default", "Day / Night Cycle", "Fixed Ambient", "Pitch Dark"})
 	ts.lightingPicker.SetPosition(cx-150, 488)
 	ts.lightingPicker.SetSize(300, 28)
-	ts.lightingPicker.SelectByIndex(0)
+	ts.lightingPicker.SelectByIndexQuiet(0)
 	ts.lightingPicker.OnSelect = func(idx int, _ string) {
 		isFixed := idx == 2
 		ts.ambientLabel.SetVisible(isFixed)
@@ -249,7 +249,7 @@ func (ts *TitleState) reloadMapsAndScenarios() {
 		ts.mapIDs = append(ts.mapIDs, m.ID)
 	}
 	ts.mapPicker.SetItems(labels)
-	ts.mapPicker.SelectByIndex(0)
+	ts.mapPicker.SelectByIndexQuiet(0)
 	ts.refreshScenarioPicker("")
 }
 
@@ -269,7 +269,7 @@ func (ts *TitleState) refreshScenarioPicker(mapID string) {
 		ts.scenarioIDs = append(ts.scenarioIDs, s.ID)
 	}
 	ts.scenarioPicker.SetItems(labels)
-	ts.scenarioPicker.SelectByIndex(0)
+	ts.scenarioPicker.SelectByIndexQuiet(0)
 }
 
 func (ts *TitleState) startNewSettlement() {

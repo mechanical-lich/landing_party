@@ -2,8 +2,10 @@ package game
 
 import (
 	_ "image/png"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/input"
@@ -15,6 +17,7 @@ type Game struct {
 	title        string
 	StateMachine state.StateMachine
 	InputManager *input.InputManager
+	Audio        *audio.System
 }
 
 func NewGame(title string) (*Game, error) {
@@ -25,6 +28,14 @@ func NewGame(title string) (*Game, error) {
 
 	if err := resource.LoadAssetsFromJSON("data/assets.json"); err != nil {
 		return nil, err
+	}
+
+	// Audio is non-critical: log and continue silently if the sound map fails
+	// to load rather than blocking startup.
+	if a, err := audio.New("data/audio.json"); err != nil {
+		log.Printf("audio: disabled (%v)", err)
+	} else {
+		g.Audio = a
 	}
 
 	g.StateMachine.PushState(NewTitleState())
@@ -38,6 +49,7 @@ func (g *Game) Run() error {
 func (g *Game) Update() error {
 	g.InputManager.HandleInput()
 	event.GetQueuedInstance().HandleQueue()
+	g.Audio.Update() // drain finished voices; safe on a nil System
 	g.StateMachine.Update()
 	return nil
 }

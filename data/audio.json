@@ -1,0 +1,18 @@
+{
+  "clips": {
+    "ui_click": "assets/audio/ui/click.ogg",
+    "ui_select": "assets/audio/ui/select.ogg",
+    "ui_toggle": "assets/audio/ui/toggle.ogg",
+    "ui_tab": "assets/audio/ui/tab.ogg"
+  },
+  "ui": {
+    "ui.button.click": "ui_click",
+    "ui.iconbutton.click": "ui_click",
+    "ui.listbox.select": "ui_select",
+    "ui.selectbox.change": "ui_select",
+    "ui.popupmenu.select": "ui_select",
+    "ui.toggle.change": "ui_toggle",
+    "ui.tabpanel.change": "ui_tab",
+    "ui.tabbar.change": "ui_tab"
+  }
+}
