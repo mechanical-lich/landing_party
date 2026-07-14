@@ -54,8 +54,10 @@ function on_turn()
     endif
 
     # ---- Underground behaviour ----
-
-    if find_nearest_enemy(10) = 1 then
+    # Sense prey through the rock (no line-of-sight, any z-level): a colonist on
+    # the surface is detectable while the worm is still buried. get_nearest_z
+    # tells us whether to rise (surface) or dig deeper toward them.
+    if sense_nearest_enemy(10) = 1 then
         ex = get_nearest_x()
         ey = get_nearest_y()
         ez = get_nearest_z()

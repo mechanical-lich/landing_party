@@ -411,6 +411,26 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		selfFaction = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
 	}
 	ignored := buildIgnored(selfFaction, ai)
+
+	// isEnemy is the shared "hostile, targetable entity" predicate for the enemy
+	// finders below (alive, has health, not an ignored/own faction). It does NOT
+	// test line-of-sight — callers layer LOS on top when sight is required.
+	isEnemy := func(c *ecs.Entity) bool {
+		if c == nil || c == entity {
+			return false
+		}
+		if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(rlcomponents.Health) {
+			return false
+		}
+		if c.HasComponent(rlcomponents.Description) {
+			cf := c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+			if ignored[cf] {
+				return false
+			}
+		}
+		return c.HasComponent(rlcomponents.Position)
+	}
+
 	var cachedEnemy *ecs.Entity
 	var enemyMissCooldown int
 	interp.RegisterFunc("find_nearest_enemy", func(args ...any) (any, error) {
@@ -443,16 +463,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		found := level.GetClosestEntityMatching(
 			sx, sy, sz, radius*2, radius*2, entity,
 			func(c *ecs.Entity) bool {
-				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(rlcomponents.Health) {
-					return false
-				}
-				if c.HasComponent(rlcomponents.Description) {
-					cf := c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
-					if ignored[cf] {
-						return false
-					}
-				}
-				if !c.HasComponent(rlcomponents.Position) {
+				if !isEnemy(c) {
 					return false
 				}
 				cp := c.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
@@ -465,6 +476,66 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		}
 		cachedEnemy = found
 		fp := found.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		lastNearX, lastNearY, lastNearZ = fp.GetX(), fp.GetY(), fp.GetZ()
+		return float64(1), nil
+	})
+
+	// sense_nearest_enemy(radius) — like find_nearest_enemy but WITHOUT
+	// line-of-sight and across EVERY z-level: a burrowing creature feels prey
+	// through the earth, so it can detect a target on the surface (or in another
+	// cavern layer) while itself buried in solid rock. Distance is measured
+	// horizontally (x,y) so depth never hides an enemy directly overhead. Returns
+	// 1 on success and populates get_nearest_x/y/z (including the target's z, so
+	// the script can burrow up or down toward it).
+	var cachedSensed *ecs.Entity
+	var senseMissCooldown int
+	interp.RegisterFunc("sense_nearest_enemy", func(args ...any) (any, error) {
+		radius := 12
+		if len(args) >= 1 {
+			radius = int(toAIFloat(args[0]))
+		}
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		sx, sy := pc.GetX(), pc.GetY()
+
+		if cachedSensed != nil {
+			if isEnemy(cachedSensed) {
+				cp := cachedSensed.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				dx, dy := cp.GetX()-sx, cp.GetY()-sy
+				if dx*dx <= radius*radius && dy*dy <= radius*radius {
+					lastNearX, lastNearY, lastNearZ = cp.GetX(), cp.GetY(), cp.GetZ()
+					return float64(1), nil
+				}
+			}
+			cachedSensed = nil
+		}
+
+		if senseMissCooldown > 0 {
+			senseMissCooldown--
+			return float64(0), nil
+		}
+
+		// Scan every z-plane and keep the horizontally-closest hostile. The lib's
+		// closest-entity search is confined to a single z-plane, so a burrower has
+		// to sweep the column to see across layers.
+		var best *ecs.Entity
+		bestDistSq := int(^uint(0) >> 1)
+		for z := 0; z < level.GetDepth(); z++ {
+			found := level.GetClosestEntityMatching(sx, sy, z, radius*2, radius*2, entity, isEnemy)
+			if found == nil {
+				continue
+			}
+			fp := found.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			dx, dy := fp.GetX()-sx, fp.GetY()-sy
+			if d := dx*dx + dy*dy; d < bestDistSq {
+				bestDistSq, best = d, found
+			}
+		}
+		if best == nil {
+			senseMissCooldown = 4
+			return float64(0), nil
+		}
+		cachedSensed = best
+		fp := best.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		lastNearX, lastNearY, lastNearZ = fp.GetX(), fp.GetY(), fp.GetZ()
 		return float64(1), nil
 	})
@@ -583,21 +654,8 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	// get_lost_x/y/z — last-known position of the last lost sighting.
 	var lastSeenX, lastSeenY, lastSeenZ int
 	var lastLostX, lastLostY, lastLostZ int
-	isEnemy := func(e *ecs.Entity) bool {
-		if e == nil || e == entity {
-			return false
-		}
-		if e.HasComponent(rlcomponents.Dead) || !e.HasComponent(rlcomponents.Health) {
-			return false
-		}
-		if e.HasComponent(rlcomponents.Description) {
-			cf := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
-			if ignored[cf] {
-				return false
-			}
-		}
-		return true
-	}
+	// isEnemy (the shared hostile predicate) is declared above with the enemy
+	// finders and reused here for the vision helpers.
 	// Returns the index of the nearest enemy entry in the slice, or -1.
 	nearestEnemyIndex := func(entries []components.VisibleEntry, sx, sy int) int {
 		best := -1
