@@ -20,6 +20,12 @@
                 "crystal"
             ]
         },
+        "Sound": {
+            "Material": "glass",
+            "Sounds": {
+                "death": "impact_glass_heavy"
+            }
+        },
         "Inanimate": {},
         "Light": {
             "Level": 60,
@@ -46,6 +52,12 @@
             "Items": [
                 "stone"
             ]
+        },
+        "Sound": {
+            "Material": "generic",
+            "Sounds": {
+                "death": "mine"
+            }
         },
         "Inanimate": {}
     }

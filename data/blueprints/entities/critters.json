@@ -31,6 +31,13 @@
             "sensitivity": 1.0
         },
         "Emote": {},
+        "Sound": {
+            "Material": "soft",
+            "Sounds": {
+                "death": "sfx_worm_death",
+                "alert": "sfx_worm_alert"
+            }
+        },
         "Skills": {
             "Skills": [
                 "burrowing"
@@ -118,6 +125,13 @@
             "sensitivity": 1.0
         },
         "Emote": {},
+        "Sound": {
+            "Material": "soft",
+            "Sounds": {
+                "death": "sfx_worm_death",
+                "alert": "sfx_worm_alert"
+            }
+        },
         "Skills": {
             "Skills": [
                 "burrowing"

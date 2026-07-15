@@ -562,6 +562,21 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	aiMemory.State = "idle"
 }
 
+// digSoundLoudness is the emitted loudness for a dig/mine "break". Modest — a
+// pick strike carries a few tiles for AI hearing, and the audio bridge plays it
+// positionally near the camera.
+const digSoundLoudness float32 = 5
+
+// miningClipKey is the audio clip-set played for digging/mining (a variation
+// set); the emit tag stays "break" so it falls back to the generic break clip
+// when the set isn't loaded.
+const miningClipKey = "mine"
+
+// chopSwingProgress is how much harvest progress passes between chop "swing"
+// impact sounds. Tied to work done (not frame rate), so chopping a tougher node
+// simply produces more swings; a rock (Required = Health*10 = 30) yields ~5.
+const chopSwingProgress = 6
+
 func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	req, ok := wc.CurrentTask.Data.(task_requests.MineRequest)
@@ -583,6 +598,14 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 				CompleteTaskWithMessage(entity, wc.CurrentTask, "Already harvested")
 				aiMemory.State = "idle"
 				return
+			}
+			// A swing impact every chopSwingProgress of work — composed from the
+			// chopper's weight and the target's surface (a glass tink for crystal,
+			// a generic thud for rock) — so harvesting sounds active, not just the
+			// shatter/crumble on the final blow.
+			if prevProgress/chopSwingProgress != req.Progress/chopSwingProgress {
+				impactKey := components.ImpactClipKey(entity, req.Target)
+				level.EmitSoundClip(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, digSoundLoudness, world.SoundTagImpact, impactKey, entity)
 			}
 			if req.Progress >= req.Required {
 				req.Target.AddComponent(&rlcomponents.DeadComponent{})
@@ -618,11 +641,13 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			level.SetResourceAmount(tx, ty, tz, world.RollDepositRichness(tileName))
 		}
 
+		extracted := false
 		for milestone := prevProgress/mineChunkTicks + 1; dropBlueprint != "" && milestone <= req.Progress/mineChunkTicks; milestone++ {
 			got := level.ConsumeResource(tx, ty, tz, mineChunkSize)
 			if got <= 0 {
 				break
 			}
+			extracted = true
 			dropX, dropY, dropZ := dropTileNear(level, pc.GetX(), pc.GetY(), pc.GetZ())
 			ore, err := factory.Create(dropBlueprint, dropX, dropY, dropZ)
 			if err == nil {
@@ -634,8 +659,17 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 			}
 		}
 
+		// A "chunk" thunk each time ore is pulled; for non-deposit solid rock
+		// (no chunks) the mined-out clear below emits a single break instead.
+		if extracted {
+			level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
+		}
+
 		// Mined out once the deposit is empty (or the tile was never a deposit).
 		if dropBlueprint == "" || level.ResourceAmountAt(tx, ty, tz) <= 0 {
+			if !extracted {
+				level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
+			}
 			clearTileRadiation(tile)
 			// Layered mine: just remove the Middle. Floor stays.
 			level.ClearMiddle(tx, ty, tz)
@@ -926,6 +960,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
+			level.EmitSoundClip(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
 			clearTileRadiation(tile)
 			// Layered dig: just remove the Middle. Floor stays as whatever
 			// was there.

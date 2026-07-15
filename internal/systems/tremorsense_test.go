@@ -91,6 +91,59 @@ endfunction
 		"tremorsense should ignore same-faction and out-of-range entities")
 }
 
+// TestPlaySoundEmitsEntityClip: the play_sound primitive resolves the entity's
+// SoundComponent and emits a positional sound carrying the resolved clip.
+func TestPlaySoundEmitsEntityClip(t *testing.T) {
+	lvl := world.NewLevel(8, 8, 4)
+	e := mob(lvl, "monsters", 3, 3, 1)
+	e.AddComponent(&components.SoundComponent{Sounds: map[string]string{"alert": "sfx_worm_alert"}})
+	ai := &components.ScriptedAIComponent{Vars: map[string]any{}}
+
+	interp := basic.NewMechanicalBasic()
+	registerScriptedAIFuncs(interp, e, lvl, ai)
+	require.NoError(t, interp.Load(`
+function probe()
+    play_sound("alert")
+    return 1
+endfunction
+`))
+	_, err := interp.Call("probe")
+	require.NoError(t, err)
+
+	if len(lvl.Sounds) != 1 {
+		t.Fatalf("expected 1 emitted sound, got %d", len(lvl.Sounds))
+	}
+	if lvl.Sounds[0].Clip != "sfx_worm_alert" {
+		t.Fatalf("clip = %q, want sfx_worm_alert", lvl.Sounds[0].Clip)
+	}
+	if lvl.Sounds[0].Tag != world.SoundTag("alert") {
+		t.Fatalf("tag = %q, want alert", lvl.Sounds[0].Tag)
+	}
+}
+
+// TestPlaySoundNoopWithoutClip: play_sound does nothing when the entity has no
+// sound for the event, so scripts can call it unconditionally.
+func TestPlaySoundNoopWithoutClip(t *testing.T) {
+	lvl := world.NewLevel(8, 8, 4)
+	e := mob(lvl, "monsters", 3, 3, 1) // no SoundComponent
+	ai := &components.ScriptedAIComponent{Vars: map[string]any{}}
+
+	interp := basic.NewMechanicalBasic()
+	registerScriptedAIFuncs(interp, e, lvl, ai)
+	require.NoError(t, interp.Load(`
+function probe()
+    play_sound("alert")
+    return 1
+endfunction
+`))
+	_, err := interp.Call("probe")
+	require.NoError(t, err)
+
+	if len(lvl.Sounds) != 0 {
+		t.Fatalf("expected no sound without a clip, got %d", len(lvl.Sounds))
+	}
+}
+
 // TestWormSurfacesTowardPrey drives the real worm.basic on_turn against a buried
 // worm and a surface colonist, and asserts the worm climbs out of the ground to
 // the surface z instead of burrowing in circles at a fixed depth.

@@ -6,14 +6,23 @@ import (
 	mlaudio "github.com/mechanical-lich/mlge/audio"
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/ui/minui"
+
+	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
-// System is the game's audio front end: it owns the mixer and the event
-// director, and is the single thing internal/game talks to. Build it once at
-// startup and tick Update once per frame.
+// global is the most recently constructed System, so gameplay code (e.g. the
+// MainState update) can reach positional audio without threading a reference,
+// matching the effect.GetEffectManager() idiom. nil when audio is disabled.
+var global *System
+
+// System is the game's audio front end: it owns the mixer, the UI-feedback
+// director, and the positional world bridge, and is the single thing
+// internal/game talks to. Build it once at startup and tick Update once per
+// frame.
 type System struct {
 	mixer    *mlaudio.Mixer
 	director *director
+	world    *worldBridge
 }
 
 // New builds the audio system from a sound-map file, loads its clips, and
@@ -29,22 +38,25 @@ func New(configPath string) (*System, error) {
 	}
 
 	mixer := mlaudio.NewMixer()
-	loaded := 0
-	for key, path := range cfg.Clips {
-		t, err := mlaudio.MusicTypeFromExt(path)
-		if err != nil {
-			log.Printf("audio: skipping clip %q: %v", key, err)
-			continue
+	loaded, total := 0, 0
+	for key, paths := range cfg.Clips {
+		for _, path := range paths {
+			total++
+			t, err := mlaudio.MusicTypeFromExt(path)
+			if err != nil {
+				log.Printf("audio: skipping clip %q: %v", key, err)
+				continue
+			}
+			if err := mixer.Load(key, path, t); err != nil {
+				// A fresh checkout has no audio assets yet; don't spam a line per
+				// file. The one-line summary below reports the shortfall.
+				continue
+			}
+			loaded++
 		}
-		if err := mixer.Load(key, path, t); err != nil {
-			// A fresh checkout has no audio assets yet; don't spam a line per
-			// clip. The one-line summary below reports the shortfall.
-			continue
-		}
-		loaded++
 	}
-	if loaded < len(cfg.Clips) {
-		log.Printf("audio: loaded %d/%d clips (missing assets play silently)", loaded, len(cfg.Clips))
+	if loaded < total {
+		log.Printf("audio: loaded %d/%d clip files (missing assets play silently)", loaded, total)
 	}
 
 	d := &director{mixer: mixer, uiMap: make(map[event.EventType]string)}
@@ -59,7 +71,24 @@ func New(configPath string) (*System, error) {
 	// work like world generation.
 	minui.InteractionSound = d.play
 
-	return &System{mixer: mixer, director: d}, nil
+	wb := &worldBridge{mixer: mixer, tagMap: make(map[world.SoundTag]string)}
+	for tag, clipKey := range cfg.World {
+		wb.tagMap[world.SoundTag(tag)] = clipKey
+	}
+
+	s := &System{mixer: mixer, director: d, world: wb}
+	global = s
+	return s, nil
+}
+
+// PlayWorldSounds plays positional audio for any new in-world sounds on the live
+// level. Call once per frame from the gameplay state; safe when audio is
+// disabled (global nil) or the System/level is nil.
+func PlayWorldSounds(lvl *world.Level) {
+	if global == nil {
+		return
+	}
+	global.world.play(lvl)
 }
 
 // Update advances the mixer (reclaims finished voices, restarts loops). Call

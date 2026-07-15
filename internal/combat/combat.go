@@ -18,8 +18,11 @@ func MeleeAttack(level *world.Level, attacker *ecs.Entity, targetX, targetY, tar
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
-		pc := attacker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, attacker)
+		// One impact at the point of contact, composed from the striker's weight
+		// and the target's surface (weapon/armor can override either). Falls back
+		// to the generic impact clip when the set isn't loaded.
+		impactKey := components.ImpactClipKey(attacker, target)
+		level.EmitSoundClip(targetX, targetY, targetZ, 6, world.SoundTagImpact, impactKey, attacker)
 		level.EmitScent(targetX, targetY, targetZ, world.SmellTagBlood, 3.0)
 		return true
 	}
@@ -55,11 +58,20 @@ func Shoot(level *world.Level, attacker *ecs.Entity, targetX, targetY, targetZ i
 		))
 	}
 
-	level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 20, world.SoundTagGunshot, attacker)
+	// The ranged weapon's "shoot" sound if it defines one, else the attacker's,
+	// else the generic gunshot clip.
+	shoot := components.SoundClipOf(weaponEntity, components.SoundShoot)
+	if shoot == "" {
+		shoot = components.ResolveSound(attacker, components.SoundShoot)
+	}
+	level.EmitSoundClip(pc.GetX(), pc.GetY(), pc.GetZ(), 20, world.SoundTagGunshot, shoot, attacker)
 
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
+		// Projectile impact at the target — distinct from the shot at the shooter.
+		impactKey := components.ImpactClipKey(attacker, target)
+		level.EmitSoundClip(targetX, targetY, targetZ, 6, world.SoundTagImpact, impactKey, attacker)
 		level.EmitScent(targetX, targetY, targetZ, world.SmellTagBlood, 3.0)
 	}
 	return true

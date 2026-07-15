@@ -150,6 +150,9 @@
             "StarveThreshold": 90,
             "HungerRate": 20
         },
-        "Emote": {}
+        "Emote": {},
+        "Sound": {
+            "Material": "soft"
+        }
     }
 }

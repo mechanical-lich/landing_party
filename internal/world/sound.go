@@ -23,6 +23,7 @@ type SoundEvent struct {
 	X, Y, Z  int
 	Loudness float32
 	Tag      SoundTag
+	Clip     string // optional explicit audio clip key; "" falls back to the tag's mapped clip
 	Source   *ecs.Entity
 	Tick     uint64 // tick when emitted (used for TTL sweep)
 	Seq      uint64 // strictly monotonic — used by listeners to detect new events
@@ -42,6 +43,14 @@ const SoundEventTTL uint64 = 20
 // should always go through this function rather than appending directly so
 // the tick stamp stays correct.
 func (l *Level) EmitSound(x, y, z int, loudness float32, tag SoundTag, source *ecs.Entity) {
+	l.EmitSoundClip(x, y, z, loudness, tag, "", source)
+}
+
+// EmitSoundClip is EmitSound with an explicit audio clip key, so an
+// entity-specific sound (resolved from a SoundComponent + equipment) plays
+// instead of the tag's generic clip. The tag still drives AI hearing; clip only
+// affects audio playback. An empty clip is equivalent to EmitSound.
+func (l *Level) EmitSoundClip(x, y, z int, loudness float32, tag SoundTag, clip string, source *ecs.Entity) {
 	if loudness <= 0 {
 		return
 	}
@@ -50,11 +59,11 @@ func (l *Level) EmitSound(x, y, z int, loudness float32, tag SoundTag, source *e
 		X: x, Y: y, Z: z,
 		Loudness: loudness,
 		Tag:      tag,
+		Clip:     clip,
 		Source:   source,
 		Tick:     l.Tick,
 		Seq:      l.SoundSeq,
 	})
-	//message.PostMessage("world", fmt.Sprintf("debug: emit %s loud=%v at (%d,%d,%d) tick=%d", tag, loudness, x, y, z, l.Tick))
 }
 
 // SweepExpiredSounds drops sound events older than SoundEventTTL relative to

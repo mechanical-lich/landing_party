@@ -10,15 +10,27 @@ import (
 
 type recordingPlayer struct {
 	plays []played
+	// known, when non-nil, is the set of registered clip keys Has reports true
+	// for. nil means "everything is registered" (the common case for tests that
+	// don't exercise the fallback).
+	known map[string]bool
 }
 
 type played struct {
 	key string
 	bus mlaudio.Bus
+	vol float64
 }
 
 func (r *recordingPlayer) Play(key string, opts mlaudio.PlayOptions) {
-	r.plays = append(r.plays, played{key: key, bus: opts.Bus})
+	r.plays = append(r.plays, played{key: key, bus: opts.Bus, vol: opts.Volume})
+}
+
+func (r *recordingPlayer) Has(key string) bool {
+	if r.known == nil {
+		return true
+	}
+	return r.known[key]
 }
 
 func newDirector(rec *recordingPlayer, uiMap map[event.EventType]string) *director {

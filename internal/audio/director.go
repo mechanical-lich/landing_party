@@ -5,10 +5,11 @@ import (
 	"github.com/mechanical-lich/mlge/event"
 )
 
-// player is the slice of *mlge/audio.Mixer the director needs, pulled behind an
-// interface so it can be tested without a real mixer or audio device.
+// player is the slice of *mlge/audio.Mixer the audio code needs, pulled behind
+// an interface so it can be tested without a real mixer or audio device.
 type player interface {
 	Play(key string, opts mlaudio.PlayOptions)
+	Has(key string) bool
 }
 
 // director turns UI interactions into sounds. It's registered as

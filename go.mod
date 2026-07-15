@@ -5,7 +5,7 @@ go 1.25.5
 toolchain go1.26.4
 
 //replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
-replace github.com/mechanical-lich/mlge => ../mlge
+//replace github.com/mechanical-lich/mlge => ../mlge
 
 //replace github.com/mechanical-lich/ml-rogue-lib => ../ml-rogue-lib
 
@@ -14,7 +14,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.9.9
 	github.com/mechanical-lich/mechanical-basic v1.2.0
 	github.com/mechanical-lich/ml-rogue-lib v1.15.0
-	github.com/mechanical-lich/mlge v1.10.1
+	github.com/mechanical-lich/mlge v1.11.0
 	github.com/stretchr/testify v1.11.1
 )
 

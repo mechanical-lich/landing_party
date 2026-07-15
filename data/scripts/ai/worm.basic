@@ -57,7 +57,13 @@ function on_turn()
     # Sense prey through the rock (no line-of-sight, any z-level): a colonist on
     # the surface is detectable while the worm is still buried. get_nearest_z
     # tells us whether to rise (surface) or dig deeper toward them.
-    if sense_nearest_enemy(10) = 1 then
+    sensed = sense_nearest_enemy(10)
+    if sensed = 1 then
+        # Screech once when first picking up prey (reset when we lose it below).
+        if get_var("alerted") + 0 = 0 then
+            play_sound("alert")
+            set_var("alerted", 1)
+        endif
         ex = get_nearest_x()
         ey = get_nearest_y()
         ez = get_nearest_z()
@@ -103,6 +109,9 @@ function on_turn()
         if moved = 1 then
             return
         endif
+    else
+        # No prey in range — clear the alert so we screech again next sighting.
+        set_var("alerted", 0)
     endif
 
     # Random burrowing — cardinal directions, change direction when blocked

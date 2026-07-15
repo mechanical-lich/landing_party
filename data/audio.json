@@ -3,7 +3,160 @@
     "ui_click": "assets/audio/ui/click.ogg",
     "ui_select": "assets/audio/ui/select.ogg",
     "ui_toggle": "assets/audio/ui/toggle.ogg",
-    "ui_tab": "assets/audio/ui/tab.ogg"
+    "ui_tab": "assets/audio/ui/tab.ogg",
+    "sfx_gunshot": "assets/audio/sfx/gunshot.ogg",
+    "sfx_impact": "assets/audio/sfx/impact.ogg",
+    "sfx_break": "assets/audio/sfx/break.ogg",
+    "sfx_death": "assets/audio/sfx/death.ogg",
+    "sfx_worm_death": "assets/audio/sfx/worm_death.ogg",
+    "sfx_worm_alert": "assets/audio/sfx/worm_alert.ogg",
+    "impact_bell_heavy": [
+      "assets/audio/sfx/impacts/impactBell_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactBell_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactBell_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactBell_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactBell_heavy_004.ogg"
+    ],
+    "impact_generic_light": [
+      "assets/audio/sfx/impacts/impactGeneric_light_000.ogg",
+      "assets/audio/sfx/impacts/impactGeneric_light_001.ogg",
+      "assets/audio/sfx/impacts/impactGeneric_light_002.ogg",
+      "assets/audio/sfx/impacts/impactGeneric_light_003.ogg",
+      "assets/audio/sfx/impacts/impactGeneric_light_004.ogg"
+    ],
+    "impact_glass_heavy": [
+      "assets/audio/sfx/impacts/impactGlass_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactGlass_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactGlass_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactGlass_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactGlass_heavy_004.ogg"
+    ],
+    "impact_glass_light": [
+      "assets/audio/sfx/impacts/impactGlass_light_000.ogg",
+      "assets/audio/sfx/impacts/impactGlass_light_001.ogg",
+      "assets/audio/sfx/impacts/impactGlass_light_002.ogg",
+      "assets/audio/sfx/impacts/impactGlass_light_003.ogg",
+      "assets/audio/sfx/impacts/impactGlass_light_004.ogg"
+    ],
+    "impact_glass_medium": [
+      "assets/audio/sfx/impacts/impactGlass_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactGlass_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactGlass_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactGlass_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactGlass_medium_004.ogg"
+    ],
+    "impact_metal_heavy": [
+      "assets/audio/sfx/impacts/impactMetal_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactMetal_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactMetal_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactMetal_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactMetal_heavy_004.ogg"
+    ],
+    "impact_metal_light": [
+      "assets/audio/sfx/impacts/impactMetal_light_000.ogg",
+      "assets/audio/sfx/impacts/impactMetal_light_001.ogg",
+      "assets/audio/sfx/impacts/impactMetal_light_002.ogg",
+      "assets/audio/sfx/impacts/impactMetal_light_003.ogg",
+      "assets/audio/sfx/impacts/impactMetal_light_004.ogg"
+    ],
+    "impact_metal_medium": [
+      "assets/audio/sfx/impacts/impactMetal_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactMetal_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactMetal_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactMetal_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactMetal_medium_004.ogg"
+    ],
+    "impact_plank_medium": [
+      "assets/audio/sfx/impacts/impactPlank_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactPlank_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactPlank_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactPlank_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactPlank_medium_004.ogg"
+    ],
+    "impact_plate_heavy": [
+      "assets/audio/sfx/impacts/impactPlate_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactPlate_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactPlate_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactPlate_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactPlate_heavy_004.ogg"
+    ],
+    "impact_plate_light": [
+      "assets/audio/sfx/impacts/impactPlate_light_000.ogg",
+      "assets/audio/sfx/impacts/impactPlate_light_001.ogg",
+      "assets/audio/sfx/impacts/impactPlate_light_002.ogg",
+      "assets/audio/sfx/impacts/impactPlate_light_003.ogg",
+      "assets/audio/sfx/impacts/impactPlate_light_004.ogg"
+    ],
+    "impact_plate_medium": [
+      "assets/audio/sfx/impacts/impactPlate_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactPlate_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactPlate_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactPlate_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactPlate_medium_004.ogg"
+    ],
+    "impact_punch_heavy": [
+      "assets/audio/sfx/impacts/impactPunch_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactPunch_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactPunch_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactPunch_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactPunch_heavy_004.ogg"
+    ],
+    "impact_punch_medium": [
+      "assets/audio/sfx/impacts/impactPunch_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactPunch_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactPunch_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactPunch_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactPunch_medium_004.ogg"
+    ],
+    "impact_soft_heavy": [
+      "assets/audio/sfx/impacts/impactSoft_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactSoft_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactSoft_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactSoft_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactSoft_heavy_004.ogg"
+    ],
+    "impact_soft_medium": [
+      "assets/audio/sfx/impacts/impactSoft_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactSoft_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactSoft_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactSoft_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactSoft_medium_004.ogg"
+    ],
+    "impact_tin_medium": [
+      "assets/audio/sfx/impacts/impactTin_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactTin_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactTin_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactTin_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactTin_medium_004.ogg"
+    ],
+    "impact_wood_heavy": [
+      "assets/audio/sfx/impacts/impactWood_heavy_000.ogg",
+      "assets/audio/sfx/impacts/impactWood_heavy_001.ogg",
+      "assets/audio/sfx/impacts/impactWood_heavy_002.ogg",
+      "assets/audio/sfx/impacts/impactWood_heavy_003.ogg",
+      "assets/audio/sfx/impacts/impactWood_heavy_004.ogg"
+    ],
+    "impact_wood_light": [
+      "assets/audio/sfx/impacts/impactWood_light_000.ogg",
+      "assets/audio/sfx/impacts/impactWood_light_001.ogg",
+      "assets/audio/sfx/impacts/impactWood_light_002.ogg",
+      "assets/audio/sfx/impacts/impactWood_light_003.ogg",
+      "assets/audio/sfx/impacts/impactWood_light_004.ogg"
+    ],
+    "impact_wood_medium": [
+      "assets/audio/sfx/impacts/impactWood_medium_000.ogg",
+      "assets/audio/sfx/impacts/impactWood_medium_001.ogg",
+      "assets/audio/sfx/impacts/impactWood_medium_002.ogg",
+      "assets/audio/sfx/impacts/impactWood_medium_003.ogg",
+      "assets/audio/sfx/impacts/impactWood_medium_004.ogg"
+    ],
+    "mine": [
+      "assets/audio/sfx/impacts/impactMining_000.ogg",
+      "assets/audio/sfx/impacts/impactMining_001.ogg",
+      "assets/audio/sfx/impacts/impactMining_002.ogg",
+      "assets/audio/sfx/impacts/impactMining_003.ogg",
+      "assets/audio/sfx/impacts/impactMining_004.ogg"
+    ]
   },
   "ui": {
     "ui.button.click": "ui_click",
@@ -14,5 +167,11 @@
     "ui.toggle.change": "ui_toggle",
     "ui.tabpanel.change": "ui_tab",
     "ui.tabbar.change": "ui_tab"
+  },
+  "world": {
+    "gunshot": "sfx_gunshot",
+    "impact": "sfx_impact",
+    "break": "sfx_break",
+    "scream": "sfx_death"
   }
 }

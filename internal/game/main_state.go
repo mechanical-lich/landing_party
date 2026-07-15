@@ -14,6 +14,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -253,6 +254,13 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	s.cleanUpSystem = &rlsystems.CleanUpSystem{
 		OnEntityDead: func(levelInterface rlworld.LevelInterface, entity *ecs.Entity) {
 			level := levelInterface.(*world.Level)
+			// Death cry: entity's own "death" sound (or the generic scream clip),
+			// played positionally at the corpse.
+			if entity.HasComponent(rlcomponents.Position) {
+				dpc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				deathClip := components.ResolveSound(entity, components.SoundDeath)
+				level.EmitSoundClip(dpc.GetX(), dpc.GetY(), dpc.GetZ(), 8, world.SoundTagScream, deathClip, entity)
+			}
 			if s.campaign != nil && entity.HasComponent(components.QuestTarget) {
 				qt := entity.GetComponent(components.QuestTarget).(*components.QuestTargetComponent)
 				s.campaign.MarkTargetKilled(qt.QuestID)
@@ -761,6 +769,11 @@ func (s *MainState) Update() state.StateInterface {
 			s.wm.TickBackground(s)
 		}
 	}
+
+	// Play positional audio for any in-world sounds the live level just emitted
+	// (gated to the camera view). Reads only s.level, so background planets stay
+	// silent.
+	audio.PlayWorldSounds(s.level)
 
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()

@@ -1206,6 +1206,28 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		return nil, nil
 	})
 
+	// play_sound(event, loudness?) — emit this entity's sound for a named event
+	// (e.g. "alert"), resolved through its SoundComponent + equipped gear, at its
+	// current tile so the audio bridge plays it positionally. Optional loudness
+	// (default 8) sets how far it carries for AI hearing. A no-op when the entity
+	// has no clip for the event, so scripts can call it unconditionally.
+	interp.RegisterFunc("play_sound", func(args ...any) (any, error) {
+		if len(args) < 1 {
+			return nil, nil
+		}
+		clip := components.ResolveSound(entity, fmt.Sprint(args[0]))
+		if clip == "" {
+			return nil, nil
+		}
+		loudness := float32(8)
+		if len(args) >= 2 {
+			loudness = float32(toAIFloat(args[1]))
+		}
+		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		level.EmitSoundClip(pc.GetX(), pc.GetY(), pc.GetZ(), loudness, world.SoundTag(fmt.Sprint(args[0])), clip, entity)
+		return nil, nil
+	})
+
 	// --- math / util ---
 	interp.RegisterFunc("rnd_int", func(args ...any) (any, error) {
 		if len(args) < 1 {
