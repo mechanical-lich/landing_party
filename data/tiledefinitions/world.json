@@ -705,7 +705,8 @@
                 "spriteY": 792
             }
         ],
-        "resource": "fantasy_world"
+        "resource": "fantasy_world",
+        "material": "grass"
     },
     {
         "name": "alien_ground",
@@ -756,7 +757,8 @@
                 "spriteY": 648
             }
         ],
-        "resource": "fantasy_world"
+        "resource": "fantasy_world",
+        "material": "snow"
     },
     {
         "name": "ice",

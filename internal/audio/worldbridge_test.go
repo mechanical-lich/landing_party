@@ -3,8 +3,10 @@ package audio
 import (
 	"testing"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	mlaudio "github.com/mechanical-lich/mlge/audio"
+	"github.com/mechanical-lich/mlge/ecs"
 )
 
 // newBridgeLevel builds a level whose camera view covers the whole map, so
@@ -187,6 +189,68 @@ func TestWorldBridgeComposedClipFallsBackToTag(t *testing.T) {
 
 	if len(rec.plays) != 1 || rec.plays[0].key != "sfx_impact" {
 		t.Fatalf("expected fallback to sfx_impact, got %+v", rec.plays)
+	}
+}
+
+// TestWorldBridgeFootstepsAreHalfVolume: a footstep at the view center plays at
+// half the volume a non-footstep would at the same spot.
+func TestWorldBridgeFootstepsAreHalfVolume(t *testing.T) {
+	rec := &recordingPlayer{}
+	b := &worldBridge{
+		mixer:  rec,
+		tagMap: map[world.SoundTag]string{world.SoundTagImpact: "sfx_impact", world.SoundTagFootstep: "footstep_wood"},
+	}
+	lvl := newBridgeLevel(20, 20, 4)
+	attach(b, lvl)
+
+	cx, cy := lvl.CameraX+lvl.ViewW/2, lvl.CameraY+lvl.ViewH/2
+	lvl.EmitSound(cx, cy, 0, 6, world.SoundTagImpact, nil)   // reference at full
+	lvl.EmitSound(cx, cy, 0, 6, world.SoundTagFootstep, nil) // half
+	b.play(lvl)
+
+	if len(rec.plays) != 2 {
+		t.Fatalf("expected 2 plays, got %d", len(rec.plays))
+	}
+	impact, footstep := rec.plays[0], rec.plays[1]
+	if footstep.vol != impact.vol*0.5 {
+		t.Fatalf("footstep vol = %v, want half of impact vol %v", footstep.vol, impact.vol)
+	}
+}
+
+// TestWorldBridgeFootstepMutes: muting a side silences that side's footsteps
+// while the other still plays. (The sound event still fires — the bridge only
+// skips playback.)
+func TestWorldBridgeFootstepMutes(t *testing.T) {
+	friendly := &ecs.Entity{}
+	friendly.AddComponent(&components.WorkerComponent{}) // colonists carry Worker
+	enemy := &ecs.Entity{}                               // mob: no Worker
+
+	emitBoth := func(lvl *world.Level) {
+		cx, cy := lvl.CameraX+lvl.ViewW/2, lvl.CameraY+lvl.ViewH/2
+		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", friendly)
+		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", enemy)
+	}
+
+	// Mute friendly → only the enemy footstep plays.
+	rec := &recordingPlayer{}
+	b := &worldBridge{mixer: rec, tagMap: map[world.SoundTag]string{}, muteFriendlyFootsteps: true}
+	lvl := newBridgeLevel(20, 20, 4)
+	attach(b, lvl)
+	emitBoth(lvl)
+	b.play(lvl)
+	if len(rec.plays) != 1 {
+		t.Fatalf("mute-friendly: expected 1 play (enemy), got %d", len(rec.plays))
+	}
+
+	// Mute enemy → only the friendly footstep plays.
+	rec2 := &recordingPlayer{}
+	b2 := &worldBridge{mixer: rec2, tagMap: map[world.SoundTag]string{}, muteEnemyFootsteps: true}
+	lvl2 := newBridgeLevel(20, 20, 4)
+	attach(b2, lvl2)
+	emitBoth(lvl2)
+	b2.play(lvl2)
+	if len(rec2.plays) != 1 {
+		t.Fatalf("mute-enemy: expected 1 play (friendly), got %d", len(rec2.plays))
 	}
 }
 

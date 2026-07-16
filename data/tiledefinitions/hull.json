@@ -107,6 +107,7 @@
                 "spriteY": 0
             }
         ],
-        "resource": "scifi_world"
+        "resource": "scifi_world",
+        "material": "metal"
     }
 ]

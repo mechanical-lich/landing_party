@@ -19,11 +19,17 @@ Ways a world sound picks its clip:
 A clip key can map to **one file or an array of variations** — the mixer picks
 one at random per play (impacts and mining use this).
 
-### Impact + mining variation sets (from the impacts/ pack)
+### Impact / mining / footstep variation sets (from the impacts/ pack)
 | Key pattern | Files | Used by |
 |---|---|---|
 | `impact_{surface}_{weight}` | `impacts/impact{Surface}_{weight}_00N.ogg` | melee + ranged impacts and chop swings, by target `Material` × striker `Weight` |
-| `mine` | `impacts/impactMining_00N.ogg` | digging + mining |
+| `mine` | `impacts/impactMining_00N.ogg` | digging + mining generic rock |
+| `impact_{material}_medium` | (impact sets above) | material-aware mining — a tile's Middle `material` (ore→metal, crystal→glass) rings like that surface; else `mine` |
+| `footstep_{surface}` | `impacts/footstep_{surface}_00N.ogg` | footsteps, by the Floor tile's `material` (grass/snow/wood/carpet/concrete; default wood) |
+
+Tile `material` lives in `data/tiledefinitions/*` (`material` field): Middle-slot
+material drives mining, Floor-slot material drives footsteps. Tagged so far:
+ore/radioactive→metal, crystal→glass, hull_wall→metal, grass→grass, ice_floor→snow.
 
 Surfaces present: bell, generic, glass, metal, plank, plate, punch, soft, tin,
 wood (not every surface has every weight — unmatched combos fall back to
@@ -48,7 +54,9 @@ Notes:
 - Only sounds on the **live** level, at the **camera's z**, **inside the view
   rect** play; everything else (off-screen, background planets) is silent.
 - `.ogg` or `.mp3` (inferred from extension); missing files play silently.
-- Emitting today: combat (`hitting`/`hit`/`shoot`, falling back to
-  `gunshot`/`impact`), death (`death` → `scream` fallback), digging/mining
-  (`break`), and AI-scripted sounds via the `play_sound(event)` ml-basic
-  primitive (e.g. the worm's `alert` on tremorsense).
+- Emitting today: combat (composed impacts, `gunshot`/`impact` fallback), death
+  (`death` → `scream` fallback), digging/mining (material-aware, `break`
+  fallback), chop swings, **footsteps** on movement, AI-scripted sounds via
+  `play_sound(event)` (e.g. worm `alert`), and **global one-shots** via
+  `audio.PlayGlobal(key)` on the Global bus — heard anywhere, not camera-gated
+  (wired to scan success as `notify`; drop `assets/audio/ui/notify.ogg`).

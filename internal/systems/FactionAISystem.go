@@ -3,6 +3,7 @@ package systems
 import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcombat"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -94,7 +95,11 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 				}
 			}
 			if !hit {
+				bx, by := pc.GetX(), pc.GetY()
 				rlentity.Move(entity, level, dx, dy, 0)
+				if pc.GetX() != bx || pc.GetY() != by {
+					workerai.EmitFootstep(level, entity, pc.GetX(), pc.GetY(), pc.GetZ())
+				}
 				rlentity.Face(entity, dx, dy)
 			}
 			return nil
@@ -107,7 +112,11 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 		if dx == 0 {
 			dy = utility.GetRandom(-1, 2)
 		}
+		bx, by := pc.GetX(), pc.GetY()
 		rlentity.Move(entity, level, dx, dy, 0)
+		if pc.GetX() != bx || pc.GetY() != by {
+			workerai.EmitFootstep(level, entity, pc.GetX(), pc.GetY(), pc.GetZ())
+		}
 		rlentity.Face(entity, dx, dy)
 	}
 

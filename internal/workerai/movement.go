@@ -23,6 +23,23 @@ import (
 // tick. This lets task handlers cool an unreachable task down (Stop) instead of
 // re-queueing it, so a lone worker doesn't spin on it forever. Callers that
 // don't care why a move failed can ignore pathFound with `moved, _ := …`.
+// footstepLoudness keeps footsteps quiet — audible near the camera but only a
+// tile or two out for AI hearing.
+const footstepLoudness float32 = 2
+
+// EmitFootstep plays a footstep sound for a ground step onto (x,y,z), chosen by
+// the destination floor's material. Shared by colonist, scripted-mob (zombies,
+// critters) and faction-mob movement. No-op for flying/spacefaring entities —
+// they don't touch the ground. The positional bridge gates it to the on-screen
+// view and coalescing caps a crowd of walkers.
+func EmitFootstep(level *world.Level, entity *ecs.Entity, x, y, z int) {
+	if isFlying(entity) {
+		return
+	}
+	key := components.FootstepClipKey(level.FloorMaterialAt(x, y, z))
+	level.EmitSoundClip(x, y, z, footstepLoudness, world.SoundTagFootstep, key, entity)
+}
+
 func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY, targetZ int) (moved bool, pathFound bool) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
@@ -67,6 +84,7 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 				flyMove(entity, level, dx, dy, dz)
 			} else {
 				rlentity.Move(entity, level, dx, dy, dz)
+				EmitFootstep(level, entity, ntX, ntY, ntZ)
 			}
 			rlentity.Face(entity, dx, dy)
 			return true, true

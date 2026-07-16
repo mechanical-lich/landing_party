@@ -11,7 +11,8 @@
                 "spriteY": 648
             }
         ],
-        "resource": "scifi_world"
+        "resource": "scifi_world",
+        "material": "metal"
     },
     {
         "name": "crystal_vein",
@@ -25,7 +26,8 @@
                 "spriteY": 624
             }
         ],
-        "resource": "scifi_world"
+        "resource": "scifi_world",
+        "material": "glass"
     },
     {
         "name": "radioactive_ore",
@@ -39,6 +41,7 @@
                 "spriteY": 648
             }
         ],
-        "resource": "scifi_world"
+        "resource": "scifi_world",
+        "material": "metal"
     }
 ]

@@ -156,7 +156,43 @@
       "assets/audio/sfx/impacts/impactMining_002.ogg",
       "assets/audio/sfx/impacts/impactMining_003.ogg",
       "assets/audio/sfx/impacts/impactMining_004.ogg"
-    ]
+    ],
+    "footstep_carpet": [
+      "assets/audio/sfx/impacts/footstep_carpet_000.ogg",
+      "assets/audio/sfx/impacts/footstep_carpet_001.ogg",
+      "assets/audio/sfx/impacts/footstep_carpet_002.ogg",
+      "assets/audio/sfx/impacts/footstep_carpet_003.ogg",
+      "assets/audio/sfx/impacts/footstep_carpet_004.ogg"
+    ],
+    "footstep_concrete": [
+      "assets/audio/sfx/impacts/footstep_concrete_000.ogg",
+      "assets/audio/sfx/impacts/footstep_concrete_001.ogg",
+      "assets/audio/sfx/impacts/footstep_concrete_002.ogg",
+      "assets/audio/sfx/impacts/footstep_concrete_003.ogg",
+      "assets/audio/sfx/impacts/footstep_concrete_004.ogg"
+    ],
+    "footstep_grass": [
+      "assets/audio/sfx/impacts/footstep_grass_000.ogg",
+      "assets/audio/sfx/impacts/footstep_grass_001.ogg",
+      "assets/audio/sfx/impacts/footstep_grass_002.ogg",
+      "assets/audio/sfx/impacts/footstep_grass_003.ogg",
+      "assets/audio/sfx/impacts/footstep_grass_004.ogg"
+    ],
+    "footstep_snow": [
+      "assets/audio/sfx/impacts/footstep_snow_000.ogg",
+      "assets/audio/sfx/impacts/footstep_snow_001.ogg",
+      "assets/audio/sfx/impacts/footstep_snow_002.ogg",
+      "assets/audio/sfx/impacts/footstep_snow_003.ogg",
+      "assets/audio/sfx/impacts/footstep_snow_004.ogg"
+    ],
+    "footstep_wood": [
+      "assets/audio/sfx/impacts/footstep_wood_000.ogg",
+      "assets/audio/sfx/impacts/footstep_wood_001.ogg",
+      "assets/audio/sfx/impacts/footstep_wood_002.ogg",
+      "assets/audio/sfx/impacts/footstep_wood_003.ogg",
+      "assets/audio/sfx/impacts/footstep_wood_004.ogg"
+    ],
+    "notify": "assets/audio/ui/notify.ogg"
   },
   "ui": {
     "ui.button.click": "ui_click",

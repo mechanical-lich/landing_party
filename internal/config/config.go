@@ -45,6 +45,11 @@ type Config struct {
 	UIVolume    float64 `json:"uiVolume"`
 	GameVolume  float64 `json:"gameVolume"`
 	MusicVolume float64 `json:"musicVolume"`
+
+	// Footstep audio toggles. When off, footsteps of that side are silent but
+	// still emit their sound event (AI hearing is unaffected).
+	FriendlyFootsteps bool `json:"friendlyFootsteps"`
+	EnemyFootsteps    bool `json:"enemyFootsteps"`
 }
 
 // LoadConfig reads and unmarshals a JSON config file.
@@ -106,10 +111,10 @@ func Reload() {
 	Global()
 }
 
-// mergeVolumeOverrides layers the three volumes onto whatever config.local.json
-// already contains, so writing a volume never drops other local settings. Pure
-// (no IO) so it's unit-testable.
-func mergeVolumeOverrides(existing []byte, ui, game, music float64) ([]byte, error) {
+// mergeAudioOverrides layers the audio settings onto whatever config.local.json
+// already contains, so writing them never drops other local settings. Pure (no
+// IO) so it's unit-testable.
+func mergeAudioOverrides(existing []byte, ui, game, music float64, friendlyFoot, enemyFoot bool) ([]byte, error) {
 	overrides := map[string]any{}
 	if len(existing) > 0 {
 		_ = json.Unmarshal(existing, &overrides) // best effort; a bad file is replaced
@@ -117,14 +122,16 @@ func mergeVolumeOverrides(existing []byte, ui, game, music float64) ([]byte, err
 	overrides["uiVolume"] = ui
 	overrides["gameVolume"] = game
 	overrides["musicVolume"] = music
+	overrides["friendlyFootsteps"] = friendlyFoot
+	overrides["enemyFootsteps"] = enemyFoot
 	return json.MarshalIndent(overrides, "", "  ")
 }
 
-// SaveVolumes writes the audio bus volumes into config.local.json (preserving
+// SaveAudioSettings writes the audio settings into config.local.json (preserving
 // other overrides) and reloads the global config.
-func SaveVolumes(ui, game, music float64) error {
+func SaveAudioSettings(ui, game, music float64, friendlyFoot, enemyFoot bool) error {
 	existing, _ := os.ReadFile(localConfigPath) // missing file → empty, fine
-	out, err := mergeVolumeOverrides(existing, ui, game, music)
+	out, err := mergeAudioOverrides(existing, ui, game, music, friendlyFoot, enemyFoot)
 	if err != nil {
 		return err
 	}

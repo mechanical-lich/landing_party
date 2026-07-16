@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -382,6 +383,7 @@ func (p *starMapPanel) scan() {
 		map[string]int{"fuel": cost},
 	)
 	if found != nil {
+		audio.PlayGlobal("notify") // a discovery chime, heard regardless of view
 		p.showScanResult(
 			fmt.Sprintf("Detected: %s", found.Name),
 			fmt.Sprintf("A %s, %d fuel away.   (−%d fuel)", found.Kind, p.campaign.FuelCost(found.ID), cost),

@@ -16,6 +16,30 @@ type TileVariant = rllayered.TileVariant
 type TileDefinition struct {
 	rllayered.TileDefinition
 	Space bool `json:"space"` // true for vacuum/void tiles above the atmosphere
+	// Material tags the tile's surface for audio: footstep sounds read the Floor
+	// slot's material, dig/mine sounds read the Middle slot's. Empty means
+	// "unspecified" (callers fall back to a generic sound).
+	Material string `json:"material,omitempty"`
+}
+
+// FloorMaterialAt returns the Material of the Floor tile at (x,y,z) — the surface
+// an entity stands on, for footstep sounds. "" if out of bounds or unset.
+func (l *Level) FloorMaterialAt(x, y, z int) string {
+	t := l.GetTilePtr(x, y, z)
+	if t == nil || t.Floor.IsEmpty() {
+		return ""
+	}
+	return TileDefinitions[t.Floor.Type].Material
+}
+
+// MiddleMaterialAt returns the Material of the Middle tile at (x,y,z) — the wall
+// or deposit being dug/mined, for impact sounds. "" if out of bounds or unset.
+func (l *Level) MiddleMaterialAt(x, y, z int) string {
+	t := l.GetTilePtr(x, y, z)
+	if t == nil || t.Middle.IsEmpty() {
+		return ""
+	}
+	return TileDefinitions[t.Middle.Type].Material
 }
 
 // EmptyTileName is the engine-reserved sentinel. rllayered.Slot.IsEmpty

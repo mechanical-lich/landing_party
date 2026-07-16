@@ -3,6 +3,7 @@ package audio
 import (
 	"math"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	mlaudio "github.com/mechanical-lich/mlge/audio"
 )
@@ -14,6 +15,10 @@ const edgeRolloff = 0.6
 // minAudibleVolume is the volume below which a positional sound is dropped
 // rather than played (inaudible, not worth a voice).
 const minAudibleVolume = 0.05
+
+// footstepVolumeScale keeps footsteps at half the volume of other world SFX —
+// they're frequent, so a lighter mix keeps them from dominating.
+const footstepVolumeScale = 0.5
 
 // worldBridge turns in-world SoundEvents into positional one-shots. Each frame it
 // reads the live level's Sounds slice, plays any it hasn't seen yet (tracked by
@@ -29,6 +34,11 @@ type worldBridge struct {
 
 	level  *world.Level // the level the cursor belongs to
 	cursor uint64       // highest SoundSeq already played on that level
+
+	// Footstep mutes silence the audible footstep of one side while the sound
+	// event still fires (AI hearing is unaffected). Zero value = audible.
+	muteFriendlyFootsteps bool
+	muteEnemyFootsteps    bool
 }
 
 // play emits audio for new sounds on lvl. It's a no-op until a viewport exists,
@@ -83,6 +93,18 @@ func (b *worldBridge) play(lvl *world.Level) {
 			continue
 		}
 		vol := frustumVolume(ev.X, ev.Y, cx, cy, vw, vh)
+		if ev.Tag == world.SoundTagFootstep {
+			// Colonists/player units carry Worker; everything else that walks
+			// (mobs, wildlife) is "enemy" for this toggle.
+			friendly := ev.Source != nil && ev.Source.HasComponent(components.Worker)
+			if friendly && b.muteFriendlyFootsteps {
+				continue
+			}
+			if !friendly && b.muteEnemyFootsteps {
+				continue
+			}
+			vol *= footstepVolumeScale
+		}
 		if vol < minAudibleVolume {
 			continue
 		}

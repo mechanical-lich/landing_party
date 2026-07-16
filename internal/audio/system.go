@@ -143,3 +143,22 @@ func ApplyVolumes(ui, game, music float64) {
 	SetGameVolume(game)
 	SetMusicVolume(music)
 }
+
+// SetFootstepAudio toggles whether friendly (colonist/player) and enemy
+// footsteps are audible. Off silences the sound but not its event, so AI hearing
+// is unchanged. Call on startup (from config) and after a settings change.
+func SetFootstepAudio(friendly, enemy bool) {
+	if global != nil {
+		global.world.muteFriendlyFootsteps = !friendly
+		global.world.muteEnemyFootsteps = !enemy
+	}
+}
+
+// PlayGlobal plays a positionless one-shot on the Global bus — an alert or
+// notification heard anywhere, ignoring the camera view (unlike world SFX).
+// No-op when audio is disabled or the clip isn't loaded.
+func PlayGlobal(key string) {
+	if global != nil {
+		global.mixer.Play(key, mlaudio.PlayOptions{Bus: mlaudio.BusGlobal})
+	}
+}

@@ -21,7 +21,9 @@
   "rogueKeyRepeatDelay": 20,
   "rogueKeyRepeatInterval": 4,
   "rogueAutoMoveInterval": 10,
-  "uiVolume": 1.0,
+  "uiVolume": 0.5,
   "gameVolume": 1.0,
-  "musicVolume": 1.0
+  "musicVolume": 1.0,
+  "friendlyFootsteps": true,
+  "enemyFootsteps": false
 }

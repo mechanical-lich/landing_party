@@ -317,6 +317,10 @@ func (s *MainState) rogueAct(dx, dy int) bool {
 		return true
 	}
 	rlentity.HandleMovement(s.level, ent, dx, dy, 0)
+	// Footstep for the player's step, by the destination floor's material.
+	npc := ent.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	s.level.EmitSoundClip(npc.GetX(), npc.GetY(), npc.GetZ(), 2, world.SoundTagFootstep,
+		components.FootstepClipKey(s.level.FloorMaterialAt(npc.GetX(), npc.GetY(), npc.GetZ())), ent)
 	return true
 }
 

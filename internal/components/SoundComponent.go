@@ -99,6 +99,37 @@ func resolveSoundAttr(entity *ecs.Entity, get func(*SoundComponent) string) stri
 	return ""
 }
 
+// impactMediumSurfaces are the materials that have a loaded "impact_<m>_medium"
+// variation set, so mining/impacts on them can ring like that surface.
+var impactMediumSurfaces = map[string]bool{
+	"metal": true, "glass": true, "wood": true, "plate": true,
+	"tin": true, "plank": true, "soft": true, "punch": true,
+}
+
+// footstepSurfaces are the tile materials with a "footstep_<m>" set.
+var footstepSurfaces = map[string]bool{
+	"grass": true, "snow": true, "wood": true, "carpet": true, "concrete": true,
+}
+
+// MiningClipKey picks the dig/mine sound for a tile's Middle material: a hard
+// surface with an impact set (metal ore, glass crystal) rings like that surface;
+// everything else uses the generic rock-mining set ("mine").
+func MiningClipKey(material string) string {
+	if impactMediumSurfaces[material] {
+		return "impact_" + material + "_medium"
+	}
+	return "mine"
+}
+
+// FootstepClipKey picks the footstep sound for a Floor material, defaulting to a
+// wood step when the material is unset or unknown.
+func FootstepClipKey(material string) string {
+	if footstepSurfaces[material] {
+		return "footstep_" + material
+	}
+	return "footstep_wood"
+}
+
 // ImpactClipKey composes the impact sound-set key for a strike:
 // impact_{surface}_{weight}. The target's material picks the surface (default
 // "generic"); the attacker's weight picks the force (default "medium"). The

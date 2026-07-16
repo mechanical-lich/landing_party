@@ -567,11 +567,6 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 // positionally near the camera.
 const digSoundLoudness float32 = 5
 
-// miningClipKey is the audio clip-set played for digging/mining (a variation
-// set); the emit tag stays "break" so it falls back to the generic break clip
-// when the set isn't loaded.
-const miningClipKey = "mine"
-
 // chopSwingProgress is how much harvest progress passes between chop "swing"
 // impact sounds. Tied to work done (not frame rate), so chopping a tougher node
 // simply produces more swings; a rock (Required = Health*10 = 30) yields ~5.
@@ -662,13 +657,13 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 		// A "chunk" thunk each time ore is pulled; for non-deposit solid rock
 		// (no chunks) the mined-out clear below emits a single break instead.
 		if extracted {
-			level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
+			level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, components.MiningClipKey(level.MiddleMaterialAt(tx, ty, tz)), entity)
 		}
 
 		// Mined out once the deposit is empty (or the tile was never a deposit).
 		if dropBlueprint == "" || level.ResourceAmountAt(tx, ty, tz) <= 0 {
 			if !extracted {
-				level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
+				level.EmitSoundClip(tx, ty, tz, digSoundLoudness, world.SoundTagBreak, components.MiningClipKey(level.MiddleMaterialAt(tx, ty, tz)), entity)
 			}
 			clearTileRadiation(tile)
 			// Layered mine: just remove the Middle. Floor stays.
@@ -960,7 +955,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 		req.Progress += workStep(wc, entity, "Str")
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
-			level.EmitSoundClip(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, digSoundLoudness, world.SoundTagBreak, miningClipKey, entity)
+			level.EmitSoundClip(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, digSoundLoudness, world.SoundTagBreak, components.MiningClipKey(level.MiddleMaterialAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)), entity)
 			clearTileRadiation(tile)
 			// Layered dig: just remove the Middle. Floor stays as whatever
 			// was there.

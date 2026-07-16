@@ -74,6 +74,37 @@ func TestResolveMaterialAndWeightGearOverride(t *testing.T) {
 	}
 }
 
+func TestMiningClipKey(t *testing.T) {
+	if got := MiningClipKey("metal"); got != "impact_metal_medium" {
+		t.Fatalf("metal → %q, want impact_metal_medium", got)
+	}
+	if got := MiningClipKey("glass"); got != "impact_glass_medium" {
+		t.Fatalf("glass → %q, want impact_glass_medium", got)
+	}
+	// Materials without a medium impact set (or unset) fall back to the generic
+	// rock-mining set.
+	for _, m := range []string{"", "stone", "rock", "bell", "generic"} {
+		if got := MiningClipKey(m); got != "mine" {
+			t.Fatalf("MiningClipKey(%q) = %q, want mine", m, got)
+		}
+	}
+}
+
+func TestFootstepClipKey(t *testing.T) {
+	if got := FootstepClipKey("grass"); got != "footstep_grass" {
+		t.Fatalf("grass → %q, want footstep_grass", got)
+	}
+	if got := FootstepClipKey("snow"); got != "footstep_snow" {
+		t.Fatalf("snow → %q, want footstep_snow", got)
+	}
+	// Unset/unknown → default wood step.
+	for _, m := range []string{"", "metal", "lava"} {
+		if got := FootstepClipKey(m); got != "footstep_wood" {
+			t.Fatalf("FootstepClipKey(%q) = %q, want footstep_wood", m, got)
+		}
+	}
+}
+
 func TestImpactClipKeyComposition(t *testing.T) {
 	attacker := &ecs.Entity{}
 	attacker.AddComponent(&SoundComponent{Weight: "heavy"})

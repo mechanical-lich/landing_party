@@ -16,9 +16,11 @@ import (
 // SettingsState is the options screen (its own state). V1 exposes the three
 // audio volume sliders; it's opened from the title screen and pops back to it.
 type SettingsState struct {
-	done    bool
-	sliders []*volumeSlider
-	backBtn *minui.Button
+	done         bool
+	sliders      []*volumeSlider
+	friendlyFoot *minui.Toggle
+	enemyFoot    *minui.Toggle
+	backBtn      *minui.Button
 }
 
 // volumeSlider is a click/drag track for a 0..1 value. It applies its value to
@@ -88,9 +90,20 @@ func NewSettingsState() *SettingsState {
 		{label: "Music Volume", value: clampUnit(cfg.MusicVolume), apply: audio.SetMusicVolume, x: trackX, y: startY + spacing*2, w: trackW},
 	}
 
+	toggleY := startY + spacing*3
+	ss.friendlyFoot = minui.NewToggle("settings_friendly_footsteps", "Friendly footstep sounds")
+	ss.friendlyFoot.On = cfg.FriendlyFootsteps
+	ss.friendlyFoot.SetPosition(trackX-220, toggleY)
+	ss.friendlyFoot.OnChange = func(bool) { ss.commit() }
+
+	ss.enemyFoot = minui.NewToggle("settings_enemy_footsteps", "Enemy footstep sounds")
+	ss.enemyFoot.On = cfg.EnemyFootsteps
+	ss.enemyFoot.SetPosition(trackX-220, toggleY+40)
+	ss.enemyFoot.OnChange = func(bool) { ss.commit() }
+
 	ss.backBtn = minui.NewButton("settings_back", "Back")
 	ss.backBtn.SetSize(220, 36)
-	ss.backBtn.SetPosition(cx-110, startY+spacing*3+20)
+	ss.backBtn.SetPosition(cx-110, toggleY+100)
 	ss.backBtn.OnClick = func() {
 		ss.commit()
 		ss.done = true
@@ -98,14 +111,18 @@ func NewSettingsState() *SettingsState {
 	return ss
 }
 
-// commit writes the current volumes to config.local.json, reloads the config,
-// and re-applies them to the buses (per the settings flow).
+// commit writes the current audio settings to config.local.json, reloads the
+// config, and re-applies them (per the settings flow).
 func (ss *SettingsState) commit() {
-	if err := config.SaveVolumes(ss.sliders[0].value, ss.sliders[1].value, ss.sliders[2].value); err != nil {
+	if err := config.SaveAudioSettings(
+		ss.sliders[0].value, ss.sliders[1].value, ss.sliders[2].value,
+		ss.friendlyFoot.On, ss.enemyFoot.On,
+	); err != nil {
 		return
 	}
 	cfg := config.Global()
 	audio.ApplyVolumes(cfg.UIVolume, cfg.GameVolume, cfg.MusicVolume)
+	audio.SetFootstepAudio(cfg.FriendlyFootsteps, cfg.EnemyFootsteps)
 }
 
 func (ss *SettingsState) Update() state.StateInterface {
@@ -119,6 +136,8 @@ func (ss *SettingsState) Update() state.StateInterface {
 			ss.commit() // persist each adjustment on release
 		}
 	}
+	ss.friendlyFoot.Update()
+	ss.enemyFoot.Update()
 	ss.backBtn.Update()
 	return nil
 }
@@ -133,6 +152,8 @@ func (ss *SettingsState) Draw(screen *ebiten.Image) {
 	for _, s := range ss.sliders {
 		s.draw(screen)
 	}
+	ss.friendlyFoot.Draw(screen)
+	ss.enemyFoot.Draw(screen)
 	ss.backBtn.Draw(screen)
 	minui.FlushOverlays(screen)
 }

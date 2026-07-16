@@ -14,6 +14,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/skills"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mechanical-basic/pkg/basic"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcombat"
@@ -924,6 +925,10 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		nx, ny, _ := next.Coords()
 		dx, dy := nx-sx, ny-sy
 		rlentity.Move(entity, level, dx, dy, 0)
+		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if npc.GetX() == nx && npc.GetY() == ny {
+			workerai.EmitFootstep(level, entity, nx, ny, sz)
+		}
 		rlentity.Face(entity, dx, dy)
 		return float64(1), nil
 	})
@@ -962,6 +967,10 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		}
 		moved := rlentity.Move(entity, level, dx, dy, 0)
 		rlentity.Face(entity, dx, dy)
+		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if npc.GetX() == destX && npc.GetY() == destY {
+			workerai.EmitFootstep(level, entity, destX, destY, destZ)
+		}
 		if moved {
 			return float64(1), nil
 		}
