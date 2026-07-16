@@ -35,9 +35,12 @@ const (
 type TitleState struct {
 	screen titleScreen
 
-	newBtn  *minui.Button
-	loadBtn *minui.Button
-	quitBtn *minui.Button
+	newBtn      *minui.Button
+	loadBtn     *minui.Button
+	settingsBtn *minui.Button
+	quitBtn     *minui.Button
+
+	openSettings bool
 
 	nameInput     *minui.TextInput
 	randomNameBtn *minui.Button
@@ -108,8 +111,16 @@ func (ts *TitleState) buildMainMenu() {
 		ts.openLoadScreen()
 	}
 
+	ts.settingsBtn = minui.NewButton("title_settings", "Settings")
+	ts.settingsBtn.SetPosition(x, 320+(btnH+12)*2)
+	ts.settingsBtn.SetSize(btnW, btnH)
+	ts.settingsBtn.OnClick = func() {
+		ts.errMsg = ""
+		ts.openSettings = true
+	}
+
 	ts.quitBtn = minui.NewButton("title_quit", "Quit")
-	ts.quitBtn.SetPosition(x, 320+(btnH+12)*2)
+	ts.quitBtn.SetPosition(x, 320+(btnH+12)*3)
 	ts.quitBtn.SetSize(btnW, btnH)
 	ts.quitBtn.OnClick = func() { os.Exit(0) }
 }
@@ -355,7 +366,12 @@ func (ts *TitleState) Update() state.StateInterface {
 		}
 		ts.newBtn.Update()
 		ts.loadBtn.Update()
+		ts.settingsBtn.Update()
 		ts.quitBtn.Update()
+		if ts.openSettings {
+			ts.openSettings = false
+			return NewSettingsState()
+		}
 	case screenNewSettlement:
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			ts.screen = screenMain
@@ -400,6 +416,7 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 	case screenMain:
 		ts.newBtn.Draw(screen)
 		ts.loadBtn.Draw(screen)
+		ts.settingsBtn.Draw(screen)
 		ts.quitBtn.Draw(screen)
 	case screenLoad:
 		mlge_text.Draw(screen, "Load Save", 24, cfg.ScreenWidth/2-80, 260, color.RGBA{180, 210, 255, 255})

@@ -108,3 +108,38 @@ func (s *System) Mixer() *mlaudio.Mixer {
 	}
 	return s.mixer
 }
+
+// perceptualGain maps a 0..1 slider position to a bus gain along a squared
+// curve. Loudness perception is roughly logarithmic, so a linear slider feels
+// dead until it's near zero; squaring makes the middle of the slider audibly
+// quieter (0.5 → ~-12 dB) so it actually feels like a volume control.
+func perceptualGain(v float64) float64 {
+	if v < 0 {
+		v = 0
+	} else if v > 1 {
+		v = 1
+	}
+	return v * v
+}
+
+// setBus sets a bus volume on the active audio system (no-op when disabled).
+// The slider value is passed through the perceptual curve first.
+func setBus(bus mlaudio.Bus, v float64) {
+	if global != nil {
+		global.mixer.SetBusVolume(bus, perceptualGain(v))
+	}
+}
+
+// SetUIVolume, SetGameVolume and SetMusicVolume map the settings screen's three
+// sliders onto their buses. Volumes are 0..1.
+func SetUIVolume(v float64)    { setBus(mlaudio.BusUI, v) }
+func SetGameVolume(v float64)  { setBus(mlaudio.BusSFX, v) }
+func SetMusicVolume(v float64) { setBus(mlaudio.BusMusic, v) }
+
+// ApplyVolumes pushes all three volumes at once — call on startup (from config)
+// and after the settings screen commits a change.
+func ApplyVolumes(ui, game, music float64) {
+	SetUIVolume(ui)
+	SetGameVolume(game)
+	SetMusicVolume(music)
+}

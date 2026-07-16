@@ -39,6 +39,12 @@ type Config struct {
 	RogueKeyRepeatDelay    int `json:"rogueKeyRepeatDelay"`
 	RogueKeyRepeatInterval int `json:"rogueKeyRepeatInterval"`
 	RogueAutoMoveInterval  int `json:"rogueAutoMoveInterval"`
+
+	// Audio bus volumes, 0..1. Base defaults live in data/config.json; the
+	// settings screen writes player overrides to config.local.json.
+	UIVolume    float64 `json:"uiVolume"`
+	GameVolume  float64 `json:"gameVolume"`
+	MusicVolume float64 `json:"musicVolume"`
 }
 
 // LoadConfig reads and unmarshals a JSON config file.
@@ -90,4 +96,41 @@ func Global() *Config {
 		applyLocalOverrides(settings)
 	}
 	return settings
+}
+
+// Reload discards the cached config so the next Global() re-reads data/config.json
+// and re-applies config.local.json — used after the settings screen writes an
+// override.
+func Reload() {
+	settings = nil
+	Global()
+}
+
+// mergeVolumeOverrides layers the three volumes onto whatever config.local.json
+// already contains, so writing a volume never drops other local settings. Pure
+// (no IO) so it's unit-testable.
+func mergeVolumeOverrides(existing []byte, ui, game, music float64) ([]byte, error) {
+	overrides := map[string]any{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &overrides) // best effort; a bad file is replaced
+	}
+	overrides["uiVolume"] = ui
+	overrides["gameVolume"] = game
+	overrides["musicVolume"] = music
+	return json.MarshalIndent(overrides, "", "  ")
+}
+
+// SaveVolumes writes the audio bus volumes into config.local.json (preserving
+// other overrides) and reloads the global config.
+func SaveVolumes(ui, game, music float64) error {
+	existing, _ := os.ReadFile(localConfigPath) // missing file → empty, fine
+	out, err := mergeVolumeOverrides(existing, ui, game, music)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(localConfigPath, out, 0o644); err != nil {
+		return err
+	}
+	Reload()
+	return nil
 }

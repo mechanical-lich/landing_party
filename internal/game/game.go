@@ -37,6 +37,9 @@ func NewGame(title string) (*Game, error) {
 	} else {
 		g.Audio = a
 	}
+	// Apply the player's saved bus volumes (config.local.json overrides).
+	cfg := config.Global()
+	audio.ApplyVolumes(cfg.UIVolume, cfg.GameVolume, cfg.MusicVolume)
 
 	g.StateMachine.PushState(NewTitleState())
 	return g, nil
