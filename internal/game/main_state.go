@@ -65,20 +65,11 @@ type SettlementConfig struct {
 	CampaignMode bool
 }
 
-// pendingRelocate carries the source/material/quantity selected in the
-// storage inspector while the player is in CursorModeRelocate choosing a
-// destination tile or container.
-type pendingRelocate struct {
-	source    *ecs.Entity
-	blueprint string
-	qty       int
-}
-
 type MainState struct {
-	level         *world.Level
-	CameraX       int
-	CameraY       int
-	CameraZ       int
+	level   *world.Level
+	CameraX int
+	CameraY int
+	CameraZ int
 	// viewport is the on-screen world rect, rebuilt from the camera each Draw and
 	// consumed next frame by FOV clearing and positional audio. It replaces the
 	// camera copy Level used to carry, keeping view state out of the world model.
@@ -88,7 +79,7 @@ type MainState struct {
 	systemManager *ecs.SystemManager
 	// bgSystemManager mirrors systemManager minus the render-only systems, used
 	// to tick this level in the background (e.g. The Ship while you're planetside).
-	bgSystemManager  *ecs.SystemManager
+	bgSystemManager *ecs.SystemManager
 	// fovSystem is held so the current viewport can be handed to it each frame for
 	// bounding the Visible clear (it no longer reads a copy off Level).
 	fovSystem        *systems.FOVSystem
@@ -118,31 +109,27 @@ type MainState struct {
 	mapModal         *MapModal
 	cheatModal       *CheatModal
 	storageInspector *StorageInspectorModal
-	pendingRelocate  *pendingRelocate
-	// pendingStoreItem is the item picked in the first click of Store mode,
-	// awaiting a destination-container click. nil = no item picked yet (or
-	// not in Store mode).
-	pendingStoreItem *ecs.Entity
-	// pendingDropColonist/Item carry the (colonist, item) pair chosen in the
-	// colonist inventory modal while the player is in CursorModeDrop picking
-	// a destination tile or storage container.
-	pendingDropColonist *ecs.Entity
-	pendingDropItem     *ecs.Entity
-	// pendingPickupColonist is the colonist whose modal Pickup button was
-	// clicked. Set while in CursorModePickup awaiting a target-item click.
-	pendingPickupColonist *ecs.Entity
-	smallMap              *SmallMapWidget
-	followEntity          *ecs.Entity
-	rogueEntity           *ecs.Entity
-	rogueMoveTargetX      int
-	rogueMoveTargetY      int
-	rogueMoveTargetZ      int
-	rogueMoveActive       bool
-	rogueAutoMoveTick     int
-	roguePath             [][2]int
-	campaign              *campaign.Campaign
-	wm                    *WorldManager
-	dashboardBtn          *minui.Button
+	// cursorTools dispatches the modal cursor modes (Relocate/Store/Drop/Pickup);
+	// each tool owns its pending selection state. The named fields expose the
+	// public entry points (Begin/Request) the storage inspector and colonist
+	// modal call into.
+	cursorTools       map[gui.CursorModeType]cursorTool
+	relocateTool      *relocateTool
+	storeTool         *storeTool
+	dropTool          *dropTool
+	pickupTool        *pickupTool
+	smallMap          *SmallMapWidget
+	followEntity      *ecs.Entity
+	rogueEntity       *ecs.Entity
+	rogueMoveTargetX  int
+	rogueMoveTargetY  int
+	rogueMoveTargetZ  int
+	rogueMoveActive   bool
+	rogueAutoMoveTick int
+	roguePath         [][2]int
+	campaign          *campaign.Campaign
+	wm                *WorldManager
+	dashboardBtn      *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
@@ -241,6 +228,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 		settlementCfg: cfg,
 		buildMode:     "hull_wall",
 	}
+	s.initCursorTools()
 
 	// addLogic registers a system on both the live and background managers;
 	// addRender only on the live one (render-only systems are skipped when
@@ -563,12 +551,12 @@ func (s *MainState) newGame() {
 	// md.Size.Roll already dereferenced it). BuildWorld is the single terrain
 	// path; it returns a usable (if degraded) level even on partial failure.
 	opts := generation.BuildWorldOptions{
-		Width:         mapW,
-		Height:        mapH,
-		Depth:         mapZ,
-		Seed:          seed,
-		Terrain:       md.Terrain,
-		TerrainParams: md.TerrainParams,
+		Width:               mapW,
+		Height:              mapH,
+		Depth:               mapZ,
+		Seed:                seed,
+		Terrain:             md.Terrain,
+		TerrainParams:       md.TerrainParams,
 		BiomeMapType:        md.BiomeMap.Type,
 		BiomeMapScale:       md.BiomeMap.Scale,
 		BiomeLatitudeWeight: md.BiomeMap.LatitudeWeight,
@@ -875,35 +863,14 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 		if s.CursorMode == gui.CursorModeFollow {
 			s.cancelFollowMode()
 		}
-		if s.CursorMode == gui.CursorModeRelocate && ev.Mode != gui.CursorModeRelocate {
-			s.cancelPendingRelocate()
-			s.guiManager.SetDefaultContext("", "", "")
-		}
-		if s.CursorMode == gui.CursorModeStore && ev.Mode != gui.CursorModeStore {
-			s.setPendingStoreItem(nil)
-			s.guiManager.SetDefaultContext("", "", "")
-		}
-		if s.CursorMode == gui.CursorModeDrop && ev.Mode != gui.CursorModeDrop {
-			s.clearPendingDrop()
-			s.guiManager.SetDefaultContext("", "", "")
-		}
-		if s.CursorMode == gui.CursorModePickup && ev.Mode != gui.CursorModePickup {
-			s.pendingPickupColonist = nil
-			s.guiManager.SetDefaultContext("", "", "")
+		// Leave the old modal tool (unless re-entering the same mode) and enter
+		// the new one. Each tool clears its own pending state + context.
+		if old, ok := s.cursorTools[s.CursorMode]; ok && ev.Mode != s.CursorMode {
+			old.Exit()
 		}
 		s.CursorMode = ev.Mode
-		if ev.Mode == gui.CursorModeRelocate {
-			s.relocateModeBanner()
-		}
-		if ev.Mode == gui.CursorModeStore {
-			s.setPendingStoreItem(nil)
-			s.storeModeBanner()
-		}
-		if ev.Mode == gui.CursorModeDrop {
-			s.dropModeBanner()
-		}
-		if ev.Mode == gui.CursorModePickup {
-			s.pickupModeBanner()
+		if nt, ok := s.cursorTools[ev.Mode]; ok {
+			nt.Enter()
 		}
 	case gui.MainMenuEvent:
 		switch ev.Action {
@@ -1136,102 +1103,10 @@ func (s *MainState) addCraftTask(recipeID string, station *ecs.Entity) {
 	message.AddMessage("Queued: craft " + recipe.Name)
 }
 
-// BeginRelocate is called from the storage inspector when the player chooses
-// to relocate a material. It stashes the pending source/blueprint/qty and
-// switches to CursorModeRelocate so the next click picks the destination.
+// BeginRelocate is called from the storage inspector; it delegates to the
+// Relocate cursor tool (see relocateTool.Begin).
 func (s *MainState) BeginRelocate(source *ecs.Entity, blueprint string, qty int) {
-	if source == nil || qty <= 0 {
-		return
-	}
-	s.pendingRelocate = &pendingRelocate{
-		source:    source,
-		blueprint: blueprint,
-		qty:       qty,
-	}
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeRelocate})
-	message.AddMessage(fmt.Sprintf("Click a storage container or open tile to drop %d %s.", qty, displayMaterialName(blueprint)))
-}
-
-// cancelPendingRelocate clears any in-progress relocate target selection.
-func (s *MainState) cancelPendingRelocate() {
-	s.pendingRelocate = nil
-}
-
-// handleRelocateClick resolves the click in CursorModeRelocate: if the tile
-// contains a colony-owned storage container that accepts the material, queue a
-// container-destination relocate task; otherwise if the tile is walkable, queue
-// a ground-drop relocate task. Either way clears pending state and returns the
-// cursor to default. Invalid clicks flash a status and keep the mode active.
-func (s *MainState) handleRelocateClick(tX, tY, tZ int) {
-	pr := s.pendingRelocate
-	if pr == nil || pr.source == nil {
-		event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-		return
-	}
-	if s.MainSettlement == nil {
-		return
-	}
-	dispName := displayMaterialName(pr.blueprint)
-
-	// Container destination?
-	var destEntity *ecs.Entity
-	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
-		destEntity = ent
-	}
-	if destEntity == nil {
-		for _, se := range s.level.StaticEntities {
-			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
-				continue
-			}
-			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
-				destEntity = se
-				break
-			}
-		}
-	}
-
-	req := task_requests.RelocateRequest{
-		Source:    pr.source,
-		Blueprint: pr.blueprint,
-		Qty:       pr.qty,
-		DestX:     tX,
-		DestY:     tY,
-		DestZ:     tZ,
-	}
-
-	if destEntity != nil {
-		if destEntity == pr.source {
-			message.AddMessage("Source and destination are the same.")
-			return
-		}
-		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		if !destSc.AcceptsTags(factory.GetMaterialTags(pr.blueprint)) {
-			message.AddMessage(fmt.Sprintf("That container doesn't accept %s.", dispName))
-			return
-		}
-		req.DestEntity = destEntity
-		s.MainSettlement.Tasks.AddTask(&task.Task{
-			Action: task_requests.RelocateAction,
-			Data:   req,
-			X:      tX, Y: tY, Z: tZ,
-		})
-		message.AddMessage(fmt.Sprintf("Queued: relocate %d %s to %s.", pr.qty, dispName, entityDisplayLabel(destEntity)))
-	} else {
-		// Ground drop — require a walkable tile at the camera's Z.
-		if !s.tileWalkable(tX, tY, tZ) {
-			message.AddMessage("Can't drop materials there.")
-			return
-		}
-		s.MainSettlement.Tasks.AddTask(&task.Task{
-			Action: task_requests.RelocateAction,
-			Data:   req,
-			X:      tX, Y: tY, Z: tZ,
-		})
-		message.AddMessage(fmt.Sprintf("Queued: relocate %d %s to ground.", pr.qty, dispName))
-	}
-	s.pendingRelocate = nil
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
+	s.relocateTool.Begin(source, blueprint, qty)
 }
 
 // tileWalkable reports whether (x,y,z) is a non-solid tile suitable for a
@@ -1424,200 +1299,15 @@ func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled
 }
 
 // requestDropOff is fired from the colonist inventory modal's per-item Drop
-// button. It captures (colonist, item) as a pending selection and switches
-// the cursor into CursorModeDrop so the player can click a ground tile or
-// storage container as the destination.
+// button; it delegates to the Drop cursor tool (see dropTool.Request).
 func (s *MainState) requestDropOff(colonist *ecs.Entity, item *ecs.Entity) {
-	if colonist == nil || item == nil {
-		return
-	}
-	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
-		return
-	}
-	s.pendingDropColonist = colonist
-	s.pendingDropItem = item
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDrop})
+	s.dropTool.Request(colonist, item)
 }
 
-// clearPendingDrop resets the (colonist, item) selection used by CursorModeDrop.
-func (s *MainState) clearPendingDrop() {
-	s.pendingDropColonist = nil
-	s.pendingDropItem = nil
-}
-
-// requestPickup is fired from the colonist modal's Pickup button. It captures
-// the colonist and switches into CursorModePickup so the player can click an
-// item on the ground that this specific colonist will walk to and pick up.
+// requestPickup is fired from the colonist modal's Pickup button; it delegates
+// to the Pickup cursor tool (see pickupTool.Request).
 func (s *MainState) requestPickup(colonist *ecs.Entity) {
-	if colonist == nil {
-		return
-	}
-	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
-		return
-	}
-	s.pendingPickupColonist = colonist
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModePickup})
-}
-
-// pickupModeBanner shows the static Pickup hint while the player is choosing
-// the item target.
-func (s *MainState) pickupModeBanner() {
-	if s.pendingPickupColonist == nil {
-		s.guiManager.SetDefaultContext("Pickup", "Open a colonist's detail view and start there.", "")
-		return
-	}
-	name := entityDisplayLabel(s.pendingPickupColonist)
-	s.guiManager.SetDefaultContext("Pickup ("+name+")", "Click an item on the ground.", "")
-}
-
-// handlePickupClick resolves the target-item click during CursorModePickup.
-// The target must be an entity with rlcomponents.Item (or a deployed Worker
-// — same rule as Store-mode recall). Assigns a Retrieve task scoped to the
-// selected colonist via Worker.CurrentTask so the settlement queue doesn't
-// hand it to whichever hauler picks it up first.
-func (s *MainState) handlePickupClick(tX, tY, tZ int) {
-	if s.pendingPickupColonist == nil {
-		message.AddMessage("Open a colonist's detail view first.")
-		return
-	}
-	target := s.level.GetEntityAt(tX, tY, tZ)
-	if target == nil || (!target.HasComponent(rlcomponents.Item) && !target.HasComponent(components.Worker)) {
-		message.AddMessage("Pick an item lying on the ground.")
-		return
-	}
-	if target == s.pendingPickupColonist {
-		return
-	}
-	colonist := s.pendingPickupColonist
-	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
-	aiMemory := colonist.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
-	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
-		wc.CurrentTask.Stop()
-	}
-	// Use PickupAction (not Retrieve) — Retrieve walks to a storage container
-	// after pickup; the player asked for the item to go into the colonist's
-	// own bag and stay there.
-	t := &task.Task{
-		Action: task_requests.PickupAction,
-		Data:   target,
-		X:      tX, Y: tY, Z: tZ,
-		Escalated: true,
-	}
-	t.Start()
-	wc.CurrentTask = t
-	aiMemory.State = "task"
-	message.AddMessage(entityDisplayLabel(colonist) + ": pick up " + entityDisplayLabel(target) + ".")
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-}
-
-// dropModeBanner shows the static Drop hint based on whether an item has
-// already been picked from a colonist's inventory.
-func (s *MainState) dropModeBanner() {
-	if s.pendingDropItem == nil {
-		s.guiManager.SetDefaultContext("Drop", "Open a colonist and pick an item from their bag.", "")
-		return
-	}
-	s.guiManager.SetDefaultContext("Drop "+entityDisplayLabel(s.pendingDropItem),
-		"Click a ground tile or storage container.", s.pendingDropItem.Blueprint)
-}
-
-// handleDropClick resolves the destination click during CursorModeDrop.
-// Without a pending item the click is ignored (the player still needs to open
-// a colonist modal and choose what to drop). With one, the destination is
-// either a storage container at the tile or the bare tile (ground drop).
-func (s *MainState) handleDropClick(tX, tY, tZ int) {
-	// Phase 1: no item picked yet. Treat a click on a colonist with a
-	// non-empty bag as "open this colonist's inventory so they can choose
-	// what to drop" — same gesture used by the Orders → Drop entry point.
-	if s.pendingDropItem == nil || s.pendingDropColonist == nil {
-		ent := s.level.GetEntityAt(tX, tY, tZ)
-		if ent != nil && ent.HasComponent(components.Worker) && ent.HasComponent(rlcomponents.Inventory) {
-			inv := ent.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-			if len(inv.Bag) == 0 {
-				message.AddMessage(entityDisplayLabel(ent) + " isn't carrying anything.")
-				return
-			}
-			s.openColonistModal(ent)
-			return
-		}
-		message.AddMessage("Open a colonist and pick an item to drop first.")
-		return
-	}
-	colonist := s.pendingDropColonist
-	item := s.pendingDropItem
-	inv := colonist.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
-	// Guard against the item being lost between picking and clicking (e.g.
-	// the colonist was killed, or the item was equipped from the modal).
-	stillHas := false
-	for _, b := range inv.Bag {
-		if b == item {
-			stillHas = true
-			break
-		}
-	}
-	if !stillHas {
-		message.AddMessage(entityDisplayLabel(colonist) + " no longer carries that item.")
-		event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-		return
-	}
-
-	// Resolve destination: storage container at the tile, else bare tile.
-	var destEntity *ecs.Entity
-	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
-		destEntity = ent
-	}
-	if destEntity == nil {
-		for _, se := range s.level.StaticEntities {
-			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
-				continue
-			}
-			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
-				destEntity = se
-				break
-			}
-		}
-	}
-	if destEntity != nil {
-		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		if !destSc.Accepts(item) {
-			message.AddMessage(entityDisplayLabel(destEntity) + " won't accept " + entityDisplayLabel(item) + ".")
-			return
-		}
-	} else {
-		// Ground destination needs a walkable tile (matches the rest of the
-		// click handlers — anything else is just a misclick).
-		ti := s.level.GetTileAt(tX, tY, tZ)
-		if ti == nil {
-			return
-		}
-		tile := ti.(*world.Tile)
-		if tile.IsSolid() || tile.IsWater() {
-			message.AddMessage("Can't drop there.")
-			return
-		}
-	}
-
-	aiMemory := colonist.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
-	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
-	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
-		wc.CurrentTask.Stop()
-		wc.CurrentTask = nil
-	}
-	wc.DropOffItem = item
-	wc.DropOffDestEntity = destEntity
-	if destEntity != nil {
-		pc := destEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		wc.DropOffX, wc.DropOffY, wc.DropOffZ = pc.GetX(), pc.GetY(), pc.GetZ()
-		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = pc.GetX(), pc.GetY(), pc.GetZ()
-		message.AddMessage("Queued: drop " + entityDisplayLabel(item) + " in " + entityDisplayLabel(destEntity) + ".")
-	} else {
-		wc.DropOffX, wc.DropOffY, wc.DropOffZ = tX, tY, tZ
-		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = tX, tY, tZ
-		message.AddMessage("Queued: drop " + entityDisplayLabel(item) + ".")
-	}
-	aiMemory.State = "dropoff"
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
+	s.pickupTool.Request(colonist)
 }
 
 func (s *MainState) handleInput() {
@@ -1996,14 +1686,8 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 						}
 					}
 				}
-			case gui.CursorModeRelocate:
-				s.handleRelocateClick(tX, tY, s.CameraZ)
-			case gui.CursorModeStore:
-				s.handleStoreClick(tX, tY, s.CameraZ)
-			case gui.CursorModeDrop:
-				s.handleDropClick(tX, tY, s.CameraZ)
-			case gui.CursorModePickup:
-				s.handlePickupClick(tX, tY, s.CameraZ)
+			case gui.CursorModeRelocate, gui.CursorModeStore, gui.CursorModeDrop, gui.CursorModePickup:
+				s.cursorTools[s.CursorMode].Click(tX, tY, s.CameraZ)
 			}
 		}
 	}
@@ -2225,10 +1909,8 @@ func (s *MainState) updateHovered() {
 		s.guiManager.ClearHover()
 		if s.CursorMode == gui.CursorModeDefault {
 			s.guiManager.SetDefaultContext("", "", "")
-		} else if s.CursorMode == gui.CursorModeRelocate {
-			s.relocateModeBanner()
-		} else if s.CursorMode == gui.CursorModeStore {
-			s.storeModeBanner()
+		} else if tool, ok := s.cursorTools[s.CursorMode]; ok {
+			tool.Hover(tX, tY, s.CameraZ)
 		}
 		s.hoverActive = false
 		return
@@ -2294,232 +1976,9 @@ func (s *MainState) updateHovered() {
 
 	if s.CursorMode == gui.CursorModeDefault {
 		s.updateDefaultContext(tX, tY)
-	} else if s.CursorMode == gui.CursorModeRelocate {
-		s.updateRelocateContext(tX, tY, s.CameraZ)
-	} else if s.CursorMode == gui.CursorModeStore {
-		s.updateStoreContext(tX, tY, s.CameraZ)
+	} else if tool, ok := s.cursorTools[s.CursorMode]; ok {
+		tool.Hover(tX, tY, s.CameraZ)
 	}
-}
-
-// setPendingStoreItem updates the Phase-1 selection AND syncs the world-render
-// highlight (the same SelectedComponent that brightens hovered/inspected
-// entities). Passing nil clears the highlight on the previously-picked item.
-func (s *MainState) setPendingStoreItem(item *ecs.Entity) {
-	if s.pendingStoreItem != nil && s.pendingStoreItem != item {
-		s.pendingStoreItem.RemoveComponent(components.Selected)
-	}
-	s.pendingStoreItem = item
-	if item != nil {
-		item.AddComponent(&components.SelectedComponent{})
-	}
-}
-
-// storeModeBanner shows the static Store hint based on whether an item has
-// been picked yet.
-func (s *MainState) storeModeBanner() {
-	item := s.pendingStoreItem
-	if item == nil {
-		s.guiManager.SetDefaultContext("Store: Pick an Item", "Click an item on the ground.", "")
-		return
-	}
-	s.guiManager.SetDefaultContext("Store: "+entityDisplayLabel(item), "Click a storage container that accepts it.", item.Blueprint)
-}
-
-// updateStoreContext drives the per-hover tooltip while in Store cursor mode.
-// Branches differ depending on whether the player has already picked an item.
-func (s *MainState) updateStoreContext(tX, tY, tZ int) {
-	item := s.pendingStoreItem
-
-	if item == nil {
-		// First-click phase: looking for an item on the ground.
-		ent := s.level.GetEntityAt(tX, tY, tZ)
-		if ent != nil && ent.HasComponent(rlcomponents.Item) {
-			s.guiManager.SetDefaultContext("Pick: "+entityDisplayLabel(ent), "Click to choose this item to store.", ent.Blueprint)
-			return
-		}
-		s.storeModeBanner()
-		return
-	}
-
-	// Second-click phase: looking for a storage container.
-	var destEntity *ecs.Entity
-	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
-		destEntity = ent
-	}
-	if destEntity == nil {
-		for _, se := range s.level.StaticEntities {
-			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
-				continue
-			}
-			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
-				destEntity = se
-				break
-			}
-		}
-	}
-
-	if destEntity != nil {
-		destName := entityDisplayLabel(destEntity)
-		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		if !destSc.Accepts(item) {
-			s.guiManager.SetDefaultContext("Won't Accept: "+destName, "Tag filter rejects this item.", item.Blueprint)
-			return
-		}
-		s.guiManager.SetDefaultContext("Store In: "+destName, "Place "+entityDisplayLabel(item)+" here.", item.Blueprint)
-		return
-	}
-
-	s.storeModeBanner()
-}
-
-// handleStoreClick implements the two-phase Store cursor mode: first click
-// picks an item, second click resolves it to a storage destination that
-// accepts the item. After queuing the task, the mode resets so the player can
-// issue another order without leaving Store.
-func (s *MainState) handleStoreClick(tX, tY, tZ int) {
-	if s.MainSettlement == nil {
-		return
-	}
-
-	// Phase 1: pick an item.
-	if s.pendingStoreItem == nil {
-		ent := s.level.GetEntityAt(tX, tY, tZ)
-		// A Worker-bearing entity (e.g. a deployed robot) counts as
-		// "pickupable" too — that's how the player recalls it back into
-		// inventory and then into a locker.
-		if ent == nil || (!ent.HasComponent(rlcomponents.Item) && !ent.HasComponent(components.Worker)) {
-			message.AddMessage("Pick an item lying on the ground first.")
-			return
-		}
-		s.setPendingStoreItem(ent)
-		s.storeModeBanner()
-		message.AddMessage("Picked " + entityDisplayLabel(ent) + ". Click a storage container.")
-		return
-	}
-
-	// Phase 2: pick a destination container.
-	item := s.pendingStoreItem
-	var destEntity *ecs.Entity
-	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
-		destEntity = ent
-	}
-	if destEntity == nil {
-		for _, se := range s.level.StaticEntities {
-			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
-				continue
-			}
-			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
-				destEntity = se
-				break
-			}
-		}
-	}
-	if destEntity == nil {
-		message.AddMessage("That's not a storage container.")
-		return
-	}
-	destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-	if !destSc.Accepts(item) {
-		message.AddMessage(entityDisplayLabel(destEntity) + " won't accept " + entityDisplayLabel(item) + ".")
-		return
-	}
-
-	// Queue the task and reset for another order.
-	if !item.HasComponent(rlcomponents.Position) {
-		message.AddMessage("Item is no longer on the ground.")
-		s.setPendingStoreItem(nil)
-		s.storeModeBanner()
-		return
-	}
-	ipc := item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.RetrieveAction,
-		Data:   task_requests.RetrieveRequest{Item: item, Dest: destEntity},
-		X:      ipc.GetX(), Y: ipc.GetY(), Z: ipc.GetZ(),
-		Escalated: true,
-	})
-	message.AddMessage("Queued: store " + entityDisplayLabel(item) + " in " + entityDisplayLabel(destEntity) + ".")
-	// Match the other one-shot orders (Sleep/Attack/etc.) — drop back to
-	// Default after a successful queue. The CursorModeChangedEvent handler
-	// will clear pendingStoreItem and the highlight for us.
-	event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-}
-
-// relocateBannerText returns the static "title + desc" pair shown when no
-// meaningful tile is under the cursor in Relocate mode. Phrasing mirrors the
-// other modes' short-sentence convention.
-func (s *MainState) relocateBannerText() (string, string) {
-	pr := s.pendingRelocate
-	if pr == nil {
-		return "", ""
-	}
-	return fmt.Sprintf("Relocate: %d × %s", pr.qty, displayMaterialName(pr.blueprint)),
-		"Pick a destination."
-}
-
-// relocateModeBanner shows the static Relocate hint when the cursor isn't
-// over a meaningful tile.
-func (s *MainState) relocateModeBanner() {
-	pr := s.pendingRelocate
-	if pr == nil {
-		return
-	}
-	title, desc := s.relocateBannerText()
-	s.guiManager.SetDefaultContext(title, desc, pr.blueprint)
-}
-
-// updateRelocateContext drives the per-hover tooltip while in Relocate cursor
-// mode. Each branch keeps text short to match the other modes' tooltip size.
-func (s *MainState) updateRelocateContext(tX, tY, tZ int) {
-	pr := s.pendingRelocate
-	if pr == nil {
-		s.guiManager.SetDefaultContext("", "", "")
-		return
-	}
-
-	// Storage container at the tile?
-	var destEntity *ecs.Entity
-	if ent := s.level.GetEntityAt(tX, tY, tZ); ent != nil && ent.HasComponent(components.Storage) {
-		destEntity = ent
-	}
-	if destEntity == nil {
-		for _, se := range s.level.StaticEntities {
-			if !se.HasComponent(components.Storage) || !se.HasComponent(rlcomponents.Position) {
-				continue
-			}
-			pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == tZ {
-				destEntity = se
-				break
-			}
-		}
-	}
-
-	if destEntity != nil {
-		destName := entityDisplayLabel(destEntity)
-		if destEntity == pr.source {
-			s.guiManager.SetDefaultContext("Source", "Pick another container or open tile.", pr.blueprint)
-			return
-		}
-		destSc := destEntity.GetComponent(components.Storage).(*components.StorageComponent)
-		if !destSc.AcceptsTags(factory.GetMaterialTags(pr.blueprint)) {
-			s.guiManager.SetDefaultContext("Won't Accept: "+destName, "Tag filter rejects this material.", pr.blueprint)
-			return
-		}
-		s.guiManager.SetDefaultContext("Drop Into: "+destName, fmt.Sprintf("Move %d here.", pr.qty), pr.blueprint)
-		return
-	}
-
-	if s.tileWalkable(tX, tY, tZ) {
-		s.guiManager.SetDefaultContext("Drop on Ground", fmt.Sprintf("Place %d here.", pr.qty), pr.blueprint)
-		return
-	}
-	// Unwalkable tile — show the static banner so the player still sees what's
-	// in play instead of an empty tooltip.
-	title, desc := s.relocateBannerText()
-	s.guiManager.SetDefaultContext(title, desc, pr.blueprint)
 }
 
 // updateDefaultContext detects what a Default-mode left-click would do at (tX,tY)
@@ -2963,7 +2422,7 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 // picked in Phase 1 of Store mode, on top of the SelectedComponent's sprite
 // brightening.
 func (s *MainState) drawStorePickHighlight(screen *ebiten.Image) {
-	item := s.pendingStoreItem
+	item := s.storeTool.item
 	if item == nil || !item.HasComponent(rlcomponents.Position) {
 		return
 	}
