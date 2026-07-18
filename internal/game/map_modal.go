@@ -248,7 +248,7 @@ func (m *MapModal) Draw(screen *ebiten.Image) {
 		switch {
 		case e.HasComponent(components.Worker):
 			dotColor = color.RGBA{80, 220, 120, 255} // colonists: green
-		case e.HasComponent(components.FactionAI):
+		case components.IsAttackTarget(e):
 			dotColor = color.RGBA{220, 60, 60, 255} // hostiles: red
 		default:
 			dotColor = color.RGBA{200, 200, 80, 255} // other: yellow

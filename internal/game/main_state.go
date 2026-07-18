@@ -1874,8 +1874,8 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		if s.CursorMode == gui.CursorModeDefault {
 			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
 
-			if ent != nil && ent.HasComponent(components.FactionAI) && s.MainSettlement != nil {
-				// Attack hostile entity
+			if ent != nil && components.IsAttackTarget(ent) && s.MainSettlement != nil {
+				// Attack hostile entity (faction raiders, scripted mutants/zombies, etc.)
 				s.MainSettlement.Tasks.AddTask(&task.Task{
 					Action: task_requests.AttackAction, Data: ent,
 					X: tX, Y: tY, Z: s.CameraZ, Escalated: true,
@@ -1971,7 +1971,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				s.addSleepTask(tX, tY)
 			case gui.CursorModeAttack:
 				target := s.level.GetEntityAt(tX, tY, s.CameraZ)
-				if target != nil && target.HasComponent(components.FactionAI) {
+				if components.IsAttackTarget(target) {
 					for _, colonist := range s.level.Entities {
 						if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
 							wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -2516,7 +2516,7 @@ func (s *MainState) updateRelocateContext(tX, tY, tZ int) {
 // and updates the HUD context hint accordingly.
 func (s *MainState) updateDefaultContext(tX, tY int) {
 	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
-		if entity.HasComponent(components.FactionAI) {
+		if components.IsAttackTarget(entity) {
 			name := "Enemy"
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name

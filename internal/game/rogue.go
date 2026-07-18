@@ -287,9 +287,7 @@ func (s *MainState) rogueAct(dx, dy int) bool {
 	tx, ty, tz := pc.GetX()+dx, pc.GetY()+dy, pc.GetZ()
 
 	// Bump to attack: hostile entity with health on the destination tile.
-	if target := s.level.GetEntityAt(tx, ty, tz); target != nil &&
-		target.HasComponent(rlcomponents.Health) &&
-		(target.HasComponent(components.FactionAI) || target.HasComponent(components.ScriptedAI) || target.HasComponent(rlcomponents.HostileAI)) {
+	if target := s.level.GetEntityAt(tx, ty, tz); components.IsAttackTarget(target) {
 		rlentity.Face(ent, dx, dy)
 		combat.MeleeAttack(s.level, ent, tx, ty, tz)
 		return true
