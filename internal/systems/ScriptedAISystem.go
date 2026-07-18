@@ -960,19 +960,21 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			}
 			solid := level.GetSolidEntityAt(destX, destY, destZ)
 			if solid != nil && solid != entity {
-				return float64(1), nil
+				return float64(0), nil // blocked by an entity
 			}
 			level.PlaceEntity(destX, destY, destZ, entity)
 			rlentity.Face(entity, dx, dy)
-			return float64(0), nil
+			return float64(1), nil // moved
 		}
-		moved := rlentity.Move(entity, level, dx, dy, 0)
+		// rlentity.Move's return is not "did it move" (it reports entity-blocked),
+		// so derive success from the actual position change — the same signal the
+		// footstep uses.
+		rlentity.Move(entity, level, dx, dy, 0)
 		rlentity.Face(entity, dx, dy)
 		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if npc.GetX() == destX && npc.GetY() == destY {
-			workerai.EmitFootstep(level, entity, destX, destY, destZ)
-		}
+		moved := npc.GetX() == destX && npc.GetY() == destY
 		if moved {
+			workerai.EmitFootstep(level, entity, destX, destY, destZ)
 			return float64(1), nil
 		}
 		return float64(0), nil

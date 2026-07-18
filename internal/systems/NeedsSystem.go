@@ -17,9 +17,10 @@ import (
 const (
 	sleepRollMinPct = 60 // exhaustion must be at least this % of max before idle sleep roll fires
 
-	sleepRecoveryPerCycle = 20 // exhaustion reduced each sleep cycle
-	sleepCycleLength      = 10 // turns per sleep cycle (proper bed)
-	passoutCycleLength    = 40 // turns per recovery cycle (no bed, 4× slower)
+	// Note: exhaustion recovery per sleep cycle lives in workerai
+	// (sleepRecoveryPerCycle), where the sleep task applies it.
+	sleepCycleLength   = 10 // turns per sleep cycle (proper bed)
+	passoutCycleLength = 40 // turns per recovery cycle (no bed, 4× slower)
 )
 
 // exhaustionPerAction maps task actions to the exhaustion added each colonist

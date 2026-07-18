@@ -13,22 +13,22 @@ Technologies are defined in `data/research.json`. The research system (`internal
     "name": "Basic Metallurgy",
     "description": "Foundational metal processing techniques.",
     "duration": 100,
+    "cost": { "metal_ore": 5 },
     "required_building": "research_lab",
-    "required_int": 8,
-    "unlocks": ["metal_plating", "reinforced_door"]
+    "required_int": 8
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| key | string | Unique tech identifier |
+| key | string | Unique tech identifier (the map key) |
 | `name` | string | Display name in the research menu |
 | `description` | string | Short description |
 | `duration` | int | Base number of worker-ticks to complete |
+| `cost` | map[string]int | Materials (blueprint ID → quantity) consumed from settlement storage when research begins. Shown in the HUD. Omit if free. |
 | `required_building` | string | Build ID that must be present in the settlement for research to proceed |
 | `required_int` | int | Minimum colonist `Int` stat required to work this research |
 | `requires_tech` | string | ID of a prerequisite tech. Omit if none. |
-| `unlocks` | []string | Build or tech IDs unlocked on completion |
 
 ---
 
@@ -36,34 +36,25 @@ Technologies are defined in `data/research.json`. The research system (`internal
 
 - `internal/research/research.go` loads all tech definitions at startup.
 - `settlement.KnownTechs` is a set of tech IDs the settlement has completed.
-- A tech is available to research when: its `required_building` is built, `requires_tech` (if set) is in `KnownTechs`, and an available colonist meets `required_int`.
+- A tech is available to research when: its `required_building` is built, `requires_tech` (if set) is in `KnownTechs`, an available colonist meets `required_int`, and the settlement has the `cost` materials.
+- When research begins the `cost` materials are deducted from settlement storage.
 - Multiple colonists can work the same research task simultaneously — progress accumulates from all contributors.
-- On completion the tech ID is added to `KnownTechs` and any entries in `unlocks` become available.
+- On completion the tech ID is added to `KnownTechs`. Downstream techs and content gate on it via `requires_tech` / `KnownTechs` checks (there is no `unlocks` list — availability is derived from prerequisites, not declared here).
 
 ---
 
 ## Current Tech Tree
 
-```
-basic_metallurgy ──▶ advanced_metallurgy
-xenobiology
-power_systems
-```
-
-| Tech | Duration | Required Int | Unlocks |
-|------|----------|-------------|---------|
-| `basic_metallurgy` | 100 | 8 | `metal_plating`, `reinforced_door` |
-| `advanced_metallurgy` | 200 | 12 | `plasma_cutter`, `armored_wall` |
-| `xenobiology` | 150 | 10 | `bio_farm`, `alien_medicine` |
-| `power_systems` | 180 | 11 | `generator`, `power_conduit` |
-
-All techs require a `research_lab` to be built.
+The authoritative list is [`data/research.json`](../../data/research.json); it
+drifts, so it isn't duplicated here. Chains are formed by `requires_tech` (e.g.
+`advanced_metallurgy` requires `basic_metallurgy`), and all current techs require
+a `research_lab`.
 
 ---
 
 ## Adding a New Technology
 
 1. Add an entry to `data/research.json` with a unique key.
-2. Set `required_building` (typically `"research_lab"`), `required_int`, and optional `requires_tech`.
-3. List the build or tech IDs this unlocks in `unlocks`.
+2. Set `duration`, optional `cost` (materials), `required_building` (typically `"research_lab"`), `required_int`, and optional `requires_tech`.
+3. Gate content on it by checking `KnownTechs` (or via another tech's `requires_tech`); there is no `unlocks` field.
 4. No Go code changes needed for a standard research entry.

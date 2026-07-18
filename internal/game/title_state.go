@@ -49,17 +49,6 @@ type TitleState struct {
 	seedInput     *minui.TextInput
 	randomSeedBtn *minui.Button
 
-	mapPicker *minui.SelectBox
-	mapIDs    []string
-
-	scenarioPicker *minui.SelectBox
-	scenarioIDs    []string
-
-	lightingPicker *minui.SelectBox
-	lightingModes  []string // internal mode strings
-	ambientLabel   *minui.Label
-	ambientInput   *minui.TextInput
-
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
 
@@ -100,7 +89,6 @@ func (ts *TitleState) buildMainMenu() {
 	ts.newBtn.SetSize(btnW, btnH)
 	ts.newBtn.OnClick = func() {
 		ts.errMsg = ""
-		ts.reloadMapsAndScenarios()
 		ts.screen = screenNewSettlement
 	}
 
@@ -198,43 +186,6 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		ts.seedInput.Text = strconv.FormatInt(rand.Int63(), 10)
 	}
 
-	ts.mapPicker = minui.NewSelectBox("map_picker", []string{"Random"})
-	ts.mapPicker.SetPosition(cx-150, 400)
-	ts.mapPicker.SetSize(300, 28)
-	ts.mapPicker.OnSelect = func(idx int, _ string) {
-		mapID := ""
-		if idx > 0 && idx < len(ts.mapIDs) {
-			mapID = ts.mapIDs[idx]
-		}
-		ts.refreshScenarioPicker(mapID)
-	}
-
-	ts.scenarioPicker = minui.NewSelectBox("scenario_picker", []string{"Random"})
-	ts.scenarioPicker.SetPosition(cx-150, 444)
-	ts.scenarioPicker.SetSize(300, 28)
-	ts.scenarioPicker.SelectByIndexQuiet(0)
-
-	// Lighting override
-	ts.lightingModes = []string{"", world.LightModedayNight, world.LightModeFixed, world.LightModePitchDark}
-	ts.lightingPicker = minui.NewSelectBox("lighting_picker", []string{"Scenario Default", "Day / Night Cycle", "Fixed Ambient", "Pitch Dark"})
-	ts.lightingPicker.SetPosition(cx-150, 488)
-	ts.lightingPicker.SetSize(300, 28)
-	ts.lightingPicker.SelectByIndexQuiet(0)
-	ts.lightingPicker.OnSelect = func(idx int, _ string) {
-		isFixed := idx == 2
-		ts.ambientLabel.SetVisible(isFixed)
-		ts.ambientInput.SetVisible(isFixed)
-	}
-
-	ts.ambientLabel = minui.NewLabel("ambient_label", "Ambient (0-100):")
-	ts.ambientLabel.SetPosition(cx-150, 530)
-	ts.ambientLabel.SetSize(160, 18)
-	ts.ambientLabel.SetVisible(false)
-	ts.ambientInput = minui.NewTextInput("ambient_input", "50")
-	ts.ambientInput.SetPosition(cx+10, 526)
-	ts.ambientInput.SetSize(80, 28)
-	ts.ambientInput.SetVisible(false)
-
 	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
 	ts.generateBtn.SetPosition(cx-80, 372)
 	ts.generateBtn.SetSize(160, 36)
@@ -243,45 +194,6 @@ func (ts *TitleState) buildNewSettlementScreen() {
 	ts.cancelBtn.SetPosition(cx-80, 416)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
-
-	ts.reloadMapsAndScenarios()
-}
-
-// reloadMapsAndScenarios re-reads the map/scenario data files and repopulates
-// the map picker, then syncs the scenario picker to the current map.
-func (ts *TitleState) reloadMapsAndScenarios() {
-	_ = scenario.Load("data/scenarios")
-	_ = mapdef.Load("data/maps")
-	_ = generation.LoadBiomes("data/biomes")
-
-	labels := []string{"Random"}
-	ts.mapIDs = []string{""}
-	for _, m := range mapdef.All() {
-		labels = append(labels, m.Name)
-		ts.mapIDs = append(ts.mapIDs, m.ID)
-	}
-	ts.mapPicker.SetItems(labels)
-	ts.mapPicker.SelectByIndexQuiet(0)
-	ts.refreshScenarioPicker("")
-}
-
-// refreshScenarioPicker rebuilds the scenario list to only those compatible
-// with mapID (empty mapID = all scenarios).
-func (ts *TitleState) refreshScenarioPicker(mapID string) {
-	var scenarios []scenario.Scenario
-	if mapID == "" {
-		scenarios = scenario.AllEnabled()
-	} else {
-		scenarios = scenario.ForMap(mapID)
-	}
-	labels := []string{"Random"}
-	ts.scenarioIDs = []string{""}
-	for _, s := range scenarios {
-		labels = append(labels, s.Name)
-		ts.scenarioIDs = append(ts.scenarioIDs, s.ID)
-	}
-	ts.scenarioPicker.SetItems(labels)
-	ts.scenarioPicker.SelectByIndexQuiet(0)
 }
 
 func (ts *TitleState) startNewSettlement() {
@@ -297,35 +209,6 @@ func (ts *TitleState) startNewSettlement() {
 	if seed == 0 {
 		seed = rand.Int63()
 	}
-
-	var mapID string
-	if mi := ts.mapPicker.SelectedIndex; mi > 0 && mi < len(ts.mapIDs) {
-		mapID = ts.mapIDs[mi]
-	}
-	var scenarioID string
-	if idx := ts.scenarioPicker.SelectedIndex; idx > 0 && idx < len(ts.scenarioIDs) {
-		scenarioID = ts.scenarioIDs[idx]
-	}
-
-	lightIdx := ts.lightingPicker.SelectedIndex
-	lightMode := ""
-	if lightIdx >= 0 && lightIdx < len(ts.lightingModes) {
-		lightMode = ts.lightingModes[lightIdx]
-	}
-	ambient := 0
-	if lightMode == world.LightModeFixed {
-		ambient, _ = strconv.Atoi(ts.ambientInput.Text)
-		if ambient < 0 {
-			ambient = 0
-		} else if ambient > 100 {
-			ambient = 100
-		}
-	}
-
-	_ = mapID
-	_ = scenarioID
-	_ = lightMode
-	_ = ambient
 
 	ms, err := StartNewExpedition(name, seed)
 	if err != nil {
