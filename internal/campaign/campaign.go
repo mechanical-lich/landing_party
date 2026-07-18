@@ -10,7 +10,13 @@ import (
 // Campaign is the persistent root of a landing_party game: the ship hub, the
 // space overworld (Locations), and campaign-wide progress. Only one location's
 // level is live at a time; every other location is frozen on disk.
+// CampaignVersion is the current campaign-save schema version, stamped at
+// generation. Legacy saves have Version 0; branch on it to migrate.
+const CampaignVersion = 1
+
 type Campaign struct {
+	// Version is the save-schema version (see CampaignVersion).
+	Version           int                  `json:"version,omitempty"`
 	Name              string               `json:"name"`
 	Seed              int64                `json:"seed"`
 	CurrentLocationID string               `json:"current_location_id"`

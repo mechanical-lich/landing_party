@@ -99,11 +99,7 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 				}
 			}
 			if !hit {
-				bx, by := pc.GetX(), pc.GetY()
-				rlentity.Move(entity, level, dx, dy, 0)
-				if pc.GetX() != bx || pc.GetY() != by {
-					workerai.EmitFootstep(level, entity, pc.GetX(), pc.GetY(), pc.GetZ())
-				}
+				workerai.TryStep(level, entity, dx, dy, 0)
 				rlentity.Face(entity, dx, dy)
 			}
 			return nil
@@ -116,11 +112,7 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 		if dx == 0 {
 			dy = utility.GetRandom(-1, 2)
 		}
-		bx, by := pc.GetX(), pc.GetY()
-		rlentity.Move(entity, level, dx, dy, 0)
-		if pc.GetX() != bx || pc.GetY() != by {
-			workerai.EmitFootstep(level, entity, pc.GetX(), pc.GetY(), pc.GetZ())
-		}
+		workerai.TryStep(level, entity, dx, dy, 0)
 		rlentity.Face(entity, dx, dy)
 	}
 

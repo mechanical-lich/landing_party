@@ -140,6 +140,11 @@ type MainState struct {
 	// a quest target dies) so completion isn't delayed by the periodic tick —
 	// important in Rogue mode where ticks only advance per player action.
 	forceQuestEval bool
+
+	// saveNamesLoaded/saveNamesDirty gate the HUD save-list refresh so it reads
+	// the saves dir once and then only after a save, not every refreshHUD.
+	saveNamesLoaded bool
+	saveNamesDirty  bool
 }
 
 const (
@@ -905,6 +910,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 				log.Printf("campaign save failed: %v", err)
 			} else {
 				message.PostMessage("Mission", "Expedition saved.")
+				s.saveNamesDirty = true
 			}
 			return nil
 		}
@@ -2566,6 +2572,21 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 	s.guiManager.SetDefaultContext("", "", "")
 }
 
+// refreshSaveNames re-reads the saves directory and updates the HUD list. Called
+// on the first HUD refresh and after a save (gated by saveNamesDirty, not run
+// every frame).
+func (s *MainState) refreshSaveNames() {
+	metas, err := ListSaves()
+	if err != nil {
+		return
+	}
+	names := make([]string, len(metas))
+	for i, m := range metas {
+		names[i] = m.Name
+	}
+	s.guiManager.SetSaveNames(names)
+}
+
 func (s *MainState) refreshHUD() {
 	if s.MainSettlement == nil {
 		return
@@ -2616,12 +2637,12 @@ func (s *MainState) refreshHUD() {
 	}
 	s.guiManager.RefreshPopulationTab(popEntries)
 
-	if metas, err := ListSaves(); err == nil {
-		names := make([]string, len(metas))
-		for i, m := range metas {
-			names[i] = m.Name
-		}
-		s.guiManager.SetSaveNames(names)
+	// The save list only changes when the player saves — don't hit disk every
+	// refreshHUD (~2×/sec). Load once, then only when a save marks it dirty.
+	if !s.saveNamesLoaded || s.saveNamesDirty {
+		s.refreshSaveNames()
+		s.saveNamesLoaded = true
+		s.saveNamesDirty = false
 	}
 
 	var goalLines []string

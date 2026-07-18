@@ -1307,6 +1307,9 @@ func (h *HUDScreen) RefreshGoalsTab(lines []string) {
 }
 
 func (h *HUDScreen) SetHoveredEntity(entity *ecs.Entity) {
+	if entity == h.hoveredEntity {
+		return // same entity — the panel already reflects it (avoid per-frame rebuild)
+	}
 	h.hoveredEntity = entity
 	h.selectedEntity = entity
 	h.refreshHoverPanel()
@@ -1341,8 +1344,30 @@ type HoveredTileInfo struct {
 // alongside any hovered entity. Call with a zero-value info via ClearHover
 // to drop tile info.
 func (h *HUDScreen) SetHoveredTile(info HoveredTileInfo) {
+	if h.pendingTileInfo != nil && tileInfoEqual(*h.pendingTileInfo, info) {
+		return // same tile content — skip the VBox rebuild (fires per mouse-move frame)
+	}
 	h.pendingTileInfo = &info
 	h.refreshHoverPanel()
+}
+
+// tileInfoEqual reports whether two hover infos render identically, so the panel
+// isn't rebuilt while the mouse sits on one tile.
+func tileInfoEqual(a, b HoveredTileInfo) bool {
+	if a.Name != b.Name || a.FloorName != b.FloorName ||
+		a.X != b.X || a.Y != b.Y || a.Z != b.Z ||
+		a.LightLevel != b.LightLevel || a.Radiation != b.Radiation ||
+		a.ResourceAmount != b.ResourceAmount ||
+		a.Solid != b.Solid || a.Water != b.Water || a.Air != b.Air || a.Space != b.Space ||
+		len(a.Smells) != len(b.Smells) {
+		return false
+	}
+	for i := range a.Smells {
+		if a.Smells[i] != b.Smells[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // refreshHoverPanel rebuilds the details VBox from the current entity and

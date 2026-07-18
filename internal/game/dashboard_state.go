@@ -155,6 +155,9 @@ func (d *DashboardState) save() {
 		d.status = "Save failed: " + err.Error()
 	} else {
 		d.status = "Expedition saved."
+		if d.wm.current != nil {
+			d.wm.current.saveNamesDirty = true // refresh the HUD list on return
+		}
 	}
 }
 

@@ -925,11 +925,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		next := level.Level.GetTilePtrIndex(ai.PathCache[0])
 		nx, ny, _ := next.Coords()
 		dx, dy := nx-sx, ny-sy
-		rlentity.Move(entity, level, dx, dy, 0)
-		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if npc.GetX() == nx && npc.GetY() == ny {
-			workerai.EmitFootstep(level, entity, npc.GetX(), npc.GetY(), npc.GetZ())
-		}
+		workerai.TryStep(level, entity, dx, dy, 0)
 		rlentity.Face(entity, dx, dy)
 		return float64(1), nil
 	})
@@ -966,15 +962,9 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			rlentity.Face(entity, dx, dy)
 			return float64(1), nil // moved
 		}
-		// rlentity.Move's return is not "did it move" (it reports entity-blocked),
-		// so derive success from the actual position change — the same signal the
-		// footstep uses.
-		rlentity.Move(entity, level, dx, dy, 0)
+		moved := workerai.TryStep(level, entity, dx, dy, 0)
 		rlentity.Face(entity, dx, dy)
-		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		moved := npc.GetX() == destX && npc.GetY() == destY
 		if moved {
-			workerai.EmitFootstep(level, entity, destX, destY, destZ)
 			return float64(1), nil
 		}
 		return float64(0), nil
@@ -1001,8 +991,10 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 				}
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 				level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, entity)
-				ep := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				level.EmitScent(ep.GetX(), ep.GetY(), ep.GetZ(), world.SmellTagBlood, 3.0)
+				// The target is only guaranteed to have Health, not Position.
+				if ep, ok := components.Get[rlcomponents.PositionComponent](e); ok {
+					level.EmitScent(ep.GetX(), ep.GetY(), ep.GetZ(), world.SmellTagBlood, 3.0)
+				}
 				return float64(1), nil
 			}
 		}

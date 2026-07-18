@@ -124,6 +124,7 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 	}
 	cfg := genConfig()
 	c := &Campaign{
+		Version:   CampaignVersion,
 		Name:      name,
 		Seed:      seed,
 		Locations: make(map[string]*Location),

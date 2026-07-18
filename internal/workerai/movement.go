@@ -40,6 +40,22 @@ func EmitFootstep(level *world.Level, entity *ecs.Entity, x, y, z int) {
 	level.EmitSoundClip(x, y, z, footstepLoudness, world.SoundTagFootstep, key, entity)
 }
 
+// TryStep moves entity by (dx,dy,dz) via rlentity.Move and, when the step
+// actually lands on a new tile, emits a footstep; it returns whether it moved.
+// Centralizes the move + did-it-move check + footstep shared by the worker,
+// scripted, and faction movement paths — rlentity.Move's own return reports
+// entity-blocked, not "did it move", so success is read from the position.
+func TryStep(level *world.Level, entity *ecs.Entity, dx, dy, dz int) bool {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	destX, destY, destZ := pc.GetX()+dx, pc.GetY()+dy, pc.GetZ()+dz
+	rlentity.Move(entity, level, dx, dy, dz)
+	if pc.GetX() == destX && pc.GetY() == destY && pc.GetZ() == destZ {
+		EmitFootstep(level, entity, destX, destY, destZ)
+		return true
+	}
+	return false
+}
+
 func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY, targetZ int) (moved bool, pathFound bool) {
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
@@ -83,12 +99,7 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 			if isFlying(entity) {
 				flyMove(entity, level, dx, dy, dz)
 			} else {
-				rlentity.Move(entity, level, dx, dy, dz)
-				// Footstep only if the step actually landed (pc updates in place);
-				// canMoveTo can pass but a same-tick entity race still block Move.
-				if pc.GetX() == ntX && pc.GetY() == ntY && pc.GetZ() == ntZ {
-					EmitFootstep(level, entity, ntX, ntY, ntZ)
-				}
+				TryStep(level, entity, dx, dy, dz)
 			}
 			rlentity.Face(entity, dx, dy)
 			return true, true

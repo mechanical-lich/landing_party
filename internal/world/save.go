@@ -40,10 +40,105 @@ type saveInventory struct {
 	StartingInventory []string      `json:"StartingInventory,omitempty"`
 }
 
+// SaveVersion is the current save-schema version, written into every SaveData.
+// Bump it when a change isn't purely additive, and branch on data.Version in
+// LoadSaveData to migrate. Legacy saves have Version 0.
+const SaveVersion = 1
+
 type TileRun struct {
 	T int `json:"t"`
 	V int `json:"v"`
 	C int `json:"c"`
+}
+
+// IntRun / StrRun are run-length entries for the terrain skeleton (mostly long
+// uniform runs, so RLE keeps saves compact). V/S is the value, C the count.
+type IntRun struct {
+	V int `json:"v"`
+	C int `json:"c"`
+}
+
+type StrRun struct {
+	S string `json:"s"`
+	C int    `json:"c"`
+}
+
+func encodeTerrainRuns(t []TerrainKind) []IntRun {
+	var runs []IntRun
+	for i := 0; i < len(t); {
+		v := t[i]
+		j := i + 1
+		for j < len(t) && t[j] == v {
+			j++
+		}
+		runs = append(runs, IntRun{V: int(v), C: j - i})
+		i = j
+	}
+	return runs
+}
+
+func decodeTerrainRuns(runs []IntRun, n int) []TerrainKind {
+	out := make([]TerrainKind, n)
+	i := 0
+	for _, r := range runs {
+		for c := 0; c < r.C && i < n; c++ {
+			out[i] = TerrainKind(r.V)
+			i++
+		}
+	}
+	return out
+}
+
+func encodeInt16Runs(s []int16) []IntRun {
+	var runs []IntRun
+	for i := 0; i < len(s); {
+		v := s[i]
+		j := i + 1
+		for j < len(s) && s[j] == v {
+			j++
+		}
+		runs = append(runs, IntRun{V: int(v), C: j - i})
+		i = j
+	}
+	return runs
+}
+
+func decodeInt16Runs(runs []IntRun, n int) []int16 {
+	out := make([]int16, n)
+	i := 0
+	for _, r := range runs {
+		for c := 0; c < r.C && i < n; c++ {
+			out[i] = int16(r.V)
+			i++
+		}
+	}
+	return out
+}
+
+func encodeStrRuns(b []string) []StrRun {
+	var runs []StrRun
+	for i := 0; i < len(b); {
+		v := b[i]
+		j := i + 1
+		for j < len(b) && b[j] == v {
+			j++
+		}
+		runs = append(runs, StrRun{S: v, C: j - i})
+		i = j
+	}
+	return runs
+}
+
+func decodeStrRuns(runs []StrRun, n int) []string {
+	out := make([]string, n)
+	i := 0
+	for _, r := range runs {
+		for c := 0; c < r.C && i < n; c++ {
+			out[i] = r.S
+			i++
+		}
+	}
+	return out
 }
 
 type SaveData struct {
@@ -68,6 +163,23 @@ type SaveData struct {
 	// by packed coordinate. Persisted so partial mining survives save/load and
 	// campaign freeze (and can't be reset by re-issuing a mine order).
 	ResourceAmount map[TileCoord]int `json:"ResourceAmount,omitempty"`
+
+	// Version is the save-schema version (see SaveVersion). Absent (0) on legacy
+	// saves, which predate the terrain-skeleton/Flags persistence below.
+	Version int `json:"Version,omitempty"`
+
+	// Terrain skeleton — not derivable from the tile slots, and read at runtime
+	// (AI burrowing via GetTerrainKind, worm surfacing via GetSurfaceZ, biome
+	// queries, region anchors). Without these a loaded level returns void terrain.
+	TerrainRuns []IntRun            `json:"TerrainRuns,omitempty"`
+	SurfaceRuns []IntRun            `json:"SurfaceRuns,omitempty"`
+	BiomeRuns   []StrRun            `json:"BiomeRuns,omitempty"`
+	Regions     map[string][][3]int `json:"Regions,omitempty"`
+
+	// Flags holds script/quest state (start coords, settlement name, colonist
+	// faction, game flags read by the objective evaluator). Values are
+	// float64/string, so JSON round-trips cleanly.
+	Flags map[string]any `json:"Flags,omitempty"`
 }
 
 // encodeSlotRuns RLE-compresses one slot across a tile array.
@@ -307,6 +419,7 @@ func SaveLevel(level *Level) SaveData {
 	}
 
 	return SaveData{
+		Version:        SaveVersion,
 		FloorRuns:      encodeFloorRuns(level.Data),
 		MiddleRuns:     encodeMiddleRuns(level.Data),
 		TileCatalog:    catalog,
@@ -317,6 +430,11 @@ func SaveLevel(level *Level) SaveData {
 		MapSizeH:       level.GetHeight(),
 		MapSizeZ:       level.GetDepth(),
 		ResourceAmount: resourceAmount,
+		TerrainRuns:    encodeTerrainRuns(level.Terrain),
+		SurfaceRuns:    encodeInt16Runs(level.SurfaceMap),
+		BiomeRuns:      encodeStrRuns(level.BiomeMap),
+		Regions:        level.Regions,
+		Flags:          level.Flags,
 	}
 }
 
@@ -351,9 +469,32 @@ func LoadSaveData(data SaveData) *Level {
 		level.Data[i].Middle = tile.Middle
 	}
 
+	// Terrain skeleton: allocate defaults, then overlay whatever the save carried.
+	// Legacy saves (no runs) at least get non-nil maps instead of void terrain.
+	level.AllocTerrain()
+	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
+	if len(data.TerrainRuns) > 0 {
+		level.Terrain = decodeTerrainRuns(data.TerrainRuns, w*h*d)
+	}
+	if len(data.SurfaceRuns) > 0 {
+		level.SurfaceMap = decodeInt16Runs(data.SurfaceRuns, w*h)
+	}
+	if len(data.BiomeRuns) > 0 {
+		level.BiomeMap = decodeStrRuns(data.BiomeRuns, w*h)
+	}
+	if data.Regions != nil {
+		level.Regions = data.Regions
+	}
+	if data.Flags != nil {
+		level.Flags = data.Flags
+	}
+
 	for _, saveEntity := range data.Entities {
-		entity := RebuildEntity(saveEntity)
-		level.AddEntity(entity)
+		level.AddEntity(RebuildEntity(saveEntity))
+	}
+	// Static (Inanimate) entities were saved but previously never rebuilt.
+	for _, saveEntity := range data.StaticEntities {
+		level.AddEntity(RebuildEntity(saveEntity))
 	}
 
 	for k, v := range data.ResourceAmount {
