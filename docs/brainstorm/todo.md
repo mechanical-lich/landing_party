@@ -8,3 +8,5 @@
 - Make it so that some resources "glow" to make it easier to find them.  Kind of like how stairs glow 
 - Make tasks complete faster based on worker stats.
 - Create "robots" that the colonists can build that function as workers but don't have needs and can't do research tasks.
+- Replace notify and research sounds 
+- Doors should make sounds

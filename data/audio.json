@@ -192,7 +192,8 @@
       "assets/audio/sfx/impacts/footstep_wood_003.ogg",
       "assets/audio/sfx/impacts/footstep_wood_004.ogg"
     ],
-    "notify": "assets/audio/ui/notify.ogg"
+    "notify": "assets/audio/ui/notify.ogg",
+    "research_done": "assets/audio/ui/research_done.ogg"
   },
   "ui": {
     "ui.button.click": "ui_click",

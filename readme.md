@@ -61,3 +61,7 @@ See [docs/player/controls.md](docs/player/controls.md) for the full reference.
 - [Oryx Design](https://www.oryxdesignlab.com/home)
 - [Lotovik's autotiling template](https://lotovik.itch.io/tile47-autotiling)
 - [Kenney](https://kenney.nl/)
+- [Alexandr Zhelanov](https://soundcloud.com/alexandr-zhelanov) [OpenGameArt](https://opengameart.org/content/undead-cyborg)
+- [maxstack](https://opengameart.org/content/nebula)
+- bart [creepy scifi synth](https://opengameart.org/content/creepy-sci-fi-synth-loop) [alien ruins](https://opengameart.org/content/alien-ruins)
+- [yd](https://opengameart.org/content/another-space-background-track)

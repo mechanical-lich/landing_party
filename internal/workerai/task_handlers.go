@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
@@ -457,6 +458,7 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 	rr.Progress += workStep(wc, entity, "Int")
 	if rr.Progress >= rr.Required {
 		level.QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
+		audio.PlayGlobal("research_done") // milestone chime, heard on any level
 		progression.AwardXP(entity, "Int", progression.XPPerTask)
 		if techFound {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
