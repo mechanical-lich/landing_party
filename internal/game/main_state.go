@@ -79,12 +79,19 @@ type MainState struct {
 	CameraX       int
 	CameraY       int
 	CameraZ       int
+	// viewport is the on-screen world rect, rebuilt from the camera each Draw and
+	// consumed next frame by FOV clearing and positional audio. It replaces the
+	// camera copy Level used to carry, keeping view state out of the world model.
+	viewport      world.Viewport
 	CursorMode    gui.CursorModeType
 	guiManager    *gui.GUIManager
 	systemManager *ecs.SystemManager
 	// bgSystemManager mirrors systemManager minus the render-only systems, used
 	// to tick this level in the background (e.g. The Ship while you're planetside).
 	bgSystemManager  *ecs.SystemManager
+	// fovSystem is held so the current viewport can be handed to it each frame for
+	// bounding the Visible clear (it no longer reads a copy off Level).
+	fovSystem        *systems.FOVSystem
 	gm               *GameMaster
 	selectedEntity   *ecs.Entity
 	TileSizeW        int
@@ -343,7 +350,8 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	addRender(&systems.LightingSystem{})
 	// FOVSystem is a light AI dependency, not purely render: findBed picks the
 	// nearest *visible* bed, so background colonists need FOV to discover beds.
-	addLogic(&systems.FOVSystem{})
+	s.fovSystem = &systems.FOVSystem{}
+	addLogic(s.fovSystem)
 	addLogic(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	addLogic(&systems.FactionDoorSystem{})
 	addLogic(&systems.ScriptSystem{})
@@ -766,6 +774,10 @@ func (s *MainState) Update() state.StateInterface {
 	}
 	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Hour:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, day, s.level.Hour, s.CameraZ, fps, tps))
 
+	// Hand the last-drawn viewport to FOV so it bounds this tick's Visible clear
+	// (it no longer reads a copy off Level).
+	s.fovSystem.Viewport = s.viewport
+
 	// In Rogue mode the world is turn-based: it only advances when the player
 	// commits an action (see advancePlayerTurn). Otherwise it runs in real time.
 	if !s.Paused && s.rogueEntity == nil {
@@ -779,7 +791,7 @@ func (s *MainState) Update() state.StateInterface {
 	// Play positional audio for any in-world sounds the live level just emitted
 	// (gated to the camera view). Reads only s.level, so background planets stay
 	// silent.
-	audio.PlayWorldSounds(s.level)
+	audio.PlayWorldSounds(s.level, s.viewport)
 
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
@@ -816,11 +828,9 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 
 	viewW := config.Global().WorldWidth / s.TileSizeW
 	viewH := config.Global().WorldHeight / s.TileSizeH
-	s.level.CameraX = s.CameraX
-	s.level.CameraY = s.CameraY
-	s.level.CameraZ = s.CameraZ
-	s.level.ViewW = viewW
-	s.level.ViewH = viewH
+	// Record the on-screen rect; Update (next frame) hands it to FOV clearing and
+	// positional audio. Kept out of Level so the world model carries no view state.
+	s.viewport = world.Viewport{X: s.CameraX, Y: s.CameraY, Z: s.CameraZ, W: viewW, H: viewH}
 	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
 	world.DrawRadiationOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
 

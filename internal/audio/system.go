@@ -139,13 +139,13 @@ func loadMusicTracks(playlists map[string][]string, music *mlaudio.MusicDirector
 }
 
 // PlayWorldSounds plays positional audio for any new in-world sounds on the live
-// level. Call once per frame from the gameplay state; safe when audio is
-// disabled (global nil) or the System/level is nil.
-func PlayWorldSounds(lvl *world.Level) {
+// level, gated to the given viewport. Call once per frame from the gameplay
+// state; safe when audio is disabled (global nil) or the System/level is nil.
+func PlayWorldSounds(lvl *world.Level, vp world.Viewport) {
 	if global == nil {
 		return
 	}
-	global.world.play(lvl)
+	global.world.play(lvl, vp)
 }
 
 // Update advances the mixer and the music director. Call once per frame.

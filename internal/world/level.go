@@ -123,11 +123,6 @@ type Level struct {
 	// line-of-sight from any worker. Seen (on the embedded Level) is permanent.
 	Visible []bool
 
-	// Camera viewport set by the game state before each draw/update so FOVSystem
-	// can limit Visible clears and writes to the on-screen region.
-	CameraX, CameraY, CameraZ int
-	ViewW, ViewH               int
-
 	// WorkerZLevels is the set of z-levels that have active worker FOV this tick.
 	// Reset by FOVSystem each pass. DrawLevel uses it to decide whether to apply
 	// live fog-of-war (worker Z) or just use Seen as visible (camera Z).
@@ -214,18 +209,18 @@ func (l *Level) ClearVisible() {
 	}
 }
 
-// ClearVisibleViewport zeroes only the Visible entries within the camera
+// ClearVisibleViewport zeroes only the Visible entries within the given camera
 // viewport rect, across all Z levels from 0 up to maxZ (inclusive).
 // This is cheaper than ClearVisible when most of the map is off-screen.
-func (l *Level) ClearVisibleViewport(maxZ int) {
+func (l *Level) ClearVisibleViewport(vp Viewport, maxZ int) {
 	w, h, depth := l.GetWidth(), l.GetHeight(), l.GetDepth()
 	if maxZ >= depth {
 		maxZ = depth - 1
 	}
-	x0 := l.CameraX
-	x1 := l.CameraX + l.ViewW
-	y0 := l.CameraY
-	y1 := l.CameraY + l.ViewH
+	x0 := vp.X
+	x1 := vp.X + vp.W
+	y0 := vp.Y
+	y1 := vp.Y + vp.H
 	if x0 < 0 {
 		x0 = 0
 	}

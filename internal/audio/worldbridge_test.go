@@ -9,13 +9,10 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
-// newBridgeLevel builds a level whose camera view covers the whole map, so
+// newBridgeLevel builds a level and a viewport that covers the whole map, so
 // tile coordinates map directly onto the frustum.
-func newBridgeLevel(w, h, d int) *world.Level {
-	lvl := world.NewLevel(w, h, d)
-	lvl.CameraX, lvl.CameraY, lvl.CameraZ = 0, 0, 0
-	lvl.ViewW, lvl.ViewH = w, h
-	return lvl
+func newBridgeLevel(w, h, d int) (*world.Level, world.Viewport) {
+	return world.NewLevel(w, h, d), world.Viewport{X: 0, Y: 0, Z: 0, W: w, H: h}
 }
 
 func newBridge(rec *recordingPlayer) *worldBridge {
@@ -30,18 +27,18 @@ func newBridge(rec *recordingPlayer) *worldBridge {
 
 // attach performs the first play() call, which binds the bridge to the level and
 // skips whatever is already buffered. Sounds emitted after this are heard.
-func attach(b *worldBridge, lvl *world.Level) { b.play(lvl) }
+func attach(b *worldBridge, lvl *world.Level, vp world.Viewport) { b.play(lvl, vp) }
 
 // TestWorldBridgePlaysMappedInFrustum: a mapped sound at the camera z inside the
 // view plays on the SFX bus.
 func TestWorldBridgePlaysMappedInFrustum(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec)
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
 	lvl.EmitSound(10, 10, 0, 8, world.SoundTagGunshot, nil) // near center
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 1 {
 		t.Fatalf("expected 1 play, got %d", len(rec.plays))
@@ -62,16 +59,15 @@ func TestWorldBridgePlaysMappedInFrustum(t *testing.T) {
 func TestWorldBridgeGatesOffscreenAndCrossZ(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec)
-	lvl := newBridgeLevel(20, 20, 4)
-	// Camera looks at the top-left quadrant only.
-	lvl.CameraX, lvl.CameraY, lvl.CameraZ = 0, 0, 1
-	lvl.ViewW, lvl.ViewH = 8, 8
-	attach(b, lvl)
+	lvl, _ := newBridgeLevel(20, 20, 4)
+	// Camera looks at the top-left quadrant only, on z=1.
+	vp := world.Viewport{X: 0, Y: 0, Z: 1, W: 8, H: 8}
+	attach(b, lvl, vp)
 
 	lvl.EmitSound(15, 15, 1, 8, world.SoundTagGunshot, nil) // off-screen (x,y)
 	lvl.EmitSound(4, 4, 3, 8, world.SoundTagGunshot, nil)   // in view x,y but wrong z
 	lvl.EmitSound(4, 4, 1, 8, world.SoundTagImpact, nil)    // in view + camera z → heard
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 1 {
 		t.Fatalf("expected only the in-view, on-z sound, got %d plays", len(rec.plays))
@@ -85,11 +81,11 @@ func TestWorldBridgeGatesOffscreenAndCrossZ(t *testing.T) {
 func TestWorldBridgeIgnoresUnmappedTag(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec)
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
 	lvl.EmitSound(10, 10, 0, 8, world.SoundTagFootstep, nil) // not in tagMap
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 0 {
 		t.Fatalf("unmapped tag produced %d plays, want 0", len(rec.plays))
@@ -101,20 +97,20 @@ func TestWorldBridgeIgnoresUnmappedTag(t *testing.T) {
 func TestWorldBridgeCursorPlaysEachSoundOnce(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec)
-	lvl := newBridgeLevel(20, 20, 4)
+	lvl, vp := newBridgeLevel(20, 20, 4)
 
 	// Backlog present BEFORE the bridge attaches → must be skipped.
 	lvl.EmitSound(10, 10, 0, 8, world.SoundTagGunshot, nil)
-	attach(b, lvl)
-	b.play(lvl)
+	attach(b, lvl, vp)
+	b.play(lvl, vp)
 	if len(rec.plays) != 0 {
 		t.Fatalf("backlog before attach should be skipped, got %d plays", len(rec.plays))
 	}
 
 	// New sound after attach → heard exactly once.
 	lvl.EmitSound(11, 10, 0, 8, world.SoundTagImpact, nil)
-	b.play(lvl)
-	b.play(lvl) // no new emits → no additional play
+	b.play(lvl, vp)
+	b.play(lvl, vp) // no new emits → no additional play
 	if len(rec.plays) != 1 {
 		t.Fatalf("expected the post-attach sound once, got %d", len(rec.plays))
 	}
@@ -126,14 +122,14 @@ func TestWorldBridgeSwitchingLevelSkipsBacklog(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec)
 
-	a := newBridgeLevel(20, 20, 4)
-	attach(b, a)
+	a, vp := newBridgeLevel(20, 20, 4)
+	attach(b, a, vp)
 	a.EmitSound(10, 10, 0, 8, world.SoundTagGunshot, nil)
-	b.play(a) // heard on level a
+	b.play(a, vp) // heard on level a
 
-	other := newBridgeLevel(20, 20, 4)
+	other, vpOther := newBridgeLevel(20, 20, 4)
 	other.EmitSound(10, 10, 0, 8, world.SoundTagGunshot, nil) // backlog on the new level
-	b.play(other)                                             // rebinds, skips backlog
+	b.play(other, vpOther)                                    // rebinds, skips backlog
 	if got := len(rec.plays); got != 1 {
 		t.Fatalf("switching levels should not replay the new level's backlog, got %d plays", got)
 	}
@@ -145,12 +141,12 @@ func TestWorldBridgeSwitchingLevelSkipsBacklog(t *testing.T) {
 func TestWorldBridgeExplicitClipWins(t *testing.T) {
 	rec := &recordingPlayer{}
 	b := newBridge(rec) // tagMap knows only gunshot + impact
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
 	// "scream" is unmapped here, but the explicit clip carries it through.
 	lvl.EmitSoundClip(10, 10, 0, 8, world.SoundTagScream, "worm_death", nil)
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 1 {
 		t.Fatalf("expected 1 play, got %d", len(rec.plays))
@@ -165,11 +161,11 @@ func TestWorldBridgeExplicitClipWins(t *testing.T) {
 func TestWorldBridgeComposedClipPlaysWhenLoaded(t *testing.T) {
 	rec := &recordingPlayer{known: map[string]bool{"impact_metal_heavy": true}}
 	b := &worldBridge{mixer: rec, tagMap: map[world.SoundTag]string{world.SoundTagImpact: "sfx_impact"}}
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
 	lvl.EmitSoundClip(10, 10, 0, 6, world.SoundTagImpact, "impact_metal_heavy", nil)
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 1 || rec.plays[0].key != "impact_metal_heavy" {
 		t.Fatalf("expected impact_metal_heavy, got %+v", rec.plays)
@@ -181,11 +177,11 @@ func TestWorldBridgeComposedClipPlaysWhenLoaded(t *testing.T) {
 func TestWorldBridgeComposedClipFallsBackToTag(t *testing.T) {
 	rec := &recordingPlayer{known: map[string]bool{"sfx_impact": true}} // composed key NOT loaded
 	b := &worldBridge{mixer: rec, tagMap: map[world.SoundTag]string{world.SoundTagImpact: "sfx_impact"}}
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
 	lvl.EmitSoundClip(10, 10, 0, 6, world.SoundTagImpact, "impact_wood_light", nil)
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 1 || rec.plays[0].key != "sfx_impact" {
 		t.Fatalf("expected fallback to sfx_impact, got %+v", rec.plays)
@@ -200,13 +196,13 @@ func TestWorldBridgeFootstepsAreHalfVolume(t *testing.T) {
 		mixer:  rec,
 		tagMap: map[world.SoundTag]string{world.SoundTagImpact: "sfx_impact", world.SoundTagFootstep: "footstep_wood"},
 	}
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
 
-	cx, cy := lvl.CameraX+lvl.ViewW/2, lvl.CameraY+lvl.ViewH/2
+	cx, cy := vp.X+vp.W/2, vp.Y+vp.H/2
 	lvl.EmitSound(cx, cy, 0, 6, world.SoundTagImpact, nil)   // reference at full
 	lvl.EmitSound(cx, cy, 0, 6, world.SoundTagFootstep, nil) // half
-	b.play(lvl)
+	b.play(lvl, vp)
 
 	if len(rec.plays) != 2 {
 		t.Fatalf("expected 2 plays, got %d", len(rec.plays))
@@ -225,8 +221,8 @@ func TestWorldBridgeFootstepMutes(t *testing.T) {
 	friendly.AddComponent(&components.WorkerComponent{}) // colonists carry Worker
 	enemy := &ecs.Entity{}                               // mob: no Worker
 
-	emitBoth := func(lvl *world.Level) {
-		cx, cy := lvl.CameraX+lvl.ViewW/2, lvl.CameraY+lvl.ViewH/2
+	emitBoth := func(lvl *world.Level, vp world.Viewport) {
+		cx, cy := vp.X+vp.W/2, vp.Y+vp.H/2
 		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", friendly)
 		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", enemy)
 	}
@@ -234,10 +230,10 @@ func TestWorldBridgeFootstepMutes(t *testing.T) {
 	// Mute friendly → only the enemy footstep plays.
 	rec := &recordingPlayer{}
 	b := &worldBridge{mixer: rec, tagMap: map[world.SoundTag]string{}, muteFriendlyFootsteps: true}
-	lvl := newBridgeLevel(20, 20, 4)
-	attach(b, lvl)
-	emitBoth(lvl)
-	b.play(lvl)
+	lvl, vp := newBridgeLevel(20, 20, 4)
+	attach(b, lvl, vp)
+	emitBoth(lvl, vp)
+	b.play(lvl, vp)
 	if len(rec.plays) != 1 {
 		t.Fatalf("mute-friendly: expected 1 play (enemy), got %d", len(rec.plays))
 	}
@@ -245,10 +241,10 @@ func TestWorldBridgeFootstepMutes(t *testing.T) {
 	// Mute enemy → only the friendly footstep plays.
 	rec2 := &recordingPlayer{}
 	b2 := &worldBridge{mixer: rec2, tagMap: map[world.SoundTag]string{}, muteEnemyFootsteps: true}
-	lvl2 := newBridgeLevel(20, 20, 4)
-	attach(b2, lvl2)
-	emitBoth(lvl2)
-	b2.play(lvl2)
+	lvl2, vp2 := newBridgeLevel(20, 20, 4)
+	attach(b2, lvl2, vp2)
+	emitBoth(lvl2, vp2)
+	b2.play(lvl2, vp2)
 	if len(rec2.plays) != 1 {
 		t.Fatalf("mute-enemy: expected 1 play (friendly), got %d", len(rec2.plays))
 	}

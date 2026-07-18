@@ -14,14 +14,20 @@ const DefaultSightRadius = 12
 // FOVSystem runs once per system-update (not per entity turn) and rebuilds the
 // colony's shared field of view from every worker's position. Tiles with LOS
 // are marked visible; all tiles are permanently marked seen once visible.
-type FOVSystem struct{}
+//
+// Viewport is the on-screen rect used to bound the per-pass Visible clear; the
+// game state sets it before running systems. A zero Viewport clears nothing,
+// so callers that run FOV must keep it current.
+type FOVSystem struct {
+	Viewport world.Viewport
+}
 
 // Requires returns no required components — UpdateSystem handles everything.
 func (s *FOVSystem) Requires() []ecs.ComponentType { return nil }
 
 func (s *FOVSystem) UpdateSystem(data interface{}) error {
 	level := data.(*world.Level)
-	level.ClearVisibleViewport(level.GetDepth() - 1)
+	level.ClearVisibleViewport(s.Viewport, level.GetDepth()-1)
 
 	// Reset the worker Z set each pass.
 	for k := range level.WorkerZLevels {
