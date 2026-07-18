@@ -19,10 +19,18 @@ var global *System
 // director, and the positional world bridge, and is the single thing
 // internal/game talks to. Build it once at startup and tick Update once per
 // frame.
+// combatCooldownFrames is how long (in ~60fps Update calls) combat music holds
+// after the last colonist combat before fading back to the base state — 10s.
+const combatCooldownFrames = 600
+
 type System struct {
 	mixer    *mlaudio.Mixer
 	director *director
 	world    *worldBridge
+
+	music          *mlaudio.MusicDirector
+	baseMusicState string // "menu" or "field"; combat overrides it while active
+	combatCooldown int    // frames of combat music remaining
 }
 
 // New builds the audio system from a sound-map file, loads its clips, and
@@ -76,9 +84,58 @@ func New(configPath string) (*System, error) {
 		wb.tagMap[world.SoundTag(tag)] = clipKey
 	}
 
-	s := &System{mixer: mixer, director: d, world: wb}
+	music := mlaudio.NewMusicDirector()
+	musicTracks := loadMusicTracks(cfg.Music, music)
+
+	s := &System{
+		mixer:          mixer,
+		director:       d,
+		world:          wb,
+		music:          music,
+		baseMusicState: "menu",
+	}
+	if musicTracks == 0 {
+		s.music = nil // nothing to play; keep Update cheap
+	}
 	global = s
 	return s, nil
+}
+
+// loadMusicTracks decodes each state's tracks (a file shared across states loads
+// once) and registers them with the director. Returns how many track slots were
+// registered so the caller can skip a music-less director.
+func loadMusicTracks(playlists map[string][]string, music *mlaudio.MusicDirector) int {
+	loaded, total := 0, 0
+	resByPath := map[string]*mlaudio.AudioResource{}
+	for state, paths := range playlists {
+		for _, path := range paths {
+			total++
+			res, ok := resByPath[path]
+			if !ok {
+				t, err := mlaudio.MusicTypeFromExt(path)
+				if err != nil {
+					log.Printf("audio: skipping music %q: %v", path, err)
+					resByPath[path] = nil
+					continue
+				}
+				res, err = mlaudio.LoadAudioFromFile(path, t)
+				if err != nil {
+					resByPath[path] = nil
+					continue
+				}
+				resByPath[path] = res
+			}
+			if res == nil {
+				continue
+			}
+			music.AddTrack(state, res)
+			loaded++
+		}
+	}
+	if loaded < total {
+		log.Printf("audio: loaded %d/%d music tracks (missing tracks are silent)", loaded, total)
+	}
+	return loaded
 }
 
 // PlayWorldSounds plays positional audio for any new in-world sounds on the live
@@ -91,13 +148,38 @@ func PlayWorldSounds(lvl *world.Level) {
 	global.world.play(lvl)
 }
 
-// Update advances the mixer (reclaims finished voices, restarts loops). Call
-// once per frame from the game loop.
+// Update advances the mixer and the music director. Call once per frame.
 func (s *System) Update() {
 	if s == nil {
 		return
 	}
 	s.mixer.Update()
+	if s.music != nil {
+		// Combat music overrides the base state while its cooldown is running.
+		if s.combatCooldown > 0 {
+			s.combatCooldown--
+			s.music.SetState("combat")
+		} else {
+			s.music.SetState(s.baseMusicState)
+		}
+		s.music.Update()
+	}
+}
+
+// SetMusicState sets the base music state ("menu" or "field"). Combat overrides
+// it automatically (see NotifyCombat). Safe when audio is disabled.
+func SetMusicState(state string) {
+	if global != nil {
+		global.baseMusicState = state
+	}
+}
+
+// NotifyCombat marks that colonist combat just happened, switching to combat
+// music and holding it for combatCooldownFrames after the last call.
+func NotifyCombat() {
+	if global != nil {
+		global.combatCooldown = combatCooldownFrames
+	}
 }
 
 // Mixer exposes the underlying engine for later phases (positional SFX, music,
@@ -132,9 +214,17 @@ func setBus(bus mlaudio.Bus, v float64) {
 
 // SetUIVolume, SetGameVolume and SetMusicVolume map the settings screen's three
 // sliders onto their buses. Volumes are 0..1.
-func SetUIVolume(v float64)    { setBus(mlaudio.BusUI, v) }
-func SetGameVolume(v float64)  { setBus(mlaudio.BusSFX, v) }
-func SetMusicVolume(v float64) { setBus(mlaudio.BusMusic, v) }
+func SetUIVolume(v float64)   { setBus(mlaudio.BusUI, v) }
+func SetGameVolume(v float64) { setBus(mlaudio.BusSFX, v) }
+
+// SetMusicVolume drives the streaming music director (music doesn't ride the
+// mixer's buses), through the same perceptual curve as the other sliders.
+func SetMusicVolume(v float64) {
+	setBus(mlaudio.BusMusic, v) // keep the bus in sync (harmless)
+	if global != nil && global.music != nil {
+		global.music.SetVolume(perceptualGain(v))
+	}
+}
 
 // ApplyVolumes pushes all three volumes at once — call on startup (from config)
 // and after the settings screen commits a change.

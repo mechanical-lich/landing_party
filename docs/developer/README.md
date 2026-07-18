@@ -17,6 +17,7 @@ Architecture notes, system references, and guides for extending the game.
 - [Tile Definitions](tile_definitions.md) — the `data/tiledefinitions/` catalog, load order, the `empty` sentinel invariant, and save portability
 - [Names](names.md) — `data/names.json`, the `<type>` placeholder pattern for blueprints, seeded vs unseeded generation, and epithets
 - [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
+- [Audio](audio.md) — the mixer/music engine, positional SFX, entity & material sound resolution, buses/volumes, and `data/audio.json`
 
 ---
 

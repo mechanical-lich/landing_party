@@ -210,5 +210,18 @@
     "impact": "sfx_impact",
     "break": "sfx_break",
     "scream": "sfx_death"
+  },
+  "music": {
+    "menu": [
+      "assets/audio/music/ObservingTheStar.ogg"
+    ],
+    "field": [
+      "assets/audio/music/alien_ruins2.ogg",
+      "assets/audio/music/nebula.ogg",
+      "assets/audio/music/creepy1.wav"
+    ],
+    "combat": [
+      "assets/audio/music/Undead Cyborg.ogg"
+    ]
   }
 }

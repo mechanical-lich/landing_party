@@ -45,6 +45,9 @@ type Config struct {
 	Clips map[string]ClipPaths `json:"clips"`
 	UI    map[string]string    `json:"ui"`
 	World map[string]string    `json:"world"`
+	// Music maps a music state ("menu", "field", "combat") to its track files;
+	// the director rotates randomly among a state's tracks.
+	Music map[string][]string `json:"music"`
 }
 
 // loadConfig reads and parses the sound map. A missing file is not an error —

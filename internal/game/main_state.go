@@ -711,6 +711,7 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 
 func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
+	audio.SetMusicState("field") // base state in-game; combat overrides it
 	s.handleInput()
 	s.guiManager.SetKnownTechs(s.knownTechs())
 	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible ||

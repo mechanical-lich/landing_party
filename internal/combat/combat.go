@@ -1,6 +1,7 @@
 package combat
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/effect"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -8,6 +9,15 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 )
+
+// notifyCombatMusic switches to combat music when a colonist is on either side
+// of a strike (attacking or attacked).
+func notifyCombatMusic(a, b *ecs.Entity) {
+	if (a != nil && a.HasComponent(components.Worker)) ||
+		(b != nil && b.HasComponent(components.Worker)) {
+		audio.NotifyCombat()
+	}
+}
 
 // MeleeAttack performs a melee attack from attacker toward a tile position.
 // Returns true if a target was hit.
@@ -18,6 +28,7 @@ func MeleeAttack(level *world.Level, attacker *ecs.Entity, targetX, targetY, tar
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
+		notifyCombatMusic(attacker, target)
 		// One impact at the point of contact, composed from the striker's weight
 		// and the target's surface (weapon/armor can override either). Falls back
 		// to the generic impact clip when the set isn't loaded.
@@ -69,6 +80,7 @@ func Shoot(level *world.Level, attacker *ecs.Entity, targetX, targetY, targetZ i
 	target := level.GetEntityAt(targetX, targetY, targetZ)
 	if target != nil && target.HasComponent(rlcomponents.Health) {
 		rlcombat.Hit(level, attacker, target, false)
+		notifyCombatMusic(attacker, target)
 		// Projectile impact at the target — distinct from the shot at the shooter.
 		impactKey := components.ImpactClipKey(attacker, target)
 		level.EmitSoundClip(targetX, targetY, targetZ, 6, world.SoundTagImpact, impactKey, attacker)

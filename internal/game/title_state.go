@@ -11,6 +11,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/buildinfo"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -359,6 +360,7 @@ func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
 }
 
 func (ts *TitleState) Update() state.StateInterface {
+	audio.SetMusicState("menu")
 	switch ts.screen {
 	case screenMain:
 		if inpututil.IsKeyJustPressed(ebiten.KeyQ) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
