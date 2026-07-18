@@ -15,14 +15,14 @@ import (
 // matching the effect.GetEffectManager() idiom. nil when audio is disabled.
 var global *System
 
-// System is the game's audio front end: it owns the mixer, the UI-feedback
-// director, and the positional world bridge, and is the single thing
-// internal/game talks to. Build it once at startup and tick Update once per
-// frame.
 // combatCooldownFrames is how long (in ~60fps Update calls) combat music holds
 // after the last colonist combat before fading back to the base state — 10s.
 const combatCooldownFrames = 600
 
+// System is the game's audio front end: it owns the mixer, the UI-feedback
+// director, and the positional world bridge, and is the single thing
+// internal/game talks to. Build it once at startup and tick Update once per
+// frame.
 type System struct {
 	mixer    *mlaudio.Mixer
 	director *director

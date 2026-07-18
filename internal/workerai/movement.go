@@ -84,7 +84,11 @@ func MoveTowardsTarget(level *world.Level, entity *ecs.Entity, targetX, targetY,
 				flyMove(entity, level, dx, dy, dz)
 			} else {
 				rlentity.Move(entity, level, dx, dy, dz)
-				EmitFootstep(level, entity, ntX, ntY, ntZ)
+				// Footstep only if the step actually landed (pc updates in place);
+				// canMoveTo can pass but a same-tick entity race still block Move.
+				if pc.GetX() == ntX && pc.GetY() == ntY && pc.GetZ() == ntZ {
+					EmitFootstep(level, entity, ntX, ntY, ntZ)
+				}
 			}
 			rlentity.Face(entity, dx, dy)
 			return true, true

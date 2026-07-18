@@ -928,7 +928,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		rlentity.Move(entity, level, dx, dy, 0)
 		npc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 		if npc.GetX() == nx && npc.GetY() == ny {
-			workerai.EmitFootstep(level, entity, nx, ny, sz)
+			workerai.EmitFootstep(level, entity, npc.GetX(), npc.GetY(), npc.GetZ())
 		}
 		rlentity.Face(entity, dx, dy)
 		return float64(1), nil
