@@ -7,6 +7,7 @@ import (
 	"github.com/mechanical-lich/mlge/event"
 	"github.com/mechanical-lich/mlge/ui/minui"
 
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
@@ -141,7 +142,7 @@ func loadMusicTracks(playlists map[string][]string, music *mlaudio.MusicDirector
 // PlayWorldSounds plays positional audio for any new in-world sounds on the live
 // level, gated to the given viewport. Call once per frame from the gameplay
 // state; safe when audio is disabled (global nil) or the System/level is nil.
-func PlayWorldSounds(lvl *world.Level, vp world.Viewport) {
+func PlayWorldSounds(lvl *world.Level, vp view.Viewport) {
 	if global == nil {
 		return
 	}

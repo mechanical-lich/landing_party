@@ -6,15 +6,16 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/mechanical-lich/landing_party/internal/view"
 )
 
 const laserFadeFrames = 12
 
 type LaserEffect struct {
-	x0, y0     float64 // attacker tile position
-	x1, y1     float64 // beam end tile position
-	r, g, b    uint8
-	frame      int
+	x0, y0      float64 // attacker tile position
+	x1, y1      float64 // beam end tile position
+	r, g, b     uint8
+	frame       int
 	totalFrames int
 }
 
@@ -46,15 +47,15 @@ func (le *LaserEffect) Update() {
 	}
 }
 
-func (le *LaserEffect) Draw(screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+func (le *LaserEffect) Draw(screen *ebiten.Image, cam view.Camera) {
 	alpha := float32(1.0 - float32(le.frame)/float32(le.totalFrames))
 	col := color.RGBA{le.r, le.g, le.b, uint8(alpha * 255)}
 
-	half := float32(tileSizeW) / 2.0
-	sx0 := float32((le.x0-float64(cameraX))*float64(tileSizeW)) + half
-	sy0 := float32((le.y0-float64(cameraY))*float64(tileSizeH)) + half
-	sx1 := float32((le.x1-float64(cameraX))*float64(tileSizeW)) + half
-	sy1 := float32((le.y1-float64(cameraY))*float64(tileSizeH)) + half
+	half := float32(cam.TileW) / 2.0
+	fx0, fy0 := cam.WorldToScreenFloat(le.x0, le.y0)
+	fx1, fy1 := cam.WorldToScreenFloat(le.x1, le.y1)
+	sx0, sy0 := float32(fx0)+half, float32(fy0)+half
+	sx1, sy1 := float32(fx1)+half, float32(fy1)+half
 
 	vector.StrokeLine(screen, sx0, sy0, sx1, sy1, 2, col, false)
 }

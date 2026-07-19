@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/minimap"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 )
@@ -46,9 +47,9 @@ type MapModal struct {
 	tick              int
 	OnTileDoubleClick func(x, y, z int)
 
-	// camera state set by main_state each frame
-	camX, camY, camZ   int
-	camViewW, camViewH int
+	// cam is the main camera, set by main_state each frame, so the modal can
+	// draw the current viewport box over the map.
+	cam view.Camera
 
 	// layout computed once per frame
 	contentX, contentY, contentW, contentH int
@@ -62,9 +63,8 @@ func newMapModal(level *world.Level) *MapModal {
 }
 
 // SetCamera tells the modal where the main camera is so it can draw the viewport box.
-func (m *MapModal) SetCamera(x, y, z, viewW, viewH int) {
-	m.camX, m.camY, m.camZ = x, y, z
-	m.camViewW, m.camViewH = viewW, viewH
+func (m *MapModal) SetCamera(cam view.Camera) {
+	m.cam = cam
 }
 
 // worldToScreen converts a world tile coordinate to a screen pixel position.
@@ -215,9 +215,9 @@ func (m *MapModal) Draw(screen *ebiten.Image) {
 	}
 
 	// Camera viewport box — only shown when browsing the same Z the camera is on.
-	if m.viewedZ == m.camZ {
-		vx1, vy1 := m.worldToScreen(m.camX, m.camY)
-		vx2, vy2 := m.worldToScreen(m.camX+m.camViewW, m.camY+m.camViewH)
+	if m.viewedZ == m.cam.Z {
+		vx1, vy1 := m.worldToScreen(m.cam.X, m.cam.Y)
+		vx2, vy2 := m.worldToScreen(m.cam.X+m.cam.ViewW(), m.cam.Y+m.cam.ViewH())
 		boxColor := color.RGBA{220, 220, 80, 200}
 		ebitenutil.DrawRect(screen, float64(vx1), float64(vy1), float64(vx2-vx1), 1, boxColor)
 		ebitenutil.DrawRect(screen, float64(vx1), float64(vy2), float64(vx2-vx1), 1, boxColor)

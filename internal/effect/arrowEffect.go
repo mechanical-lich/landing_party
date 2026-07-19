@@ -5,6 +5,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/mlge/resource"
 )
 
@@ -36,14 +37,13 @@ func (ae *ArrowEffect) Update() {
 	}
 }
 
-func (ae *ArrowEffect) Draw(screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+func (ae *ArrowEffect) Draw(screen *ebiten.Image, cam view.Camera) {
 	cfg := config.Global()
 	frame := ae.getFrame()
 	img := resource.GetSubImage(ae.Resource, ae.SX+frame*cfg.SpriteSizeW, ae.SY, cfg.SpriteSizeW, cfg.SpriteSizeH)
-	screenX := (ae.X - float64(cameraX)) * float64(tileSizeW)
-	screenY := (ae.Y - float64(cameraY)) * float64(tileSizeH)
+	screenX, screenY := cam.WorldToScreenFloat(ae.X, ae.Y)
 	ae.op.GeoM.Reset()
-	ae.op.GeoM.Scale(float64(tileSizeW)/float64(spriteSizeW), float64(tileSizeH)/float64(spriteSizeH))
+	ae.op.GeoM.Scale(float64(cam.TileW)/float64(cam.SpriteW), float64(cam.TileH)/float64(cam.SpriteH))
 	ae.op.GeoM.Translate(screenX, screenY)
 	screen.DrawImage(img, &ae.op)
 }

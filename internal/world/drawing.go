@@ -15,6 +15,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -42,7 +43,12 @@ type pendingEntityDraw struct {
 
 var pendingEntities []pendingEntityDraw
 
-func DrawLevel(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int, viewW, viewH int) {
+func DrawLevel(level *Level, screen *ebiten.Image, cam view.Camera) {
+	cameraX, cameraY, cameraZ := cam.X, cam.Y, cam.Z
+	tileSizeW, tileSizeH := cam.TileW, cam.TileH
+	spriteSizeW, spriteSizeH := cam.SpriteW, cam.SpriteH
+	viewW, viewH := cam.ViewW(), cam.ViewH()
+
 	pendingEntities = pendingEntities[:0]
 
 	disableLighting := config.Global().DebugDisableLighting
@@ -391,7 +397,11 @@ func drawSlot(screen *ebiten.Image, level *Level, tile *Tile, slot rllayered.Slo
 // DrawRadiationOverlay draws a tinted checkerboard sprite over tiles with nonzero
 // Radiation. Two frames at (408,960) and (432,960) on the scifi_world sheet alternate
 // at ~2 Hz to give a shimmering hazard look without a solid color wash.
-func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, viewW, viewH int) {
+func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cam view.Camera) {
+	cameraX, cameraY, cameraZ := cam.X, cam.Y, cam.Z
+	tileSizeW, tileSizeH := cam.TileW, cam.TileH
+	viewW, viewH := cam.ViewW(), cam.ViewH()
+
 	tex := resource.Textures["scifi_world"]
 	if tex == nil {
 		return

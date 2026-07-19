@@ -5,18 +5,18 @@
 //
 // Run from the project root (so data/ is accessible):
 //
-//   go run ./cmd/structure-viewer
+//	go run ./cmd/structure-viewer
 //
 // Controls
 //
-//   WASD          pan camera
-//   Q / E         move camera up / down a z-level
-//   Mouse         hover shows the structure footprint outline
-//   Left click    stamp the structure at the hovered tile
-//   F / Shift+F   cycle structure script
-//   [ ] / - =     adjust footprint width / height
-//   R             reset the world
-//   Esc           close picker modal
+//	WASD          pan camera
+//	Q / E         move camera up / down a z-level
+//	Mouse         hover shows the structure footprint outline
+//	Left click    stamp the structure at the hovered tile
+//	F / Shift+F   cycle structure script
+//	[ ] / - =     adjust footprint width / height
+//	R             reset the world
+//	Esc           close picker modal
 //
 // View-only: the spawned entities are rendered but no game logic runs.
 package main
@@ -40,6 +40,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/game"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/resource"
 	mlge_text "github.com/mechanical-lich/mlge/text"
@@ -125,8 +126,8 @@ type Viewer struct {
 	status string
 
 	// recomputed each frame in drawSidebar — Update() reuses them for hit-tests.
-	btnWidthMinus, btnWidthPlus   rect
-	btnHeightMinus, btnHeightPlus rect
+	btnWidthMinus, btnWidthPlus      rect
+	btnHeightMinus, btnHeightPlus    rect
 	btnPicker, btnReset, btnAddParam rect
 	boxWidth, boxHeight              rect
 	// Per-row hitboxes for the params list. Length == len(params).
@@ -669,9 +670,12 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 	wv := worldView()
 	worldImg := offscreen(wv.w, wv.h)
 	worldImg.Fill(color.RGBA{0, 0, 0, 255})
-	world.DrawLevel(v.level, worldImg, v.camX, v.camY, v.camZ,
-		tileSize, tileSize, spriteSize, spriteSize,
-		worldViewTilesW(), worldViewTilesH())
+	world.DrawLevel(v.level, worldImg, view.Camera{
+		X: v.camX, Y: v.camY, Z: v.camZ,
+		TileW: tileSize, TileH: tileSize,
+		SpriteW: spriteSize, SpriteH: spriteSize,
+		CanvasW: wv.w, CanvasH: wv.h,
+	})
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(wv.x), float64(wv.y))
 	screen.DrawImage(worldImg, op)

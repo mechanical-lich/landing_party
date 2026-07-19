@@ -2,6 +2,7 @@ package world
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/event"
@@ -212,7 +213,7 @@ func (l *Level) ClearVisible() {
 // ClearVisibleViewport zeroes only the Visible entries within the given camera
 // viewport rect, across all Z levels from 0 up to maxZ (inclusive).
 // This is cheaper than ClearVisible when most of the map is off-screen.
-func (l *Level) ClearVisibleViewport(vp Viewport, maxZ int) {
+func (l *Level) ClearVisibleViewport(vp view.Viewport, maxZ int) {
 	w, h, depth := l.GetWidth(), l.GetHeight(), l.GetDepth()
 	if maxZ >= depth {
 		maxZ = depth - 1

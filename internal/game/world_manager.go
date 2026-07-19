@@ -84,7 +84,7 @@ func (wm *WorldManager) landingZone() (int, int, int) {
 	} else if ms != nil && ms.level != nil {
 		x, y, z := findStartingPlaza(ms.level, ms.level.SurfaceZ, 5)
 		if x == -1 {
-			x, y, z = ms.CameraX, ms.CameraY, ms.CameraZ
+			x, y, z = ms.camera.X, ms.camera.Y, ms.camera.Z
 		}
 		wm.landX, wm.landY, wm.landZ = x, y, z
 	}
@@ -157,13 +157,7 @@ func (wm *WorldManager) buildShip() error {
 	ms.gm.suppressSpawns = true // the ship is a safe haven; no hostile waves
 	// Frame the camera on the starting hull — the level is mostly empty void.
 	hx, hy, hz := ship.HullCenter()
-	cfg2 := config.Global()
-	sidebarTiles := sidebarWidth/ms.TileSizeW + 1
-	viewW := cfg2.WorldWidth / ms.TileSizeW
-	viewH := cfg2.WorldHeight / ms.TileSizeH
-	ms.CameraX = hx - sidebarTiles - (viewW-sidebarTiles)/2
-	ms.CameraY = hy - viewH/2
-	ms.CameraZ = hz
+	ms.camera.CenterOn(hx, hy, hz)
 	ms.refreshResourceScanner()
 	ms.storageInspector = newStorageInspectorModal(wm)
 	ms.storageInspector.OnBeginRelocate = func(source *ecs.Entity, blueprint string, maxAvail int) {
@@ -555,7 +549,7 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 		colony = s.settlementCfg.Name
 	}
 
-	loc.CameraX, loc.CameraY, loc.CameraZ = s.CameraX, s.CameraY, s.CameraZ
+	loc.CameraX, loc.CameraY, loc.CameraZ = s.camera.X, s.camera.Y, s.camera.Z
 	loc.BuildMode = s.buildMode
 	loc.Visited = true
 	loc.Colonists = countLevelColonists(s.level)
@@ -630,7 +624,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 			}
 		}
 		if loc.CameraZ != 0 || loc.CameraX != 0 || loc.CameraY != 0 {
-			ms.CameraX, ms.CameraY, ms.CameraZ = loc.CameraX, loc.CameraY, loc.CameraZ
+			ms.camera.X, ms.camera.Y, ms.camera.Z = loc.CameraX, loc.CameraY, loc.CameraZ
 		}
 		if loc.BuildMode != "" {
 			ms.buildMode = loc.BuildMode

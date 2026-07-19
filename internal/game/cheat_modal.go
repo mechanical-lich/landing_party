@@ -107,22 +107,14 @@ func matchByName(e *ecs.Entity, query string) bool {
 
 // cameraCenter returns the world tile the camera is centred on.
 func (cm *CheatModal) cameraCenter() (int, int, int) {
-	cfg := config.Global()
-	viewW := cfg.WorldWidth / cm.ms.TileSizeW
-	viewH := cfg.WorldHeight / cm.ms.TileSizeH
-	return cm.ms.CameraX + viewW/2, cm.ms.CameraY + viewH/2, cm.ms.CameraZ
+	cam := cm.ms.camera
+	return cam.X + cam.ViewW()/2, cam.Y + cam.ViewH()/2, cam.Z
 }
 
 // centerCameraOn places the camera so the given tile sits in the middle of
 // the viewport, matching the small-map / map-modal double-click behaviour.
 func (cm *CheatModal) centerCameraOn(x, y, z int) {
-	cfg := config.Global()
-	viewW := cfg.WorldWidth / cm.ms.TileSizeW
-	viewH := cfg.WorldHeight / cm.ms.TileSizeH
-	sidebarTiles := sidebarWidth/cm.ms.TileSizeW + 1
-	cm.ms.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
-	cm.ms.CameraY = y - viewH/2
-	cm.ms.CameraZ = z
+	cm.ms.camera.CenterOn(x, y, z)
 }
 
 func (cm *CheatModal) inBounds(x, y, z int) bool {

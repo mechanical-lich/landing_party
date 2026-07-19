@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	mlaudio "github.com/mechanical-lich/mlge/audio"
 )
@@ -45,7 +46,7 @@ type worldBridge struct {
 // no-op until a viewport exists, and resets its cursor when the live level
 // changes (so a freshly entered level doesn't replay the backlog already
 // sitting in its slice).
-func (b *worldBridge) play(lvl *world.Level, vp world.Viewport) {
+func (b *worldBridge) play(lvl *world.Level, vp view.Viewport) {
 	if b == nil || lvl == nil {
 		return
 	}

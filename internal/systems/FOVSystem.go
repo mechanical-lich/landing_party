@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -19,7 +20,7 @@ const DefaultSightRadius = 12
 // game state sets it before running systems. A zero Viewport clears nothing,
 // so callers that run FOV must keep it current.
 type FOVSystem struct {
-	Viewport world.Viewport
+	Viewport view.Viewport
 }
 
 // Requires returns no required components — UpdateSystem handles everything.

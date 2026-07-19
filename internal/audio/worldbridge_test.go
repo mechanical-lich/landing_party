@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	mlaudio "github.com/mechanical-lich/mlge/audio"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -11,8 +12,8 @@ import (
 
 // newBridgeLevel builds a level and a viewport that covers the whole map, so
 // tile coordinates map directly onto the frustum.
-func newBridgeLevel(w, h, d int) (*world.Level, world.Viewport) {
-	return world.NewLevel(w, h, d), world.Viewport{X: 0, Y: 0, Z: 0, W: w, H: h}
+func newBridgeLevel(w, h, d int) (*world.Level, view.Viewport) {
+	return world.NewLevel(w, h, d), view.Viewport{X: 0, Y: 0, Z: 0, W: w, H: h}
 }
 
 func newBridge(rec *recordingPlayer) *worldBridge {
@@ -27,7 +28,7 @@ func newBridge(rec *recordingPlayer) *worldBridge {
 
 // attach performs the first play() call, which binds the bridge to the level and
 // skips whatever is already buffered. Sounds emitted after this are heard.
-func attach(b *worldBridge, lvl *world.Level, vp world.Viewport) { b.play(lvl, vp) }
+func attach(b *worldBridge, lvl *world.Level, vp view.Viewport) { b.play(lvl, vp) }
 
 // TestWorldBridgePlaysMappedInFrustum: a mapped sound at the camera z inside the
 // view plays on the SFX bus.
@@ -61,7 +62,7 @@ func TestWorldBridgeGatesOffscreenAndCrossZ(t *testing.T) {
 	b := newBridge(rec)
 	lvl, _ := newBridgeLevel(20, 20, 4)
 	// Camera looks at the top-left quadrant only, on z=1.
-	vp := world.Viewport{X: 0, Y: 0, Z: 1, W: 8, H: 8}
+	vp := view.Viewport{X: 0, Y: 0, Z: 1, W: 8, H: 8}
 	attach(b, lvl, vp)
 
 	lvl.EmitSound(15, 15, 1, 8, world.SoundTagGunshot, nil) // off-screen (x,y)
@@ -221,7 +222,7 @@ func TestWorldBridgeFootstepMutes(t *testing.T) {
 	friendly.AddComponent(&components.WorkerComponent{}) // colonists carry Worker
 	enemy := &ecs.Entity{}                               // mob: no Worker
 
-	emitBoth := func(lvl *world.Level, vp world.Viewport) {
+	emitBoth := func(lvl *world.Level, vp view.Viewport) {
 		cx, cy := vp.X+vp.W/2, vp.Y+vp.H/2
 		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", friendly)
 		lvl.EmitSoundClip(cx, cy, 0, 2, world.SoundTagFootstep, "footstep_wood", enemy)

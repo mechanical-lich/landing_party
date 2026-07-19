@@ -9,6 +9,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/minimap"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
@@ -23,13 +24,12 @@ const (
 )
 
 type SmallMapWidget struct {
-	level              *world.Level
-	mm                 *minimap.Minimap
-	camX, camY, camZ   int
-	camViewW, camViewH int
-	OnClick            func()
-	OnFollowClick      func()
-	FollowActive       bool
+	level         *world.Level
+	mm            *minimap.Minimap
+	cam           view.Camera
+	OnClick       func()
+	OnFollowClick func()
+	FollowActive  bool
 
 	lastZ int
 
@@ -53,9 +53,8 @@ func (w *SmallMapWidget) WithinBounds(x, y int) bool {
 	return inMap || inBtn
 }
 
-func (w *SmallMapWidget) SetCamera(x, y, z, viewW, viewH int) {
-	w.camX, w.camY, w.camZ = x, y, z
-	w.camViewW, w.camViewH = viewW, viewH
+func (w *SmallMapWidget) SetCamera(cam view.Camera) {
+	w.cam = cam
 }
 
 func (w *SmallMapWidget) Update() {
@@ -63,14 +62,14 @@ func (w *SmallMapWidget) Update() {
 	// exists (its content doesn't change just because the camera moved);
 	// tile edits and fog are picked up by the per-frame partial refresh
 	// below. A missing image is built lazily once by InvalidatePartial.
-	if w.camZ != w.lastZ {
-		w.lastZ = w.camZ
+	if w.cam.Z != w.lastZ {
+		w.lastZ = w.cam.Z
 	}
 
 	// Partial refresh every frame for the visible region, full regen periodically.
-	padX := w.camViewW / 2
-	padY := w.camViewH / 2
-	w.mm.InvalidatePartial(w.camZ, w.camX-padX, w.camY-padY, w.camViewW+padX*2, w.camViewH+padY*2)
+	padX := w.cam.ViewW() / 2
+	padY := w.cam.ViewH() / 2
+	w.mm.InvalidatePartial(w.cam.Z, w.cam.X-padX, w.cam.Y-padY, w.cam.ViewW()+padX*2, w.cam.ViewH()+padY*2)
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		cx, cy := ebiten.CursorPosition()
@@ -116,7 +115,7 @@ func (w *SmallMapWidget) Draw(screen *ebiten.Image) {
 	ebitenutil.DrawRect(screen, float64(w.screenX), float64(w.screenY),
 		float64(smallMapSize), float64(smallMapSize), color.RGBA{10, 10, 14, 255})
 
-	img := w.mm.GetImage(w.camZ)
+	img := w.mm.GetImage(w.cam.Z)
 	if img == nil {
 		return
 	}
@@ -125,12 +124,12 @@ func (w *SmallMapWidget) Draw(screen *ebiten.Image) {
 	worldH := w.level.GetHeight()
 
 	// Source region: camera view + 50% padding on each side.
-	padX := w.camViewW / 2
-	padY := w.camViewH / 2
-	srcTileX := w.camX - padX
-	srcTileY := w.camY - padY
-	srcTileW := w.camViewW + padX*2
-	srcTileH := w.camViewH + padY*2
+	padX := w.cam.ViewW() / 2
+	padY := w.cam.ViewH() / 2
+	srcTileX := w.cam.X - padX
+	srcTileY := w.cam.Y - padY
+	srcTileW := w.cam.ViewW() + padX*2
+	srcTileH := w.cam.ViewH() + padY*2
 
 	// Clamp to world bounds.
 	if srcTileX < 0 {
@@ -163,10 +162,10 @@ func (w *SmallMapWidget) Draw(screen *ebiten.Image) {
 	screen.DrawImage(sub, op)
 
 	// Camera viewport box.
-	camPxX := float64(w.screenX) + float64(w.camX-srcTileX)*float64(mapTilePx)*scaleX
-	camPxY := float64(w.screenY) + float64(w.camY-srcTileY)*float64(mapTilePx)*scaleY
-	camPxW := float64(w.camViewW) * float64(mapTilePx) * scaleX
-	camPxH := float64(w.camViewH) * float64(mapTilePx) * scaleY
+	camPxX := float64(w.screenX) + float64(w.cam.X-srcTileX)*float64(mapTilePx)*scaleX
+	camPxY := float64(w.screenY) + float64(w.cam.Y-srcTileY)*float64(mapTilePx)*scaleY
+	camPxW := float64(w.cam.ViewW()) * float64(mapTilePx) * scaleX
+	camPxH := float64(w.cam.ViewH()) * float64(mapTilePx) * scaleY
 	boxCol := color.RGBA{220, 220, 80, 200}
 	ebitenutil.DrawRect(screen, camPxX, camPxY, camPxW, 1, boxCol)
 	ebitenutil.DrawRect(screen, camPxX, camPxY+camPxH, camPxW, 1, boxCol)

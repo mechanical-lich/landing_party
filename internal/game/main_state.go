@@ -34,6 +34,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
@@ -66,14 +67,19 @@ type SettlementConfig struct {
 }
 
 type MainState struct {
-	level   *world.Level
-	CameraX int
-	CameraY int
-	CameraZ int
-	// viewport is the on-screen world rect, rebuilt from the camera each Draw and
-	// consumed next frame by FOV clearing and positional audio. It replaces the
-	// camera copy Level used to carry, keeping view state out of the world model.
-	viewport      world.Viewport
+	level *world.Level
+	// camera is the single source of truth for the on-screen world view: the
+	// visible tile rect, displayed z, and (zoomable) tile/sprite pixel sizes.
+	// All world→screen / screen→world math and framing goes through it.
+	camera view.Camera
+	// viewport is the camera's view rect, snapshotted each Draw and consumed next
+	// frame by FOV clearing and positional audio.
+	viewport view.Viewport
+	// wheelActive is true while a scroll gesture is in progress. The wheel fires an
+	// event every frame its delta changes, so one gesture is a burst with a
+	// decaying momentum tail (and often an inertial rebound the opposite way). We
+	// zoom once on the leading edge and ignore the rest until the wheel rests.
+	wheelActive   bool
 	CursorMode    gui.CursorModeType
 	guiManager    *gui.GUIManager
 	systemManager *ecs.SystemManager
@@ -85,8 +91,6 @@ type MainState struct {
 	fovSystem        *systems.FOVSystem
 	gm               *GameMaster
 	selectedEntity   *ecs.Entity
-	TileSizeW        int
-	TileSizeH        int
 	Paused           bool
 	MainSettlement   *settlement.Settlement
 	op               *ebiten.DrawImageOptions
@@ -145,11 +149,6 @@ const (
 	dashboardBtnW = 120
 	dashboardBtnH = 26
 )
-
-// sidebarWidth is the on-planet HUD sidebar width in pixels. Camera framing
-// offsets the view by this so the followed entity isn't hidden behind it; keep
-// the HUD panel (gui.setupSidebar) in sync.
-const sidebarWidth = 216
 
 // sharedListenersOnce guards process-wide singleton listeners against being
 // re-registered on every campaign level swap.
@@ -213,18 +212,19 @@ func (s *MainState) registerLevelListeners() {
 }
 
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
+	gcfg := config.Global()
 	s := &MainState{
 		CursorMode:      gui.CursorModeDefault,
 		systemManager:   &ecs.SystemManager{},
 		bgSystemManager: &ecs.SystemManager{},
 		op:              &ebiten.DrawImageOptions{},
-		TileSizeW:       config.Global().TileSizeW,
-		TileSizeH:       config.Global().TileSizeH,
-		CameraX:         0,
-		CameraY:         0,
-		// CameraZ is initialised here, but newGame / newMainStateFromLevel
-		// overwrite it with the level's SurfaceZ once the level exists.
-		CameraZ:       0,
+		// Camera X/Y/Z start at 0; newGame / newMainStateFromLevel frame it on the
+		// spawn once the level exists. Tile/sprite/canvas sizes come from config.
+		camera: view.Camera{
+			TileW: gcfg.TileSizeW, TileH: gcfg.TileSizeH,
+			SpriteW: gcfg.SpriteSizeW, SpriteH: gcfg.SpriteSizeH,
+			CanvasW: gcfg.WorldWidth, CanvasH: gcfg.WorldHeight,
+		},
 		settlementCfg: cfg,
 		buildMode:     "hull_wall",
 	}
@@ -378,30 +378,19 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
-	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.smallMap.OnClick = func() { s.mapModal.Open(s.camera.Z, s.camera.X, s.camera.Y) }
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
-		cfg := config.Global()
-		sidebarTiles := sidebarWidth/s.TileSizeW + 1
-		viewW := cfg.WorldWidth / s.TileSizeW
-		viewH := cfg.WorldHeight / s.TileSizeH
-		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
-		s.CameraY = y - viewH/2
-		s.CameraZ = z
+		s.camera.CenterOn(x, y, z)
 	}
 	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
 	s.gm.Init(level)
 
-	gcfg := config.Global()
-	s.CameraZ = level.SurfaceZ
-	x, y := s.gm.GetFreeSpaceAtZ(s.CameraZ)
+	s.camera.Z = level.SurfaceZ
+	x, y := s.gm.GetFreeSpaceAtZ(s.camera.Z)
 	if x != -1 {
-		sidebarTiles := sidebarWidth/s.TileSizeW + 1
-		viewW := gcfg.WorldWidth / s.TileSizeW
-		viewH := gcfg.WorldHeight / s.TileSizeH
-		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
-		s.CameraY = y - viewH/2
+		s.camera.CenterOn(x, y, s.camera.Z)
 	}
 	if cfg.Name != "" {
 		if ms, ok := settlement.Settlements[cfg.Name]; ok {
@@ -490,7 +479,6 @@ func findAdjacentWorker(level *world.Level, x, y, z int) *ecs.Entity {
 }
 
 func (s *MainState) newGame() {
-	cfg := config.Global()
 	// Resolve the seed; persist it so saves/regeneration reproduce the map.
 	seed := s.settlementCfg.Seed
 	if seed == 0 {
@@ -597,16 +585,10 @@ func (s *MainState) newGame() {
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
-	s.smallMap.OnClick = func() { s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY) }
+	s.smallMap.OnClick = func() { s.mapModal.Open(s.camera.Z, s.camera.X, s.camera.Y) }
 	s.smallMap.OnFollowClick = func() { s.toggleFollowMode() }
 	s.mapModal.OnTileDoubleClick = func(x, y, z int) {
-		cfg := config.Global()
-		sidebarTiles := sidebarWidth/s.TileSizeW + 1
-		viewW := cfg.WorldWidth / s.TileSizeW
-		viewH := cfg.WorldHeight / s.TileSizeH
-		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
-		s.CameraY = y - viewH/2
-		s.CameraZ = z
+		s.camera.CenterOn(x, y, z)
 	}
 	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
@@ -629,12 +611,7 @@ func (s *MainState) newGame() {
 
 	if x != -1 {
 		// Position camera centred on the starting area.
-		sidebarTiles := sidebarWidth/s.TileSizeW + 1
-		viewW := cfg.WorldWidth / s.TileSizeW
-		viewH := cfg.WorldHeight / s.TileSizeH
-		s.CameraX = x - sidebarTiles - (viewW-sidebarTiles)/2
-		s.CameraY = y - viewH/2
-		s.CameraZ = startingZ
+		s.camera.CenterOn(x, y, startingZ)
 		s.MainSettlement = settlement.NewSettlement(x, y, startingZ)
 		oldName := s.MainSettlement.Name
 		s.MainSettlement.Name = name
@@ -665,12 +642,7 @@ func (s *MainState) newGame() {
 		spawnX, spawnY, spawnZ = findStartingPlaza(s.level, startingZ, 5)
 	}
 	if spawnX != -1 && s.MainSettlement != nil {
-		sidebarTiles := sidebarWidth/s.TileSizeW + 1
-		viewW := cfg.WorldWidth / s.TileSizeW
-		viewH := cfg.WorldHeight / s.TileSizeH
-		s.CameraX = spawnX - sidebarTiles - (viewW-sidebarTiles)/2
-		s.CameraY = spawnY - viewH/2
-		s.CameraZ = spawnZ
+		s.camera.CenterOn(spawnX, spawnY, spawnZ)
 		if len(s.settlementCfg.PartyEntities) > 0 {
 			beamPartyOntoLevel(s.level, s.settlementCfg.PartyEntities, name, spawnX, spawnY, spawnZ)
 		} else if s.settlementCfg.CampaignMode {
@@ -719,9 +691,6 @@ func (s *MainState) Update() state.StateInterface {
 		(s.storageInspector != nil && s.storageInspector.Visible) ||
 		s.guiManager.ModalOpen("colonistModal"))
 	s.guiManager.Update()
-	cfg2 := config.Global()
-	viewW2 := cfg2.WorldWidth / s.TileSizeW
-	viewH2 := cfg2.WorldHeight / s.TileSizeH
 	// In Rogue mode the controlled colonist died or was lost — exit cleanly.
 	if s.rogueEntity != nil &&
 		(!s.rogueEntity.HasComponent(rlcomponents.Position) || s.rogueEntity.HasComponent(rlcomponents.Dead)) {
@@ -731,16 +700,13 @@ func (s *MainState) Update() state.StateInterface {
 	if s.followEntity != nil && (s.CursorMode == gui.CursorModeFollow || s.rogueEntity != nil) {
 		if s.followEntity.HasComponent(rlcomponents.Position) && !s.followEntity.HasComponent(rlcomponents.Dead) {
 			pc := s.followEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			sidebarTiles := sidebarWidth/s.TileSizeW + 1
-			s.CameraX = pc.GetX() - sidebarTiles - (viewW2-sidebarTiles)/2
-			s.CameraY = pc.GetY() - viewH2/2
-			s.CameraZ = pc.GetZ()
+			s.camera.CenterOn(pc.GetX(), pc.GetY(), pc.GetZ())
 		} else if s.rogueEntity == nil {
 			s.cancelFollowMode()
 		}
 	}
-	s.mapModal.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
-	s.smallMap.SetCamera(s.CameraX, s.CameraY, s.CameraZ, viewW2, viewH2)
+	s.mapModal.SetCamera(s.camera)
+	s.smallMap.SetCamera(s.camera)
 	if !s.mapModal.Visible {
 		s.smallMap.Update()
 	}
@@ -760,7 +726,7 @@ func (s *MainState) Update() state.StateInterface {
 	if s.level != nil {
 		day = s.level.Day
 	}
-	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Hour:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, day, s.level.Hour, s.CameraZ, fps, tps))
+	ebiten.SetWindowTitle(fmt.Sprintf("%s — Day:%d Hour:%d Z:%d FPS:%.0f TPS:%.0f", config.Global().Title, day, s.level.Hour, s.camera.Z, fps, tps))
 
 	// Hand the last-drawn viewport to FOV so it bounds this tick's Visible clear
 	// (it no longer reads a copy off Level).
@@ -814,17 +780,14 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	// Clear to black once per frame so never-seen tiles need no per-tile fill.
 	s.worldImage.Fill(color.Black)
 
-	viewW := config.Global().WorldWidth / s.TileSizeW
-	viewH := config.Global().WorldHeight / s.TileSizeH
-	// Record the on-screen rect; Update (next frame) hands it to FOV clearing and
-	// positional audio. Kept out of Level so the world model carries no view state.
-	s.viewport = world.Viewport{X: s.CameraX, Y: s.CameraY, Z: s.CameraZ, W: viewW, H: viewH}
-	world.DrawLevel(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, config.Global().SpriteSizeW, config.Global().SpriteSizeH, viewW, viewH)
-	world.DrawRadiationOverlay(s.level, s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, viewW, viewH)
+	// Snapshot the on-screen rect; Update (next frame) hands it to FOV clearing
+	// and positional audio. Kept out of Level so the world model carries no view.
+	s.viewport = s.camera.Viewport()
+	world.DrawLevel(s.level, s.worldImage, s.camera)
+	world.DrawRadiationOverlay(s.level, s.worldImage, s.camera)
 
 	s.drawTasks(s.worldImage)
-	cfg := config.Global()
-	effect.GetEffectManager().Draw(s.worldImage, s.CameraX, s.CameraY, s.CameraZ, s.TileSizeW, s.TileSizeH, cfg.SpriteSizeW, cfg.SpriteSizeH)
+	effect.GetEffectManager().Draw(s.worldImage, s.camera)
 	screen.DrawImage(s.worldImage, nil)
 	s.guiManager.Draw(screen)
 	if !s.mapModal.Visible {
@@ -955,13 +918,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case gui.ColonistSelectedEvent:
 		if ev.Entity.HasComponent(rlcomponents.Position) {
 			pc := ev.Entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			cfg := config.Global()
-			sidebarTiles := sidebarWidth/s.TileSizeW + 1
-			viewW := cfg.WorldWidth / s.TileSizeW
-			viewH := cfg.WorldHeight / s.TileSizeH
-			s.CameraX = pc.GetX() - sidebarTiles - (viewW-sidebarTiles)/2
-			s.CameraY = pc.GetY() - viewH/2
-			s.CameraZ = pc.GetZ()
+			s.camera.CenterOn(pc.GetX(), pc.GetY(), pc.GetZ())
 		}
 		s.openColonistModal(ev.Entity)
 	case gui.EquipItemRequestedEvent:
@@ -1313,8 +1270,7 @@ func (s *MainState) requestPickup(colonist *ecs.Entity) {
 func (s *MainState) handleInput() {
 	if s.mouseDragging {
 		cX, cY := ebiten.CursorPosition()
-		tX := cX/s.TileSizeW + s.CameraX
-		tY := cY/s.TileSizeH + s.CameraY
+		tX, tY := s.camera.ScreenToWorld(cX, cY)
 		if tX != s.lastDragTileX || tY != s.lastDragTileY {
 			switch s.CursorMode {
 			case gui.CursorModeBuild:
@@ -1384,13 +1340,13 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 	for _, k := range e.Keys {
 		switch k.String() {
 		case "W":
-			s.CameraY--
+			s.camera.Y--
 		case "S":
-			s.CameraY++
+			s.camera.Y++
 		case "A":
-			s.CameraX--
+			s.camera.X--
 		case "D":
-			s.CameraX++
+			s.camera.X++
 		}
 	}
 
@@ -1401,11 +1357,11 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		s.Paused = !s.Paused
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && s.CameraZ > 0 {
-		s.CameraZ--
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && s.camera.Z > 0 {
+		s.camera.Z--
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyE) && s.CameraZ < s.level.GetDepth()-1 {
-		s.CameraZ++
+	if inpututil.IsKeyJustPressed(ebiten.KeyE) && s.camera.Z < s.level.GetDepth()-1 {
+		s.camera.Z++
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key1) {
 		s.initiativeSystem.Speed = 1
@@ -1427,7 +1383,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		if s.mapModal.Visible {
 			s.mapModal.Visible = false
 		} else {
-			s.mapModal.Open(s.CameraZ, s.CameraX, s.CameraY)
+			s.mapModal.Open(s.camera.Z, s.camera.X, s.camera.Y)
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyO) && s.wm != nil {
@@ -1485,33 +1441,28 @@ func (s *MainState) openDashboard() {
 }
 
 func (s *MainState) handleMouseWheel(e input.MouseWheelEvent) {
+	// Rest-detection runs before the modal/focus guards so the gesture latch
+	// always rearms on wheel-rest — otherwise opening a modal mid-gesture swallows
+	// the Y:0 reset and eats the first scroll after the modal closes.
+	if e.Y > -0.1 && e.Y < 0.1 {
+		s.wheelActive = false // wheel at rest — this gesture is over
+		return
+	}
 	if s.mapModal.Visible || s.cheatModal.Visible {
 		return
 	}
 	if s.guiManager.GetMouseFocused() {
 		return
 	}
-	zooming := (e.Y > 0.1 && s.TileSizeW < 96) || (e.Y < -0.1 && s.TileSizeW > 16)
-	if !zooming {
-		return
+	if s.wheelActive {
+		return // momentum tail (or inertial rebound) of the current gesture — ignore
 	}
+	s.wheelActive = true
 
-	// World tile under the mouse before zoom
+	// ZoomAt clamps the tile size to [view.MinTileSize, view.MaxTileSize], so a
+	// scroll past a bound is a harmless no-op.
 	mX, mY := ebiten.CursorPosition()
-	worldX := mX/s.TileSizeW + s.CameraX
-	worldY := mY/s.TileSizeH + s.CameraY
-
-	if e.Y > 0.1 {
-		s.TileSizeW *= 2
-		s.TileSizeH *= 2
-	} else {
-		s.TileSizeW /= 2
-		s.TileSizeH /= 2
-	}
-
-	// Reposition camera so the same world tile stays under the mouse
-	s.CameraX = worldX - mX/s.TileSizeW
-	s.CameraY = worldY - mY/s.TileSizeH
+	s.camera.ZoomAt(mX, mY, e.Y > 0)
 }
 
 func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
@@ -1538,8 +1489,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	}
 
 	cX, cY := ebiten.CursorPosition()
-	tX := cX/s.TileSizeW + s.CameraX
-	tY := cY/s.TileSizeH + s.CameraY
+	tX, tY := s.camera.ScreenToWorld(cX, cY)
 
 	if s.rogueEntity != nil {
 		if e.Button == ebiten.MouseButtonLeft {
@@ -1558,7 +1508,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 
 	if e.Button == ebiten.MouseButtonLeft {
 		if s.CursorMode == gui.CursorModeFollow {
-			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
+			ent := s.level.GetEntityAt(tX, tY, s.camera.Z)
 			if ent != nil && ent.HasComponent(rlcomponents.Position) {
 				s.followEntity = ent
 				name := "Entity"
@@ -1572,13 +1522,13 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 			return
 		}
 		if s.CursorMode == gui.CursorModeDefault {
-			ent := s.level.GetEntityAt(tX, tY, s.CameraZ)
+			ent := s.level.GetEntityAt(tX, tY, s.camera.Z)
 
 			if ent != nil && components.IsAttackTarget(ent) && s.MainSettlement != nil {
 				// Attack hostile entity (faction raiders, scripted mutants/zombies, etc.)
 				s.MainSettlement.Tasks.AddTask(&task.Task{
 					Action: task_requests.AttackAction, Data: ent,
-					X: tX, Y: tY, Z: s.CameraZ, Escalated: true,
+					X: tX, Y: tY, Z: s.camera.Z, Escalated: true,
 				})
 			} else if ent != nil && ent.HasComponent(components.Choppable) && s.MainSettlement != nil {
 				// Harvest choppable entity (flora, crystals, etc.)
@@ -1588,7 +1538,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				s.MainSettlement.Tasks.AddTask(&task.Task{
 					Action: task_requests.RetrieveAction,
 					Data:   task_requests.RetrieveRequest{Item: ent},
-					X:      tX, Y: tY, Z: s.CameraZ, Escalated: true,
+					X:      tX, Y: tY, Z: s.camera.Z, Escalated: true,
 				})
 			} else if ent != nil && ent.HasComponent(components.Bed) && s.MainSettlement != nil {
 				s.addSleepTask(tX, tY)
@@ -1604,7 +1554,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				if ent == nil {
 					for _, se := range s.level.StaticEntities {
 						pc := se.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-						if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.CameraZ {
+						if pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.camera.Z {
 							ent = se
 							break
 						}
@@ -1625,13 +1575,13 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					}
 				} else if s.MainSettlement != nil {
 					// Walkable empty tile — queue a move task
-					tile := s.level.GetTileAt(tX, tY, s.CameraZ)
+					tile := s.level.GetTileAt(tX, tY, s.camera.Z)
 					if tile != nil {
 						t := tile.(*world.Tile)
 						walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
 						if walkable && !t.Floor.IsEmpty() {
 							s.MainSettlement.Tasks.AddTask(&task.Task{
-								X: tX, Y: tY, Z: s.CameraZ, Escalated: true,
+								X: tX, Y: tY, Z: s.camera.Z, Escalated: true,
 							})
 						}
 					}
@@ -1639,7 +1589,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				// Escalate any pending task at this tile
 				if s.MainSettlement != nil {
 					for _, t := range s.MainSettlement.Tasks.GetTasks() {
-						if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
+						if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
 							t.Escalated = true
 						}
 					}
@@ -1662,7 +1612,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				s.addMineTask(tX, tY)
 			case gui.CursorModeCancel:
 				for _, t := range s.MainSettlement.Tasks.GetTasks() {
-					if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
+					if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
 						t.Complete()
 						s.MainSettlement.Tasks.RemoveTask(t)
 					}
@@ -1670,7 +1620,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 			case gui.CursorModeSleep:
 				s.addSleepTask(tX, tY)
 			case gui.CursorModeAttack:
-				target := s.level.GetEntityAt(tX, tY, s.CameraZ)
+				target := s.level.GetEntityAt(tX, tY, s.camera.Z)
 				if components.IsAttackTarget(target) {
 					for _, colonist := range s.level.Entities {
 						if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
@@ -1679,7 +1629,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 								s.MainSettlement.Tasks.AddTask(&task.Task{
 									Action: task_requests.AttackAction,
 									Data:   target,
-									X:      tX, Y: tY, Z: s.CameraZ,
+									X:      tX, Y: tY, Z: s.camera.Z,
 								})
 								break
 							}
@@ -1687,7 +1637,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					}
 				}
 			case gui.CursorModeRelocate, gui.CursorModeStore, gui.CursorModeDrop, gui.CursorModePickup:
-				s.cursorTools[s.CursorMode].Click(tX, tY, s.CameraZ)
+				s.cursorTools[s.CursorMode].Click(tX, tY, s.camera.Z)
 			}
 		}
 	}
@@ -1703,7 +1653,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		} else if s.MainSettlement != nil {
 			// Cancel any pending task at this tile
 			for _, t := range s.MainSettlement.Tasks.GetTasks() {
-				if t.X == tX && t.Y == tY && t.Z == s.CameraZ {
+				if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
 					t.Complete()
 					s.MainSettlement.Tasks.RemoveTask(t)
 				}
@@ -1745,14 +1695,14 @@ func (s *MainState) addBuildTask(x, y int) {
 		}
 	}
 	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.X == x && t.Y == y && t.Z == s.CameraZ && t.Action == task_requests.BuildAction {
+		if t.X == x && t.Y == y && t.Z == s.camera.Z && t.Action == task_requests.BuildAction {
 			return
 		}
 	}
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.BuildAction,
-		Data:   task_requests.BuildRequest{X: x, Y: y, Z: s.CameraZ, Type: s.buildMode, Required: buildable.BuildTime},
-		X:      x, Y: y, Z: s.CameraZ,
+		Data:   task_requests.BuildRequest{X: x, Y: y, Z: s.camera.Z, Type: s.buildMode, Required: buildable.BuildTime},
+		X:      x, Y: y, Z: s.camera.Z,
 	})
 	if !buildable.AllowMultiple {
 		s.CursorMode = gui.CursorModeDefault
@@ -1763,7 +1713,7 @@ func (s *MainState) addSleepTask(x, y int) {
 	if s.MainSettlement == nil {
 		return
 	}
-	bed := s.level.GetEntityAt(x, y, s.CameraZ)
+	bed := s.level.GetEntityAt(x, y, s.camera.Z)
 	if bed == nil || !bed.HasComponent(components.Bed) {
 		return
 	}
@@ -1831,18 +1781,18 @@ func (s *MainState) addDigTask(x, y int) {
 		return
 	}
 	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.X == x && t.Y == y && t.Z == s.CameraZ && t.Action == task_requests.DigAction {
+		if t.X == x && t.Y == y && t.Z == s.camera.Z && t.Action == task_requests.DigAction {
 			return
 		}
 	}
-	tile := s.level.GetTileAt(x, y, s.CameraZ)
+	tile := s.level.GetTileAt(x, y, s.camera.Z)
 	if tile == nil || !tile.IsSolid() {
 		return
 	}
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.DigAction,
-		Data:   task_requests.DigRequest{X: x, Y: y, Z: s.CameraZ, Required: 5},
-		X:      x, Y: y, Z: s.CameraZ,
+		Data:   task_requests.DigRequest{X: x, Y: y, Z: s.camera.Z, Required: 5},
+		X:      x, Y: y, Z: s.camera.Z,
 	})
 }
 
@@ -1853,22 +1803,22 @@ func (s *MainState) addMineTask(x, y int) {
 	// Prefer a Choppable entity at the tile (e.g. alien_crystal). Required is
 	// derived from the entity's Choppable.Health so harder things take longer.
 	var entBuf []*ecs.Entity
-	s.level.GetEntitiesAt(x, y, s.CameraZ, &entBuf)
+	s.level.GetEntitiesAt(x, y, s.camera.Z, &entBuf)
 	for _, e := range entBuf {
 		if !e.HasComponent(components.Choppable) {
 			continue
 		}
 		ch := e.GetComponent(components.Choppable).(*components.ChoppableComponent)
-		req := task_requests.MineRequest{X: x, Y: y, Z: s.CameraZ, Required: ch.Health * 10, Target: e}
+		req := task_requests.MineRequest{X: x, Y: y, Z: s.camera.Z, Required: ch.Health * 10, Target: e}
 		s.MainSettlement.Tasks.AddTask(&task.Task{
 			Action: task_requests.MineAction,
 			Data:   req,
-			X:      x, Y: y, Z: s.CameraZ,
+			X:      x, Y: y, Z: s.camera.Z,
 		})
 		return
 	}
 
-	tile := s.level.GetTileAt(x, y, s.CameraZ)
+	tile := s.level.GetTileAt(x, y, s.camera.Z)
 	if tile == nil {
 		return
 	}
@@ -1882,35 +1832,33 @@ func (s *MainState) addMineTask(x, y int) {
 	}
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.MineAction,
-		Data:   task_requests.MineRequest{X: x, Y: y, Z: s.CameraZ, Required: 50},
-		X:      x, Y: y, Z: s.CameraZ,
+		Data:   task_requests.MineRequest{X: x, Y: y, Z: s.camera.Z, Required: 50},
+		X:      x, Y: y, Z: s.camera.Z,
 	})
 }
 
 func (s *MainState) updateHovered() {
 	cfg := config.Global()
 	cX, cY := ebiten.CursorPosition()
-	const sidebarW = sidebarWidth
-	if cX < sidebarW || cX >= cfg.WorldWidth || cY < 0 || cY >= cfg.WorldHeight {
+	if cX < view.SidebarWidth || cX >= cfg.WorldWidth || cY < 0 || cY >= cfg.WorldHeight {
 		s.guiManager.ClearHover()
 		s.hoverActive = false
 		return
 	}
-	tX := cX/s.TileSizeW + s.CameraX
-	tY := cY/s.TileSizeH + s.CameraY
+	tX, tY := s.camera.ScreenToWorld(cX, cY)
 	s.hoverTileX = tX
 	s.hoverTileY = tY
 	s.hoverActive = true
 
-	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
-	entity := s.level.GetEntityAt(tX, tY, s.CameraZ)
+	tile := s.level.GetTileAt(tX, tY, s.camera.Z)
+	entity := s.level.GetEntityAt(tX, tY, s.camera.Z)
 
 	if tile == nil && entity == nil {
 		s.guiManager.ClearHover()
 		if s.CursorMode == gui.CursorModeDefault {
 			s.guiManager.SetDefaultContext("", "", "")
 		} else if tool, ok := s.cursorTools[s.CursorMode]; ok {
-			tool.Hover(tX, tY, s.CameraZ)
+			tool.Hover(tX, tY, s.camera.Z)
 		}
 		s.hoverActive = false
 		return
@@ -1930,20 +1878,20 @@ func (s *MainState) updateHovered() {
 		}
 		var smells []gui.TileSmell
 		for tag, tagMap := range s.level.SmellMap {
-			if v := tagMap[world.PackCoord(tX, tY, s.CameraZ)]; v >= 0.1 {
+			if v := tagMap[world.PackCoord(tX, tY, s.camera.Z)]; v >= 0.1 {
 				smells = append(smells, gui.TileSmell{Tag: string(tag), Strength: v})
 			}
 		}
 		resourceAmt := 0
 		if !t.Middle.IsEmpty() && world.IsDepositTileName(def.Name) {
-			resourceAmt = s.level.ResourceAmountAt(tX, tY, s.CameraZ)
+			resourceAmt = s.level.ResourceAmountAt(tX, tY, s.camera.Z)
 		}
 		s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
 			Name:           def.Name,
 			FloorName:      floorName,
 			X:              tX,
 			Y:              tY,
-			Z:              s.CameraZ,
+			Z:              s.camera.Z,
 			LightLevel:     t.LightLevel,
 			Radiation:      int(t.Radiation),
 			ResourceAmount: resourceAmt,
@@ -1977,14 +1925,14 @@ func (s *MainState) updateHovered() {
 	if s.CursorMode == gui.CursorModeDefault {
 		s.updateDefaultContext(tX, tY)
 	} else if tool, ok := s.cursorTools[s.CursorMode]; ok {
-		tool.Hover(tX, tY, s.CameraZ)
+		tool.Hover(tX, tY, s.camera.Z)
 	}
 }
 
 // updateDefaultContext detects what a Default-mode left-click would do at (tX,tY)
 // and updates the HUD context hint accordingly.
 func (s *MainState) updateDefaultContext(tX, tY int) {
-	if entity := s.level.GetEntityAt(tX, tY, s.CameraZ); entity != nil {
+	if entity := s.level.GetEntityAt(tX, tY, s.camera.Z); entity != nil {
 		if components.IsAttackTarget(entity) {
 			name := "Enemy"
 			if entity.HasComponent(rlcomponents.Description) {
@@ -2027,7 +1975,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 		}
 	}
 
-	tile := s.level.GetTileAt(tX, tY, s.CameraZ)
+	tile := s.level.GetTileAt(tX, tY, s.camera.Z)
 	if tile != nil {
 		t := tile.(*world.Tile)
 		walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
@@ -2328,12 +2276,12 @@ func (s *MainState) checkTotalWipe() {
 
 func (s *MainState) drawTasks(screen *ebiten.Image) {
 	if s.MainSettlement != nil {
-		viewW := config.Global().WorldWidth / s.TileSizeW
-		viewH := config.Global().WorldHeight / s.TileSizeH
-		tw := float32(s.TileSizeW)
-		th := float32(s.TileSizeH)
+		viewW := s.camera.ViewW()
+		viewH := s.camera.ViewH()
+		tw := float32(s.camera.TileW)
+		th := float32(s.camera.TileH)
 		for _, t := range s.MainSettlement.Tasks.GetTasks() {
-			if t.Completed || t.Z != s.CameraZ {
+			if t.Completed || t.Z != s.camera.Z {
 				continue
 			}
 			var fill, border color.RGBA
@@ -2367,11 +2315,10 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 				for dy := 0; dy < fpH; dy++ {
 					tx := startX + dx
 					ty := startY + dy
-					if tx < s.CameraX || tx >= s.CameraX+viewW || ty < s.CameraY || ty >= s.CameraY+viewH {
+					if tx < s.camera.X || tx >= s.camera.X+viewW || ty < s.camera.Y || ty >= s.camera.Y+viewH {
 						continue
 					}
-					sx := float32((tx - s.CameraX) * s.TileSizeW)
-					sy := float32((ty - s.CameraY) * s.TileSizeH)
+					sx, sy := s.camera.WorldToScreenF(tx, ty)
 					vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
 					vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
 				}
@@ -2380,10 +2327,9 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 	}
 
 	for i, p := range s.roguePath {
-		sx := float32((p[0] - s.CameraX) * s.TileSizeW)
-		sy := float32((p[1] - s.CameraY) * s.TileSizeH)
-		tw := float32(s.TileSizeW)
-		th := float32(s.TileSizeH)
+		sx, sy := s.camera.WorldToScreenF(p[0], p[1])
+		tw := float32(s.camera.TileW)
+		th := float32(s.camera.TileH)
 		alpha := uint8(60)
 		if i == len(s.roguePath)-1 {
 			alpha = 100 // destination tile slightly brighter
@@ -2393,8 +2339,8 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 	}
 
 	if s.hoverActive {
-		tw := float32(s.TileSizeW)
-		th := float32(s.TileSizeH)
+		tw := float32(s.camera.TileW)
+		th := float32(s.camera.TileH)
 		footprintW, footprintH := 1, 1
 		if s.CursorMode == gui.CursorModeBuild {
 			if sc := factory.GetSize(s.buildMode); sc != nil && sc.Width > 0 && sc.Height > 0 {
@@ -2405,8 +2351,7 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 		// hoverTileX/Y is the top-left corner of the footprint, matching addBuildTask.
 		for dx := 0; dx < footprintW; dx++ {
 			for dy := 0; dy < footprintH; dy++ {
-				sx := float32((s.hoverTileX + dx - s.CameraX) * s.TileSizeW)
-				sy := float32((s.hoverTileY + dy - s.CameraY) * s.TileSizeH)
+				sx, sy := s.camera.WorldToScreenF(s.hoverTileX+dx, s.hoverTileY+dy)
 				vector.DrawFilledRect(screen, sx, sy, tw, th,
 					color.RGBA{R: 255, G: 255, B: 255, A: 40}, false)
 				vector.StrokeRect(screen, sx, sy, tw, th,
@@ -2427,13 +2372,12 @@ func (s *MainState) drawStorePickHighlight(screen *ebiten.Image) {
 		return
 	}
 	pc := item.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	if pc.GetZ() != s.CameraZ {
+	if pc.GetZ() != s.camera.Z {
 		return
 	}
-	tw := float32(s.TileSizeW)
-	th := float32(s.TileSizeH)
-	sx := float32((pc.GetX() - s.CameraX) * s.TileSizeW)
-	sy := float32((pc.GetY() - s.CameraY) * s.TileSizeH)
+	tw := float32(s.camera.TileW)
+	th := float32(s.camera.TileH)
+	sx, sy := s.camera.WorldToScreenF(pc.GetX(), pc.GetY())
 
 	stroke := color.RGBA{R: 255, G: 220, B: 60, A: 220}
 	vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{R: 255, G: 220, B: 60, A: 60}, false)

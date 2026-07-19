@@ -1,10 +1,14 @@
 package effect
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/mechanical-lich/landing_party/internal/view"
+)
 
 type Effect interface {
 	Update()
-	Draw(screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int)
+	Draw(screen *ebiten.Image, cam view.Camera)
 }
 
 type EffectManager struct {
@@ -39,8 +43,8 @@ func (em *EffectManager) Update() {
 	}
 }
 
-func (em *EffectManager) Draw(screen *ebiten.Image, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH int) {
+func (em *EffectManager) Draw(screen *ebiten.Image, cam view.Camera) {
 	for _, e := range em.effects {
-		e.Draw(screen, cameraX, cameraY, cameraZ, tileSizeW, tileSizeH, spriteSizeW, spriteSizeH)
+		e.Draw(screen, cam)
 	}
 }
