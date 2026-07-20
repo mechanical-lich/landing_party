@@ -104,9 +104,18 @@ type MainState struct {
 	mouseDragging    bool
 	lastDragTileX    int
 	lastDragTileY    int
-	hoverTileX       int
+	// marquee is the KeeperRL-style rectangle drag-select for Dig/Mine: press to
+	// anchor a corner, drag to the opposite corner, release to queue a task on
+	// every eligible tile in the box. A plain click is just a 1x1 marquee.
+	marqueeActive bool
+	marqueeStartX int
+	marqueeStartY int
+	marqueeEndX   int
+	marqueeEndY   int
+	hoverTileX    int
 	hoverTileY       int
 	hoverActive      bool
+	hoverHasEntity   bool // an entity (not just a tile) is under the cursor
 	settlementCfg    SettlementConfig
 	done             bool
 	next             state.StateInterface
@@ -812,6 +821,10 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 	case input.MouseReleasedEvent:
 		if ev.Button == ebiten.MouseButtonLeft {
 			s.mouseDragging = false
+			if s.marqueeActive {
+				s.commitMarquee()
+				s.marqueeActive = false
+			}
 		}
 	case input.KeyPressEvent:
 		s.handleKeyPress(ev)
@@ -1275,12 +1288,15 @@ func (s *MainState) handleInput() {
 			switch s.CursorMode {
 			case gui.CursorModeBuild:
 				s.addBuildTask(tX, tY)
-			case gui.CursorModeDig:
-				s.addDigTask(tX, tY)
 			}
 			s.lastDragTileX = tX
 			s.lastDragTileY = tY
 		}
+	}
+
+	if s.marqueeActive {
+		cX, cY := ebiten.CursorPosition()
+		s.marqueeEndX, s.marqueeEndY = s.camera.ScreenToWorld(cX, cY)
 	}
 
 	if s.rogueEntity != nil && s.rogueMoveActive {
@@ -1604,12 +1620,9 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				s.lastDragTileY = -1
 				s.addBuildTask(tX, tY)
 			case gui.CursorModeDig:
-				s.mouseDragging = true
-				s.lastDragTileX = -1
-				s.lastDragTileY = -1
-				s.addDigTask(tX, tY)
+				s.startMarquee(tX, tY)
 			case gui.CursorModeMine:
-				s.addMineTask(tX, tY)
+				s.startMarquee(tX, tY)
 			case gui.CursorModeCancel:
 				for _, t := range s.MainSettlement.Tasks.GetTasks() {
 					if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
@@ -1643,6 +1656,11 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 	}
 
 	if e.Button == ebiten.MouseButtonRight {
+		if s.marqueeActive {
+			// Bail out of an in-progress drag-select without queuing anything.
+			s.marqueeActive = false
+			return
+		}
 		if s.CursorMode == gui.CursorModeFollow {
 			s.cancelFollowMode()
 			return
@@ -1776,6 +1794,44 @@ func (s *MainState) addSleepTask(x, y int) {
 	s.MainSettlement.Tasks.AddTask(sleepTask)
 }
 
+// startMarquee anchors a Dig/Mine drag-select at (x,y). The end tracks the
+// cursor each frame (handleInput) and the box is committed on mouse release.
+func (s *MainState) startMarquee(x, y int) {
+	s.marqueeActive = true
+	s.marqueeStartX, s.marqueeStartY = x, y
+	s.marqueeEndX, s.marqueeEndY = x, y
+}
+
+// commitMarquee queues a Dig or Mine task on every tile in the selected box.
+// addDigTask/addMineTask self-filter ineligible tiles and dedup, so a sweep over
+// the whole rectangle is safe; a plain click commits a 1x1 box (one tile).
+func (s *MainState) commitMarquee() {
+	minX, maxX := minMax(s.marqueeStartX, s.marqueeEndX)
+	minY, maxY := minMax(s.marqueeStartY, s.marqueeEndY)
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			switch s.CursorMode {
+			case gui.CursorModeDig:
+				// Mine/chop anything with drops (ore, flora, crystals) and
+				// plain-dig the rest, so clearing a room also collects its loot.
+				if !s.addMineTask(x, y) {
+					s.addDigTask(x, y)
+				}
+			case gui.CursorModeMine:
+				s.addMineTask(x, y)
+			}
+		}
+	}
+}
+
+// minMax returns a,b ordered low-to-high.
+func minMax(a, b int) (int, int) {
+	if a <= b {
+		return a, b
+	}
+	return b, a
+}
+
 func (s *MainState) addDigTask(x, y int) {
 	if s.MainSettlement == nil {
 		return
@@ -1796,45 +1852,58 @@ func (s *MainState) addDigTask(x, y int) {
 	})
 }
 
-func (s *MainState) addMineTask(x, y int) {
+// addMineTask queues a Mine/Chop order at (x,y) when the tile holds something
+// worth collecting — a Choppable entity (flora, crystals) or a deposit tile
+// (ore). It reports whether it queued (or already had) such a task, so the Dig
+// sweep can mine/chop those tiles and plain-dig the rest. Plain rock/dirt yields
+// nothing, so it returns false there.
+func (s *MainState) addMineTask(x, y int) bool {
 	if s.MainSettlement == nil {
-		return
+		return false
+	}
+	z := s.camera.Z
+	// Dedup: an area sweep can revisit a tile; don't stack duplicate mine orders.
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.X == x && t.Y == y && t.Z == z && t.Action == task_requests.MineAction {
+			return true
+		}
 	}
 	// Prefer a Choppable entity at the tile (e.g. alien_crystal). Required is
 	// derived from the entity's Choppable.Health so harder things take longer.
 	var entBuf []*ecs.Entity
-	s.level.GetEntitiesAt(x, y, s.camera.Z, &entBuf)
+	s.level.GetEntitiesAt(x, y, z, &entBuf)
 	for _, e := range entBuf {
 		if !e.HasComponent(components.Choppable) {
 			continue
 		}
 		ch := e.GetComponent(components.Choppable).(*components.ChoppableComponent)
-		req := task_requests.MineRequest{X: x, Y: y, Z: s.camera.Z, Required: ch.Health * 10, Target: e}
+		req := task_requests.MineRequest{X: x, Y: y, Z: z, Required: ch.Health * 10, Target: e}
 		s.MainSettlement.Tasks.AddTask(&task.Task{
 			Action: task_requests.MineAction,
 			Data:   req,
-			X:      x, Y: y, Z: s.camera.Z,
+			X:      x, Y: y, Z: z,
 		})
-		return
+		return true
 	}
 
-	tile := s.level.GetTileAt(x, y, s.camera.Z)
+	tile := s.level.GetTileAt(x, y, z)
 	if tile == nil {
-		return
+		return false
 	}
 	t := tile.(*world.Tile)
 	if t.Middle.IsEmpty() {
-		return
+		return false
 	}
 	tileName := world.TileDefinitions[t.Middle.Type].Name
 	if !world.IsDepositTileName(tileName) {
-		return
+		return false
 	}
 	s.MainSettlement.Tasks.AddTask(&task.Task{
 		Action: task_requests.MineAction,
-		Data:   task_requests.MineRequest{X: x, Y: y, Z: s.camera.Z, Required: 50},
-		X:      x, Y: y, Z: s.camera.Z,
+		Data:   task_requests.MineRequest{X: x, Y: y, Z: z, Required: 50},
+		X:      x, Y: y, Z: z,
 	})
+	return true
 }
 
 func (s *MainState) updateHovered() {
@@ -1852,6 +1921,7 @@ func (s *MainState) updateHovered() {
 
 	tile := s.level.GetTileAt(tX, tY, s.camera.Z)
 	entity := s.level.GetEntityAt(tX, tY, s.camera.Z)
+	s.hoverHasEntity = entity != nil
 
 	if tile == nil && entity == nil {
 		s.guiManager.ClearHover()
@@ -2280,24 +2350,31 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 		viewH := s.camera.ViewH()
 		tw := float32(s.camera.TileW)
 		th := float32(s.camera.TileH)
+		reticle := resource.Textures["task_reticle"]
 		for _, t := range s.MainSettlement.Tasks.GetTasks() {
 			if t.Completed || t.Z != s.camera.Z {
 				continue
 			}
-			var fill, border color.RGBA
+			// The reticle sprite is tinted per action; alpha 255 lets the sprite's
+			// own alpha define the shape.
+			var tint color.RGBA
 			switch t.Action {
 			case task_requests.BuildAction:
-				fill = color.RGBA{R: 100, G: 200, B: 255, A: 40}
-				border = color.RGBA{R: 100, G: 200, B: 255, A: 200}
+				tint = color.RGBA{R: 100, G: 200, B: 255, A: 255} // blue
 			case task_requests.DigAction:
-				fill = color.RGBA{R: 220, G: 140, B: 40, A: 40}
-				border = color.RGBA{R: 220, G: 140, B: 40, A: 200}
+				tint = color.RGBA{R: 220, G: 140, B: 40, A: 255} // orange
 			case task_requests.MineAction:
-				fill = color.RGBA{R: 200, G: 200, B: 50, A: 40}
-				border = color.RGBA{R: 200, G: 200, B: 50, A: 200}
+				tint = color.RGBA{R: 200, G: 200, B: 50, A: 255} // yellow
+			case task_requests.AttackAction:
+				tint = color.RGBA{R: 220, G: 60, B: 60, A: 255} // red
+			case task_requests.RetrieveAction:
+				tint = color.RGBA{R: 80, G: 200, B: 120, A: 255} // green (retrieve/store)
+			case task_requests.PickupAction:
+				tint = color.RGBA{R: 40, G: 200, B: 200, A: 255} // teal
+			case task_requests.RelocateAction:
+				tint = color.RGBA{R: 25, G: 115, B: 120, A: 255} // dark teal (drop off)
 			default:
-				fill = color.RGBA{R: 255, G: 200, B: 0, A: 40}
-				border = color.RGBA{R: 255, G: 200, B: 0, A: 200}
+				tint = color.RGBA{R: 235, G: 235, B: 235, A: 255} // white (move / other)
 			}
 			// For multi-tile build tasks, highlight the full footprint.
 			// t.X/Y is the offset position; startX = t.X - Width/2, startY = t.Y - Height/2.
@@ -2319,8 +2396,7 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 						continue
 					}
 					sx, sy := s.camera.WorldToScreenF(tx, ty)
-					vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
-					vector.StrokeRect(screen, sx, sy, tw, th, 1, border, false)
+					s.drawTaskReticle(screen, reticle, sx, sy, tw, th, tint)
 				}
 			}
 		}
@@ -2330,12 +2406,12 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 		sx, sy := s.camera.WorldToScreenF(p[0], p[1])
 		tw := float32(s.camera.TileW)
 		th := float32(s.camera.TileH)
-		alpha := uint8(60)
+		alpha := uint8(45)
 		if i == len(s.roguePath)-1 {
-			alpha = 100 // destination tile slightly brighter
+			alpha = 80 // destination tile slightly brighter
 		}
-		vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{R: 80, G: 200, B: 255, A: alpha}, false)
-		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.RGBA{R: 80, G: 200, B: 255, A: 180}, false)
+		vector.DrawFilledRect(screen, sx, sy, tw, th, color.NRGBA{R: 80, G: 200, B: 255, A: alpha}, false)
+		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.NRGBA{R: 80, G: 200, B: 255, A: 150}, false)
 	}
 
 	if s.hoverActive {
@@ -2348,19 +2424,114 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 				footprintH = sc.Height
 			}
 		}
-		// hoverTileX/Y is the top-left corner of the footprint, matching addBuildTask.
-		for dx := 0; dx < footprintW; dx++ {
-			for dy := 0; dy < footprintH; dy++ {
-				sx, sy := s.camera.WorldToScreenF(s.hoverTileX+dx, s.hoverTileY+dy)
-				vector.DrawFilledRect(screen, sx, sy, tw, th,
-					color.RGBA{R: 255, G: 255, B: 255, A: 40}, false)
-				vector.StrokeRect(screen, sx, sy, tw, th,
-					1, color.RGBA{R: 255, G: 255, B: 255, A: 120}, false)
+		if footprintW > 1 || footprintH > 1 {
+			// Multi-tile build footprint: preview the whole area as tinted cells.
+			// hoverTileX/Y is the top-left corner, matching addBuildTask.
+			for dx := 0; dx < footprintW; dx++ {
+				for dy := 0; dy < footprintH; dy++ {
+					sx, sy := s.camera.WorldToScreenF(s.hoverTileX+dx, s.hoverTileY+dy)
+					vector.DrawFilledRect(screen, sx, sy, tw, th,
+						color.NRGBA{R: 255, G: 255, B: 255, A: 30}, false)
+					vector.StrokeRect(screen, sx, sy, tw, th,
+						1, color.NRGBA{R: 255, G: 255, B: 255, A: 70}, false)
+				}
 			}
+		} else {
+			// Single tile: the cursor reticle. Frame 1 (index 0) over open ground,
+			// frame 2 (index 1) when an entity is under the cursor.
+			frame := 0
+			if s.hoverHasEntity {
+				frame = 1
+			}
+			sx, sy := s.camera.WorldToScreenF(s.hoverTileX, s.hoverTileY)
+			s.drawCursorReticle(screen, resource.Textures["cursor_reticle"], frame, sx, sy, tw, th)
 		}
 	}
 
+	s.drawMarquee(screen)
 	s.drawStorePickHighlight(screen)
+}
+
+// drawCursorReticle draws one frame of the two-frame cursor reticle sprite
+// (frame 0 = open ground, frame 1 = entity under cursor), scaled to fill a tile.
+// Falls back to the subtle white square + outline if the sprite isn't loaded.
+func (s *MainState) drawCursorReticle(screen, img *ebiten.Image, frame int, sx, sy, tw, th float32) {
+	if img == nil {
+		vector.DrawFilledRect(screen, sx, sy, tw, th, color.NRGBA{R: 255, G: 255, B: 255, A: 30}, false)
+		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.NRGBA{R: 255, G: 255, B: 255, A: 70}, false)
+		return
+	}
+	fw := img.Bounds().Dx() / 2 // two frames laid out horizontally
+	fh := img.Bounds().Dy()
+	if fw == 0 || fh == 0 {
+		return
+	}
+	sub := img.SubImage(image.Rect(frame*fw, 0, frame*fw+fw, fh)).(*ebiten.Image)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(tw)/float64(fw), float64(th)/float64(fh))
+	op.GeoM.Translate(float64(sx), float64(sy))
+	screen.DrawImage(sub, op)
+}
+
+// drawTaskReticle draws the tinted task-location reticle sprite at screen
+// (sx,sy), scaled to fill one tile. If the sprite isn't loaded it falls back to
+// the previous tinted square + outline so indicators still render.
+func (s *MainState) drawTaskReticle(screen, img *ebiten.Image, sx, sy, tw, th float32, tint color.RGBA) {
+	if img == nil {
+		vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{tint.R, tint.G, tint.B, 40}, false)
+		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.RGBA{tint.R, tint.G, tint.B, 200}, false)
+		return
+	}
+	iw, ih := img.Bounds().Dx(), img.Bounds().Dy()
+	if iw == 0 || ih == 0 {
+		return
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(tw)/float64(iw), float64(th)/float64(ih))
+	op.GeoM.Translate(float64(sx), float64(sy))
+	op.ColorScale.ScaleWithColor(tint)
+	screen.DrawImage(img, op)
+}
+
+// drawMarquee renders the live Dig/Mine drag-select: a translucent fill over each
+// on-screen tile in the box plus a single outline around the whole rectangle. The
+// fill colors match the queued-task overlays (orange dig, yellow mine).
+func (s *MainState) drawMarquee(screen *ebiten.Image) {
+	if !s.marqueeActive {
+		return
+	}
+	// NRGBA (non-premultiplied) so alpha is real opacity — a premultiplied
+	// color.RGBA with RGB>A renders near-solid regardless of A.
+	var fill, border color.NRGBA
+	switch s.CursorMode {
+	case gui.CursorModeDig:
+		fill = color.NRGBA{R: 220, G: 140, B: 40, A: 45}
+		border = color.NRGBA{R: 220, G: 140, B: 40, A: 160}
+	case gui.CursorModeMine:
+		fill = color.NRGBA{R: 200, G: 200, B: 50, A: 45}
+		border = color.NRGBA{R: 200, G: 200, B: 50, A: 160}
+	default:
+		return
+	}
+	minX, maxX := minMax(s.marqueeStartX, s.marqueeEndX)
+	minY, maxY := minMax(s.marqueeStartY, s.marqueeEndY)
+	tw := float32(s.camera.TileW)
+	th := float32(s.camera.TileH)
+	viewW := s.camera.ViewW()
+	viewH := s.camera.ViewH()
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			if x < s.camera.X || x >= s.camera.X+viewW || y < s.camera.Y || y >= s.camera.Y+viewH {
+				continue
+			}
+			sx, sy := s.camera.WorldToScreenF(x, y)
+			vector.DrawFilledRect(screen, sx, sy, tw, th, fill, false)
+		}
+	}
+	sx, sy := s.camera.WorldToScreenF(minX, minY)
+	w := float32(maxX-minX+1) * tw
+	h := float32(maxY-minY+1) * th
+	vector.StrokeRect(screen, sx, sy, w, h, 2, border, false)
 }
 
 // drawStorePickHighlight renders a yellow halo over the tile of the item

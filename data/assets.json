@@ -16,5 +16,7 @@
     "rock_blob47": "assets/tilesets/autotile_source/rock.png",
     "dirt_blob47": "assets/tilesets/autotile_source/dirt.png",
     "ice_blob47": "assets/tilesets/autotile_source/ice.png",
-    "emotes": "assets/emotes/emotes.png"
+    "emotes": "assets/emotes/emotes.png",
+    "task_reticle": "assets/interface/task_reticle.png",
+    "cursor_reticle": "assets/interface/cursor_reticle.png"
 }

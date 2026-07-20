@@ -317,8 +317,8 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 			label: "Orders",
 			items: []hudBuildOrderItem{
 				{id: "default", label: "Default", description: "Default cursor mode. Select and inspect entities.", mode: CursorModeDefault},
-				{id: "dig", label: "Dig", description: "Order colonists to dig through terrain.", mode: CursorModeDig},
-				{id: "mine", label: "Mine", description: "Order colonists to mine ore deposits.", mode: CursorModeMine},
+				{id: "dig", label: "Dig", description: "Drag to dig out an area — deposits and flora inside are mined/chopped for loot, the rest is cleared.", mode: CursorModeDig},
+				{id: "mine", label: "Mine/Chop", description: "Drag to mine ore deposits and chop flora and crystals for resources.", mode: CursorModeMine},
 				{id: "store", label: "Store", description: "Pick an item, then choose a storage container to put it in.", mode: CursorModeStore},
 				{id: "drop", label: "Drop", description: "Open a colonist, pick something from their bag, then click a destination (ground or storage).", mode: CursorModeDrop},
 				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
