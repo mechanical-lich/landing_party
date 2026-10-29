@@ -222,9 +222,17 @@ by data templates + a tuning file:
   none recorded on any frozen system (`Location.Colonists`, written on Freeze;
   `Campaign.StoredColonists`). Both end states route to `CampaignEndState`.
 
+## Crew replenishment
+
+The **Bio-Printer** (`bio_printer` in `data/build.json`, cost 5 metal ore +
+5 crystal) is a workbench whose `print_colonist` recipe
+(`data/crafting_recipes.json`) turns 25 biomass into a new `colonist` entity.
+The printed colonist is deployed like any other Worker-bearing output: it is
+dropped onto the level, joins the crafter's settlement, and starts ticking as
+an idle worker (see the deploy path in `internal/workerai/states.go`). It is
+the only way to grow the crew past the starting roster, so the total-wipe
+loss check above is the fail state it guards against.
+
 ## Not yet implemented
 
-- Bio-printer (grow new roster colonists from biomass) — until then the
-  total-wipe loss is the only fail state and there's no way to replenish crew
-  beyond the starting roster.
 - Richer lore / quest-chain authoring on top of the generator.

@@ -169,8 +169,9 @@ keeps work and progress flowing. The loop:
 3. When you can finally afford the Home jump, **Travel** there to win.
 
 Lose condition: a **total wipe** — no colonists left anywhere (none planetside,
-none in the ship roster, none on any established system). Until the bio-printer
-exists, the starting crew is all you get, so don't lose them all.
+none in the ship roster, none on any established system). The only way to grow
+the crew is to build a **Bio-Printer** and print new colonists from biomass
+(see [Crafting](crafting.md)), so protect your starting crew until you can
+afford one.
 
-> Still planned: the bio-printer (growing new colonists from biomass) and
-> deeper authored lore on top of the generator.
+> Still planned: deeper authored lore on top of the generator.

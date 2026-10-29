@@ -14,6 +14,8 @@ Each workbench is specialized. You will need to build the right one for what you
 | **Gun Bench** | Ranged weapons — pistols, rifles, shotguns, plasma cutters |
 | **Armor Bench** | Light armor — enviro suits |
 | **Advanced Armor Bench** | Heavy armor (requires Advanced Metallurgy research) |
+| **Robot Workbench** | Hauler, excavator, security, and construction robots (requires Robotics research; each chassis has its own tech) |
+| **Bio-Printer** | New colonists, printed from 25 biomass each |
 
 Place a bench in a secure room, ideally near a storage locker so colonists can pick up materials quickly.
 

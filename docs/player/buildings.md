@@ -44,6 +44,8 @@ Crafting stations. Each variant produces a different category of items:
 - **Gun Bench** — ranged weapons.
 - **Armor Bench** — light armor.
 - **Advanced Armor Bench** — heavy armor (requires Advanced Metallurgy research).
+- **Robot Workbench** — autonomous robot workers (requires Robotics research).
+- **Bio-Printer** — prints new colonists from stored biomass; the only way to grow the crew.
 
 Colonists work at whichever bench matches the queued recipe. See [Crafting](crafting.md) for the full workflow.
 
