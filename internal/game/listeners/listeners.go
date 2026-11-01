@@ -17,38 +17,31 @@ func (l *MessageListener) HandleEvent(e event.EventData) error {
 	return nil
 }
 
-type KillListener struct{}
+// KillListener, StructureListener and ResearchListener write a line through Post,
+// which decides whether it reaches the live log or a notification.
+type KillListener struct{ Post func(string) }
 
 func (l *KillListener) HandleEvent(e event.EventData) error {
 	if ke, ok := e.(eventsystem.EntityKilledEvent); ok {
-		message.AddMessage(fmt.Sprintf("%s eliminated %s", ke.KillerName, ke.TargetName))
+		l.Post(fmt.Sprintf("%s eliminated %s", ke.KillerName, ke.TargetName))
 	}
 	return nil
 }
 
-type TaskListener struct{}
-
-func (l *TaskListener) HandleEvent(e event.EventData) error {
-	if te, ok := e.(eventsystem.TaskCompletedEvent); ok {
-		message.AddMessage(te.Message)
-	}
-	return nil
-}
-
-type StructureListener struct{}
+type StructureListener struct{ Post func(string) }
 
 func (l *StructureListener) HandleEvent(e event.EventData) error {
 	if se, ok := e.(eventsystem.StructureBuiltEvent); ok {
-		message.AddMessage(fmt.Sprintf("Built %s at [%d,%d,%d]", se.Type, se.X, se.Y, se.Z))
+		l.Post(fmt.Sprintf("Built %s at [%d,%d,%d]", se.Type, se.X, se.Y, se.Z))
 	}
 	return nil
 }
 
-type ResearchListener struct{}
+type ResearchListener struct{ Post func(string) }
 
 func (l *ResearchListener) HandleEvent(e event.EventData) error {
 	if re, ok := e.(eventsystem.ResearchDoneEvent); ok {
-		message.AddMessage(fmt.Sprintf("Research complete: %s", re.TechKey))
+		l.Post(fmt.Sprintf("Research complete: %s", re.TechKey))
 	}
 	return nil
 }

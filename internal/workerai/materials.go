@@ -2,6 +2,7 @@ package workerai
 
 import (
 	"fmt"
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"log"
 	"sort"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
 )
@@ -111,7 +111,7 @@ func PickupItemFromTile(level *world.Level, entity *ecs.Entity, x, y, z int) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 		inv.AddItem(candidate)
 		level.RemoveEntity(candidate)
-		message.PostMessage(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", candidate.Blueprint))
+		chatter.Post(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", candidate.Blueprint))
 		return
 	}
 }

@@ -33,6 +33,8 @@ type MapModal struct {
 	Visible bool
 	level   *world.Level
 	mm      *minimap.Minimap
+	// colonyName names the settlement whose workers draw as colonists.
+	colonyName func() string
 
 	viewedZ int
 	offsetX int // scroll offset into the full map image (pixels)
@@ -55,10 +57,11 @@ type MapModal struct {
 	contentX, contentY, contentW, contentH int
 }
 
-func newMapModal(level *world.Level) *MapModal {
+func newMapModal(level *world.Level, colonyName func() string) *MapModal {
 	return &MapModal{
-		level: level,
-		mm:    minimap.NewMinimap(level, level.GetWidth()*mapTilePx, level.GetHeight()*mapTilePx),
+		level:      level,
+		colonyName: colonyName,
+		mm:         minimap.NewMinimap(level, level.GetWidth()*mapTilePx, level.GetHeight()*mapTilePx),
 	}
 }
 
@@ -246,7 +249,7 @@ func (m *MapModal) Draw(screen *ebiten.Image) {
 		}
 		var dotColor color.RGBA
 		switch {
-		case e.HasComponent(components.Worker):
+		case components.IsColonyWorker(e, m.colonyName()):
 			dotColor = color.RGBA{80, 220, 120, 255} // colonists: green
 		case components.IsAttackTarget(e):
 			dotColor = color.RGBA{220, 60, 60, 255} // hostiles: red

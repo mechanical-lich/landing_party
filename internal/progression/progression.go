@@ -2,13 +2,13 @@ package progression
 
 import (
 	"fmt"
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"log"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 )
 
 const (
@@ -47,7 +47,7 @@ func AwardXP(entity *ecs.Entity, stat string, amount int) {
 	incrementStat(entity, stat)
 	name := rlentity.GetName(entity)
 	log.Printf("[PROGRESSION] %s: %s increased to level %d", name, stat, sl.Level)
-	message.PostMessage(name, fmt.Sprintf("%s increased to %d!", stat, sl.Level))
+	chatter.Post(name, fmt.Sprintf("%s increased to %d!", stat, sl.Level))
 }
 
 func statPtr(prog *components.StatProgressionComponent, stat string) *components.StatLevel {

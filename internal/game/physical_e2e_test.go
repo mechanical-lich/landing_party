@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/research"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/workerai"
@@ -67,7 +68,8 @@ const (
 func newE2EColony(t *testing.T) *e2eColony {
 	t.Helper()
 	wm := shipTestWorld(t)
-	name := campaignColonyName(wm.Campaign)
+	name := wm.currentColonyName()
+	settlement.Settlements[name] = &settlement.Settlement{Name: name} // shipTestWorld's freeze took it out
 
 	lvl := world.NewLevel(e2eWidth, e2eHeight, 2)
 	lvl.AllocTerrain()
@@ -260,7 +262,7 @@ func TestE2E_TwoChestTwoTripCraft(t *testing.T) {
 	second := c.addChest(t, 12, 0, map[string]int{"biomass": 10})
 	benchX, benchY := e2eWidth-2, 2
 	tk := c.queueCraft(t, id, recipe, benchX, benchY)
-	colonists := countLevelColonists(c.ms.level)
+	colonists := countLevelColonists(c.ms.level, c.name)
 
 	var tallies []int
 	ticks := c.tickUntil(t, "craft completes", func() bool {
@@ -281,7 +283,7 @@ func TestE2E_TwoChestTwoTripCraft(t *testing.T) {
 	if got := craftDelivered(tk)["biomass"]; got != 25 {
 		t.Errorf("delivered %d, want 25", got)
 	}
-	if got := countLevelColonists(c.ms.level); got != colonists+1 {
+	if got := countLevelColonists(c.ms.level, c.name); got != colonists+1 {
 		t.Errorf("%d colonists, want the printed one added to %d", got, colonists)
 	}
 	if c.bagUnits("biomass") != 0 {
@@ -381,11 +383,10 @@ func TestE2E_SaveAndLoadMidGather(t *testing.T) {
 		t.Fatalf("chest holds %d at freeze, want 5", chest.CountResource("biomass"))
 	}
 
-	if err := c.wm.Freeze(c.ms); err != nil {
+	if err := c.wm.Freeze(c.wm.Campaign.CurrentLocation(), c.ms); err != nil {
 		t.Fatalf("freeze: %v", err)
 	}
 	c.ms.teardown()
-	c.wm.current = nil
 	if err := c.wm.EnterStartingOrbit(); err != nil {
 		t.Fatalf("thaw: %v", err)
 	}

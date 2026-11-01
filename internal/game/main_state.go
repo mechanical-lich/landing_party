@@ -91,6 +91,13 @@ type MainState struct {
 	// bounding the Visible clear (it no longer reads a copy off Level).
 	fovSystem        *systems.FOVSystem
 	gm               *GameMaster
+	// locationID is the campaign location this level belongs to, "" for The Ship.
+	locationID string
+	// pauseReason says who set Paused when it wasn't Space; see pauseIndicatorText.
+	pauseReason string
+	// scenario is this level's own scenario, set at generation or load; nil for
+	// levels without one (The Ship). Not scenario.Active, which follows the orbit.
+	scenario         *scenario.Scenario
 	selectedEntity   *ecs.Entity
 	Paused           bool
 	MainSettlement   *settlement.Settlement
@@ -208,17 +215,28 @@ func (s *MainState) registerListeners() {
 // structures, and research independently — the basis for background simulation.
 // Called once when the level is associated with the MainState; the level bus is
 // never torn down on park, so a parked planet keeps handling its own events.
-// Must run after s.level is set. (MessageListener stays global; the dead
-// TaskCompleted listener and listener-less EntityDied/ItemStored are omitted.)
+// Must run after s.level is set. (MessageListener stays global; the listener-less
+// EntityDied/ItemStored are omitted.)
 func (s *MainState) registerLevelListeners() {
 	if s.level == nil || s.level.Events == nil {
 		return
 	}
 	ev := s.level.Events
 	ev.RegisterListener(s, eventsystem.ResearchDone) // state: unlock tech
-	ev.RegisterListener(&listeners.KillListener{}, eventsystem.EntityKilled)
-	ev.RegisterListener(&listeners.StructureListener{}, eventsystem.StructureBuilt)
-	ev.RegisterListener(&listeners.ResearchListener{}, eventsystem.ResearchDone)
+	ev.RegisterListener(&listeners.KillListener{Post: s.present}, eventsystem.EntityKilled)
+	ev.RegisterListener(&listeners.StructureListener{Post: s.present}, eventsystem.StructureBuilt)
+	ev.RegisterListener(&listeners.ResearchListener{Post: s.present}, eventsystem.ResearchDone)
+	ev.RegisterListener(s, eventsystem.EntityDamaged) // away-planet alerts
+}
+
+// present shows a line from this level's simulation: in the message log if the level
+// is in view, as a notification if it's ticking in the background.
+func (s *MainState) present(line string) {
+	if s.wm != nil && s.level.Background {
+		s.wm.notify(s, line)
+		return
+	}
+	message.AddMessage(line)
 }
 
 func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
@@ -286,7 +304,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if entity.HasComponent(components.Drops) {
 				dropsC := entity.GetComponent(components.Drops).(*components.DropsComponent)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				killer := findAdjacentWorker(level, pc.GetX(), pc.GetY(), pc.GetZ())
+				killer := findAdjacentWorker(level, s.colonyName(), pc.GetX(), pc.GetY(), pc.GetZ())
 				isChoppable := entity.HasComponent(components.Choppable)
 				for _, drop := range dropsC.Items {
 					dropEntity, err := factory.Create(drop, pc.GetX(), pc.GetY(), pc.GetZ())
@@ -384,7 +402,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.level = level
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
-	s.mapModal = newMapModal(level)
+	s.mapModal = newMapModal(level, s.colonyName)
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(level, s.mapModal.mm)
@@ -409,7 +427,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	}
 	if len(scenario.AllEnabled()) > 0 {
 		if cfg.ScenarioID != "" {
-			_ = scenario.SelectByID(cfg.ScenarioID)
+			s.scenario = scenario.ByID(cfg.ScenarioID)
 		}
 		s.applyScenarioLighting(level)
 	}
@@ -423,6 +441,18 @@ func NewMainState(cfg SettlementConfig) (*MainState, error) {
 	}
 	s.newGame()
 	return s, nil
+}
+
+// colonyName is the settlement this level's own workers belong to: the location's
+// colony, or the ship's settlement on The Ship.
+func (s *MainState) colonyName() string {
+	if s.MainSettlement != nil {
+		return s.MainSettlement.Name
+	}
+	if s.settlementCfg.ColonyName != "" {
+		return s.settlementCfg.ColonyName
+	}
+	return s.settlementCfg.Name
 }
 
 // knownTechs returns the campaign's tech list if in campaign mode, else the settlement's.
@@ -468,14 +498,14 @@ func (s *MainState) unlockTech(key string) {
 	}
 }
 
-// findAdjacentWorker returns the first Worker entity within one tile of (x,y,z),
+// findAdjacentWorker returns the first colony worker within one tile of (x,y,z),
 // presumed to be the killer of a freshly-dead hostile. Returns nil if no
 // friendly worker is adjacent (drops will fall to the ground in that case).
-func findAdjacentWorker(level *world.Level, x, y, z int) *ecs.Entity {
+func findAdjacentWorker(level *world.Level, colony string, x, y, z int) *ecs.Entity {
 	for dx := -1; dx <= 1; dx++ {
 		for dy := -1; dy <= 1; dy++ {
 			for _, e := range level.Entities {
-				if !e.HasComponent(components.Worker) || e.HasComponent(rlcomponents.Dead) {
+				if !components.IsColonyWorker(e, colony) {
 					continue
 				}
 				pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
@@ -519,31 +549,26 @@ func (s *MainState) newGame() {
 
 	// Select a scenario compatible with the chosen map.
 	compatible := scenario.ForMap(mapID)
-	selected := false
+	var activeScenario *scenario.Scenario
 	if s.settlementCfg.ScenarioID != "" {
 		for i := range compatible {
 			if compatible[i].ID == s.settlementCfg.ScenarioID {
-				if err := scenario.SelectByID(s.settlementCfg.ScenarioID); err == nil {
-					selected = true
-				}
+				activeScenario = scenario.ByID(s.settlementCfg.ScenarioID)
 				break
 			}
 		}
-		if !selected {
+		if activeScenario == nil {
 			log.Printf("scenario %q not compatible with map %q, picking a compatible one",
 				s.settlementCfg.ScenarioID, mapID)
 		}
 	}
-	if !selected && len(compatible) > 0 {
-		_ = scenario.SelectByID(compatible[rand.Intn(len(compatible))].ID)
-		selected = true
+	if activeScenario == nil && len(compatible) > 0 {
+		activeScenario = scenario.ByID(compatible[rand.Intn(len(compatible))].ID)
 	}
-
-	var activeScenario *scenario.Scenario
-	if selected {
-		activeScenario = scenario.Active()
+	if activeScenario != nil {
 		s.settlementCfg.ScenarioID = activeScenario.ID
 	}
+	s.scenario = activeScenario
 
 	// md is always non-nil here (mapdef.Random() guarantees it above, and
 	// md.Size.Roll already dereferenced it). BuildWorld is the single terrain
@@ -591,7 +616,7 @@ func (s *MainState) newGame() {
 	s.level = level
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
-	s.mapModal = newMapModal(s.level)
+	s.mapModal = newMapModal(s.level, s.colonyName)
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
 	s.smallMap = newSmallMapWidget(s.level, s.mapModal.mm)
@@ -673,16 +698,14 @@ func (s *MainState) newGame() {
 }
 
 func (s *MainState) applyScenarioLighting(level *world.Level) {
-	// Player/config override wins. Otherwise fall back to the active scenario's
-	// lighting — but only if one is selected. The Ship is built at campaign
-	// start, before any location is entered, and supplies its own LightingMode.
+	// Player/config override wins. Otherwise fall back to this level's scenario,
+	// if it has one. The Ship has none and supplies its own LightingMode.
 	if s.settlementCfg.LightingMode != "" {
 		level.LightMode = s.settlementCfg.LightingMode
 		level.FixedAmbient = s.settlementCfg.LightingAmbient
-	} else if scenario.HasActive() {
-		sc := scenario.Active()
-		level.LightMode = sc.Lighting.Mode
-		level.FixedAmbient = sc.Lighting.AmbientLevel
+	} else if s.scenario != nil {
+		level.LightMode = s.scenario.Lighting.Mode
+		level.FixedAmbient = s.scenario.Lighting.AmbientLevel
 	}
 	if level.LightMode == "" {
 		level.LightMode = world.LightModedayNight
@@ -695,11 +718,26 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
 	audio.SetMusicState("field") // base state in-game; combat overrides it
-	s.handleInput()
+	if s.wm != nil {
+		s.adoptWorldPause()
+		if t := s.wm.updatePopup(); t != nil {
+			if s.rogueEntity != nil {
+				s.exitRogueMode()
+			}
+			s.teardown()
+			s.next = t
+			s.done = true
+			return s.next
+		}
+	}
+	if !s.incidentUp() {
+		s.handleInput()
+	}
 	s.guiManager.SetKnownTechs(s.knownTechs())
 	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible ||
 		(s.storageInspector != nil && s.storageInspector.Visible) ||
-		s.guiManager.ModalOpen("colonistModal"))
+		s.guiManager.ModalOpen("colonistModal") || s.incidentUp())
+	s.guiManager.SetPauseIndicator(s.pauseIndicatorText())
 	s.guiManager.Update()
 	// In Rogue mode the controlled colonist died or was lost — exit cleanly.
 	if s.rogueEntity != nil &&
@@ -744,7 +782,7 @@ func (s *MainState) Update() state.StateInterface {
 
 	// In Rogue mode the world is turn-based: it only advances when the player
 	// commits an action (see advancePlayerTurn). Otherwise it runs in real time.
-	if !s.Paused && s.rogueEntity == nil {
+	if !s.clockStopped() && s.rogueEntity == nil {
 		s.stepWorld()
 		// Advance The Ship (and other background levels) alongside the live one.
 		if s.wm != nil {
@@ -760,27 +798,77 @@ func (s *MainState) Update() state.StateInterface {
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
 		s.refreshHUD()
-		if !s.Paused {
+		if !s.clockStopped() {
 			s.evaluateQuests() // periodic catch-all; target kills resolve in stepWorld
 		}
 	}
 
-	if !s.Paused && s.tick%750 == 0 && s.tick > 0 {
-		if s.level != nil {
-			if s.level.LightMode == world.LightModedayNight {
-				s.level.NextHour()
-			} else {
-				// Still advance the day counter even without light changes
-				s.level.Day++
-			}
-			if s.level.Day != s.lastDay {
-				s.lastDay = s.level.Day
-				s.day = s.level.Day
-			}
-		}
+	if !s.clockStopped() {
+		s.advanceClock()
 	}
 
 	return s.next
+}
+
+// adoptWorldPause turns the world pause into this level's own, so the Space toggle
+// can release it. There is one clock: the pause follows the player between the
+// dashboard and levels (openDashboard hands it back).
+func (s *MainState) adoptWorldPause() {
+	if s.wm.paused {
+		s.wm.paused = false
+		s.Paused = true
+		s.pauseReason = s.wm.pauseReason
+		s.wm.pauseReason = ""
+	}
+}
+
+// incidentUp reports whether the incident popup holds the screen.
+func (s *MainState) incidentUp() bool {
+	return s.wm != nil && s.wm.ActiveIncident() != nil
+}
+
+// clockStopped reports whether the world stands still on this level: paused by the
+// player here, or the whole world clock stopped.
+func (s *MainState) clockStopped() bool {
+	return s.Paused || (s.wm != nil && s.wm.ClockStopped())
+}
+
+// pauseIndicatorText is the HUD marker for a stopped clock, "" while it runs. It
+// follows clockStopped, so every cause of a stop shows.
+func (s *MainState) pauseIndicatorText() string {
+	switch {
+	case !s.clockStopped():
+		return ""
+	case s.incidentUp():
+		return "PAUSED - incident"
+	case s.wm != nil && s.wm.paused:
+		return pauseText(s.wm.pauseReason)
+	}
+	return pauseText(s.pauseReason)
+}
+
+func pauseText(reason string) string {
+	if reason == "" {
+		return "PAUSED"
+	}
+	return "PAUSED - " + reason
+}
+
+// advanceClock moves this level's hour and day on, every 750 ticks.
+func (s *MainState) advanceClock() {
+	if s.tick%750 != 0 || s.tick == 0 || s.level == nil {
+		return
+	}
+	if s.level.LightMode == world.LightModedayNight {
+		s.level.NextHour()
+	} else {
+		// Still advance the day counter even without light changes
+		s.level.Day++
+	}
+	if s.level.Day != s.lastDay {
+		s.lastDay = s.level.Day
+		s.day = s.level.Day
+	}
 }
 
 func (s *MainState) Draw(screen *ebiten.Image) {
@@ -811,11 +899,20 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	if s.storageInspector != nil {
 		s.storageInspector.Draw(screen)
 	}
+	if s.wm != nil {
+		s.wm.drawPopup(screen)
+	}
 }
 
 func (s *MainState) Done() bool { return s.done }
 
 func (s *MainState) HandleEvent(e event.EventData) error {
+	if s.incidentUp() {
+		switch e.(type) {
+		case input.MouseClickEvent, input.KeyPressEvent, input.MouseWheelEvent:
+			return nil // the popup has the input
+		}
+	}
 	switch ev := e.(type) {
 	case input.MouseClickEvent:
 		s.handleMouseClick(ev)
@@ -857,6 +954,10 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.teardown()
 			s.next = NewTitleState()
 			s.done = true
+		}
+	case eventsystem.EntityDamagedEvent:
+		if s.wm != nil && s.level.Background {
+			s.wm.noteAwayDamage(s, ev)
 		}
 	case gui.SaveGameEvent:
 		if s.wm != nil {
@@ -1184,7 +1285,7 @@ func (s *MainState) equipItem(colonist *ecs.Entity, blueprint string) {
 }
 
 func (s *MainState) addEquipTask(colonist *ecs.Entity, blueprint string) {
-	if colonist == nil || !colonist.HasComponent(components.Worker) {
+	if !components.IsColonyWorker(colonist, s.colonyName()) {
 		return
 	}
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1200,7 +1301,7 @@ func (s *MainState) addEquipTask(colonist *ecs.Entity, blueprint string) {
 }
 
 func (s *MainState) addUnequipTask(colonist *ecs.Entity, slot string) {
-	if colonist == nil || !colonist.HasComponent(components.Worker) {
+	if !components.IsColonyWorker(colonist, s.colonyName()) {
 		return
 	}
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1216,7 +1317,7 @@ func (s *MainState) addUnequipTask(colonist *ecs.Entity, slot string) {
 }
 
 func (s *MainState) applySelfDefend(colonist *ecs.Entity, enabled bool) {
-	if colonist == nil || !colonist.HasComponent(components.Worker) {
+	if !components.IsColonyWorker(colonist, s.colonyName()) {
 		return
 	}
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1224,7 +1325,7 @@ func (s *MainState) applySelfDefend(colonist *ecs.Entity, enabled bool) {
 }
 
 func (s *MainState) applyTaskFilter(colonist *ecs.Entity, action string, enabled bool) {
-	if colonist == nil || !colonist.HasComponent(components.Worker) {
+	if !components.IsColonyWorker(colonist, s.colonyName()) {
 		return
 	}
 	wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1374,6 +1475,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		s.Paused = !s.Paused
+		s.pauseReason = ""
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && s.camera.Z > 0 {
 		s.camera.Z--
@@ -1415,7 +1517,7 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 // beamUpSelected sends the currently selected colonist up to the ship roster.
 func (s *MainState) beamUpSelected() {
 	e := s.selectedEntity
-	if e == nil || !e.HasComponent(components.Worker) {
+	if !components.IsColonyWorker(e, s.colonyName()) {
 		message.PostMessage("Ship", "Select a colonist to beam up.")
 		return
 	}
@@ -1449,10 +1551,11 @@ func (s *MainState) openDashboard() {
 		return
 	}
 	s.teardown()
-	// The ship parks back into its own slot; only a location updates `current`
-	// (the orbited planet), so leaving the ship must not clobber it.
-	if s != s.wm.shipLevel {
-		s.wm.current = s
+	if s.Paused {
+		s.Paused = false
+		s.wm.paused = true
+		s.wm.pauseReason = s.pauseReason
+		s.pauseReason = ""
 	}
 	s.next = NewDashboardState(s.campaign, s.wm)
 	s.done = true
@@ -1586,7 +1689,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 						event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
 					} else if ent.HasComponent(components.ResearchBuilding) {
 						event.GetQueuedInstance().QueueEvent(gui.ResearchStationClickedEvent{Station: ent})
-					} else if ent.HasComponent(components.Worker) {
+					} else if components.IsColonyWorker(ent, s.colonyName()) {
 						event.GetQueuedInstance().QueueEvent(gui.ColonistSelectedEvent{Entity: ent})
 					} else if ent.HasComponent(components.Storage) && s.storageInspector != nil {
 						s.storageInspector.Open(ent)
@@ -1638,7 +1741,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				target := s.level.GetEntityAt(tX, tY, s.camera.Z)
 				if components.IsAttackTarget(target) {
 					for _, colonist := range s.level.Entities {
-						if colonist.HasComponent(components.Worker) && !colonist.HasComponent(rlcomponents.Dead) {
+						if components.IsColonyWorker(colonist, s.colonyName()) {
 							wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
 							if wc.CurrentTask == nil || wc.CurrentTask.Completed {
 								s.MainSettlement.Tasks.AddTask(&task.Task{
@@ -1746,7 +1849,7 @@ func (s *MainState) addSleepTask(x, y int) {
 		}
 	}
 	for _, colonist := range s.level.Entities {
-		if !colonist.HasComponent(components.Worker) {
+		if !components.IsColonyWorker(colonist, s.colonyName()) {
 			continue
 		}
 		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1762,14 +1865,7 @@ func (s *MainState) addSleepTask(x, y int) {
 	var bestWorker *ecs.Entity
 	var bestHealth int
 	for _, colonist := range s.level.Entities {
-		if !colonist.HasComponents(components.Worker, components.Settlement, rlcomponents.Health) {
-			continue
-		}
-		if colonist.HasComponent(rlcomponents.Dead) {
-			continue
-		}
-		csc := colonist.GetComponent(components.Settlement).(*components.SettlementComponent)
-		if csc.Name != s.MainSettlement.Name {
+		if !components.IsColonyWorker(colonist, s.colonyName()) || !colonist.HasComponent(rlcomponents.Health) {
 			continue
 		}
 		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -2040,7 +2136,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			s.guiManager.SetDefaultContext("Sleep: "+name, "Order the most wounded idle colonist to rest here.", entity.Blueprint)
 			return
 		}
-		if entity.HasComponent(components.Worker) {
+		if components.IsColonyWorker(entity, s.colonyName()) {
 			name := "Colonist"
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
@@ -2079,6 +2175,32 @@ func (s *MainState) refreshSaveNames() {
 	s.guiManager.SetSaveNames(names)
 }
 
+// populationEntries lists this level's colony workers for the population tab.
+func (s *MainState) populationEntries() []gui.PopulationEntry {
+	var entries []gui.PopulationEntry
+	for _, entity := range s.level.Entities {
+		if !components.IsColonyWorker(entity, s.colonyName()) {
+			continue
+		}
+		dc := entity.GetComponent(rlcomponents.Description)
+		name := "?"
+		if dc != nil {
+			name = dc.(*rlcomponents.DescriptionComponent).Name
+		}
+		state := "idle"
+		taskName := ""
+		if aiRaw := entity.GetComponent(rlcomponents.AIMemory); aiRaw != nil {
+			state = string(aiRaw.(*rlcomponents.AIMemoryComponent).State)
+		}
+		wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+		if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+			taskName = string(wc.CurrentTask.Action)
+		}
+		entries = append(entries, gui.PopulationEntry{Name: name, State: state, Task: taskName, Entity: entity})
+	}
+	return entries
+}
+
 func (s *MainState) refreshHUD() {
 	if s.MainSettlement == nil {
 		return
@@ -2087,7 +2209,6 @@ func (s *MainState) refreshHUD() {
 	// Count resources held in on-site storage only. Ship hold is separate and
 	// managed via the Star Map beam interface.
 	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0, "biomass": 0}
-	var popEntries []gui.PopulationEntry
 	for _, entity := range s.level.Entities {
 		if entity.HasComponent(components.Storage) {
 			st := entity.GetComponent(components.Storage).(*components.StorageComponent)
@@ -2105,29 +2226,12 @@ func (s *MainState) refreshHUD() {
 				}
 			}
 		}
-		if entity.HasComponent(components.Worker) {
-			dc := entity.GetComponent(rlcomponents.Description)
-			name := "?"
-			if dc != nil {
-				name = dc.(*rlcomponents.DescriptionComponent).Name
-			}
-			state := "idle"
-			taskName := ""
-			if aiRaw := entity.GetComponent(rlcomponents.AIMemory); aiRaw != nil {
-				state = string(aiRaw.(*rlcomponents.AIMemoryComponent).State)
-			}
-			wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
-			if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
-				taskName = string(wc.CurrentTask.Action)
-			}
-			popEntries = append(popEntries, gui.PopulationEntry{Name: name, State: state, Task: taskName, Entity: entity})
-		}
 	}
 
 	for id, count := range resources {
 		s.guiManager.UpdateResource(id, count)
 	}
-	s.guiManager.RefreshPopulationTab(popEntries)
+	s.guiManager.RefreshPopulationTab(s.populationEntries())
 
 	// The save list only changes when the player saves — don't hit disk every
 	// refreshHUD (~2×/sec). Load once, then only when a save marks it dirty.
@@ -2238,7 +2342,7 @@ func (s *MainState) buildEvalContext() objective.EvalContext {
 		if e == nil || e.HasComponent(rlcomponents.Dead) {
 			return
 		}
-		if e.HasComponent(components.Worker) {
+		if components.IsColonyWorker(e, s.colonyName()) {
 			colonistPop++
 		}
 		if e.Blueprint != "" {
@@ -2294,7 +2398,7 @@ func (s *MainState) collectDatapads() {
 	// Tiles occupied by living colony colonists.
 	occupied := map[[3]int]bool{}
 	for _, e := range s.level.Entities {
-		if e == nil || e.HasComponent(rlcomponents.Dead) || !e.HasComponent(components.Worker) {
+		if !components.IsColonyWorker(e, s.colonyName()) {
 			continue
 		}
 		if !e.HasComponent(rlcomponents.Position) {
@@ -2354,20 +2458,7 @@ func (s *MainState) checkTotalWipe() {
 	if c == nil || c.Lost || c.Won {
 		return
 	}
-	stored := c.StoredColonists()
-	if cur := c.CurrentLocation(); cur != nil {
-		stored -= cur.Colonists // replace this location's stale tally with live
-	}
-	if stored < 0 {
-		stored = 0
-	}
-	// The ship crew lives on the ship level. Count it here, but avoid
-	// double-counting when the ship itself is the live level.
-	shipCrew := 0
-	if s.wm != nil && s.level != s.wm.ShipLevel() {
-		shipCrew = len(s.wm.ShipColonists())
-	}
-	if stored+countLevelColonists(s.level)+shipCrew > 0 {
+	if s.wm == nil || s.wm.TotalColonists() > 0 {
 		return
 	}
 	c.Lost = true

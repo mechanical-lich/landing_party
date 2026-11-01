@@ -2,6 +2,7 @@ package workerai
 
 import (
 	"fmt"
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"log"
 	"sort"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
 )
@@ -411,13 +411,13 @@ func depositDirectedDropOff(level *world.Level, entity *ecs.Entity, wc *componen
 		}
 		if item.HasComponent(rlcomponents.Description) {
 			dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
-			message.PostMessage(rlentity.GetName(entity), "Deployed "+dc.Name+".")
+			chatter.Post(rlentity.GetName(entity), "Deployed "+dc.Name+".")
 		}
 		return
 	}
 	if item.HasComponent(rlcomponents.Description) {
 		dc := item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
-		message.PostMessage(rlentity.GetName(entity), "Dropped "+dc.Name+".")
+		chatter.Post(rlentity.GetName(entity), "Dropped "+dc.Name+".")
 	}
 }
 
@@ -472,7 +472,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		// Hand the task back and store the bag; haul empties it, then goes idle.
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
-		message.PostMessage(rlentity.GetName(entity), "Bag too full to fetch materials")
+		chatter.Post(rlentity.GetName(entity), "Bag too full to fetch materials")
 		leave("haul")
 		return
 	}
@@ -490,7 +490,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		}
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
-		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to "+cost.Verb+" "+cost.Name)
+		chatter.Post(rlentity.GetName(entity), "Insufficient materials to "+cost.Verb+" "+cost.Name)
 		leave("idle")
 		return
 	}
@@ -625,9 +625,9 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 				// target pick and arrival. Drop where we stand rather than
 				// looping.
 				dropBagOnTile(level, inv, pc.GetX(), pc.GetY(), pc.GetZ())
-				message.PostMessage(rlentity.GetName(entity), "Dropped load (rejected)")
+				chatter.Post(rlentity.GetName(entity), "Dropped load (rejected)")
 			} else {
-				message.PostMessage(rlentity.GetName(entity), "Stored items")
+				chatter.Post(rlentity.GetName(entity), "Stored items")
 			}
 			aiMemory.State = "idle"
 		}
@@ -657,7 +657,7 @@ func HandleHaulState(level *world.Level, entity *ecs.Entity) {
 			if e.HasComponent(rlcomponents.Item) && e.HasComponent(rlcomponents.Position) {
 				inv.AddItem(e)
 				level.RemoveEntity(e)
-				message.PostMessage(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", e.Blueprint))
+				chatter.Post(rlentity.GetName(entity), fmt.Sprintf("Picked up %s", e.Blueprint))
 				picked = true
 			}
 		}
@@ -714,7 +714,7 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 				nc.Eat(foodC.Amount)
 			}
 			inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
-			message.PostMessage(rlentity.GetName(entity), "Ate "+item.Blueprint)
+			chatter.Post(rlentity.GetName(entity), "Ate "+item.Blueprint)
 			aiMemory.TargetX = -1
 			aiMemory.TargetY = -1
 			aiMemory.State = "idle"
@@ -754,7 +754,7 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 					nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
 					nc.Eat(foodC.Amount)
 				}
-				message.PostMessage(rlentity.GetName(entity), "Ate "+foodEntity.Blueprint)
+				chatter.Post(rlentity.GetName(entity), "Ate "+foodEntity.Blueprint)
 				aiMemory.TargetX = -1
 				aiMemory.TargetY = -1
 				aiMemory.State = "idle"
@@ -806,7 +806,7 @@ func HandleFindBedroll(level *world.Level, entity *ecs.Entity) {
 			if bag := storageC.TakeOne("sleeping_bag"); bag != nil && entity.HasComponent(rlcomponents.Inventory) {
 				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 				inv.AddItem(bag)
-				message.PostMessage(rlentity.GetName(entity), "Grabbed a sleeping bag")
+				chatter.Post(rlentity.GetName(entity), "Grabbed a sleeping bag")
 			}
 			break
 		}

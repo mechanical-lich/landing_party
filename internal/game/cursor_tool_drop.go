@@ -27,7 +27,7 @@ func (t *dropTool) Request(colonist, item *ecs.Entity) {
 	if colonist == nil || item == nil {
 		return
 	}
-	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
+	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !components.IsColonyWorker(colonist, t.host.colonyName()) {
 		return
 	}
 	t.colonist = colonist
@@ -66,7 +66,7 @@ func (t *dropTool) Click(tX, tY, tZ int) {
 	// what to drop" — same gesture used by the Orders → Drop entry point.
 	if t.item == nil || t.colonist == nil {
 		ent := t.host.Level().GetEntityAt(tX, tY, tZ)
-		if ent != nil && ent.HasComponent(components.Worker) && ent.HasComponent(rlcomponents.Inventory) {
+		if components.IsColonyWorker(ent, t.host.colonyName()) && ent.HasComponent(rlcomponents.Inventory) {
 			inv := ent.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 			if len(inv.Bag) == 0 {
 				message.AddMessage(entityDisplayLabel(ent) + " isn't carrying anything.")

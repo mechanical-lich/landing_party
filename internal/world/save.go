@@ -393,7 +393,10 @@ func EntityToSaveEntity(entity *ecs.Entity) *SaveEntity {
 	return se
 }
 
-func SaveLevel(level *Level) SaveData {
+// SaveLevel snapshots a level along with the named settlements, the only ones its
+// save carries. Settlements absent from the global map are skipped. A save holding
+// another level's settlement would overwrite it with a stale copy on load.
+func SaveLevel(level *Level, settlementNames ...string) SaveData {
 	saveEntities := make([]*SaveEntity, 0, len(level.Entities))
 	for _, entity := range level.Entities {
 		saveEntities = append(saveEntities, EntityToSaveEntity(entity))
@@ -418,6 +421,13 @@ func SaveLevel(level *Level) SaveData {
 		}
 	}
 
+	settlements := make(map[string]*settlement.Settlement, len(settlementNames))
+	for _, name := range settlementNames {
+		if s, ok := settlement.Settlements[name]; ok {
+			settlements[name] = s
+		}
+	}
+
 	return SaveData{
 		Version:        SaveVersion,
 		FloorRuns:      encodeFloorRuns(level.Data),
@@ -425,7 +435,7 @@ func SaveLevel(level *Level) SaveData {
 		TileCatalog:    catalog,
 		Entities:       saveEntities,
 		StaticEntities: staticSaveEntities,
-		Settlements:    settlement.Settlements,
+		Settlements:    settlements,
 		MapSizeW:       level.GetWidth(),
 		MapSizeH:       level.GetHeight(),
 		MapSizeZ:       level.GetDepth(),
@@ -511,8 +521,7 @@ func LoadSaveData(data SaveData) *Level {
 	}
 
 	// Merge rather than replace: settlements of other loaded levels aren't this
-	// save's to drop. A save's entries do win, including stale snapshots of other
-	// levels' settlements — see WorldManager.pinShipSettlement.
+	// save's to drop. A save only carries its own level's (see SaveLevel).
 	for name, s := range data.Settlements {
 		settlement.Settlements[name] = s
 	}

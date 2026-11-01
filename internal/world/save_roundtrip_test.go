@@ -112,6 +112,23 @@ func TestLoadMergesSettlements(t *testing.T) {
 	settlement.Settlements["New"] = &settlement.Settlement{Name: "New"}
 }
 
+// TestSaveCarriesOnlyNamedSettlements: a level's save holds its own settlements and
+// nothing else in the global map.
+func TestSaveCarriesOnlyNamedSettlements(t *testing.T) {
+	prev := settlement.Settlements
+	defer func() { settlement.Settlements = prev }()
+
+	mine := &settlement.Settlement{Name: "Mine"}
+	settlement.Settlements = map[string]*settlement.Settlement{
+		"Mine":  mine,
+		"Other": {Name: "Other"},
+	}
+	data := SaveLevel(NewLevel(2, 2, 1), "Mine", "Absent")
+	if len(data.Settlements) != 1 || data.Settlements["Mine"] != mine {
+		t.Errorf("save carries %v, want only Mine", data.Settlements)
+	}
+}
+
 // TestLoadClearsWorkerCurrentTask: a saved CurrentTask decodes with an untyped Data
 // the handlers reject, which would leave the worker stuck on it.
 func TestLoadClearsWorkerCurrentTask(t *testing.T) {

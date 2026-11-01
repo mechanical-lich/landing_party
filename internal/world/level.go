@@ -101,6 +101,11 @@ type Level struct {
 	// Maps tag → list of (x,y,z) anchor points.
 	Regions map[string][][3]int
 
+	// Background is true while this level ticks as a background level. Anything
+	// that presents to the player (effects, music) must skip it: those are global
+	// and belong to the level in view.
+	Background bool
+
 	// Events is this level's own simulation event bus. Each planet fires and
 	// consumes its own sim events (deaths, structures, research, etc.) here so
 	// background planets don't cross-contaminate the live one. UI/input events

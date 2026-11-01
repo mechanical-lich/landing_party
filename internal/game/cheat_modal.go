@@ -270,14 +270,7 @@ func (cm *CheatModal) runCommand(raw string) {
 		if item.HasComponent(components.Material) {
 			item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = amount
 		}
-		// Find the player's settlement name from any colonist on the level.
-		settlementName := ""
-		for _, e := range cm.ms.level.Entities {
-			if e.HasComponent(components.Settlement) && e.HasComponent(components.Worker) {
-				settlementName = e.GetComponent(components.Settlement).(*components.SettlementComponent).Name
-				break
-			}
-		}
+		settlementName := cm.ms.colonyName()
 		// Deposit into the first storage container owned by the player's settlement.
 		for _, e := range cm.ms.level.Entities {
 			if !e.HasComponent(components.Storage) {

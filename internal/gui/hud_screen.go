@@ -73,6 +73,8 @@ type HUDScreen struct {
 	populationPanel  *minui.Panel
 	populationHeader *minui.Label
 	rogueExitButton  *minui.Button
+	pausePanel       *minui.Panel
+	pauseLabel       *minui.Label
 	populationItems  []*minui.MenuItem
 	populationCtrl   []*minui.MenuItem
 	lastPopEntries   []PopulationEntry
@@ -233,6 +235,33 @@ func (h *HUDScreen) setupHUDElements() {
 	}
 	h.rogueExitButton.SetVisible(false)
 	h.uiGUI.AddElement(h.rogueExitButton)
+
+	// Bottom centre, in the free band below the tallest modal (colonist, ending at
+	// y=680) and above the rogue exit button, left of the message log.
+	const pauseW, pauseH = 200, 32
+	h.pausePanel = minui.NewPanel("pauseIndicator")
+	h.pausePanel.SetBounds(minui.Rect{X: sw/2 - pauseW/2, Y: sh - 106, Width: pauseW, Height: pauseH})
+	h.pauseLabel = minui.NewLabelWithColor("pauseLabel", "", color.RGBA{255, 210, 90, 255})
+	h.pauseLabel.SetPosition(10, 6)
+	// The panel re-lays the label out every frame from a per-character width
+	// estimate that undershoots the real glyphs, clipping it to "PAUS…". Pinning
+	// the style width is what Layout honours (as the task-filter toggles do).
+	pauseLabelW := pauseW - 20
+	h.pauseLabel.GetStyle().Width = &pauseLabelW
+	h.pausePanel.AddChild(h.pauseLabel)
+	h.pausePanel.SetVisible(false)
+	h.uiGUI.AddElement(h.pausePanel)
+}
+
+// SetPauseIndicator shows the marker with the given text, or hides it if empty.
+func (h *HUDScreen) SetPauseIndicator(text string) {
+	h.pauseLabel.Text = text
+	h.pausePanel.SetVisible(text != "")
+}
+
+// PauseIndicator reports whether the marker is showing, and its text.
+func (h *HUDScreen) PauseIndicator() (bool, string) {
+	return h.pausePanel.IsVisible(), h.pauseLabel.Text
 }
 
 // SetSidebarVisible shows or hides the left build/population/goals sidebar.

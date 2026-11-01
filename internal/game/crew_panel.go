@@ -50,7 +50,7 @@ func (p *crewPanel) refresh() {
 		labels = append(labels, entityDisplayName(e)+"  · Ship")
 	}
 	siteName := "Planetside"
-	if loc := p.campaign.CurrentLocation(); loc != nil && p.wm.current != nil {
+	if loc := p.campaign.CurrentLocation(); loc != nil && p.wm.Current() != nil {
 		siteName = loc.Name
 	}
 	for _, e := range p.wm.PlanetColonists() {
@@ -99,7 +99,7 @@ func (p *crewPanel) Draw(screen *ebiten.Image) {
 	loc := "Aboard the Ship"
 	if !cm.onShip {
 		loc = "Planetside"
-		if l := p.campaign.CurrentLocation(); l != nil && p.wm.current != nil {
+		if l := p.campaign.CurrentLocation(); l != nil && p.wm.Current() != nil {
 			loc = "On " + l.Name
 		}
 	}

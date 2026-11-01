@@ -1,7 +1,7 @@
 package systems
 
 import (
-	"github.com/mechanical-lich/landing_party/internal/audio"
+	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/landing_party/internal/workerai"
@@ -91,10 +91,7 @@ func (s *FactionAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.E
 			level.GetEntitiesAt(pc.GetX()+dx, pc.GetY()+dy, pc.GetZ(), &s.entitiesBuf)
 			for _, e := range s.entitiesBuf {
 				if e != entity && e.HasComponent(rlcomponents.Health) && !rlcombat.IsFriendly(entity, e) {
-					rlcombat.Hit(level, entity, e, true)
-					if e.HasComponent(components.Worker) {
-						audio.NotifyCombat() // a colonist is under attack
-					}
+					combat.Hit(level, entity, e, true)
 					hit = true
 				}
 			}

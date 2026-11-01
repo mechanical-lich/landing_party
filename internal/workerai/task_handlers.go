@@ -1,6 +1,7 @@
 package workerai
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"log"
 	"time"
 
@@ -18,11 +19,9 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlai"
-	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcombat"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/mechanical-lich/mlge/utility"
 )
@@ -54,7 +53,7 @@ func CompleteTaskWithMessage(entity *ecs.Entity, t *task.Task, msg string) {
 	t.Complete()
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 	wc.CurrentTask = nil
-	message.PostMessage(rlentity.GetName(entity), msg)
+	chatter.Post(rlentity.GetName(entity), msg)
 }
 
 // clearTileRadiation zeros a tile's runtime radiation level. Called after a
@@ -816,7 +815,7 @@ func handleAttackTask(level *world.Level, entity *ecs.Entity, wc *components.Wor
 
 	// Melee fallback
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), targetPC.GetX(), targetPC.GetY(), targetPC.GetZ(), 1, 1, 0) {
-		rlcombat.Hit(level, entity, target, true)
+		combat.Hit(level, entity, target, true)
 		rlentity.Face(entity, targetPC.GetX()-pc.GetX(), targetPC.GetY()-pc.GetY())
 		if target.HasComponent(rlcomponents.Dead) {
 			level.QueueEvent(eventsystem.EntityKilledEvent{

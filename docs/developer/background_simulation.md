@@ -7,13 +7,12 @@ intervene) when a colonist there comes under attack.
 Status (revised 2026-10-31):
 
 - **Phase 1 complete** (`43a9f67` — per-level event bus).
-- **Phase 2 Part A complete** (`2231c47`, 2026-06-30 — `stepBackground` and
-  the logic-only `bgSystemManager`, built for The Ship and ticking it today).
-- **Phase 2 Parts B0–D, Phase 3, Phase 4: designed, not built.** Part B0 is
-  new in this revision: an audit against the code found two process-global
-  singletons (the active scenario and the name-keyed settlement map) that
-  the original Part B did not account for and that would break as soon as a
-  second planet is loaded. See Part B0.
+- **Phase 2 complete** (Parts A, B0, B, C, D): staffed planets stay loaded and tick
+  on a budget, with a Star Map pause.
+- **Phase 3 complete**: Pause / Travel / Ignore popup and dashboard notifications.
+- **Phase 4 complete**, apart from the items under "Open follow-ups".
+- **Covered by headless tests only.** None of the UI (Star Map button, popup,
+  notifications) nor a long multi-planet session has been played by eye.
 
 The per-level event bus is the reusable foundation: each planet already
 fires/consumes its own sim events in isolation, which is what lets multiple
@@ -112,7 +111,7 @@ design:
 
 ## Phase 2 — background scheduler
 
-Order: **A (done) → B0 → B → C (+ the damage event) → D.**
+Order: A → B0 → B → C (+ the damage event) → D. All built.
 
 ### Part A — the background-tick path (`stepBackground`) — BUILT
 
@@ -121,9 +120,15 @@ Implemented in `MainState.stepBackground`
 dual-registration in `newMainStateBase`
 ([main_state.go](../../internal/game/main_state.go)). `WorldManager.TickBackground`
 calls it for The Ship every frame from both the live level and the dashboard,
-honouring `wm.paused`. **Gap:** there is no headless test for it, although it
-is testable headless; add one before Part B so the WorldManager refactor has a
-regression guard. The original design notes follow for reference.
+honouring `wm.paused`. `TestStepBackgroundAdvancesParkedLevel` is the regression
+guard.
+
+**Deviation from decision #5:** `FOVSystem` stays on the background stack, because
+`findBed` reads `level.Visible`, so a background colonist needs FOV to find a bed.
+Only `LightingSystem` and `EmoteSystem` are skipped. The notes below saying FOV is
+skipped are out of date. `stepBackground` also advances the level's clock and purges
+completed tasks, and sets `level.Background`, which makes combat skip its global
+effects and music. The original design notes follow for reference.
 
 A trimmed copy of `MainState.stepWorld` ([rogue.go](../../internal/game/rogue.go))
 that runs the logic/AI stack but skips the player-view systems. From auditing
@@ -160,88 +165,80 @@ addRender := func(sys) { s.systemManager.AddSystem(sys) }   // live only
 Part A is self-contained and unit-testable headless (assert a level advances —
 needs drain, AI acts, hostiles spawn — without any rendering system running).
 
-### Part B0 — de-globalise what a second loaded planet would share
+### Part B0 — de-globalise what a second loaded planet would share — BUILT
 
-Found by auditing Part B against the code. Both are small, both are
-prerequisites, and neither is mentioned in the original plan.
+Four process-global assumptions that a second loaded planet, or an enemy faction
+with `Worker` entities, would have broken. Nothing here changes gameplay, apart
+from the save bug noted under item 3. Tests are in `internal/game/b0_*_test.go`.
 
-**1. The active scenario is a process global.** `scenario.Active()` is the
-*orbited* location's scenario, and `GameMaster.Update`
-([gm.go](../../internal/game/gm.go)) reads it for `HostileMax` and spawn rules.
-A background planet would therefore spawn the orbited planet's hostiles at the
-orbited planet's cap. The Ship dodges this with `suppressSpawns`; planets
-cannot. [the_ship.md](the_ship.md) chose to keep the scenario global so a
-location's scenario can affect the ship — that still works if the *ship* reads
-the orbited scenario explicitly, but each planet must read its own.
+**1. Per-level scenario.** `MainState.scenario` is set at generation or load, and
+`GameMaster.Update(sc)` and `applyScenarioLighting` read it. It lives on
+`MainState`, not `world.Level`, because `scenario` imports `world`.
+`scenario.Active()` remains the orbited scenario and only
+`WorldManager.buildParked` moves it; constructing a `MainState` no longer does.
+Deviation: nothing in production reads `Active()` today. The Star Map uses
+`scenario.ByID` for a location's own scenario, and the ship has no scenario and
+sets its own lighting. It stays for the planned `ship_effects` hook
+([the_ship.md](the_ship.md)).
 
-Fix: give each `MainState` (or `world.Level`) its own `*scenario.Scenario`,
-set at generation/load, and make `GameMaster` and the other two
-`scenario.Active()` readers take it from there. `scenario.Active()` remains
-the "orbited" scenario for the Star Map and the ship.
+**2. Per-location settlement name.** A location's colony is
+`"<colony> @ <location name>"`, recorded as `Location.SettlementName` when its
+level is first built (`locationColonyName`). Beam-down tags colonists for the
+destination planet. Location names are already unique within a campaign.
 
-**2. Settlements are a global map keyed by name, and every planet's colony
-has the same name.** `settlement.Settlements[name]` is read at eight sites
-(worker task pick, task queues, storage ownership); `campaignColonyName`
-returns `"<campaign> Colony"` for every location. Two loaded planets would
-share one task queue and one storage owner. The ship already hit exactly
-this and was fixed with a distinct `"<colony> Ship"` name.
+**Save compatibility: old campaigns break, on purpose.** There is no migration.
+`LoadCampaign` refuses a campaign that has a frozen location without a
+`SettlementName`, and the title screen shows the error. Loading one would tag
+everything on the planet with the old shared name, so its workers would find no
+settlement and sit idle. A campaign that never froze a location still loads.
 
-Fix (mirror the ship): a per-location settlement name, e.g.
-`"<colony> @ <location name>"`, assigned at generation and recorded on the
-`Location`. Beam-down/up already re-tags colonists between ship and colony
-(`tagColonistSettlement`); extend that to the destination planet's name.
-**Save/load is not scoped either:** `world.SaveLevel` embeds the *entire*
-global map, and `LoadSaveData` ([save.go](../../internal/world/save.go)) used to
-**replace** it. This was assumed survivable because the ship "re-registers
-itself", but tracing it showed a live bug: `ensureShipSettlement` only runs in
-`buildShip`, *before* any location thaw. Thawing a location afterwards swapped
-the ship's map entry for a decoded copy from the location's snapshot, while the
-ship's `MainSettlement` kept pointing at the old object, so player orders went
-to a queue workers never read. It hit every campaign load (`buildShip` then
-`EnterStartingOrbit`) and every return to a visited planet.
+**3. Scoped save/load.** `world.SaveLevel(level, settlementNames...)` carries only
+the named settlements. A location save holds its colony plus any
+`"<faction>:<locID>"` settlements (`locationSettlements`); the ship's save holds
+only the ship's. `Freeze` also removes the location's settlements from the global
+map, and `LoadSaveData` merges what the save carries, so `pinShipSettlement` is
+gone. Task queues persist as before
+([persist.go](../../internal/settlement/persist.go)).
 
-Fixed, with a regression guard in
-[ship_settlement_test.go](../../internal/game/ship_settlement_test.go):
-`LoadSaveData` now **merges** into the global map, and `buildParked` calls
-`WorldManager.pinShipSettlement` after a thaw to restore the live ship entry.
-The pin is needed because saves are still unscoped: a merge alone still
-overwrites the ship with the snapshot's stale copy. Multiple loaded planets
-have the same problem, so Part B0 must still make a location save carry only
-its own settlement(s) (the "scoped save/load" the original campaign plan called
-for in its Step 5 but which was never built), and can then drop the pin.
+Two consequences:
 
-Task queues now persist with the settlement
-([persist.go](../../internal/settlement/persist.go)), because
-`task.TaskScheduler` hides its tasks from encoding/json. Tasks restore with
-their typed `Data` and in-progress ones return to the queue, while
-`LoadSaveData` clears each worker's `CurrentTask` so workers pick them back up.
-Tasks bound to a live entity (attack, pickup, retrieve, relocate, entity mining)
-are **not** saved, since entities have no stable ID to re-link by, and tasks
-assigned directly to a worker without being queued (equip, unequip, needs-driven
-rest) end on load. Stale snapshots now matter more: every save carries every
-settlement's queue, which is another reason to scope saves.
+- `SaveCampaign` keeps playing, so it uses `writeLocation`, which is `Freeze`
+  without the removal.
+- Saving from aboard the ship used to write the ship level into the orbited
+  location's file, destroying that planet's save. `SaveCampaign` now writes the
+  orbited location instead. This is the one behaviour change in B0.
 
-**4. "Has a `Worker`" is not "is a player colonist."** `countLevelColonists`
-(the total-wipe loss check), the beam lists, the population UI and the
-cursor tools all test `HasComponent(Worker)` alone. The enemy factions plan
-(`docs/brainstorm/enemy_factions_plan.md`, finding 1) will put `Worker` on
-hostile entities, and Part B's staffed check must not count them. Add one
-`IsColonyWorker(e)` predicate (Worker + the player's settlement name) and
-use it at every site above and in Part B. Do it in B0 so both plans build
-on it.
+Non-campaign saves (`SaveSettlement`) still carry every settlement, since only one
+level runs at a time there.
 
-Test: load two levels headless with workers on both, queue a build task on
-each, step both, and assert neither worker picks up the other planet's task
-and neither level spawns from the other's scenario. Then freeze and thaw one
-of them and assert the other's settlement survives in the global map. Add a
-hostile entity carrying `Worker` to one level and assert it is excluded from
-the colonist count, the staffed check and the beam list.
+**4. Colony-worker predicate.** `components.IsColonyWorker(e, colony)` requires a
+living `Worker` whose `SettlementComponent.Name` is that colony or ship settlement.
+`MainState.colonyName()` supplies the name. It replaces the bare `Worker` test in
+colonist counts, beam lists, population, objective population, equip and
+task-filter orders, sleep and attack orders, rogue takeover, the cursor tools, the
+map modal, datapad pickup and the killer lookup for drops. The bare `Worker` tests
+left in `internal/game` only guard reading or adding the component, or already
+compare settlements.
 
-### Part B — WorldManager: single `current` → multi-loaded (the big one)
+### Part B — WorldManager: single `current` → multi-loaded — BUILT
 
-Today `WorldManager` holds **one** `current *MainState`, and `Travel` **freezes
-the departed planet to disk** (`Freeze` → `loc_<id>.json.gz`, `wm.current = nil`).
-Background sim needs staffed planets to stay in memory:
+As designed below, with these details:
+
+- Staffed means `countLevelColonists > 0`: `IsColonyWorker`, so robots count and
+  hostile workers don't.
+- `Freeze` and `writeLocation` take the location. `Freeze` also drops the planet from
+  `loaded`.
+- `Location.Loaded` records what was in memory at save; `EnterStartingOrbit` restores
+  those through `restoreLoaded`. Only `Travel` and `EnterStartingOrbit` move
+  `scenario.Active()`.
+- Past `maxLoadedPlanets`, the least recently visited planet other than the one in
+  orbit freezes.
+- `TotalColonists` replaces the wipe check's stored-tally arithmetic. That also fixes
+  an old bug: crew on the orbited planet went uncounted while the player was aboard.
+- Quest fixtures also spawn on arrival at a planet that stayed loaded, since no thaw
+  would otherwise pick them up.
+
+The original design:
 
 - Replace `current` with `loaded map[string]*MainState` + `currentID string`,
   and a `Current()` accessor. **~18 `wm.current` references** in
@@ -253,7 +250,50 @@ Background sim needs staffed planets to stay in memory:
   (`SaveCampaign` path).
 - Beam-up/down, `addToSite`, storage queries, etc. repoint to `Current()`.
 
-### Part C — scheduler
+**Memory measurements** (2026-10-31, `BG_MEASURE=1 go test ./internal/game -run
+TestMeasureLoadedPlanet -v`: real generated maps, all kept loaded, 5 workers each,
+heap after GC, Go heap only):
+
+| Map / scenario | Tiles | Entities | Heap | Per bg tick |
+|---|---|---|---|---|
+| asteroid / asteroid_field | 144×153×6 = 132k | 5 | 12 MB | 29 µs |
+| moon / random | 295×382×10 = 1.13M | 65 | 90 MB | 29 µs |
+| alien / alien_world | 482×384×13 = 2.41M | 205 | 191 MB | 58 µs |
+| alien / crystalline_blight | 412×452×13 = 2.42M | 185 | 191 MB | 69 µs |
+| alien / alien_world | 474×452×12 = 2.57M | 205 | 204 MB | 58 µs |
+| earth_like (near largest) | 510×510×14 = 3.64M | 85 | 289 MB | 41 µs |
+
+About 80 bytes per tile, dominated by tile volume rather than entities, and flat
+over 500 ticks. Not counted: GPU images, of which each planet's minimap can use up
+to about 17 MB once drawn (4 px per tile, RGBA, at 510×510). Lighting buffers are
+inside the per-tile figure.
+
+Unbounded isn't small: ten large planets is about 3 GB. So the cap is **3 planets
+plus the ship**, about 870 MB in the worst case. CPU isn't the limit; these ticks
+are tens of microseconds, though they were measured with idle workers and few fights
+in progress, so treat them as a floor.
+
+### Part C — scheduler — BUILT
+
+`WorldManager.TickBackground`. The budget is a tick count for determinism:
+`backgroundTicksPerFrame` (2) and `backgroundOwedCap` (60) in `data/config.json`. It
+runs from the level and dashboard `Update`s rather than `Game.Update`, since those are
+what hold the live level. The pathfinding budget resets before every background tick.
+
+**Deviations:**
+
+- The ship isn't on the budget. It still steps every frame, as before; it's cheap and
+  it has no hostiles.
+- The orbited planet counts as away whenever the player isn't on it (aboard the ship
+  or on the dashboard), so it ticks then too. It used to stand still.
+- `combat.Hit` is the one `EntityDamagedEvent` fire site, and every in-repo strike goes
+  through it. Not covered: strikes inside ml-rogue-lib's `AISystem`, used only by
+  `HostileAI` entities, which no blueprint has today; and non-combat damage such as
+  radiation, which raises no alert.
+
+The away-planet log line this part added was replaced by the popup in Phase 3.
+
+The original design:
 
 In the game `Update` loop, after the live `stepWorld`: iterate `loaded` planets
 ≠ current that have workers and call `stepBackground()`. Honor `wm.paused`.
@@ -281,7 +321,10 @@ combat path on the per-level bus plus a listener; land it with Part C even if
 the popup UI waits for Phase 3. Until the popup exists, route it to a
 message-log line.
 
-### Part D — Star-Map pause toggle
+### Part D — Star-Map pause toggle — BUILT
+
+A button on the Star Map's bottom row reads "Running: Pause" or "Paused: Resume". The
+Scan button shrank to make room. The original design:
 
 A pause button on the Star Map that freezes the whole world clock (decision
 #2), including background ticking. `WorldManager.SetPaused` / `Paused`
@@ -296,26 +339,30 @@ already exist; no UI calls them yet. The Star Map lives in the dashboard
 - **Beam logic** assumes the single `current`; audit against multi-loaded.
 - **Memory** — N staffed planets fully in RAM (currently unbounded).
 
-### Suggested order
-
-A (done) → headless test for A → B0 → B → C with the damage event → D.
-Checkpoint before B. Do not interleave with the physical-storage work
-([physical_storage_plan.md](../brainstorm/physical_storage_plan.md)): both
-touch the worker loop and WorldManager; finish one before starting the other.
-
 ### Open decisions for Phase 2
 
 1. `collectDatapads` on background planets — **skip** (default; already what
    `stepBackground` does).
 2. Throttle — replaced by the owed-ticks budget above; the tunables are the
    per-frame budget and the owed cap.
-3. Memory cap on simultaneously-loaded staffed planets — **measure first.**
-   Instrument a loaded `MainState` (tile volume × tile size, entity count,
-   lighting buffers) on a typical and a large map before deciding. Decide
-   between unbounded and a small cap (e.g. 3 plus the ship, freezing the
-   least-recently-visited staffed planet) from the numbers, not by argument.
+3. Memory cap on simultaneously-loaded staffed planets — **measured, capped at 3
+   plus the ship** (`maxLoadedPlanets` in `data/config.json`), freezing the
+   least-recently-visited staffed planet. See "Memory measurements" in Part B.
 
-## Phase 3 — notifications
+## Phase 3 — notifications — BUILT
+
+[incident.go](../../internal/game/incident.go). The incident queue and notifications are
+plain data on `WorldManager`; `incidentPopup` is a thin modal over them, hosted by both
+levels and the dashboard. An incident is a fight: it ends once the colonists have gone
+unhurt for the cooldown, measured from the last hit in the planet's own ticks. Choices
+made where the design left room:
+
+- Pause dismisses the popup and leaves the clock stopped.
+- Travel costs normal fuel. If the ship is short the error shows and the popup stays.
+- Notifications are in memory only, capped at 50, with the last three drawn on the
+  dashboard. Hits on The Ship would raise the popup too, though nothing attacks there.
+
+The original design:
 
 - **`EntityDamagedEvent`** — moved up to Part C (see above). Phase 3 consumes
   it rather than introducing it.
@@ -327,18 +374,46 @@ touch the worker loop and WorldManager; finish one before starting the other.
   background planets route their presentation events to notifications instead of
   the live message log.
 
-## Phase 4 — polish
+## Phase 4 — polish — BUILT
 
-World-clock rules, robot-staffing edge cases, save integration for in-memory
-staffed planets, notification batching/cooldown tuning.
+**World-clock rules.** There is one clock.
+
+| Stopped by | Live level | Away planets and ship |
+|---|---|---|
+| Space (`MainState.Paused`) | stopped | stopped |
+| Star Map pause (`wm.paused`) | stopped | stopped |
+| Incident popup | stopped | stopped |
+| Rogue mode, between turns | stopped | stopped; each round ticks them too |
+| Open modals (map, inspector) | running | running |
+
+The pause follows the player: `adoptWorldPause` turns the Star Map pause into the
+level's own on entry, so Space releases it, and `openDashboard` hands it back. While
+`clockStopped` holds, the HUD shows a marker at bottom centre: "PAUSED" for Space, or
+"PAUSED - star map" / "PAUSED - incident" when something else stopped it.
+
+**Robot-only staffing.** Robots staff a planet and count as colonists, so a robot-only
+colony also stops the total-wipe defeat. An away planet that loses its crew freezes on
+the next frame (decision #4). The one in orbit stays loaded but idle, ready for a
+beam-down.
+
+**Save integration.** Nothing further was needed beyond Part B. Owed ticks, incident
+cooldowns, pending incidents and notifications aren't saved, so a loaded campaign
+starts them clean.
+
+**Tuning.** `incidentCooldownTicks` (1800) and `notificationMergeTicks` (600) in
+`data/config.json`.
 
 ## Open follow-ups discovered during the audit
 
-- Combat fires **no damage event** today — added in Part C.
-- `scenario.Active()` and `settlement.Settlements` are process globals that a
-  second loaded planet would share — Part B0.
-- `MessageEvent` stays global for now; background-planet messages become
-  notifications in Phase 3 rather than log lines.
-- `TaskCompletedEvent` is dead code — clean up.
+- ~~Worker chatter reaching the live log from background levels~~ — done: worker,
+  needs and stat-progression chatter now posts through `internal/chatter`, which
+  drops lines while `stepBackground` is running (flag set alongside
+  `level.Background`). Script `say` lines (`ScriptSystem`, `ScriptedAISystem`)
+  still post directly; route them the same way if they prove noisy.
+- A level generated with a fallback scenario doesn't record it on the location, so a
+  thaw uses the original ID. Predates this work.
+- Background tick cost was measured with mostly idle crews. Check it during a real
+  multi-planet fight before raising the budget.
+- `MessageEvent` stays global.
 - Future: a dedicated "keep-this-planet-loaded" component (e.g. for hostiles) so
   a planet can stay simulated even with no friendly workers (decision #3).

@@ -26,7 +26,7 @@ func newGlobalInventoryData(wm *WorldManager) *globalInventoryData {
 	return &globalInventoryData{wm: wm}
 }
 
-// aggregateAllSummaries totals ship hold + current site (live) + every parked
+// aggregateAllSummaries totals ship hold + every loaded site (live) + every frozen
 // location's cached summary.
 func (g *globalInventoryData) aggregateAllSummaries() map[string]int {
 	out := make(map[string]int)
@@ -39,21 +39,8 @@ func (g *globalInventoryData) aggregateAllSummaries() map[string]int {
 	) {
 		out[bp] += qty
 	}
-	if g.wm.current != nil && g.wm.current.level != nil {
-		colony := campaignColonyName(g.wm.Campaign)
-		for bp, qty := range storage.Summarize(
-			storage.LevelProvider{Level: g.wm.current.level},
-			[]string{colony},
-		) {
-			out[bp] += qty
-		}
-	}
-	currentID := g.wm.Campaign.CurrentLocationID
-	for id, loc := range g.wm.Campaign.Locations {
-		if id == currentID || loc.SaveFile == "" {
-			continue
-		}
-		for bp, qty := range loc.StorageSummary {
+	for id := range g.wm.Campaign.Locations {
+		for bp, qty := range g.siteSummary(id) {
 			out[bp] += qty
 		}
 	}
@@ -73,13 +60,9 @@ func (g *globalInventoryData) collectSites() []giSiteEntry {
 	if g.wm.Campaign == nil {
 		return out
 	}
-	currentID := g.wm.Campaign.CurrentLocationID
-	hasLoadedCurrent := g.wm.current != nil && g.wm.current.level != nil
 	var ids []string
 	for id, loc := range g.wm.Campaign.Locations {
-		established := loc.SaveFile != ""
-		isLoadedCurrent := id == currentID && hasLoadedCurrent
-		if !established && !isLoadedCurrent {
+		if loc.SaveFile == "" && !g.wm.IsLoaded(id) {
 			continue
 		}
 		ids = append(ids, id)
@@ -113,10 +96,10 @@ func (g *globalInventoryData) siteSummary(key string) map[string]int {
 	if loc == nil {
 		return nil
 	}
-	if key == g.wm.Campaign.CurrentLocationID && g.wm.current != nil && g.wm.current.level != nil {
+	if ms := g.wm.loaded[key]; ms != nil && ms.level != nil {
 		return storage.Summarize(
-			storage.LevelProvider{Level: g.wm.current.level},
-			[]string{campaignColonyName(g.wm.Campaign)},
+			storage.LevelProvider{Level: ms.level},
+			[]string{ms.colonyName()},
 		)
 	}
 	return loc.StorageSummary

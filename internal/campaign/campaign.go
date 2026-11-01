@@ -218,17 +218,6 @@ func (c *Campaign) MarkTargetKilled(questID string) {
 	c.KilledTargets[questID] = true
 }
 
-// StoredColonists totals colonists recorded on frozen locations. The ship's
-// crew lives on the ship level (counted separately by the wipe check) and is no
-// longer part of this tally.
-func (c *Campaign) StoredColonists() int {
-	n := 0
-	for _, loc := range c.Locations {
-		n += loc.Colonists
-	}
-	return n
-}
-
 // CurrentLocation returns the descriptor for the location the landing party is
 // currently on, or nil if none is set.
 func (c *Campaign) CurrentLocation() *Location {

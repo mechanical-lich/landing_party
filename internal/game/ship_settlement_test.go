@@ -35,8 +35,7 @@ func TestMain(m *testing.M) {
 }
 
 // shipTestWorld builds a campaign with one location that has a frozen save on
-// disk, so EnterStartingOrbit thaws it through LoadSaveData. The save carries a
-// snapshot of the settlement map as of the freeze, ship entry included.
+// disk, so EnterStartingOrbit thaws it through LoadSaveData.
 func shipTestWorld(t *testing.T) *WorldManager {
 	t.Helper()
 	t.Chdir(t.TempDir()) // campaign saves are written relative to the cwd
@@ -55,7 +54,7 @@ func shipTestWorld(t *testing.T) *WorldManager {
 		t.Fatal("ship was not built")
 	}
 
-	colony := campaignColonyName(c)
+	colony := wm.currentColonyName()
 	s := settlement.NewSettlement(1, 1, 0)
 	delete(settlement.Settlements, s.Name)
 	s.Name = colony
@@ -68,7 +67,7 @@ func shipTestWorld(t *testing.T) *WorldManager {
 		t.Fatalf("planet state: %v", err)
 	}
 	ms.teardown()
-	if err := wm.Freeze(ms); err != nil {
+	if err := wm.Freeze(c.Locations["planet"], ms); err != nil {
 		t.Fatalf("freeze planet: %v", err)
 	}
 	return wm
@@ -134,16 +133,16 @@ func TestShipBuildOrderSurvivesLocationThaw(t *testing.T) {
 	if !hasTask(got, order) {
 		t.Errorf("build order lost from ship queue after thaw; queue has %d tasks", len(got.Tasks.GetTasks()))
 	}
-	colony := campaignColonyName(wm.Campaign)
-	if s := settlement.Settlements[colony]; s == nil || s != wm.current.MainSettlement {
-		t.Errorf("thawed planet's MainSettlement %p is not the map's colony entry %p", wm.current.MainSettlement, s)
+	colony := wm.currentColonyName()
+	if s := settlement.Settlements[colony]; s == nil || s != wm.Current().MainSettlement {
+		t.Errorf("thawed planet's MainSettlement %p is not the map's colony entry %p", wm.Current().MainSettlement, s)
 	}
 }
 
 // reloadCampaign saves, drops all process state and loads the campaign back.
 func reloadCampaign(t *testing.T, wm *WorldManager) *WorldManager {
 	t.Helper()
-	if err := wm.SaveCampaign(wm.current); err != nil {
+	if err := wm.SaveCampaign(wm.Current()); err != nil {
 		t.Fatalf("save campaign: %v", err)
 	}
 	settlement.Settlements = make(map[string]*settlement.Settlement) // a new process
@@ -168,7 +167,7 @@ func TestQueuedOrdersSurviveCampaignSaveAndLoad(t *testing.T) {
 	shipOrder := task_requests.BuildRequest{Type: "hull_wall", X: 3, Y: 3, Required: 10}
 	wm.shipLevel.MainSettlement.Tasks.AddTask(&task.Task{X: 3, Y: 3, Action: task_requests.BuildAction, Data: shipOrder})
 	planetOrder := task_requests.DigRequest{X: 2, Y: 2, Required: 5}
-	wm.current.MainSettlement.Tasks.AddTask(&task.Task{X: 2, Y: 2, Action: task_requests.DigAction, Data: planetOrder, InProgress: true})
+	wm.Current().MainSettlement.Tasks.AddTask(&task.Task{X: 2, Y: 2, Action: task_requests.DigAction, Data: planetOrder, InProgress: true})
 
 	loaded := reloadCampaign(t, wm)
 
@@ -179,8 +178,8 @@ func TestQueuedOrdersSurviveCampaignSaveAndLoad(t *testing.T) {
 	if data, ok := got.Data.(task_requests.BuildRequest); !ok || !reflect.DeepEqual(data, shipOrder) {
 		t.Errorf("ship order Data = %#v, want %#v", got.Data, shipOrder)
 	}
-	colony := settlement.Settlements[campaignColonyName(loaded.Campaign)]
-	if colony == nil || colony != loaded.current.MainSettlement {
+	colony := settlement.Settlements[loaded.currentColonyName()]
+	if colony == nil || colony != loaded.Current().MainSettlement {
 		t.Fatal("planet MainSettlement is not the map's colony entry")
 	}
 	got = colony.Tasks.GetNextTask()
@@ -200,7 +199,7 @@ func TestShipSettlementSurvivesCampaignLoad(t *testing.T) {
 	if err := wm.EnterStartingOrbit(); err != nil {
 		t.Fatalf("thaw planet: %v", err)
 	}
-	if err := wm.SaveCampaign(wm.current); err != nil {
+	if err := wm.SaveCampaign(wm.Current()); err != nil {
 		t.Fatalf("save campaign: %v", err)
 	}
 
@@ -224,7 +223,8 @@ func TestShipSettlementSurvivesCampaignLoad(t *testing.T) {
 		t.Error("order queued on the ship is not in the settlement workers read")
 	}
 
-	loaded.current = nil
+	delete(loaded.loaded, "planet")
+	loaded.currentID = ""
 	if err := loaded.EnterStartingOrbit(); err != nil {
 		t.Fatalf("re-thaw planet: %v", err)
 	}

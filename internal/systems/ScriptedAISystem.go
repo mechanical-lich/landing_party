@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/emotes"
@@ -985,10 +984,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		level.GetEntitiesAt(x, y, z, &entitiesBuf)
 		for _, e := range entitiesBuf {
 			if e != entity && e.HasComponent(rlcomponents.Health) && !rlcombat.IsFriendly(entity, e) {
-				rlcombat.Hit(level, entity, e, true)
-				if e.HasComponent(components.Worker) {
-					audio.NotifyCombat() // a colonist is under attack
-				}
+				combat.Hit(level, entity, e, true)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 				level.EmitSound(pc.GetX(), pc.GetY(), pc.GetZ(), 6, world.SoundTagImpact, entity)
 				// The target is only guaranteed to have Health, not Position.

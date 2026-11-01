@@ -37,6 +37,8 @@ type cursorToolHost interface {
 	Level() *world.Level
 	// Settlement is the player's main settlement, or nil if none exists yet.
 	Settlement() *settlement.Settlement
+	// colonyName names the settlement this level's own workers belong to.
+	colonyName() string
 	// SetContext sets the HUD context tooltip (title, body, blueprint icon key).
 	// Pass empty strings to clear it.
 	SetContext(title, body, blueprint string)

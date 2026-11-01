@@ -1,6 +1,7 @@
 package systems
 
 import (
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"math/rand"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
@@ -9,7 +10,6 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
-	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/task"
 )
 
@@ -76,7 +76,7 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 
 	// --- Hunger task interrupt ---
 	if nc.IsHungry() && wc.CurrentTask != nil && !wc.CurrentTask.Completed && wc.CurrentTask.Interruptible {
-		message.PostMessage(name, "Too hungry to continue, needs food.")
+		chatter.Post(name, "Too hungry to continue, needs food.")
 		wc.CurrentTask.ReQueue()
 		wc.CurrentTask = nil
 		aiMemory.State = "idle"
@@ -102,7 +102,7 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 
 		// Interrupt the task if exhaustion is maxed and the task allows it.
 		if nc.Exhaustion >= nc.MaxExhaustion && wc.CurrentTask.Interruptible {
-			message.PostMessage(name, "Too exhausted to continue, needs rest.")
+			chatter.Post(name, "Too exhausted to continue, needs rest.")
 			wc.CurrentTask.ReQueue()
 			wc.CurrentTask = nil
 			aiMemory.State = "idle"
@@ -195,7 +195,7 @@ func assignRestTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 	t.Start()
 	wc.CurrentTask = t
 	aiMemory.State = "task"
-	message.PostMessage(entityDisplayName(entity), "Passed out from exhaustion.")
+	chatter.Post(entityDisplayName(entity), "Passed out from exhaustion.")
 }
 
 // sleepingBagInStorage reports whether any settlement-owned container holds a

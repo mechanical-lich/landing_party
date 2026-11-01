@@ -3,6 +3,7 @@ package game
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"github.com/mechanical-lich/landing_party/internal/combat"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
@@ -26,7 +27,7 @@ import (
 func (s *MainState) stepWorld() {
 	s.tick++
 	s.level.Tick = uint64(s.tick)
-	s.gm.Update()
+	s.gm.Update(s.scenario)
 	s.systemManager.UpdateSystems(s.level)
 	for _, entity := range s.level.Entities {
 		if entity == nil {
@@ -63,9 +64,15 @@ func (s *MainState) stepBackground() {
 	if s.level == nil {
 		return
 	}
+	s.level.Background = true
+	chatter.SetBackground(true)
+	defer func() {
+		s.level.Background = false
+		chatter.SetBackground(false)
+	}()
 	s.tick++
 	s.level.Tick = uint64(s.tick)
-	s.gm.Update() // no-op on the ship (suppressSpawns); safe before any scenario
+	s.gm.Update(s.scenario) // no-op on the ship (suppressSpawns, no scenario)
 	s.bgSystemManager.UpdateSystems(s.level)
 	for _, entity := range s.level.Entities {
 		if entity == nil || entity.HasComponent(rlcomponents.Inanimate) {
@@ -76,6 +83,10 @@ func (s *MainState) stepBackground() {
 	s.cleanUpSystem.Update(s.level)
 	if s.level.Events != nil {
 		s.level.Events.HandleQueue()
+	}
+	s.advanceClock()
+	if s.tick%30 == 0 {
+		s.purgeCompletedTasks()
 	}
 }
 
@@ -102,6 +113,10 @@ func (s *MainState) advancePlayerTurn() {
 	}
 	for i := 0; i < rounds; i++ {
 		s.stepWorld()
+		// Rounds of the turn-based world are live ticks: the rest of it keeps pace.
+		if s.wm != nil {
+			s.wm.TickBackground(s)
+		}
 	}
 }
 
@@ -187,7 +202,7 @@ func (s *MainState) rogueStepToward(tx, ty, tz int) {
 
 // enterRogueMode hands direct control of the given colonist to the player.
 func (s *MainState) enterRogueMode(ent *ecs.Entity) {
-	if ent == nil || !ent.HasComponent(components.Worker) || !ent.HasComponent(rlcomponents.Position) {
+	if !components.IsColonyWorker(ent, s.colonyName()) || !ent.HasComponent(rlcomponents.Position) {
 		return
 	}
 	wc := ent.GetComponent(components.Worker).(*components.WorkerComponent)

@@ -1,14 +1,18 @@
 package eventsystem
 
-import "github.com/mechanical-lich/mlge/event"
+import (
+	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/event"
+)
 
 const (
 	EntityDied     event.EventType = "EntityDied"
 	EntityKilled   event.EventType = "EntityKilled"
-	TaskCompleted  event.EventType = "TaskCompleted"
 	StructureBuilt event.EventType = "StructureBuilt"
 	ItemStored     event.EventType = "ItemStored"
 	ResearchDone   event.EventType = "ResearchDone"
+	EntityDamaged  event.EventType = "EntityDamaged"
 )
 
 type EntityDiedEvent struct {
@@ -27,14 +31,6 @@ type EntityKilledEvent struct {
 }
 
 func (e EntityKilledEvent) GetType() event.EventType { return EntityKilled }
-
-type TaskCompletedEvent struct {
-	WorkerName string
-	Action     string
-	Message    string
-}
-
-func (e TaskCompletedEvent) GetType() event.EventType { return TaskCompleted }
 
 type StructureBuiltEvent struct {
 	Type       string
@@ -58,3 +54,14 @@ type ResearchDoneEvent struct {
 }
 
 func (e ResearchDoneEvent) GetType() event.EventType { return ResearchDone }
+
+// EntityDamagedEvent fires on the level's own bus when a combat hit takes health
+// off an entity. Amount is the health actually lost.
+type EntityDamagedEvent struct {
+	Victim   *ecs.Entity
+	Attacker *ecs.Entity
+	Amount   int
+	Level    *world.Level
+}
+
+func (e EntityDamagedEvent) GetType() event.EventType { return EntityDamaged }

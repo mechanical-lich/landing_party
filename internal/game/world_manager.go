@@ -10,13 +10,18 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/research"
+	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/ship"
 	"github.com/mechanical-lich/landing_party/internal/storage"
@@ -25,6 +30,7 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
+	"github.com/mechanical-lich/mlge/state"
 )
 
 // installCampaignStorageHook directs worker crafting/building to draw only
@@ -46,10 +52,31 @@ func campaignRoot(name string) string {
 // current location to disk and activating (resuming or generating) another.
 type WorldManager struct {
 	Campaign *campaign.Campaign
-	// current is the loaded location's MainState. While the Star Map is open
-	// it is "parked": kept in memory with its level intact but its event
-	// listeners detached. Resume re-attaches and enters it.
-	current *MainState
+	// loaded holds every location kept in memory, by location ID: the one in orbit
+	// plus staffed ones left behind. All are "parked" (level intact, global event
+	// listeners detached) until Resume re-attaches the one being entered.
+	loaded map[string]*MainState
+	// currentID is the loaded location in orbit, "" if none. See Current.
+	currentID string
+	// lastVisit orders loaded locations for eviction: higher is more recent.
+	lastVisit map[string]int
+	visits    int
+
+	// owed is each away planet's background ticks due but not yet run, and
+	// lastServed the planet the round-robin paid last. See TickBackground.
+	owed       map[string]int
+	lastServed string
+
+	// lastDamage is the tick of the last colonist damage on each background level,
+	// for grouping hits into one incident. incidents queues those awaiting an answer
+	// and popup shows them. See incident.go.
+	lastDamage    map[string]int
+	incidents     []Incident
+	notifications []Notification
+	popup         *incidentPopup
+
+	// pauseReason is who set paused, for the HUD marker: "star map", "incident".
+	pauseReason string
 
 	// shipLevel is The Ship — the always-loaded home base (a parked MainState).
 	// Unlike locations it is never frozen to disk while the campaign is active,
@@ -78,7 +105,7 @@ func (wm *WorldManager) landingZone() (int, int, int) {
 	if wm.landSet {
 		return wm.landX, wm.landY, wm.landZ
 	}
-	ms := wm.current
+	ms := wm.Current()
 	if ms != nil && ms.MainSettlement != nil {
 		wm.landX, wm.landY, wm.landZ = ms.MainSettlement.CenterX, ms.MainSettlement.CenterY, ms.MainSettlement.CenterZ
 	} else if ms != nil && ms.level != nil {
@@ -116,8 +143,94 @@ func freeLandingTile(level *world.Level, cx, cy, cz int) (int, int, int) {
 	return cx, cy, cz
 }
 
+// Current returns the MainState of the location in orbit, or nil if none is loaded.
+func (wm *WorldManager) Current() *MainState { return wm.loaded[wm.currentID] }
+
+// addLoaded records ms as the loaded location id, most recently visited.
+func (wm *WorldManager) addLoaded(id string, ms *MainState) {
+	wm.loaded[id] = ms
+	ms.locationID = id
+	wm.visits++
+	wm.lastVisit[id] = wm.visits
+}
+
+// setCurrent records ms as the loaded location id and puts it in orbit.
+func (wm *WorldManager) setCurrent(id string, ms *MainState) {
+	wm.addLoaded(id, ms)
+	wm.currentID = id
+}
+
+// orbit makes ms's scenario the orbited one. Only entering orbit moves the global;
+// a planet loaded any other way runs on ms.scenario and leaves it alone.
+func orbit(ms *MainState) {
+	if ms.scenario != nil {
+		_ = scenario.SelectByID(ms.scenario.ID)
+	}
+}
+
+// isStaffed reports whether a level has a colony worker to keep it simulated:
+// colonists and robots count, hostile workers don't (decisions #3 and #4).
+func isStaffed(s *MainState) bool {
+	if s == nil || s.level == nil {
+		return false
+	}
+	return countLevelColonists(s.level, s.colonyName()) > 0
+}
+
+// IsLoaded reports whether a location is in memory.
+func (wm *WorldManager) IsLoaded(id string) bool { return wm.loaded[id] != nil }
+
+// maxLoadedPlanets is the cap on planets in memory, not counting the ship. A planet
+// costs 90-290 MB of heap; see docs/developer/background_simulation.md.
+func maxLoadedPlanets() int {
+	if n := config.Global().MaxLoadedPlanets; n > 0 {
+		return n
+	}
+	return 3
+}
+
+// enforceLoadedCap freezes the least recently visited planets until the count is
+// within the cap. The one in orbit is never evicted.
+func (wm *WorldManager) enforceLoadedCap() error {
+	for len(wm.loaded) > maxLoadedPlanets() {
+		victim := ""
+		for id := range wm.loaded {
+			if id != wm.currentID && (victim == "" || wm.lastVisit[id] < wm.lastVisit[victim]) {
+				victim = id
+			}
+		}
+		if victim == "" {
+			return nil
+		}
+		if err := wm.Freeze(wm.Campaign.Locations[victim], wm.loaded[victim]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TotalColonists counts colony workers everywhere: live on loaded planets, from the
+// recorded tally on frozen ones, and aboard the ship.
+func (wm *WorldManager) TotalColonists() int {
+	n := len(wm.ShipColonists())
+	for id, loc := range wm.Campaign.Locations {
+		if ms := wm.loaded[id]; ms != nil {
+			n += countLevelColonists(ms.level, ms.colonyName())
+		} else {
+			n += loc.Colonists
+		}
+	}
+	return n
+}
+
 func NewWorldManager(c *campaign.Campaign) *WorldManager {
-	wm := &WorldManager{Campaign: c}
+	wm := &WorldManager{
+		Campaign:   c,
+		loaded:     map[string]*MainState{},
+		lastVisit:  map[string]int{},
+		owed:       map[string]int{},
+		lastDamage: map[string]int{},
+	}
 	if err := wm.buildShip(); err != nil {
 		log.Printf("buildShip: %v", err)
 	}
@@ -189,31 +302,104 @@ func (wm *WorldManager) ensureShipSettlement(name string) *settlement.Settlement
 	return s
 }
 
-// pinShipSettlement points the global map back at the live ship settlement. Every
-// location save embeds a snapshot of the whole map, so thawing one overwrites the
-// ship's entry with a stale copy, while the ship's MainState keeps queueing orders
-// on the live object — workers would then read a queue the player can't reach.
-func (wm *WorldManager) pinShipSettlement() {
-	if wm.shipLevel != nil && wm.shipLevel.MainSettlement != nil {
-		settlement.Settlements[wm.shipLevel.MainSettlement.Name] = wm.shipLevel.MainSettlement
-	}
-}
-
-// TickBackground advances the always-loaded background levels one step — for now
-// just The Ship — skipping whichever level is currently live (it ticks itself
-// via stepWorld) and honoring the pause flag.
+// TickBackground runs one frame of background simulation, skipping whichever level
+// is live (it ticks itself via stepWorld) and honoring the pause flag. The ship, which
+// is cheap and always aboard, steps every frame. Staffed away planets each accrue one
+// owed tick and share a per-frame budget round-robin, so a few run at real time and
+// many degrade evenly. Owed ticks past the cap are dropped, not fast-forwarded later.
 func (wm *WorldManager) TickBackground(live *MainState) {
-	if wm.paused {
+	if wm.ClockStopped() {
 		return
 	}
 	if wm.shipLevel != nil && wm.shipLevel != live {
+		// The live level's Update reset the per-frame pathfinding budget for
+		// itself; each background tick needs its own.
+		fspath.ResetFrameCounter()
 		wm.shipLevel.stepBackground()
+	}
+	cfg := config.Global()
+	maxOwed := positiveOr(cfg.BackgroundOwedCap, 60)
+	var away []string
+	for id, ms := range wm.loaded {
+		if ms == live {
+			wm.owed[id] = 0 // it ticks itself now; no catching up after it leaves
+			continue
+		}
+		if !isStaffed(ms) {
+			// Crew lost while away: nothing keeps this planet simulated (decision
+			// #4). The one in orbit stays in memory, ready for a beam-down.
+			wm.owed[id] = 0
+			if id != wm.currentID {
+				if err := wm.Freeze(wm.Campaign.Locations[id], ms); err != nil {
+					log.Printf("freeze unstaffed %s: %v", id, err)
+				}
+			}
+			continue
+		}
+		if wm.owed[id] < maxOwed {
+			wm.owed[id]++
+		}
+		away = append(away, id)
+	}
+	sort.Strings(away)
+	wm.payOwedTicks(away, positiveOr(cfg.BackgroundTicksPerFrame, 2))
+}
+
+// payOwedTicks spends budget background ticks across the sorted planet IDs, one each
+// in turn, resuming after the planet served last.
+func (wm *WorldManager) payOwedTicks(away []string, budget int) {
+	if len(away) == 0 {
+		return
+	}
+	next := sort.Search(len(away), func(i int) bool { return away[i] > wm.lastServed })
+	for idle := 0; budget > 0 && idle < len(away); next++ {
+		id := away[next%len(away)]
+		if wm.owed[id] == 0 {
+			idle++
+			continue
+		}
+		idle = 0
+		wm.owed[id]--
+		budget--
+		wm.lastServed = id
+		fspath.ResetFrameCounter()
+		wm.loaded[id].stepBackground()
+	}
+}
+
+func positiveOr(v, fallback int) int {
+	if v > 0 {
+		return v
+	}
+	return fallback
+}
+
+// ClockStopped reports whether the whole world clock is stopped, by the pause
+// toggle or by an incident awaiting an answer.
+func (wm *WorldManager) ClockStopped() bool {
+	return wm.paused || wm.ActiveIncident() != nil
+}
+
+// updatePopup runs the incident popup for a frame; see incidentPopup.update.
+func (wm *WorldManager) updatePopup() state.StateInterface {
+	if wm.popup == nil {
+		wm.popup = newIncidentPopup(wm)
+	}
+	return wm.popup.update()
+}
+
+func (wm *WorldManager) drawPopup(screen *ebiten.Image) {
+	if wm.popup != nil {
+		wm.popup.draw(screen)
 	}
 }
 
 // SetPaused toggles the world clock (background ticking); Paused reports it.
-func (wm *WorldManager) SetPaused(p bool) { wm.paused = p }
-func (wm *WorldManager) Paused() bool     { return wm.paused }
+func (wm *WorldManager) SetPaused(p bool) {
+	wm.paused = p
+	wm.pauseReason = ""
+}
+func (wm *WorldManager) Paused() bool { return wm.paused }
 
 // EnterShip re-attaches The Ship's parked MainState and returns it for the state
 // machine — the ship-equivalent of EnterCurrent. The ship is never frozen, so it
@@ -259,7 +445,7 @@ func (wm *WorldManager) freezeShip() error {
 			MapSizeH: lvl.GetHeight(),
 			MapSizeZ: lvl.GetDepth(),
 		},
-		WorldData: world.SaveLevel(lvl),
+		WorldData: world.SaveLevel(lvl, wm.shipSettlementName()),
 	}
 	blob, err := marshalSaveFile(sf)
 	if err != nil {
@@ -351,11 +537,27 @@ func (wm *WorldManager) addToShipHold(blueprint string, qty int) {
 	if sc == nil {
 		return
 	}
-	if e, err := factory.Create(blueprint, 0, 0, 0); err == nil {
-		if e.HasComponent(components.Material) {
-			e.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
+	e, err := factory.Create(blueprint, 0, 0, 0)
+	if err != nil {
+		return
+	}
+	if e.HasComponent(components.Material) {
+		if mc := e.GetComponent(components.Material).(*components.MaterialComponent); mc.IsStackable() {
+			mc.Quantity = qty
+			sc.AddItem(e)
+			return
 		}
-		sc.AddItem(e)
+	}
+	// Non-stackables (rations, gear) are one entity per unit: qty of them.
+	for i := 0; i < qty; i++ {
+		if i > 0 {
+			if e, err = factory.Create(blueprint, 0, 0, 0); err != nil {
+				return
+			}
+		}
+		if !sc.AddItem(e) {
+			return
+		}
 	}
 }
 
@@ -427,41 +629,95 @@ func beamPartyOntoLevel(level *world.Level, party []*world.SaveEntity, colonyNam
 // addToSite drops qty units of blueprint into the first colony-owned storage
 // container found on level. Returns an error if none exists yet — the player
 // must build a storage locker before beaming resources down.
-func addToSite(level *world.Level, colonyName, blueprint string, qty int) error {
+// addToSite deposits qty of blueprint into the colony's storage on level and
+// returns how many actually landed. Stackable materials go in as one stack that
+// AddItem splits across containers as room allows; non-stackables (rations,
+// gear) are created and placed one entity at a time, since AddItem takes one
+// entity per slot. The caller debits only the returned count, so nothing is
+// lost when the site is short of room.
+func addToSite(level *world.Level, colonyName, blueprint string, qty int) (int, error) {
 	if qty <= 0 {
-		return nil
+		return 0, nil
 	}
-	// Build the item once so we can probe Accepts; we'll only consume it on
-	// a successful deposit so a failed beam doesn't burn the entity.
-	item, err := factory.Create(blueprint, 0, 0, 0)
+	probe, err := factory.Create(blueprint, 0, 0, 0)
 	if err != nil {
-		return fmt.Errorf("beam: unknown resource %q", blueprint)
+		return 0, fmt.Errorf("beam: unknown resource %q", blueprint)
 	}
-	if item.HasComponent(components.Material) {
-		item.GetComponent(components.Material).(*components.MaterialComponent).Quantity = qty
+	stackable := false
+	if probe.HasComponent(components.Material) {
+		stackable = probe.GetComponent(components.Material).(*components.MaterialComponent).IsStackable()
 	}
-	hasAnyColonyLocker := false
+
+	var lockers []*components.StorageComponent
 	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
 		for _, e := range ents {
 			if e == nil || !e.HasComponent(components.Storage) {
 				continue
 			}
 			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-			if sc.OwnedBy != colonyName {
-				continue
+			if sc.OwnedBy == colonyName {
+				lockers = append(lockers, sc)
 			}
-			hasAnyColonyLocker = true
+		}
+	}
+	if len(lockers) == 0 {
+		return 0, fmt.Errorf("no storage locker on site — build one first")
+	}
+	accepting := 0
+	for _, sc := range lockers {
+		if sc.Accepts(probe) {
+			accepting++
+		}
+	}
+	if accepting == 0 {
+		return 0, fmt.Errorf("no storage container on site accepts %s", blueprint)
+	}
+
+	deposited := 0
+	if stackable {
+		item := probe
+		mc := item.GetComponent(components.Material).(*components.MaterialComponent)
+		mc.Quantity = qty
+		for _, sc := range lockers {
 			if !sc.Accepts(item) {
 				continue
 			}
-			sc.AddItem(item)
-			return nil
+			before := mc.Quantity
+			if sc.AddItem(item) {
+				deposited += before
+				break
+			}
+			// A rejected partial fit leaves the remainder on the item.
+			deposited += before - mc.Quantity
+			if mc.Quantity <= 0 {
+				break
+			}
+		}
+	} else {
+		item := probe
+		for deposited < qty {
+			placed := false
+			for _, sc := range lockers {
+				if sc.Accepts(item) && sc.AddItem(item) {
+					placed = true
+					break
+				}
+			}
+			if !placed {
+				break
+			}
+			deposited++
+			if deposited < qty {
+				if item, err = factory.Create(blueprint, 0, 0, 0); err != nil {
+					break
+				}
+			}
 		}
 	}
-	if hasAnyColonyLocker {
-		return fmt.Errorf("no storage container on site accepts %s", blueprint)
+	if deposited == 0 {
+		return 0, fmt.Errorf("site storage is full; nothing beamed")
 	}
-	return fmt.Errorf("no storage locker on site — build one first")
+	return deposited, nil
 }
 
 // ShipHoldEntity returns the ship's primary beam-hold storage container, or nil
@@ -473,11 +729,11 @@ func (wm *WorldManager) ShipHoldEntity() *ecs.Entity {
 // SiteHoldEntity returns the first colony-owned storage container on the loaded
 // site — the beam-up source — or nil if no site is loaded or it has no storage.
 func (wm *WorldManager) SiteHoldEntity() *ecs.Entity {
-	if wm.current == nil || wm.current.level == nil {
+	if wm.Current() == nil || wm.Current().level == nil {
 		return nil
 	}
-	colony := campaignColonyName(wm.Campaign)
-	for _, ents := range [][]*ecs.Entity{wm.current.level.Entities, wm.current.level.StaticEntities} {
+	colony := wm.currentColonyName()
+	for _, ents := range [][]*ecs.Entity{wm.Current().level.Entities, wm.Current().level.StaticEntities} {
 		for _, e := range ents {
 			if e == nil || !e.HasComponent(components.Storage) {
 				continue
@@ -496,19 +752,25 @@ func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {
 	if qty <= 0 {
 		return nil
 	}
-	if wm.current == nil || wm.current.level == nil {
+	if wm.Current() == nil || wm.Current().level == nil {
 		return fmt.Errorf("no location loaded")
 	}
-	colony := campaignColonyName(wm.Campaign)
+	colony := wm.currentColonyName()
 	p := storage.ShipProvider{Level: wm.ShipLevel()}
 	owners := []string{wm.shipSettlementName()}
 	if have := storage.CountResource(p, owners, blueprint); have < qty {
 		return fmt.Errorf("only %d %s in ship hold", have, blueprint)
 	}
-	if err := addToSite(wm.current.level, colony, blueprint, qty); err != nil {
+	deposited, err := addToSite(wm.Current().level, colony, blueprint, qty)
+	if err != nil {
 		return err
 	}
-	storage.Deduct(p, owners, map[string]int{blueprint: qty})
+	// Debit the hold only for what landed, so a short-of-room site never loses
+	// cargo. A partial beam still reports the shortfall to the player.
+	storage.Deduct(p, owners, map[string]int{blueprint: deposited})
+	if deposited < qty {
+		return fmt.Errorf("beamed %d of %d %s; site storage is full", deposited, qty, blueprint)
+	}
 	return nil
 }
 
@@ -531,38 +793,65 @@ func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint stri
 	return nil
 }
 
-// Freeze serializes the current live level to its per-location file and records
-// view state.
-// countLevelColonists tallies living colonists on a level (for total-wipe
+// countLevelColonists tallies living colony workers on a level (for total-wipe
 // detection recorded onto the frozen location).
-func countLevelColonists(level *world.Level) int {
+func countLevelColonists(level *world.Level, colony string) int {
 	if level == nil {
 		return 0
 	}
 	n := 0
 	for _, e := range level.Entities {
-		if e != nil && e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+		if components.IsColonyWorker(e, colony) {
 			n++
 		}
 	}
 	return n
 }
 
-func (wm *WorldManager) Freeze(s *MainState) error {
+// locationSettlements names the settlements a location's save carries: its colony
+// and any faction settlements, which are named "<faction>:<locID>". Never the ship.
+func locationSettlements(loc *campaign.Location, colony string) []string {
+	names := []string{colony}
+	for name := range settlement.Settlements {
+		if strings.HasSuffix(name, ":"+loc.ID) {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// Freeze writes a location's level to its file, drops it from memory and takes its
+// settlements out of the global map; a thaw restores them from the save. The level
+// must not tick again afterwards. To save one that keeps running, use writeLocation.
+func (wm *WorldManager) Freeze(loc *campaign.Location, s *MainState) error {
+	if err := wm.writeLocation(loc, s); err != nil {
+		return err
+	}
+	for _, name := range locationSettlements(loc, s.colonyName()) {
+		delete(settlement.Settlements, name)
+	}
+	delete(wm.loaded, loc.ID)
+	delete(wm.lastVisit, loc.ID)
+	delete(wm.owed, loc.ID)
+	if wm.currentID == loc.ID {
+		wm.currentID = ""
+	}
+	return nil
+}
+
+// writeLocation serializes a location's level to its per-location file and records
+// view state. The level stays live.
+func (wm *WorldManager) writeLocation(loc *campaign.Location, s *MainState) error {
 	c := wm.Campaign
-	loc := c.CurrentLocation()
 	if loc == nil || s == nil || s.level == nil {
-		return fmt.Errorf("freeze: no current location")
+		return fmt.Errorf("freeze: no location")
 	}
-	colony := s.settlementCfg.ColonyName
-	if colony == "" {
-		colony = s.settlementCfg.Name
-	}
+	colony := s.colonyName()
 
 	loc.CameraX, loc.CameraY, loc.CameraZ = s.camera.X, s.camera.Y, s.camera.Z
 	loc.BuildMode = s.buildMode
 	loc.Visited = true
-	loc.Colonists = countLevelColonists(s.level)
+	loc.Colonists = countLevelColonists(s.level, colony)
 	// Snapshot storage so the Global Inventory can read this site without
 	// having to load its level file.
 	loc.StorageSummary = storage.Summarize(
@@ -586,7 +875,7 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 			MapSizeH:   s.level.GetHeight(),
 			MapSizeZ:   s.level.GetDepth(),
 		},
-		WorldData: world.SaveLevel(s.level),
+		WorldData: world.SaveLevel(s.level, locationSettlements(loc, colony)...),
 	}
 	blob, err := marshalSaveFile(sf)
 	if err != nil {
@@ -596,6 +885,9 @@ func (wm *WorldManager) Freeze(s *MainState) error {
 		return err
 	}
 	loc.SaveFile = rel
+	if loc.SettlementName == "" {
+		loc.SettlementName = colony
+	}
 	return nil
 }
 
@@ -608,7 +900,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	if loc == nil {
 		return nil, fmt.Errorf("activate: unknown location %q", locID)
 	}
-	colony := campaignColonyName(c)
+	colony := locationColonyName(c, loc)
 	cfg := SettlementConfig{
 		Name:         colony,
 		ScenarioID:   loc.ScenarioID,
@@ -624,7 +916,6 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 		if err != nil {
 			return nil, err
 		}
-		wm.pinShipSettlement()
 		ms, err = newMainStateFromLevel(level, cfg)
 		if err != nil {
 			return nil, err
@@ -806,9 +1097,9 @@ func fixtureHash(id string, i int) int {
 	return h
 }
 
-// Travel makes locID the current location, loading/generating it (parked). Any
-// previously-loaded different location is frozen to disk first. Fuel/roster are
-// handled by the caller. The Star Map stays open afterward.
+// Travel makes locID the current location, resuming or loading/generating it
+// (parked). The location left behind stays in memory if staffed, else it is frozen
+// to disk. Fuel/roster are handled by the caller. The Star Map stays open afterward.
 func (wm *WorldManager) Travel(locID string) error {
 	c := wm.Campaign
 	dest := c.Locations[locID]
@@ -816,14 +1107,15 @@ func (wm *WorldManager) Travel(locID string) error {
 		return fmt.Errorf("travel: unknown location %q", locID)
 	}
 	from := c.CurrentLocationID // origin of this jump, for the travel-route log
-	if wm.current != nil {
+	if cur := wm.Current(); cur != nil {
 		if c.CurrentLocationID == locID {
 			return nil // already loaded
 		}
-		if err := wm.Freeze(wm.current); err != nil {
+		if isStaffed(cur) {
+			wm.currentID = ""
+		} else if err := wm.Freeze(c.Locations[wm.currentID], cur); err != nil {
 			return err
 		}
-		wm.current = nil
 	}
 	// Log the traversed route (both real, distinct locations) so the Star Map
 	// can draw trade lines that darken with repeated use.
@@ -836,11 +1128,22 @@ func (wm *WorldManager) Travel(locID string) error {
 	}
 	c.CurrentLocationID = locID
 	wm.landSet = false
-	ms, err := wm.buildParked(locID)
-	if err != nil {
+	ms := wm.loaded[locID]
+	if ms != nil {
+		// A fixture added while this planet stayed loaded appears on arrival,
+		// as it would on a thaw.
+		spawnLocationFixtures(c, dest, ms.level)
+	} else {
+		var err error
+		if ms, err = wm.buildParked(locID); err != nil {
+			return err
+		}
+	}
+	wm.setCurrent(locID, ms)
+	orbit(ms)
+	if err := wm.enforceLoadedCap(); err != nil {
 		return err
 	}
-	wm.current = ms
 	// Travelling stirs up new contracts: 1-in-6 chance of 1d4 fresh quests
 	// (existing systems and/or newly charted ones) so the run keeps flowing.
 	if newLocs, added := c.MaybeTravelQuests(); added > 0 {
@@ -857,26 +1160,51 @@ func (wm *WorldManager) Travel(locID string) error {
 // transit". No-op if a location is already loaded or the current site is Home.
 func (wm *WorldManager) EnterStartingOrbit() error {
 	c := wm.Campaign
-	if wm.current != nil || c == nil || c.CurrentLocationID == "" {
+	if wm.Current() != nil || c == nil || c.CurrentLocationID == "" {
 		return nil
 	}
 	loc := c.Locations[c.CurrentLocationID]
 	if loc == nil || loc.Kind == campaign.HomeKind {
 		return nil
 	}
-	ms, err := wm.buildParked(c.CurrentLocationID)
-	if err != nil {
-		return err
+	ms := wm.loaded[c.CurrentLocationID]
+	if ms == nil {
+		var err error
+		if ms, err = wm.buildParked(c.CurrentLocationID); err != nil {
+			return err
+		}
 	}
-	wm.current = ms
+	wm.setCurrent(c.CurrentLocationID, ms)
+	orbit(ms)
 	wm.landSet = false
+	wm.restoreLoaded()
 	return nil
+}
+
+// restoreLoaded thaws the away planets that were in memory when the campaign was
+// saved. One that fails to load stays frozen rather than blocking the campaign.
+func (wm *WorldManager) restoreLoaded() {
+	var ids []string
+	for id, loc := range wm.Campaign.Locations {
+		if loc.Loaded && wm.loaded[id] == nil {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		ms, err := wm.buildParked(id)
+		if err != nil {
+			log.Printf("restore %s: %v", id, err)
+			continue
+		}
+		wm.addLoaded(id, ms)
+	}
 }
 
 // EnterCurrent re-attaches the parked current location and returns it for the
 // state machine to switch to (this is what Resume does).
 func (wm *WorldManager) EnterCurrent() (*MainState, error) {
-	if wm.current == nil {
+	if wm.Current() == nil {
 		if wm.Campaign.CurrentLocationID == "" {
 			return nil, fmt.Errorf("no location loaded — Travel first")
 		}
@@ -886,21 +1214,22 @@ func (wm *WorldManager) EnterCurrent() (*MainState, error) {
 	}
 	// Clear the transition flags set when this MainState opened the Star Map,
 	// otherwise it would immediately bounce back to the overworld.
-	wm.current.done = false
-	wm.current.next = nil
-	wm.current.reattach()
+	wm.Current().done = false
+	wm.Current().next = nil
+	wm.Current().reattach()
 	installCampaignStorageHook(wm.Campaign)
-	return wm.current, nil
+	return wm.Current(), nil
 }
 
 // PlanetColonists returns the colonist entities on the currently-loaded level.
 func (wm *WorldManager) PlanetColonists() []*ecs.Entity {
-	if wm.current == nil || wm.current.level == nil {
+	if wm.Current() == nil || wm.Current().level == nil {
 		return nil
 	}
+	colony := wm.Current().colonyName()
 	var out []*ecs.Entity
-	for _, e := range wm.current.level.Entities {
-		if e != nil && e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+	for _, e := range wm.Current().level.Entities {
+		if components.IsColonyWorker(e, colony) {
 			out = append(out, e)
 		}
 	}
@@ -914,9 +1243,10 @@ func (wm *WorldManager) ShipColonists() []*ecs.Entity {
 	if wm.shipLevel == nil || wm.shipLevel.level == nil {
 		return nil
 	}
+	colony := wm.shipSettlementName()
 	var out []*ecs.Entity
 	for _, e := range wm.shipLevel.level.Entities {
-		if e != nil && e.HasComponent(components.Worker) && !e.HasComponent(rlcomponents.Dead) {
+		if components.IsColonyWorker(e, colony) {
 			out = append(out, e)
 		}
 	}
@@ -964,8 +1294,7 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 // Takes the entity (not a roster index) so a background tick that reorders or
 // removes crew between selection and beam can't send down the wrong colonist.
 func (wm *WorldManager) BeamDown(colonist *ecs.Entity) error {
-	c := wm.Campaign
-	if wm.current == nil || wm.current.level == nil {
+	if wm.Current() == nil || wm.Current().level == nil {
 		return fmt.Errorf("no location loaded — Travel first")
 	}
 	if colonist == nil || !wm.IsShipEntity(colonist) {
@@ -975,20 +1304,20 @@ func (wm *WorldManager) BeamDown(colonist *ecs.Entity) error {
 	// index at the entity's current position, so moving it first would leave a
 	// stale occupant on the old ship tile.
 	wm.shipLevel.level.RemoveEntity(colonist)
-	level := wm.current.level
+	level := wm.Current().level
 	bx, by, bz := wm.landingZone()
 	x, y, z := freeLandingTile(level, bx, by, bz)
 	if colonist.HasComponent(rlcomponents.Position) {
 		colonist.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent).SetPosition(x, y, z)
 	}
-	tagColonistSettlement(colonist, campaignColonyName(c))
+	tagColonistSettlement(colonist, wm.currentColonyName())
 	level.AddEntity(colonist)
 	return nil
 }
 
 // BeamUp moves one colonist from the loaded level back to the ship roster.
 func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
-	if wm.current == nil || wm.current.level == nil {
+	if wm.Current() == nil || wm.Current().level == nil {
 		return fmt.Errorf("no location loaded")
 	}
 	if wm.shipLevel == nil || wm.shipLevel.level == nil {
@@ -1003,7 +1332,7 @@ func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
 	// No beaming through ground.
 	if e.HasComponent(rlcomponents.Position) {
 		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		if !campaign.OpenToSky(wm.current.level, pc.GetX(), pc.GetY(), pc.GetZ()) {
+		if !campaign.OpenToSky(wm.Current().level, pc.GetX(), pc.GetY(), pc.GetZ()) {
 			return fmt.Errorf("colonist is not open to the sky — no beaming through ground")
 		}
 	}
@@ -1015,7 +1344,7 @@ func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
 		wc.CurrentTask = nil
 	}
 	// Transfer the entity from the planet level to a free tile in the ship hull.
-	wm.current.level.RemoveEntity(e)
+	wm.Current().level.RemoveEntity(e)
 	shipLvl := wm.shipLevel.level
 	cx, cy, cz := ship.HullCenter()
 	x, y, z := freeLandingTile(shipLvl, cx, cy, cz)
@@ -1034,18 +1363,44 @@ func campaignColonyName(c *campaign.Campaign) string {
 	return "Colony Alpha"
 }
 
-// SaveCampaign freezes the current level, flushes the ship hold, and writes the
-// campaign root file. The per-location level files are written by Freeze.
+// locationColonyName returns the location's own colony settlement name, assigning
+// it on first use. Every planet needs its own: settlements live in a global map
+// keyed by name, so a shared name would mean a shared task queue and storage owner.
+func locationColonyName(c *campaign.Campaign, loc *campaign.Location) string {
+	if loc.SettlementName == "" {
+		loc.SettlementName = campaignColonyName(c) + " @ " + loc.Name
+	}
+	return loc.SettlementName
+}
+
+// currentColonyName is the colony settlement of the location in orbit.
+func (wm *WorldManager) currentColonyName() string {
+	loc := wm.Campaign.CurrentLocation()
+	if loc == nil {
+		return ""
+	}
+	return locationColonyName(wm.Campaign, loc)
+}
+
+// SaveCampaign writes every loaded location's level, the ship, and the campaign root
+// file. Everything stays live. s is the level the player saved from (nil from the
+// dashboard with nothing in orbit), which supplies the day.
 func (wm *WorldManager) SaveCampaign(s *MainState) error {
 	c := wm.Campaign
 	if c == nil {
 		return fmt.Errorf("save: no campaign")
 	}
 	if s != nil {
-		if err := wm.Freeze(s); err != nil {
-			return err
-		}
 		c.Day = s.day
+	}
+	for id, loc := range c.Locations {
+		ms := wm.loaded[id]
+		loc.Loaded = ms != nil
+		if ms != nil {
+			if err := wm.writeLocation(loc, ms); err != nil {
+				return err
+			}
+		}
 	}
 	if err := wm.freezeShip(); err != nil {
 		return err
@@ -1063,6 +1418,14 @@ func LoadCampaign(name string) (*campaign.Campaign, error) {
 	var c campaign.Campaign
 	if err := readGz(filepath.Join(campaignRoot(name), "campaign.json.gz"), &c); err != nil {
 		return nil, err
+	}
+	// Saves from before per-location settlements tag everything on a planet with
+	// the old shared colony name, so its workers would find no settlement and sit
+	// idle. There is no migration; refuse them rather than load a dead colony.
+	for _, loc := range c.Locations {
+		if loc.SaveFile != "" && loc.SettlementName == "" {
+			return nil, fmt.Errorf("campaign %q predates per-location settlements and can't be loaded", name)
+		}
 	}
 	return &c, nil
 }

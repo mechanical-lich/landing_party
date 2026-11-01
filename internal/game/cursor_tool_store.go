@@ -90,10 +90,10 @@ func (t *storeTool) Click(tX, tY, tZ int) {
 	// Phase 1: pick an item.
 	if t.item == nil {
 		ent := t.host.Level().GetEntityAt(tX, tY, tZ)
-		// A Worker-bearing entity (e.g. a deployed robot) counts as
+		// A colony worker (e.g. a deployed robot) counts as
 		// "pickupable" too — that's how the player recalls it back into
 		// inventory and then into a locker.
-		if ent == nil || (!ent.HasComponent(rlcomponents.Item) && !ent.HasComponent(components.Worker)) {
+		if ent == nil || (!ent.HasComponent(rlcomponents.Item) && !components.IsColonyWorker(ent, t.host.colonyName())) {
 			message.AddMessage("Pick an item lying on the ground first.")
 			return
 		}

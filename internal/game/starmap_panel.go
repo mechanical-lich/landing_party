@@ -57,6 +57,7 @@ type starMapPanel struct {
 	locateBtn   *minui.Button
 	travelBtn   *minui.Button
 	scanBtn     *minui.Button
+	pauseBtn    *minui.Button
 	beamDownBtn *minui.Button
 	beamUpBtn   *minui.Button
 
@@ -124,8 +125,14 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 
 	p.scanBtn = minui.NewButton("sm_scan", "Scan")
 	p.scanBtn.SetPosition(880, btnY)
-	p.scanBtn.SetSize(180, 30)
+	p.scanBtn.SetSize(120, 30)
 	p.scanBtn.OnClick = p.scan
+
+	p.pauseBtn = minui.NewButton("sm_pause", "")
+	p.pauseBtn.SetPosition(1008, btnY)
+	p.pauseBtn.SetSize(130, 30)
+	p.pauseBtn.OnClick = p.togglePause
+	p.syncPauseBtn()
 
 	p.scanModal = minui.NewModal("sm_scan_result", "Scan Report", 480, 170)
 	p.scanModal.SetPosition((sw-480)/2, (sh-170)/2)
@@ -176,8 +183,10 @@ func (p *starMapPanel) refreshLocations() {
 	for _, loc := range locs {
 		p.locIDs = append(p.locIDs, loc.ID)
 		tag := ""
-		if loc.ID == p.campaign.CurrentLocationID && p.wm.current != nil {
+		if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
 			tag = "  [in orbit]"
+		} else if p.wm.IsLoaded(loc.ID) {
+			tag = "  [crew working]"
 		} else if loc.Visited {
 			tag = "  [established]"
 		}
@@ -224,7 +233,7 @@ func (p *starMapPanel) refreshCrew() {
 	for i, e := range p.planEnts {
 		plan = append(plan, fmt.Sprintf("%d. %s", i+1, entityDisplayName(e)))
 	}
-	if p.wm.current == nil {
+	if p.wm.Current() == nil {
 		plan = []string{"(not in orbit — Travel first)"}
 	} else if len(plan) == 0 {
 		plan = []string{"(nobody planetside)"}
@@ -327,26 +336,13 @@ func (p *starMapPanel) travel() {
 	if loc == nil {
 		return
 	}
-	if loc.ID == p.campaign.CurrentLocationID && p.wm.current != nil {
+	if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
 		p.status = "Already in orbit here. Beam crew, then use To Site."
 		return
 	}
-	moving := loc.ID != p.campaign.CurrentLocationID
-	cost := p.campaign.FuelCost(loc.ID)
-	if moving && p.fuelAvailable() < cost {
-		p.status = fmt.Sprintf("Not enough fuel: have %d, need %d.", p.fuelAvailable(), cost)
-		return
-	}
-	if err := p.wm.Travel(loc.ID); err != nil {
+	if err := p.wm.TravelPaying(loc.ID); err != nil {
 		p.status = "Travel failed: " + err.Error()
 		return
-	}
-	if moving && cost > 0 {
-		storage.Deduct(
-			storage.ShipProvider{Level: p.wm.ShipLevel()},
-			[]string{p.wm.shipSettlementName()},
-			map[string]int{"fuel": cost},
-		)
 	}
 	if p.campaign.Won {
 		p.pending = NewCampaignEndState(true, fmt.Sprintf("The colonists are home at last. (Day %d)", p.campaign.Day))
@@ -410,7 +406,7 @@ func (p *starMapPanel) closeScanModal() {
 }
 
 func (p *starMapPanel) beamDown() {
-	if p.wm.current == nil {
+	if p.wm.Current() == nil {
 		p.status = "Travel to a location before beaming down."
 		return
 	}
@@ -443,6 +439,24 @@ func (p *starMapPanel) beamUp() {
 
 // ---- panel interface ----
 
+// togglePause stops or restarts the whole world clock, background planets included.
+func (p *starMapPanel) togglePause() {
+	p.wm.SetPaused(!p.wm.Paused())
+	if p.wm.Paused() {
+		p.wm.pauseReason = "star map"
+	}
+	p.syncPauseBtn()
+}
+
+// syncPauseBtn makes the button show the clock's state and what a click will do.
+func (p *starMapPanel) syncPauseBtn() {
+	if p.wm.Paused() {
+		p.pauseBtn.Text = "Paused: Resume"
+	} else {
+		p.pauseBtn.Text = "Running: Pause"
+	}
+}
+
 func (p *starMapPanel) Enter() {
 	p.refreshLocations()
 	p.refreshCrew()
@@ -474,8 +488,10 @@ func (p *starMapPanel) Update() {
 		p.scanBtn.SetEnabled(p.fuelAvailable() >= p.scanCost)
 	}
 	p.scanBtn.Update()
+	p.syncPauseBtn()
+	p.pauseBtn.Update()
 
-	inOrbit := p.wm.current != nil
+	inOrbit := p.wm.Current() != nil
 	p.beamDownBtn.SetEnabled(inOrbit)
 	p.beamUpBtn.SetEnabled(inOrbit)
 	p.shipList.Update()
@@ -690,7 +706,7 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	mlge_text.Draw(screen, "Destinations", 14, 20, lblY, lbl)
 	mlge_text.Draw(screen, "On Ship", 14, 340, lblY, lbl)
 	planTitle := "Planetside"
-	if cur != nil && p.wm.current != nil {
+	if cur != nil && p.wm.Current() != nil {
 		planTitle = "On " + cur.Name
 	}
 	mlge_text.Draw(screen, planTitle, 14, 610, lblY, lbl)
@@ -701,6 +717,7 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	p.locateBtn.Draw(screen)
 	p.travelBtn.Draw(screen)
 	p.scanBtn.Draw(screen)
+	p.pauseBtn.Draw(screen)
 	p.beamDownBtn.Draw(screen)
 	p.beamUpBtn.Draw(screen)
 

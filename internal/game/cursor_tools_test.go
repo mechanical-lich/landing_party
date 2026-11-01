@@ -15,6 +15,8 @@ import (
 // compile-time assertion catches drift if an adapter method is removed.
 var _ cursorToolHost = (*MainState)(nil)
 
+const fakeColony = "Fake Colony"
+
 // fakeToolHost is a recording stand-in for MainState, so a cursor tool's logic
 // can be exercised without the full game state.
 type fakeToolHost struct {
@@ -29,6 +31,7 @@ type fakeToolHost struct {
 
 func (f *fakeToolHost) Level() *world.Level                { return f.level }
 func (f *fakeToolHost) Settlement() *settlement.Settlement { return f.settlement }
+func (f *fakeToolHost) colonyName() string                 { return fakeColony }
 func (f *fakeToolHost) SetContext(t, b, bp string) {
 	f.contexts = append(f.contexts, [3]string{t, b, bp})
 }
@@ -48,6 +51,7 @@ func (f *fakeToolHost) lastContext() [3]string {
 func colonistEntity() *ecs.Entity {
 	e := &ecs.Entity{}
 	e.AddComponent(&components.WorkerComponent{})
+	e.AddComponent(&components.SettlementComponent{Name: fakeColony})
 	e.AddComponent(&rlcomponents.InventoryComponent{})
 	e.AddComponent(&rlcomponents.AIMemoryComponent{})
 	return e

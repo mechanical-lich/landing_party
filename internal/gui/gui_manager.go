@@ -56,6 +56,8 @@ func (gm *GUIManager) ToggleModal(name string) {
 }
 
 func (gm *GUIManager) SetInputBlocked(blocked bool)    { gm.hud.SetInputBlocked(blocked) }
+func (gm *GUIManager) SetPauseIndicator(text string)   { gm.hud.SetPauseIndicator(text) }
+func (gm *GUIManager) PauseIndicator() (bool, string)  { return gm.hud.PauseIndicator() }
 func (gm *GUIManager) SetDetailsTopOffset(offset int)  { gm.hud.SetDetailsTopOffset(offset) }
 func (gm *GUIManager) GetInputFocused() bool           { return gm.hud.GetInputFocused() }
 func (gm *GUIManager) GetMouseFocused() bool           { return gm.hud.GetMouseFocused() }

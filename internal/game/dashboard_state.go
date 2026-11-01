@@ -137,7 +137,7 @@ func (d *DashboardState) returnToShip() {
 }
 
 func (d *DashboardState) returnToSite() {
-	if d.wm.current == nil {
+	if d.wm.Current() == nil {
 		d.status = "Not in orbit — travel to a site from the Star Map first."
 		return
 	}
@@ -151,12 +151,12 @@ func (d *DashboardState) returnToSite() {
 }
 
 func (d *DashboardState) save() {
-	if err := d.wm.SaveCampaign(d.wm.current); err != nil {
+	if err := d.wm.SaveCampaign(d.wm.Current()); err != nil {
 		d.status = "Save failed: " + err.Error()
 	} else {
 		d.status = "Expedition saved."
-		if d.wm.current != nil {
-			d.wm.current.saveNamesDirty = true // refresh the HUD list on return
+		if d.wm.Current() != nil {
+			d.wm.Current().saveNamesDirty = true // refresh the HUD list on return
 		}
 	}
 }
@@ -172,6 +172,14 @@ func (d *DashboardState) fuelAvailable() int {
 func (d *DashboardState) Update() state.StateInterface {
 	if d.wm != nil {
 		d.wm.TickBackground(nil)
+		if t := d.wm.updatePopup(); t != nil {
+			d.next = t
+			d.done = true
+			return d.next
+		}
+		if d.wm.ActiveIncident() != nil {
+			return d.next // the popup has the input
+		}
 	}
 	// The beam-resources modal takes full input priority while open.
 	if d.storageInspector.Visible {
@@ -187,7 +195,7 @@ func (d *DashboardState) Update() state.StateInterface {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		if d.wm.current != nil {
+		if d.wm.Current() != nil {
 			d.returnToSite()
 		} else {
 			d.returnToShip()
@@ -196,7 +204,7 @@ func (d *DashboardState) Update() state.StateInterface {
 	}
 
 	d.tabBar.Update()
-	d.returnSiteBtn.SetEnabled(d.wm.current != nil)
+	d.returnSiteBtn.SetEnabled(d.wm.Current() != nil)
 	d.returnShipBtn.Update()
 	d.returnSiteBtn.Update()
 	d.saveBtn.Update()
@@ -223,7 +231,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	d.saveBtn.Draw(screen)
 
 	site := "in transit"
-	if loc := d.campaign.CurrentLocation(); loc != nil && d.wm.current != nil {
+	if loc := d.campaign.CurrentLocation(); loc != nil && d.wm.Current() != nil {
 		site = "in orbit: " + loc.Name
 	}
 	info := fmt.Sprintf("Fuel: %d      Day: %d      %s", d.fuelAvailable(), d.campaign.Day, site)
@@ -237,7 +245,20 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, d.status, 13, 20, cfg.ScreenHeight-30, color.RGBA{230, 160, 90, 255})
 	}
 	d.storageInspector.Draw(screen)
+	d.drawNotifications(screen)
+	d.wm.drawPopup(screen)
 	minui.FlushOverlays(screen)
+}
+
+// drawNotifications lists what background levels have been up to, newest at the
+// bottom, above the status line.
+func (d *DashboardState) drawNotifications(screen *ebiten.Image) {
+	cfg := config.Global()
+	recent := d.wm.RecentNotifications(3)
+	for i, n := range recent {
+		y := cfg.ScreenHeight - 30 - (len(recent)-i)*16
+		mlge_text.Draw(screen, notificationLine(n), 12, 20, y, color.RGBA{170, 190, 210, 255})
+	}
 }
 
 func (d *DashboardState) Done() bool { return d.done }

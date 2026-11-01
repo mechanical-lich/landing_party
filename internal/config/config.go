@@ -40,6 +40,21 @@ type Config struct {
 	RogueKeyRepeatInterval int `json:"rogueKeyRepeatInterval"`
 	RogueAutoMoveInterval  int `json:"rogueAutoMoveInterval"`
 
+	// MaxLoadedPlanets caps the planets kept in memory, not counting the ship. The
+	// least recently visited staffed one past the cap freezes to disk.
+	MaxLoadedPlanets int `json:"maxLoadedPlanets"`
+
+	// BackgroundTicksPerFrame is how many ticks away planets share each frame, and
+	// BackgroundOwedCap how far behind one can fall before excess ticks are dropped.
+	BackgroundTicksPerFrame int `json:"backgroundTicksPerFrame"`
+	BackgroundOwedCap       int `json:"backgroundOwedCap"`
+
+	// IncidentCooldownTicks is how long a planet's colonists must go unhurt before
+	// more damage raises a new alert. NotificationMergeTicks is how far apart repeated
+	// notifications still merge. Both in the away planet's own ticks.
+	IncidentCooldownTicks  int `json:"incidentCooldownTicks"`
+	NotificationMergeTicks int `json:"notificationMergeTicks"`
+
 	// Audio bus volumes, 0..1. Base defaults live in data/config.json; the
 	// settings screen writes player overrides to config.local.json.
 	UIVolume    float64 `json:"uiVolume"`

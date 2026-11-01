@@ -47,6 +47,9 @@ func SelectByID(id string) error {
 	return fmt.Errorf("scenario.SelectByID: %q not found", id)
 }
 
+// Active returns the scenario of the location in orbit. Levels run on their own
+// scenario (MainState.scenario); this is for what follows the orbit rather than a
+// level, such as the Star Map and the ship's planned ship_effects.
 func Active() *Scenario {
 	if active == nil {
 		panic("scenario.Active called before scenario.Load")

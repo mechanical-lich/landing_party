@@ -31,6 +31,14 @@ type Location struct {
 	// campaign directory.
 	SaveFile string `json:"save_file,omitempty"`
 
+	// Loaded records that this location was in memory when the campaign was saved,
+	// staffed and simulating, so loading the campaign brings it back the same way.
+	Loaded bool `json:"loaded,omitempty"`
+
+	// SettlementName is this location's own colony settlement, the key into the
+	// global settlement map. Assigned when the location's level is first built.
+	SettlementName string `json:"settlement_name,omitempty"`
+
 	// CameraX/Y/Z and BuildMode capture the player's view state so a resumed
 	// location reopens exactly where they left it.
 	CameraX   int    `json:"camera_x,omitempty"`

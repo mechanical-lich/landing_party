@@ -219,10 +219,10 @@ func (p *globalInvPanel) rebuild() {
 	switch p.activeTab {
 	case "current":
 		var summary map[string]int
-		if p.wm.current != nil && p.wm.current.level != nil {
+		if p.wm.Current() != nil && p.wm.Current().level != nil {
 			summary = storage.Summarize(
-				storage.LevelProvider{Level: p.wm.current.level},
-				[]string{campaignColonyName(p.wm.Campaign)},
+				storage.LevelProvider{Level: p.wm.Current().level},
+				[]string{p.wm.currentColonyName()},
 			)
 		}
 		p.addMaterialBody("dash_gi_cur", summary, bodyX, bodyY, fullW, bodyH, "(no site loaded — travel and land first.)")
@@ -301,7 +301,7 @@ func (p *globalInvPanel) Update() {
 		e.Update()
 	}
 	// Beam-resources controls are only meaningful while in orbit over a site.
-	if p.wm.current != nil {
+	if p.wm.Current() != nil {
 		p.beamUpBtn.SetEnabled(p.wm.SiteHoldEntity() != nil)
 		p.beamDownBtn.Update()
 		p.beamUpBtn.Update()
@@ -319,7 +319,7 @@ func (p *globalInvPanel) Draw(s *ebiten.Image) {
 	for _, e := range p.body {
 		e.Draw(s)
 	}
-	if p.wm.current != nil {
+	if p.wm.Current() != nil {
 		p.beamDownBtn.Draw(s)
 		p.beamUpBtn.Draw(s)
 	}

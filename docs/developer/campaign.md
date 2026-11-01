@@ -220,7 +220,7 @@ by data templates + a tuning file:
 - **Lose:** `MainState.checkTotalWipe` (each quest tick) ends the run if no
   colonists remain anywhere — none live on the level, none in the ship roster,
   none recorded on any frozen system (`Location.Colonists`, written on Freeze;
-  `Campaign.StoredColonists`). Both end states route to `CampaignEndState`.
+  `WorldManager.TotalColonists`). Both end states route to `CampaignEndState`.
 
 ## Crew replenishment
 

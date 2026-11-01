@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
 
@@ -99,8 +102,9 @@ func SaveSettlement(level *world.Level, meta SaveMeta) error {
 	}
 
 	sf := saveFile{
-		Meta:      meta,
-		WorldData: world.SaveLevel(level),
+		Meta: meta,
+		// Outside a campaign one level runs at a time and its save owns every settlement.
+		WorldData: world.SaveLevel(level, slices.Collect(maps.Keys(settlement.Settlements))...),
 	}
 	compressed, err := marshalSaveFile(sf)
 	if err != nil {

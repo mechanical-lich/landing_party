@@ -27,7 +27,7 @@ func (t *pickupTool) Request(colonist *ecs.Entity) {
 	if colonist == nil {
 		return
 	}
-	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !colonist.HasComponent(components.Worker) {
+	if !colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.AIMemory) || !components.IsColonyWorker(colonist, t.host.colonyName()) {
 		return
 	}
 	t.colonist = colonist
@@ -63,7 +63,7 @@ func (t *pickupTool) Click(tX, tY, tZ int) {
 		return
 	}
 	target := t.host.Level().GetEntityAt(tX, tY, tZ)
-	if target == nil || (!target.HasComponent(rlcomponents.Item) && !target.HasComponent(components.Worker)) {
+	if target == nil || (!target.HasComponent(rlcomponents.Item) && !components.IsColonyWorker(target, t.host.colonyName())) {
 		message.AddMessage("Pick an item lying on the ground.")
 		return
 	}
