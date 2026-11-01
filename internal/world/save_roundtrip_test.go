@@ -1,9 +1,14 @@
 package world
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/task"
 )
 
 // TestSaveRoundTripPreservesSkeleton guards against silent save/load data loss:
@@ -71,6 +76,70 @@ func TestSaveRoundTripRestoresStaticEntities(t *testing.T) {
 	loaded := LoadSaveData(SaveLevel(lvl))
 	if loaded == nil {
 		t.Fatal("LoadSaveData returned nil")
+	}
+}
+
+// TestLoadMergesSettlements: loading a save must not drop settlements it doesn't
+// mention (other loaded levels'), and a save's own entries take effect.
+func TestLoadMergesSettlements(t *testing.T) {
+	prev := settlement.Settlements
+	defer func() { settlement.Settlements = prev }()
+
+	other := &settlement.Settlement{Name: "Other"}
+	settlement.Settlements = map[string]*settlement.Settlement{
+		"Other": other,
+		"Mine":  {Name: "Mine"},
+	}
+	saved := &settlement.Settlement{Name: "Mine"}
+	data := SaveLevel(NewLevel(2, 2, 1))
+	data.Settlements = map[string]*settlement.Settlement{"Mine": saved}
+
+	if LoadSaveData(data) == nil {
+		t.Fatal("LoadSaveData returned nil")
+	}
+	if settlement.Settlements["Other"] != other {
+		t.Error("settlement absent from the save was dropped")
+	}
+	if settlement.Settlements["Mine"] != saved {
+		t.Error("save's own settlement did not take effect")
+	}
+
+	// A save with no settlements must leave the map writable.
+	data.Settlements = nil
+	if LoadSaveData(data) == nil {
+		t.Fatal("LoadSaveData returned nil")
+	}
+	settlement.Settlements["New"] = &settlement.Settlement{Name: "New"}
+}
+
+// TestLoadClearsWorkerCurrentTask: a saved CurrentTask decodes with an untyped Data
+// the handlers reject, which would leave the worker stuck on it.
+func TestLoadClearsWorkerCurrentTask(t *testing.T) {
+	prev := settlement.Settlements
+	defer func() { settlement.Settlements = prev }()
+
+	lvl := NewLevel(4, 4, 1)
+	lvl.AllocTerrain()
+	e := &ecs.Entity{}
+	e.AddComponent(&rlcomponents.PositionComponent{})
+	e.AddComponent(&components.WorkerComponent{CurrentTask: &task.Task{Action: "dig", InProgress: true}})
+	lvl.AddEntity(e)
+
+	raw, err := json.Marshal(SaveLevel(lvl))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var data SaveData
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	loaded := LoadSaveData(data)
+	if loaded == nil || len(loaded.Entities) != 1 {
+		t.Fatalf("worker not restored: %+v", loaded)
+	}
+	wc := loaded.Entities[0].GetComponent(components.Worker).(*components.WorkerComponent)
+	if wc.CurrentTask != nil {
+		t.Errorf("CurrentTask = %+v, want nil", wc.CurrentTask)
 	}
 }
 

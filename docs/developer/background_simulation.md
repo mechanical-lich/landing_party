@@ -191,13 +191,35 @@ Fix (mirror the ship): a per-location settlement name, e.g.
 `Location`. Beam-down/up already re-tags colonists between ship and colony
 (`tagColonistSettlement`); extend that to the destination planet's name.
 **Save/load is not scoped either:** `world.SaveLevel` embeds the *entire*
-global map and `LoadSaveData` **replaces** it (`settlement.Settlements =
-data.Settlements`, [save.go](../../internal/world/save.go)). With one planet
-plus the ship that is survivable (the ship re-registers itself); with several
-loaded planets, thawing one wipes the others' settlements. Part B0 must make
-a location save carry only its own settlement(s) and make load **merge** into
-the global map (the "scoped save/load" the original campaign plan called for
-in its Step 5 but which was never built).
+global map, and `LoadSaveData` ([save.go](../../internal/world/save.go)) used to
+**replace** it. This was assumed survivable because the ship "re-registers
+itself", but tracing it showed a live bug: `ensureShipSettlement` only runs in
+`buildShip`, *before* any location thaw. Thawing a location afterwards swapped
+the ship's map entry for a decoded copy from the location's snapshot, while the
+ship's `MainSettlement` kept pointing at the old object, so player orders went
+to a queue workers never read. It hit every campaign load (`buildShip` then
+`EnterStartingOrbit`) and every return to a visited planet.
+
+Fixed, with a regression guard in
+[ship_settlement_test.go](../../internal/game/ship_settlement_test.go):
+`LoadSaveData` now **merges** into the global map, and `buildParked` calls
+`WorldManager.pinShipSettlement` after a thaw to restore the live ship entry.
+The pin is needed because saves are still unscoped: a merge alone still
+overwrites the ship with the snapshot's stale copy. Multiple loaded planets
+have the same problem, so Part B0 must still make a location save carry only
+its own settlement(s) (the "scoped save/load" the original campaign plan called
+for in its Step 5 but which was never built), and can then drop the pin.
+
+Task queues now persist with the settlement
+([persist.go](../../internal/settlement/persist.go)), because
+`task.TaskScheduler` hides its tasks from encoding/json. Tasks restore with
+their typed `Data` and in-progress ones return to the queue, while
+`LoadSaveData` clears each worker's `CurrentTask` so workers pick them back up.
+Tasks bound to a live entity (attack, pickup, retrieve, relocate, entity mining)
+are **not** saved, since entities have no stable ID to re-link by, and tasks
+assigned directly to a worker without being queued (equip, unequip, needs-driven
+rest) end on load. Stale snapshots now matter more: every save carries every
+settlement's queue, which is another reason to scope saves.
 
 Test: load two levels headless with workers on both, queue a build task on
 each, step both, and assert neither worker picks up the other planet's task

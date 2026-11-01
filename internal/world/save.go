@@ -490,7 +490,14 @@ func LoadSaveData(data SaveData) *Level {
 	}
 
 	for _, saveEntity := range data.Entities {
-		level.AddEntity(RebuildEntity(saveEntity))
+		e := RebuildEntity(saveEntity)
+		// A saved CurrentTask decodes with an untyped Data the handlers reject,
+		// leaving the worker stuck on it forever. Queued work is restored with the
+		// settlement's queue, so workers start free and pick it back up.
+		if e.HasComponent(components.Worker) {
+			e.GetComponent(components.Worker).(*components.WorkerComponent).CurrentTask = nil
+		}
+		level.AddEntity(e)
 	}
 	// Static (Inanimate) entities were saved but previously never rebuilt.
 	for _, saveEntity := range data.StaticEntities {
@@ -503,7 +510,12 @@ func LoadSaveData(data SaveData) *Level {
 		}
 	}
 
-	settlement.Settlements = data.Settlements
+	// Merge rather than replace: settlements of other loaded levels aren't this
+	// save's to drop. A save's entries do win, including stale snapshots of other
+	// levels' settlements — see WorldManager.pinShipSettlement.
+	for name, s := range data.Settlements {
+		settlement.Settlements[name] = s
+	}
 	return level
 }
 

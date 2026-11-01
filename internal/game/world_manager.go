@@ -189,6 +189,16 @@ func (wm *WorldManager) ensureShipSettlement(name string) *settlement.Settlement
 	return s
 }
 
+// pinShipSettlement points the global map back at the live ship settlement. Every
+// location save embeds a snapshot of the whole map, so thawing one overwrites the
+// ship's entry with a stale copy, while the ship's MainState keeps queueing orders
+// on the live object — workers would then read a queue the player can't reach.
+func (wm *WorldManager) pinShipSettlement() {
+	if wm.shipLevel != nil && wm.shipLevel.MainSettlement != nil {
+		settlement.Settlements[wm.shipLevel.MainSettlement.Name] = wm.shipLevel.MainSettlement
+	}
+}
+
 // TickBackground advances the always-loaded background levels one step — for now
 // just The Ship — skipping whichever level is currently live (it ticks itself
 // via stepWorld) and honoring the pause flag.
@@ -614,6 +624,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 		if err != nil {
 			return nil, err
 		}
+		wm.pinShipSettlement()
 		ms, err = newMainStateFromLevel(level, cfg)
 		if err != nil {
 			return nil, err
