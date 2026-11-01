@@ -221,10 +221,21 @@ assigned directly to a worker without being queued (equip, unequip, needs-driven
 rest) end on load. Stale snapshots now matter more: every save carries every
 settlement's queue, which is another reason to scope saves.
 
+**4. "Has a `Worker`" is not "is a player colonist."** `countLevelColonists`
+(the total-wipe loss check), the beam lists, the population UI and the
+cursor tools all test `HasComponent(Worker)` alone. The enemy factions plan
+(`docs/brainstorm/enemy_factions_plan.md`, finding 1) will put `Worker` on
+hostile entities, and Part B's staffed check must not count them. Add one
+`IsColonyWorker(e)` predicate (Worker + the player's settlement name) and
+use it at every site above and in Part B. Do it in B0 so both plans build
+on it.
+
 Test: load two levels headless with workers on both, queue a build task on
 each, step both, and assert neither worker picks up the other planet's task
 and neither level spawns from the other's scenario. Then freeze and thaw one
-of them and assert the other's settlement survives in the global map.
+of them and assert the other's settlement survives in the global map. Add a
+hostile entity carrying `Worker` to one level and assert it is excluded from
+the colonist count, the staffed check and the beam list.
 
 ### Part B — WorldManager: single `current` → multi-loaded (the big one)
 

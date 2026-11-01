@@ -1,6 +1,80 @@
 # Expanding Enemy Factions — Plan
 
-Status: **planned, not started** (2026-10-31).
+Status: **planned, not started** (2026-10-31). Code-reviewed the same day;
+see "Code review findings" below for what the audit changed. Sequencing:
+background simulation **Part B0** first (per-level scenario, per-location
+settlement names, scoped saves, and the colony-worker predicate from
+finding 1), then Phase A here can run in parallel with Part B.
+
+## Code review findings (2026-10-31)
+
+Each assumption in this plan was checked against `dev` at `becc201`+.
+Confirmed as written: `Location.Colonists` / `StorageSummary` are written
+on `Freeze`; `Fixtures` are idempotent via a `Spawned` flag;
+`rlcombat.IsFriendly` compares `Description.Faction` (and treats `""` /
+`"none"` as never friendly); settlements each own a `TaskScheduler` and
+workers pick tasks by their own settlement name; `Campaign.Scan`,
+`generation.ApplyBiomes`, the `stamp` feature kind, the location template
+tags, the listed blueprints and scenarios, and the wire-placer script all
+exist. The `MaybeTravelQuests` RNG is `Seed + TravelSeq*K + GenSeq*131`,
+close enough to the formula quoted.
+
+**1. "Worker component" means "player colonist" everywhere. This is the
+one that breaks the game if Phase C ships as written.** Faction workers
+need `Worker` to use the task system, but every place the code counts
+colonists tests `HasComponent(Worker)` with no faction check:
+`countLevelColonists` (the **total-wipe loss check** and
+`Location.Colonists`), `PlanetColonists` / `ShipColonists` (the beam
+lists), the population list and task-filter UI in `main_state.go`, the
+rogue-mode takeover, the cursor pickup/drop/store tools, and the map modal.
+With enemy workers on a planet the player could lose every colonist and
+not lose, see hive workers in the crew list, and beam them aboard. The
+background doc's decision 3 ("a `Worker` keeps a planet loaded") has the
+same hole: an infested planet would stay loaded, contradicting the
+Keep-loaded rule below.
+
+Fix, as a **Part B0 item** so it lands before either plan's level work: one
+predicate, e.g. `IsColonyWorker(e)` = has `Worker` and its
+`SettlementComponent.Name` is the player's colony (or `Description.Faction
+== "colony"`), used at every site above and in Part B's staffed check. The
+`WorkerSystem` itself stays faction-blind, which is the point.
+
+**2. The campaign clock is per-level, not never-set.** `Campaign.Day` *is*
+written, on every save, as a copy of the live level's `level.Day`
+(`SaveCampaign`). Each level has its own `Day` that only advances while
+that level is live, so a planet frozen on day 12 and revisited on campaign
+day 40 still reads day 12. The `AdvanceDay` hook in Tier 1 is still the
+right shape, but decide that the **campaign** clock is the source of truth
+and levels display it, or Tier 1 and the HUD will disagree about what day
+it is. Jump-cost-in-days then applies on `Travel`.
+
+**3. Doctrine `aggression` has nothing to plug into yet.** The
+`hostility` script var is randomised 1–10 per entity on its first turn in
+`faction_humanoid.basic`; nothing reads it from a blueprint or doctrine.
+Phase C needs a small hook: seed `hostility` from the spawning doctrine
+(e.g. a `ScriptedAI` initial-vars map) before the script's first tick.
+
+**4. Crafted entities go into the crafter's bag.** The craft handler
+special-cases `output == "colonist"` to deploy at the printer; every other
+output lands in the crafter's inventory. A director "printing an enforcer at
+a fabricator" would put the enforcer in a worker's bag. Generalise the
+special case into a recipe or blueprint flag (`deploy_on_craft`) in Phase
+C; it also serves the player's Robot Workbench.
+
+**5. Faction settlements and scoped saves.** Naming faction settlements
+`"<faction>:<locID>"` keeps them unique in the global `settlement.Settlements`
+map, good. But Part B0's scoped save/load must write faction settlements
+into the location save and drop them from the global map on `Freeze`, or
+they accumulate for the life of the process like the ship-pin note in the
+background doc describes. Reconcile should delete the map entry.
+
+**6. Minor name checks.** There is no `primer_station` identifier; the
+station primer is in `internal/generation/primer.go` with
+`station_setup.basic` as its scenario script. There is no `"encounter"`
+location kind; kinds are free strings from the templates, so adding one is
+data, not code. Hostile blueprints have no `Needs` component, so faction
+workers skip the needs system cleanly (it is gated on the component).
+
 
 ## Goal
 
@@ -201,6 +275,10 @@ planet with colonists *and* a faction presence is live or throttled
 already, which is exactly when you want the attack notification. A planet
 with only a faction presence is frozen and Tier 1 handles it.
 
+This only holds once Part B's staffed check uses the colony-worker
+predicate from finding 1. With a bare `Worker` check, every infested
+planet would count as staffed and stay loaded.
+
 ## Tier 3 — Star Map and player counterplay
 
 - `starmap_panel.go` shows each location's presences: icon per faction,
@@ -226,7 +304,7 @@ with only a faction presence is frozen and Tier 1 handles it.
 |---|---|---|
 | **A** | `FactionPresence` + `data/factions.json` + `AdvanceDay` + Tier 1 step + save/load. Star Map badges. No level changes. | Cheapest, fully testable with unit tests (deterministic RNG). |
 | **B** | Materialize using **existing** stamps, scenarios and hostiles; reconcile on freeze. No director yet. | Biggest visible payoff: planets change while you're away. |
-| **C** | Faction settlements + director + `ConvertAction`; faction workers on the `WorkerSystem`. | Rival-colony feel on the live planet. |
+| **C** | Faction settlements + director + `ConvertAction`; faction workers on the `WorkerSystem`. **Prerequisite: finding 1's colony-worker predicate (Part B0), plus findings 3 and 4.** | Rival-colony feel on the live planet. |
 | **D** | Fleets, interception encounters, greyish mothership. | Depends on A–C; most new UI. |
 
 Phase A ships without B being visible, so the todo should list them as
@@ -234,8 +312,10 @@ separate items.
 
 ## Open questions
 
-- **Campaign clock.** `Campaign.Day` is never incremented today. Decide the
-  day length and whether a jump costs days (proposal: `ceil(FuelCost / 3)`).
+- **Campaign clock.** `Campaign.Day` is a per-save copy of the live
+  level's day (finding 2). Decide the day length, make the campaign clock
+  the source of truth, and whether a jump costs days (proposal:
+  `ceil(FuelCost / 3)`).
 - **Carrying capacity formula.** Per archetype tag or per actual generated
   resource tally (`MapW*MapH` is cached on Location, deposits are not)?
   Proposal: tag-based in A, replaced by the real tally once B has a level
