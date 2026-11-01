@@ -95,11 +95,12 @@ func (s *StorageComponent) AddItem(item *ecs.Entity) bool {
 				ec.Quantity = mc.MaxStack
 				qty -= room
 			}
-			// Remainder needs a fresh slot.
+			// Remainder needs a fresh slot. Either way the caller keeps only
+			// the remainder: the units merged above now live in this container.
+			mc.Quantity = qty
 			if s.full() {
 				return false
 			}
-			mc.Quantity = qty
 			s.Items = append(s.Items, item)
 			return true
 		}

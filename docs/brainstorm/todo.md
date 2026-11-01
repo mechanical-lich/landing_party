@@ -25,6 +25,9 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Stack duplication in `StorageComponent.AddItem` when a stackable partly
+  fit a full container (fixed 2026-10-31; regression test in
+  `internal/components/storage_test.go`).
 - Physical storage: all material use is carried, with a per-trip shopping
   list and a Str-based carry limit, replacing the old "unified storage" idea.
   Plan: [physical_storage_plan.md](physical_storage_plan.md).
