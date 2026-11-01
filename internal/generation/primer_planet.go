@@ -99,6 +99,8 @@ func mountainHeight(pm *perlin.Perlin, x, y int, scale, frequency float64, maxHe
 //	cavern_scale_z      float (default 10)   — larger = taller chambers
 //	mountain_frequency  float (default 0.15) — fraction of the map that is mountainous (0 = none)
 //	mountain_scale      float (default 110)  — larger = broader mountain ranges
+//	center_start        bool  (default false) — tag map centre as "starting_floor"
+//	                    so findStartingPlaza lands there instead of at a random spot
 func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64) error {
 	w, h, d := level.GetWidth(), level.GetHeight(), level.GetDepth()
 	level.AllocTerrain()
@@ -206,6 +208,10 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 	}
 	wg.Wait()
 	close(chunkChan)
+
+	if paramBool(params, "center_start", false) {
+		level.TagRegion("starting_floor", w/2, h/2, cfg.SurfaceZ)
+	}
 
 	log.Printf("PlanetPrimer: %dx%dx%d done (surfaceZ=%d, maxMountain=%d)", w, h, d, cfg.SurfaceZ, maxMountain)
 	return nil

@@ -23,6 +23,10 @@ const (
 	// Rule.Target has been killed (a named boss / bounty creature). Unlike
 	// entity_killed it tracks one tagged entity, not a blueprint count.
 	TriggerTargetKilled TriggerType = "target_killed"
+	// TriggerFlagSet fires when Rule.Flag is truthy in EvalContext.Flags. Lets a
+	// rule test a non-simulation fact supplied by the caller (the tutorial's
+	// ui.* flags, for example).
+	TriggerFlagSet TriggerType = "flag_set"
 )
 
 type Condition struct {
@@ -52,6 +56,8 @@ type Rule struct {
 	Resource   string      `json:"resource,omitempty"`
 	// Target identifies the tagged quest target for target_killed.
 	Target     string      `json:"target,omitempty"`
+	// Flag names the EvalContext.Flags key tested by flag_set.
+	Flag       string      `json:"flag,omitempty"`
 	Threshold  int         `json:"threshold,omitempty"`
 	Op         string      `json:"op,omitempty"`
 	When       []Condition `json:"when,omitempty"`

@@ -1,0 +1,15 @@
+{
+    "id": "tutorial",
+    "name": "Training Ground",
+    "description": "A small, flat, quiet world used for the guided first landing.",
+    "internal": true,
+    "size": {
+        "w": { "min": 64, "max": 64 },
+        "h": { "min": 64, "max": 64 },
+        "z": { "min": 10, "max": 10 }
+    },
+    "terrain": "planet",
+    "terrain_params": { "mountain_frequency": 0, "center_start": true },
+    "biome_map": { "type": "uniform", "single": "tutorial_plain" },
+    "features": []
+}

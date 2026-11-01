@@ -89,6 +89,11 @@ func (e *Evaluator) Evaluate(ctx EvalContext) (*Rule, bool) {
 				return r, true
 			}
 			continue
+		case TriggerFlagSet:
+			if isTruthy(ctx.Flags[r.Flag]) && checkConditions(r.When, ctx) {
+				return r, true
+			}
+			continue
 		default:
 			continue
 		}

@@ -61,6 +61,10 @@ type Campaign struct {
 	// draws these as trade-route lines that darken with use.
 	TravelEdges map[string]int `json:"travel_edges,omitempty"`
 
+	// Tutorial is the guided first landing's progress; nil when the expedition
+	// started without it (and on every older save).
+	Tutorial *TutorialProgress `json:"tutorial,omitempty"`
+
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
 }
@@ -103,6 +107,31 @@ func (c *Campaign) TravelRoutes() []TravelRoute {
 
 // HomeKind marks the single "Home" destination; travelling there wins the run.
 const HomeKind = "home"
+
+// AdriftKind marks the Wreck Site: the empty point in space where the damaged
+// life-raft came to rest and every expedition begins. It has no map or
+// scenario, never generates a level, and cannot be landed on, so the first act
+// of a campaign is choosing a destination. Travelling there again is refused.
+const AdriftKind = "adrift"
+
+// AdriftLocationID and StartLocationID are the fixed IDs of the Wreck Site and
+// the generated start system.
+const (
+	AdriftLocationID = "adrift"
+	StartLocationID  = "start"
+)
+
+// IsAdrift reports whether the ship sits at the Wreck Site, with nothing to
+// orbit or land on.
+func (c *Campaign) IsAdrift() bool {
+	loc := c.CurrentLocation()
+	return loc != nil && loc.Kind == AdriftKind
+}
+
+// HasSite reports whether a location can hold a level: not Home, not the Wreck Site.
+func (l *Location) HasSite() bool {
+	return l != nil && l.Kind != HomeKind && l.Kind != AdriftKind
+}
 
 // HomeLocation returns the Home destination descriptor, or nil.
 func (c *Campaign) HomeLocation() *Location {

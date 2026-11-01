@@ -63,6 +63,26 @@ func paramInt(params map[string]any, key string, def int) int {
 	return def
 }
 
+// paramBool extracts a bool, accepting JSON true/false and the numbers 0/1.
+func paramBool(params map[string]any, key string, def bool) bool {
+	if params == nil {
+		return def
+	}
+	v, ok := params[key]
+	if !ok {
+		return def
+	}
+	switch t := v.(type) {
+	case bool:
+		return t
+	case float64:
+		return t != 0
+	case int:
+		return t != 0
+	}
+	return def
+}
+
 func paramFloat(params map[string]any, key string, def float64) float64 {
 	if params == nil {
 		return def

@@ -49,6 +49,10 @@ type TitleState struct {
 	seedInput     *minui.TextInput
 	randomSeedBtn *minui.Button
 
+	// tutorialToggle turns the guided first landing on or off for this
+	// expedition. Its default comes from config (TutorialOffDefault).
+	tutorialToggle *minui.Toggle
+
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
 
@@ -160,6 +164,7 @@ func (ts *TitleState) confirmLoad() {
 	if err := wm.EnterStartingOrbit(); err != nil {
 		log.Printf("EnterStartingOrbit: %v", err)
 	}
+	startTutorial(c, wm)
 	ts.next = NewDashboardState(c, wm)
 	ts.done = true
 }
@@ -186,12 +191,16 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		ts.seedInput.Text = strconv.FormatInt(rand.Int63(), 10)
 	}
 
+	ts.tutorialToggle = minui.NewToggle("tutorial_toggle", "Guided first landing (tutorial)")
+	ts.tutorialToggle.On = !cfg.TutorialOffDefault
+	ts.tutorialToggle.SetPosition(cx-150, 354)
+
 	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
-	ts.generateBtn.SetPosition(cx-80, 372)
+	ts.generateBtn.SetPosition(cx-80, 406)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 416)
+	ts.cancelBtn.SetPosition(cx-80, 450)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 }
@@ -210,7 +219,7 @@ func (ts *TitleState) startNewSettlement() {
 		seed = rand.Int63()
 	}
 
-	ms, err := StartNewExpedition(name, seed)
+	ms, err := StartNewExpedition(name, seed, ts.tutorialToggle.IsOn())
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
 		return
@@ -221,25 +230,42 @@ func (ts *TitleState) startNewSettlement() {
 
 // StartNewExpedition generates a fully procedural campaign (start system,
 // nearby systems, a far-off visible Home) and opens the Star Map — the
-// colonists begin aboard the ship in space.
-func StartNewExpedition(name string, seed int64) (state.StateInterface, error) {
+// colonists begin aboard the ship in space. With tutorial set, the Training
+// Ground is added beside the start system and the hold carries only the
+// tutorial's metal; the ship still parks at the generated start.
+func StartNewExpedition(name string, seed int64, tutorial bool) (state.StateInterface, error) {
+	c, wm, err := newExpedition(name, seed, tutorial)
+	if err != nil {
+		return nil, err
+	}
+	return NewDashboardState(c, wm), nil
+}
+
+// newExpedition is StartNewExpedition without the dashboard, for headless tests.
+func newExpedition(name string, seed int64, tutorial bool) (*campaign.Campaign, *WorldManager, error) {
 	c, err := campaign.GenerateCampaign(name, seed)
 	if err != nil {
-		return nil, fmt.Errorf("generate campaign: %w", err)
+		return nil, nil, fmt.Errorf("generate campaign: %w", err)
 	}
 	if c.CurrentLocationID == "" {
-		return nil, fmt.Errorf("campaign has no starting location")
+		return nil, nil, fmt.Errorf("campaign has no starting location")
 	}
 	cfg := campaign.GenerationConfig()
 	SeedNewCampaign(c)
+	var hold map[string]int
+	if tutorial {
+		campaign.AddTutorialLocation(c)
+		hold = tutorialHoldStock()
+	}
 	c.BindQuests()
 	wm := NewWorldManager(c)
-	wm.SeedShipCrew(cfg.StartColonists) // crew spawns aboard the ship
-	wm.StockShipLocker(cfg.StartFuel)   // and the hold is stocked
+	wm.SeedShipCrew(cfg.StartColonists)   // crew spawns aboard the ship
+	wm.StockShipLocker(cfg.StartFuel, hold) // and the hold is stocked
 	if err := wm.EnterStartingOrbit(); err != nil {
 		log.Printf("EnterStartingOrbit: %v", err)
 	}
-	return NewDashboardState(c, wm), nil
+	startTutorial(c, wm) // assigns nil with the toggle off
+	return c, wm, nil
 }
 
 func (ts *TitleState) Update() state.StateInterface {
@@ -270,6 +296,7 @@ func (ts *TitleState) Update() state.StateInterface {
 		ts.randomNameBtn.Update()
 		ts.seedInput.Update()
 		ts.randomSeedBtn.Update()
+		ts.tutorialToggle.Update()
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
 	case screenLoad:
@@ -317,6 +344,7 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, "Seed (blank = random):", 14, lx, 295, lblCol)
 		ts.seedInput.Draw(screen)
 		ts.randomSeedBtn.Draw(screen)
+		ts.tutorialToggle.Draw(screen)
 		ts.generateBtn.Draw(screen)
 		ts.cancelBtn.Draw(screen)
 	}

@@ -1,8 +1,16 @@
 # The Ship & the Star Map
 
 Landing Party is a campaign of expeditions. Your colonists begin aboard a
-space life-raft. You do not start on a planet — you start **in space**, looking
-at the Star Map, and decide where to make planetfall.
+space life-raft. You do not start on a planet — you start **adrift** at the
+**Wreck Site**, the empty point in space where the damaged raft came to rest.
+There is nothing there to orbit or land on, so the first thing every
+expedition does is choose a destination on the Star Map and spend a little
+fuel to reach it. The nearest world is a short, cheap jump away.
+
+While adrift, Beam Down, To Site and Beam Resources are unavailable and say
+so; the crew stays aboard and eats from the hold; Travel Here is the live
+action. The Wreck Site stays on the map as a dim cross, but you cannot
+travel back to it.
 
 ## The Ship (your hub)
 
@@ -96,13 +104,27 @@ Colonists move between the ship and the loaded location on the Star Map:
 
 The whole landing party beams down to the same plaza (they spread out so they
 never stack). Beam-up has one rule: a colonist must be **open to the sky** —
-you cannot beam up through solid ground or a roof.
+solid rock or wall directly overhead blocks it. A floor built above them does
+not.
+
+## The tutorial's Travel lock
+
+While the [guided first landing](tutorial.md) runs, Travel is limited to the
+Training Ground, and later to the system you started in. Every other
+destination stays listed and selectable, with its fuel cost and summary, but
+the button reads **Travel locked**, the status line names the one place you can
+go, and the same reason sits under the fuel line. The destination the tutorial
+wants is marked in magenta on the canvas and in the list, selected and centred
+for you. The lock lifts when the tutorial ends or you skip it. Answering an incident on a
+planet you have crew on always works.
 
 ## Beaming resources
 
-Resources do **not** move automatically. The Star Map's **Beam Resources...**
-button opens the ship hold in the [Storage Inspector](storage.md#the-storage-inspector).
-From here:
+Resources do **not** move automatically. Board the ship with **To Ship** and click
+its supply pad to open the hold in the
+[Storage Inspector](storage.md#the-storage-inspector). Once you have researched
+Inventory Survey, **Beam Down** on the dashboard's **Global Inventory** tab opens
+it too. From here:
 
 - Pick a material, set an amount, click **▼ Beam Down** to send it from the
   ship hold to the first colony-owned storage container at the loaded site
@@ -128,7 +150,8 @@ and filters.
 
 ## A typical loop
 
-1. Star Map → pick a destination → **Travel Here** (spends fuel if moving).
+1. Adrift at the Wreck Site: Star Map → pick a destination → **Travel Here**
+   (spends fuel if moving).
 2. Beam down a landing party.
 3. **Resume / Land** and play: gather, build, research, refine fuel.
 4. **O** / Star Map button → beam survivors up (or leave a colony behind).

@@ -733,6 +733,7 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 
 func (s *MainState) Update() state.StateInterface {
 	fspath.ResetFrameCounter()
+	tutorialFrameSite(s)
 	audio.SetMusicState("field") // base state in-game; combat overrides it
 	if s.wm != nil {
 		s.adoptWorldPause()
@@ -915,6 +916,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	if s.storageInspector != nil {
 		s.storageInspector.Draw(screen)
 	}
+	tutorialDraw(screen)
 	if s.wm != nil {
 		s.wm.drawPopup(screen)
 	}
@@ -1613,7 +1615,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		return
 	}
 	cXg, cYg := ebiten.CursorPosition()
-	if s.smallMap.WithinBounds(cXg, cYg) {
+	if s.smallMap.WithinBounds(cXg, cYg) || tutorialBlocksClick(cXg, cYg) {
 		return
 	}
 	if s.wm != nil {

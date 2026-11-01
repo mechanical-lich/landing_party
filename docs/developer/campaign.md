@@ -177,11 +177,25 @@ by data templates + a tuning file:
   location's name comes from `uniqueName`, which re-rolls (then appends a numeric
   suffix) so no two systems share a name. Both keep the seed reproducible — the
   retry count is a deterministic function of campaign state.
-- **`GenerateCampaign(name, seed)`** builds: a far, **visible `Home`**
-  (`Kind == HomeKind`) at `home_radius` so its distance-priced fuel cost is
-  huge; a **start** system at the origin; `nearby_min..max` nearby systems;
-  1–2 quests per system from tag-compatible templates; and one opening
-  contract. Everything derives from `seed`.
+- **`GenerateCampaign(name, seed)`** builds: the **Wreck Site**
+  (`Kind == AdriftKind`, ID `adrift`) at the origin, where the ship starts and
+  `CurrentLocationID` points; a far, **visible `Home`** (`Kind == HomeKind`)
+  at `home_radius` so its distance-priced fuel cost is huge; the **start**
+  system (ID `start`) `start_radius` out in a random direction, the nearest
+  and cheapest destination; `nearby_min..max` nearby systems at
+  `nearby_radius_min..max`; 1–2 quests per system from tag-compatible
+  templates; and one opening contract. Everything derives from `seed`.
+- **Level-less location kinds.** `HomeKind` and `AdriftKind` have no map or
+  scenario and never get a level; `Location.HasSite()` is false for both.
+  `WorldManager.Travel` to Home sets `Won`; to the Wreck Site it just clears
+  the current level (the Star Map refuses that jump anyway). While the current
+  location has no site, `Current()` is nil: `EnterStartingOrbit` parks nothing
+  (and still restores away planets), `EnterCurrent` returns an error naming
+  the adrift state, Beam Down / To Site / Beam Resources refuse with
+  `WorldManager.NoSiteReason()`, the dashboard shows "ADRIFT", the ship keeps
+  ticking and the total-wipe check counts the crew aboard. Quest, scan and
+  expansion rolls skip level-less locations (`HasSite`). Old saves whose
+  current location is a planet load unchanged; there is no migration.
 - **Persistence:** generated quests live in `Campaign.QuestDefs` (serialized);
   generated locations are in `Campaign.Locations`. `GenSeq`/`TravelSeq` count
   generation/jump events. Loading a save **replays** the persisted data and

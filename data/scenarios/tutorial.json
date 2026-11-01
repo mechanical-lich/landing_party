@@ -1,0 +1,18 @@
+{
+    "id": "tutorial",
+    "name": "Training Ground",
+    "description": "A flat, hostile-free world with a rock outcrop, a supply pad and a scatter of rations. Learn the basics here before the galaxy.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/tutorial_setup.basic"
+    ],
+    "hostile_max": 0,
+    "supported_maps": [
+        "tutorial"
+    ],
+    "spawn_rules": {},
+    "lighting": {
+        "mode": "fixed",
+        "ambient_level": 85
+    }
+}

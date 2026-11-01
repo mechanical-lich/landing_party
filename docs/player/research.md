@@ -86,6 +86,6 @@ Deep-scans the planetary crust and plots every **ore, crystal, and radioactive d
 
 ### Archive Indexing
 
-Cross-references field observations into an indexed bestiary. Unlocks the **Encyclopedia** entry point on the Star Map. Entities continue to be recorded as you encounter them, even before this research finishes — once the research completes, the catalogue is already populated with everything your colonists have hovered over so far.
+Cross-references field observations into an indexed bestiary. The **Encyclopedia** tab is available from the start today; entities are recorded as you hover them whether or not this is researched. (The research is kept for a future gate.)
 
 **Requires:** None

@@ -1,0 +1,438 @@
+{
+  "steps": [
+    {
+      "id": "choose_planet",
+      "context": "dash:starmap",
+      "target": "tutorial",
+      "title": "Adrift: travel to the Training Ground",
+      "text": "You are adrift at the Wreck Site: empty space with nothing to land on. The Training Ground is the nearest safe world, marked in magenta and already selected. The jump spends the fuel shown, and fuel cannot be made on a planet. Other destinations are locked until the first landing is done. Press Travel Here.",
+      "highlight": [
+        "dash:travelBtn",
+        "star:tutorial"
+      ],
+      "topic": "star_map",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.at_tutorial"
+      }
+    },
+    {
+      "id": "beam_party",
+      "at": "tutorial",
+      "context": "dash:starmap",
+      "title": "Beam two colonists down",
+      "text": "Select a colonist in the On Ship list and press Beam Down. Do it twice. The rest can stay aboard for now; crew on the ship eat from the hold and keep out of trouble.",
+      "highlight": [
+        "dash:shipList",
+        "dash:beamDownBtn"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "settlement_population",
+        "settlement": "colony",
+        "op": "gte",
+        "threshold": 2
+      }
+    },
+    {
+      "id": "to_site",
+      "at": "tutorial",
+      "context": "dash:starmap",
+      "title": "Go to the surface",
+      "text": "Press To Site (top right) to take command on the ground. The Star Map stays a tab away: press O or the Star Map button to come back, and Esc returns you to the site.",
+      "highlight": [
+        "dash:returnSiteBtn"
+      ],
+      "topic": "star_map",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.at_site"
+      }
+    },
+    {
+      "id": "camera",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Look around",
+      "text": "Move the view with W A S D or the arrow keys, and zoom with the mouse wheel. The small map in the corner shows where you are; click it for the full map.",
+      "topic": "camera",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.camera_panned"
+      }
+    },
+    {
+      "id": "z_levels",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Depth",
+      "text": "The world has layers. Press Q to look one level down and E to come back up. Ore and caverns are below; what you order is dug on the level you are looking at. Come back to the surface to continue.",
+      "topic": "camera",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.z_returned"
+      }
+    },
+    {
+      "id": "pause",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Take your time",
+      "text": "Press Space to pause. Press it again to resume, and 1, 2 or 3 to set the speed. Nothing in this guide pauses for you, so pause whenever you want to think.",
+      "topic": "camera",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.paused"
+      }
+    },
+    {
+      "id": "select",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Meet a colonist",
+      "text": "Click a colonist. Their panel shows needs, stats, gear and the kinds of work they will take.",
+      "highlight": [
+        "entity:colonist"
+      ],
+      "topic": "colonists",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.colonist_panel_open"
+      }
+    },
+    {
+      "id": "close_colonist",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Close the panel",
+      "text": "Have a look around, then close the panel with the X in its title bar. The world keeps running behind it.",
+      "topic": "colonists",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.colonist_panel_closed"
+      }
+    },
+    {
+      "id": "haul_food",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Bring in the food",
+      "text": "Colonists get hungry in a few minutes and eat from storage. There are ration packs on the ground south-west of the landing site, but nobody picks things up unasked. Click a ration to have it carried to the supply pad, or use Build > Orders > Store. Get three in.",
+      "highlight": [
+        "region:tut_rations"
+      ],
+      "topic": "hauling",
+      "done": {
+        "trigger": "resource_gathered",
+        "resource": "food",
+        "op": "gte",
+        "threshold": 3
+      }
+    },
+    {
+      "id": "beam_metal",
+      "at": "tutorial",
+      "context": "ship",
+      "title": "Beam the metal down",
+      "text": "This is your ship. Click the highlighted supply pad to open the hold, pick Metal Ore, set the amount to 10 and press Beam Down. It lands on the supply pad on the surface. That is all the metal the ship carries.",
+      "highlight": [
+        "dash:returnShipBtn",
+        "ship:hold",
+        "inspector:beam"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "resource_gathered",
+        "resource": "metal_ore",
+        "op": "gte",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "build_locker",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Build a storage locker",
+      "text": "Back on the surface, open Build > Structures > Storage Locker and click open ground near the pad. A colonist walks to the pad, picks up the metal, carries it over and builds. Hover the order to see what has been delivered.",
+      "highlight": [
+        "hud:cat_structures",
+        "hud:build_storage_locker"
+      ],
+      "topic": "building",
+      "done": {
+        "trigger": "structure_built",
+        "structure": "storage_locker"
+      }
+    },
+    {
+      "id": "dig",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Give orders by dragging",
+      "text": "Open Build > Orders > Dig, then drag a box over part of the rock outcrop to the east. A plain click marks one tile. Dig clears rock; anything with a yield inside the box is mined instead.",
+      "highlight": [
+        "hud:cat_orders",
+        "hud:order_dig",
+        "region:tut_outcrop"
+      ],
+      "topic": "orders",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.marquee_committed"
+      }
+    },
+    {
+      "id": "mine_cargo",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Mine ore and crystal",
+      "text": "The outcrop's west face holds ore and crystal. Use Build > Orders > Mine on them. Mined material is carried to storage, and the deposit lasts for many loads. You will take this cargo with you, so keep mining while you learn the rest.",
+      "highlight": [
+        "hud:cat_orders",
+        "hud:order_mine",
+        "region:tut_outcrop"
+      ],
+      "topic": "orders",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.cargo_mined"
+      }
+    },
+    {
+      "id": "storage",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Look inside storage",
+      "text": "Click your new locker. The inspector lists what it holds, and the tags on the right let you limit a container to certain kinds of material. The pad accepts everything; lockers are where you organise.",
+      "highlight": [
+        "entity:storage_locker"
+      ],
+      "topic": "storage",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.inspector_opened"
+      }
+    },
+    {
+      "id": "needs",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Hunger and sleep",
+      "text": "Colonists eat when hungry, as long as food is in storage, and tire as they work. Without a bed they rest badly. Build > Structures > Bed, and place one.",
+      "highlight": [
+        "hud:cat_structures",
+        "hud:build_bed"
+      ],
+      "topic": "needs",
+      "done": {
+        "trigger": "structure_built",
+        "structure": "bed"
+      }
+    },
+    {
+      "id": "workbench",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Build a workbench",
+      "text": "Build > Structures > Workbench. Benches turn raw material into gear and goods. If the pad is short of metal, mined ore in your locker counts too.",
+      "highlight": [
+        "hud:cat_structures",
+        "hud:build_basic_workbench"
+      ],
+      "topic": "crafting",
+      "done": {
+        "trigger": "structure_built",
+        "structure": "basic_workbench"
+      }
+    },
+    {
+      "id": "craft",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Craft a sleeping bag",
+      "text": "Click the workbench and queue a Sleeping Bag. It takes 3 biomass; the ship has plenty, so go To Ship and beam some down from its supply pad if the site has none. The finished bag is carried by the crafter until they drop it off.",
+      "highlight": [
+        "entity:basic_workbench"
+      ],
+      "topic": "crafting",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.carrying:sleeping_bag"
+      }
+    },
+    {
+      "id": "research",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Research",
+      "text": "Build > Structures > Research Lab, then click it and queue Basic Metallurgy. Research costs materials and time, and a colonist with enough Intelligence does the work. New techs unlock buildings and recipes across the whole expedition.",
+      "highlight": [
+        "hud:cat_structures",
+        "hud:build_research_lab",
+        "entity:research_lab"
+      ],
+      "topic": "research",
+      "done": {
+        "trigger": "tech_researched",
+        "tech_key": "basic_metallurgy"
+      }
+    },
+    {
+      "id": "pack_cargo",
+      "at": "tutorial",
+      "context": "site",
+      "title": "Pack the cargo",
+      "text": "Click a container holding mined ore and press Beam Up to send it to the ship. Send at least 2 metal and some crystal. The next world has no metal of its own waiting for you; what you carry is what you build with.",
+      "highlight": [
+        "entity:storage_locker",
+        "inspector:beam"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.cargo_packed"
+      }
+    },
+    {
+      "id": "crew_up",
+      "at": "tutorial",
+      "context": "dash:starmap",
+      "title": "Bring the crew aboard",
+      "text": "Press O for the Star Map. Select each colonist in the planetside list and press Beam Up, or select one on the surface and press B. A colonist under solid rock cannot be beamed; bring them into the open first. Anything left behind stays here.",
+      "highlight": [
+        "dash:planList",
+        "dash:beamUpBtn"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.crew_aboard"
+      }
+    },
+    {
+      "id": "next_jump",
+      "context": "dash:starmap",
+      "target": "next",
+      "unlock_next": true,
+      "title": "Back to {next}",
+      "text": "One more destination has unlocked: {next}, the system nearest the wreck. It is marked in magenta and already selected. Press Travel Here. After the next landing the whole map opens.",
+      "highlight": [
+        "dash:travelBtn",
+        "star:next"
+      ],
+      "topic": "star_map",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.at_next"
+      }
+    },
+    {
+      "id": "land_again",
+      "at": "next",
+      "context": "dash:starmap",
+      "title": "Land on an unprepared world",
+      "text": "Beam at least two colonists down. This world was not made for you: it may hold hostiles, so keep the stay short and the crew together. Site storage is whatever the place already has.",
+      "highlight": [
+        "dash:shipList",
+        "dash:beamDownBtn"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "settlement_population",
+        "settlement": "colony",
+        "op": "gte",
+        "threshold": 2
+      }
+    },
+    {
+      "id": "land_cargo",
+      "at": "next",
+      "context": "ship",
+      "title": "Land the cargo",
+      "text": "Click the highlighted supply pad and beam the metal you mined down to site storage. The site has no metal of its own.",
+      "highlight": [
+        "dash:returnShipBtn",
+        "ship:hold",
+        "inspector:beam"
+      ],
+      "topic": "beaming",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.cargo_landed"
+      }
+    },
+    {
+      "id": "first_build",
+      "at": "next",
+      "context": "site",
+      "title": "Build with what you brought",
+      "text": "Go To Site and build a new Storage Locker from the metal you landed. When it stands, the galaxy is yours.",
+      "highlight": [
+        "hud:cat_structures",
+        "hud:build_storage_locker"
+      ],
+      "topic": "building",
+      "done": {
+        "trigger": "flag_set",
+        "flag": "ui.locker_added"
+      }
+    }
+  ],
+  "topics": [
+    {
+      "id": "star_map",
+      "title": "The Star Map",
+      "body": "Press O or the Star Map button to open the dashboard. The Star Map tab lists every known destination with its fuel cost, nearest first. Select one and press Travel Here to jump; the fuel comes out of the ship's hold and there is no refund. Travelling and landing are separate: after a jump the ship is in orbit, and To Site takes you to the surface once someone has beamed down. Home is the far gold marker; reaching it ends the expedition."
+    },
+    {
+      "id": "camera",
+      "title": "Camera and time",
+      "body": "W A S D or the arrow keys move the view and the mouse wheel zooms. Q looks one level down, E one level up; orders apply to the level you are looking at. Space pauses the world, and 1, 2 and 3 set its speed. The small map in the top right opens the full map when clicked."
+    },
+    {
+      "id": "colonists",
+      "title": "Colonists",
+      "body": "Click a colonist to see their needs, stats, gear and work filters. Strength sets how much they carry per trip, Dexterity how fast they work, Intelligence whether they can research. They pick their own tasks from the queue and will not do kinds of work you have switched off for them. B beams a selected colonist up to the ship if the sky is clear above them."
+    },
+    {
+      "id": "orders",
+      "title": "Orders",
+      "body": "Build > Orders holds the cursor modes. Dig clears solid rock and mines anything with a yield inside the box; Mine/Chop takes ore, crystal and plants. Drag a box to mark many tiles, or click to mark one. Store carries a chosen item to a chosen container, Cancel Task removes a pending order, and Attack sends colonists at a target."
+    },
+    {
+      "id": "building",
+      "title": "Building",
+      "body": "Pick something under Build and click where it should go. Materials are physical: a colonist fetches them from a container that holds them, carries up to their limit per trip, and the order shows what has been delivered. If no container on the site holds the material, nobody can build it; beam some down first."
+    },
+    {
+      "id": "hauling",
+      "title": "Hauling",
+      "body": "Colonists do not pick up loose items on their own. Click an item on the ground to have it carried to storage, or use Build > Orders > Store to choose the container. Mined and harvested material is carried to a container as part of the work."
+    },
+    {
+      "id": "storage",
+      "title": "Storage",
+      "body": "Click any container to inspect it. The middle list is what it holds, the right-hand tags are what it will accept; narrowing the tags turns a locker into a sorted store. A colony needs at least one container before anything can be beamed down to it. The ship's hold is separate from every site: materials only move between them by beaming."
+    },
+    {
+      "id": "needs",
+      "title": "Needs",
+      "body": "Hunger rises with time and colonists eat from storage when they can; a site with no food is a site people starve on. Work tires them, and a bed or a sleeping bag lets them rest properly. Crew aboard the ship eat from the hold's rations."
+    },
+    {
+      "id": "crafting",
+      "title": "Crafting",
+      "body": "Click a workbench to queue a recipe. Each recipe lists its station, inputs and time; a colonist fetches the inputs, works at the bench and carries the result until it is dropped in storage or handed over. More advanced benches and recipes come from research."
+    },
+    {
+      "id": "research",
+      "title": "Research",
+      "body": "A Research Lab lets you queue techs. Each costs materials and time and needs a colonist with enough Intelligence. Known techs belong to the expedition, not the planet, so what you learn here follows you everywhere and unlocks new buildings and recipes."
+    },
+    {
+      "id": "beaming",
+      "title": "Beaming",
+      "body": "Colonists move between ship and surface from the Star Map's crew lists, or with B on a selected colonist. Beaming up needs open sky: solid rock overhead blocks it. Materials go down from the ship: board it with To Ship, click its supply pad and press Beam Down. They land in the first site container that accepts them. Materials go up from a site container's inspector with Beam Up. Rations cannot be beamed; crew eat from the hold while aboard."
+    }
+  ]
+}

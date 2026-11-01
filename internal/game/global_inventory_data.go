@@ -74,7 +74,11 @@ func (g *globalInventoryData) collectSites() []giSiteEntry {
 		loc := g.wm.Campaign.Locations[id]
 		label := loc.Name
 		if id == g.wm.Campaign.CurrentLocationID {
-			label += "  (in orbit)"
+			if g.wm.Campaign.IsAdrift() {
+				label += "  (ship here, adrift)"
+			} else {
+				label += "  (in orbit)"
+			}
 		}
 		out = append(out, giSiteEntry{key: id, label: label})
 	}

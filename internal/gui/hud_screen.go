@@ -137,6 +137,9 @@ type HUDScreen struct {
 	craftTooltipDescs    []string
 	researchTooltipDescs []string
 	storageTooltipDescs  []string
+	// colonistTooltipTargets are the colonist panel's rows with a registered
+	// tooltip, dropped when the panel closes.
+	colonistTooltipTargets []minui.Element
 
 	// Active selection indicator
 	selectionTooltip *minui.Tooltip
@@ -179,10 +182,27 @@ func (h *HUDScreen) Update() {
 		h.uiGUI.Update()
 	}
 	h.uiGUI.Layout()
+	h.dropOrphanTooltips()
 	h.tooltipManager.Update()
 	h.listTooltip.Update()
 	h.selectionTooltip.Update()
 
+}
+
+// dropOrphanTooltips removes tooltips whose modal has closed, by any route (the
+// title bar X skips CloseModal). A hidden list no longer reports hover, so
+// listTooltip would stay up, and a hidden row still counts as hovered by its
+// on-screen rectangle.
+func (h *HUDScreen) dropOrphanTooltips() {
+	if !h.ColonistModalVisible() {
+		for _, el := range h.colonistTooltipTargets {
+			h.tooltipManager.Unregister(el)
+		}
+		h.colonistTooltipTargets = nil
+	}
+	if !h.ColonistModalVisible() && !h.craftingModal.IsVisible() && !h.researchModal.IsVisible() {
+		h.listTooltip.Hide()
+	}
 }
 
 func (h *HUDScreen) Draw(screen *ebiten.Image) {
@@ -966,6 +986,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 
 			if ttTitle, ttDesc := itemTooltipText(item); ttTitle != "" || ttDesc != "" {
 				h.tooltipManager.Register(row, ttTitle, ttDesc, itemTooltipIcon(item))
+				h.colonistTooltipTargets = append(h.colonistTooltipTargets, row)
 			}
 			h.colonistInvScroll.AddContent(row)
 		}
@@ -1056,6 +1077,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			}
 			if ttTitle, ttDesc := itemTooltipText(captured.item); ttTitle != "" || ttDesc != "" {
 				h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(captured.item))
+				h.colonistTooltipTargets = append(h.colonistTooltipTargets, mi)
 			}
 			h.colonistScroll.AddContent(mi)
 		} else {
@@ -1540,6 +1562,27 @@ func (h *HUDScreen) GetInputFocused() bool           { return h.uiGUI.GetKeyboar
 func (h *HUDScreen) GetMouseFocused() bool           { return h.uiGUI.GetMouseFocused() }
 func (h *HUDScreen) WithinModalBounds(x, y int) bool { return h.uiGUI.WithinModalBounds(x, y) }
 
+// ElementBounds resolves a HUD element ID to its absolute rectangle. It
+// reports false for an unknown element and for one hidden by itself or by any
+// ancestor (a closed sub-menu, a hidden sidebar).
+func (h *HUDScreen) ElementBounds(id string) (x, y, w, h2 int, ok bool) {
+	if h.uiGUI == nil {
+		return 0, 0, 0, 0, false
+	}
+	el := h.uiGUI.FindElementByID(id)
+	if el == nil {
+		return 0, 0, 0, 0, false
+	}
+	for e := el; e != nil; e = e.GetParent() {
+		if !e.IsVisible() {
+			return 0, 0, 0, 0, false
+		}
+	}
+	x, y = el.GetAbsolutePosition()
+	b := el.GetBounds()
+	return x, y, b.Width, b.Height, true
+}
+
 func (h *HUDScreen) openLoadModal() {
 	h.loadModal.SetVisible(true)
 }
@@ -1603,6 +1646,11 @@ func (h *HUDScreen) CloseModal(name string) {
 	case "loadModal":
 		h.loadModal.SetVisible(false)
 	}
+}
+
+// ColonistModalVisible reports whether the colonist panel is up.
+func (h *HUDScreen) ColonistModalVisible() bool {
+	return h.colonistModal != nil && h.colonistModal.IsVisible()
 }
 
 func (h *HUDScreen) ModalOpen(name string) bool {

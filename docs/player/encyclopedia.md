@@ -1,8 +1,14 @@
 # Encyclopedia
 
-A campaign-wide bestiary of every entity your colonists have encountered. Reached from the Star Map → **Encyclopedia** button.
+A campaign-wide bestiary of every entity your colonists have encountered, plus the **Field Manual**. It is the **Encyclopedia** tab of the dashboard (**O** or the Star Map button).
 
-The button is visible from the start of a campaign but **disabled** until you research [Archive Indexing](research.md#archive-indexing) at a research lab. Discovery still happens before the research — every entity you hover (in default cursor mode) is silently recorded. The moment Archive Indexing finishes, the catalogue is already populated with everything you've seen so far.
+The tab is always available. Every entity you hover (in default cursor mode) is silently recorded, so the catalogue fills as you play. ([Archive Indexing](research.md#archive-indexing) no longer gates it.)
+
+---
+
+## Field Manual
+
+The catalogue opens with the Field Manual: short articles on the Star Map, the camera, colonists, orders, building, hauling, storage, needs, crafting, research and beaming. They are the reference behind the [guided first landing](tutorial.md), and they stay here with the tutorial on, off, finished or skipped. The tutorial's **Manual** button opens the article for the current step.
 
 ---
 
@@ -22,7 +28,8 @@ Entities you never hover stay off the list, even if your colonists walk past the
 │  Discovered: 14                                         │
 │  Catalogue                                              │
 │ ┌──────────────┐   [icon]  Alien Crystal                │
-│ │ Alien Crystal│           Faction: alien               │
+│ │ Manual: ...  │           Faction: alien               │
+│ │ Alien Crystal│                                        │
 │ │ Alien Flora  │           Tags: flora, crystal_field   │
 │ │ Bio-Printer  │                                        │
 │ │ Colonist     │           A vivid crystalline growth   │
@@ -34,7 +41,7 @@ Entities you never hover stay off the list, even if your colonists walk past the
 └─────────────────────────────────────────────────────────┘
 ```
 
-Left pane is the sorted catalogue. Right pane shows the icon, name, faction, tag chips, and the long-form description. Entities with no recorded lore yet show "No description recorded." — the entry still counts, so the discovery total is accurate.
+Left pane is the Field Manual followed by the sorted catalogue. Right pane shows the icon, name, faction, tag chips, and the long-form description, or a manual article's title and text. Entities with no recorded lore yet show "No description recorded." — the entry still counts, so the discovery total is accurate.
 
 ---
 
@@ -43,6 +50,6 @@ Left pane is the sorted catalogue. Right pane shows the icon, name, faction, tag
 | Input | Action |
 |---|---|
 | Click an entry | Show its details on the right |
-| Back button / Esc | Return to the Star Map |
+| Another tab / Esc | Leave the Encyclopedia (Esc returns to the site or ship) |
 
 The screen is read-only.

@@ -1,6 +1,7 @@
 # Landing Party
 You are a damaged ship's AI.  Lead a group of alien colonist "blanks" aboard a space life-raft.  Blanks are backup bodies for your usual inhabitants, however, due to damage the bioprinter is unable to restore their personalities from backup. 
-From the **Star Map**
+Every expedition begins adrift at the Wreck Site, an empty point in space with
+nothing to land on, so the first act is choosing a destination. From the **Star Map**
 you choose where to make planetfall, spend **fuel** to travel between planets,
 moons, asteroid fields and stations, and beam a landing party down to gather
 resources, build, and refine more fuel to keep exploring. Locations you

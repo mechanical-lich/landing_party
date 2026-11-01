@@ -64,6 +64,11 @@ type starMapPanel struct {
 	status  string
 	pending state.StateInterface
 
+	// travelLock is why the selected destination cannot be jumped to during the
+	// tutorial ("" when it can). Refreshed each frame from the campaign; it
+	// disables the Travel button and is drawn under the fuel line.
+	travelLock string
+
 	scanModal  *minui.Modal
 	scanLabel  *minui.Label
 	scanLabel2 *minui.Label
@@ -185,6 +190,8 @@ func (p *starMapPanel) refreshLocations() {
 		tag := ""
 		if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
 			tag = "  [in orbit]"
+		} else if loc.ID == p.campaign.CurrentLocationID && loc.Kind == campaign.AdriftKind {
+			tag = "  [you are here, adrift]"
 		} else if p.wm.IsLoaded(loc.ID) {
 			tag = "  [crew working]"
 		} else if loc.Visited {
@@ -235,6 +242,9 @@ func (p *starMapPanel) refreshCrew() {
 	}
 	if p.wm.Current() == nil {
 		plan = []string{"(not in orbit — Travel first)"}
+		if p.campaign.IsAdrift() {
+			plan = []string{"(adrift — nothing to land on; Travel first)"}
+		}
 	} else if len(plan) == 0 {
 		plan = []string{"(nobody planetside)"}
 	}
@@ -331,9 +341,77 @@ func (p *starMapPanel) clusterBounds() (cx, cy, radius float64, ok bool) {
 	return cx, cy, radius, true
 }
 
+// refreshTravelLock re-reads the tutorial's Travel lock for the selected row and
+// enables the Travel button accordingly.
+// travelBlockReason says why the ship cannot jump to loc: the tutorial's lock,
+// or the Wreck Site having nothing to orbit. "" means it can.
+func (p *starMapPanel) travelBlockReason(loc *campaign.Location) string {
+	if loc == nil {
+		return ""
+	}
+	if loc.Kind == campaign.AdriftKind && loc.ID != p.campaign.CurrentLocationID {
+		return "The Wreck Site is empty space: nothing to orbit or land on."
+	}
+	return p.campaign.TutorialTravelLock(loc.ID)
+}
+
+func (p *starMapPanel) refreshTravelLock() {
+	prev := p.travelLock
+	p.travelLock = p.travelBlockReason(p.selectedLocation())
+	p.travelBtn.SetEnabled(p.travelLock == "")
+	// The button itself says it is locked, and the reason lands on the status
+	// line the moment a locked row is picked, so the player sees why where they
+	// are looking rather than only in the info column.
+	if p.travelLock != "" {
+		p.travelBtn.Text = "Travel locked"
+		if prev != p.travelLock {
+			p.status = p.travelLock
+		}
+	} else {
+		p.travelBtn.Text = "Travel Here"
+	}
+}
+
+// centerOn scrolls the canvas so loc sits at its centre, zooming in to the
+// Locate framing if the view is wider than that.
+func (p *starMapPanel) centerOn(loc *campaign.Location) {
+	if loc == nil {
+		return
+	}
+	p.camX, p.camY = loc.X, loc.Y
+	if target := clampZoom(p.fitZoom * locateZoomFactor); target > p.zoom {
+		p.zoom = target
+	}
+}
+
+// rowRect returns the on-screen rectangle of the destination row for id, if
+// that row is listed and scrolled into view.
+func (p *starMapPanel) rowRect(id string) (minui.Rect, bool) {
+	idx := -1
+	for i, lid := range p.locIDs {
+		if lid == id {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		return minui.Rect{}, false
+	}
+	content := minui.GetContentBounds(p.locList.GetBounds(), p.locList.GetComputedStyle())
+	const rowH = 20 // minui.ListBox's item height
+	y := content.Y + idx*rowH
+	if y+rowH > content.Y+content.Height {
+		return minui.Rect{}, false
+	}
+	return minui.Rect{X: content.X, Y: y, Width: content.Width, Height: rowH}, true
+}
+
 func (p *starMapPanel) travel() {
 	loc := p.selectedLocation()
 	if loc == nil {
+		return
+	}
+	if lock := p.travelBlockReason(loc); lock != "" {
+		p.status = lock
 		return
 	}
 	if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
@@ -407,7 +485,7 @@ func (p *starMapPanel) closeScanModal() {
 
 func (p *starMapPanel) beamDown() {
 	if p.wm.Current() == nil {
-		p.status = "Travel to a location before beaming down."
+		p.status = p.wm.NoSiteReason()
 		return
 	}
 	idx := p.shipList.SelectedIndex
@@ -475,6 +553,7 @@ func (p *starMapPanel) Update() {
 	p.handleCanvasInput()
 	p.locList.Update()
 	p.locateBtn.Update()
+	p.refreshTravelLock()
 	p.travelBtn.Update()
 
 	// Ship scanner: label shows the fuel cost; disabled without a scanner or
@@ -573,7 +652,8 @@ func (p *starMapPanel) worldToScreen(wx, wy float64) (float32, float32) {
 }
 
 func (p *starMapPanel) inCanvas(x, y int) bool {
-	return x >= p.canvasX && x < p.canvasX+p.canvasW && y >= p.canvasY && y < p.canvasY+p.canvasH
+	return x >= p.canvasX && x < p.canvasX+p.canvasW && y >= p.canvasY && y < p.canvasY+p.canvasH &&
+		!tutorialBlocksClick(x, y)
 }
 
 func (p *starMapPanel) handleCanvasInput() {
@@ -708,6 +788,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	planTitle := "Planetside"
 	if cur != nil && p.wm.Current() != nil {
 		planTitle = "On " + cur.Name
+	} else if p.campaign.IsAdrift() {
+		planTitle = "Adrift"
 	}
 	mlge_text.Draw(screen, planTitle, 14, 610, lblY, lbl)
 
@@ -732,6 +814,9 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		line := fmt.Sprintf("%s   ·   fuel %d / %d", sel.Kind, p.campaign.FuelCost(sel.ID), p.fuelAvailable())
 		mlge_text.Draw(screen, line, 13, infoX, lblY+24, dashBodyColor)
 		y := lblY + 46
+		if p.travelLock != "" {
+			y = drawWrapped(screen, p.travelLock, 12, infoX, y, infoW, 16, color.RGBA{230, 160, 90, 255}) + 4
+		}
 		if sel.Summary != "" {
 			y = drawWrapped(screen, sel.Summary, 12, infoX, y, infoW, 16, color.RGBA{150, 170, 195, 255}) + 6
 		}
@@ -862,6 +947,14 @@ func drawSiteIcon(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r float3
 	// Home is always its distinct gold marker (it's the goal, never "visited").
 	if loc.Kind == campaign.HomeKind {
 		vector.DrawFilledCircle(canvas, sx, sy, r, color.RGBA{255, 220, 120, 255}, true)
+		return
+	}
+	// The Wreck Site: a dim cross in empty space, nothing to land on.
+	if loc.Kind == campaign.AdriftKind {
+		grey := color.RGBA{150, 160, 175, 255}
+		vector.StrokeCircle(canvas, sx, sy, r*0.7, 1.5, color.RGBA{90, 100, 120, 255}, true)
+		vector.StrokeLine(canvas, sx-r*0.6, sy-r*0.6, sx+r*0.6, sy+r*0.6, 2, grey, true)
+		vector.StrokeLine(canvas, sx-r*0.6, sy+r*0.6, sx+r*0.6, sy-r*0.6, 2, grey, true)
 		return
 	}
 	// Unvisited sites are unknown: a muted disc with a "?" until you travel there.

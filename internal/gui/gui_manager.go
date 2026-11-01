@@ -53,6 +53,12 @@ func (gm *GUIManager) RefreshCraftQueue(entries []CraftQueueEntry) { gm.hud.Refr
 func (gm *GUIManager) OpenModal(name string)      { gm.hud.OpenModal(name) }
 func (gm *GUIManager) CloseModal(name string)     { gm.hud.CloseModal(name) }
 func (gm *GUIManager) ModalOpen(name string) bool { return gm.hud.ModalOpen(name) }
+
+// ColonistModalVisible reports whether the colonist panel is up. It is separate
+// from ModalOpen because that drives SetInputBlocked, and the panel has to keep
+// taking input to be used and closed.
+func (gm *GUIManager) ColonistModalVisible() bool { return gm.hud.ColonistModalVisible() }
+
 func (gm *GUIManager) ToggleModal(name string) {
 	if gm.hud.ModalOpen(name) {
 		gm.hud.CloseModal(name)
@@ -68,6 +74,14 @@ func (gm *GUIManager) SetDetailsTopOffset(offset int)  { gm.hud.SetDetailsTopOff
 func (gm *GUIManager) GetInputFocused() bool           { return gm.hud.GetInputFocused() }
 func (gm *GUIManager) GetMouseFocused() bool           { return gm.hud.GetMouseFocused() }
 func (gm *GUIManager) WithinModalBounds(x, y int) bool { return gm.hud.WithinModalBounds(x, y) }
+
+// ElementBounds returns the on-screen rectangle of the HUD element with the
+// given ID (a sidebar menu item such as "cat_orders" or "build_storage_locker"),
+// and false when it does not exist or it or any ancestor is hidden. The
+// tutorial's highlights use it.
+func (gm *GUIManager) ElementBounds(id string) (x, y, w, h int, ok bool) {
+	return gm.hud.ElementBounds(id)
+}
 
 func (gm *GUIManager) SetHoveredEntity(entity *ecs.Entity) { gm.hud.SetHoveredEntity(entity) }
 func (gm *GUIManager) SetHoveredTile(info HoveredTileInfo) { gm.hud.SetHoveredTile(info) }

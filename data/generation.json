@@ -2,6 +2,7 @@
   "home_radius": 3000,
 
   "start_fuel": 400,
+  "start_radius": 8,
   "start_colonists": 6,
   "roster_cap": 12,
 

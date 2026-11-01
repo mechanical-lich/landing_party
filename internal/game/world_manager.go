@@ -146,6 +146,15 @@ func freeLandingTile(level *world.Level, cx, cy, cz int) (int, int, int) {
 // Current returns the MainState of the location in orbit, or nil if none is loaded.
 func (wm *WorldManager) Current() *MainState { return wm.loaded[wm.currentID] }
 
+// NoSiteReason is the one-line reason the dashboard gives when there is no
+// level to act on: adrift at the Wreck Site, or otherwise not in orbit.
+func (wm *WorldManager) NoSiteReason() string {
+	if wm.Campaign != nil && wm.Campaign.IsAdrift() {
+		return "Adrift at the Wreck Site: nothing to land on. Travel to a world first."
+	}
+	return "Not in orbit — travel to a site from the Star Map first."
+}
+
 // addLoaded records ms as the loaded location id, most recently visited.
 func (wm *WorldManager) addLoaded(id string, ms *MainState) {
 	wm.loaded[id] = ms
@@ -470,6 +479,28 @@ var startingResources = []string{
 
 const startingResourceQty = 100
 
+// defaultHoldStock is the normal starting hold: startingResourceQty of each
+// starting resource.
+func defaultHoldStock() map[string]int {
+	stock := make(map[string]int, len(startingResources))
+	for _, bp := range startingResources {
+		stock[bp] = startingResourceQty
+	}
+	return stock
+}
+
+// tutorialHoldMetal is the metal a guided first landing starts with: exactly
+// what the "beam metal down" step asks for, so the second planet's locker can
+// only be built from metal mined on the Training Ground.
+const tutorialHoldMetal = 10
+
+// tutorialHoldStock is the normal hold with the metal reduced.
+func tutorialHoldStock() map[string]int {
+	stock := defaultHoldStock()
+	stock["metal_ore"] = tutorialHoldMetal
+	return stock
+}
+
 // SeedNewCampaign seeds a brand-new expedition's research state. The crew is
 // spawned onto the ship level via WorldManager.SeedShipCrew and the hold via
 // StockShipLocker, both once the ship level exists.
@@ -566,13 +597,19 @@ func (wm *WorldManager) addToShipHold(blueprint string, qty int) {
 // background — see docs/developer/the_ship.md).
 const startingRations = 20
 
-// StockShipLocker fills the ship's storage with a starting fuel reserve, a base
-// stock of each resource type, and a supply of rations. Call once after the ship
-// is built.
-func (wm *WorldManager) StockShipLocker(fuel int) {
+// StockShipLocker fills the ship's storage with a starting fuel reserve, the
+// given stock of each resource (nil means the normal defaultHoldStock), and a
+// supply of rations. Call once after the ship is built.
+func (wm *WorldManager) StockShipLocker(fuel int, stock map[string]int) {
 	wm.addToShipHold("fuel", fuel)
+	if stock == nil {
+		stock = defaultHoldStock()
+	}
+	// Fixed order so the hold's stacks always line up the same way.
 	for _, bp := range startingResources {
-		wm.addToShipHold(bp, startingResourceQty)
+		if qty, ok := stock[bp]; ok {
+			wm.addToShipHold(bp, qty)
+		}
 	}
 	// Rations are Food items (one per slot), so add them individually.
 	if sc := wm.shipLocker(); sc != nil {
@@ -1126,6 +1163,15 @@ func (wm *WorldManager) Travel(locID string) error {
 		c.Won = true
 		return nil
 	}
+	// The Wreck Site is empty space: the ship sits there with no level, nothing
+	// to orbit and nothing to land on. (The Star Map refuses the jump; this
+	// keeps the state consistent if anything else asks.)
+	if dest.Kind == campaign.AdriftKind {
+		c.CurrentLocationID = locID
+		wm.currentID = ""
+		wm.landSet = false
+		return nil
+	}
 	c.CurrentLocationID = locID
 	wm.landSet = false
 	ms := wm.loaded[locID]
@@ -1164,7 +1210,10 @@ func (wm *WorldManager) EnterStartingOrbit() error {
 		return nil
 	}
 	loc := c.Locations[c.CurrentLocationID]
-	if loc == nil || loc.Kind == campaign.HomeKind {
+	if !loc.HasSite() {
+		// Home, or adrift at the Wreck Site: no level to park. Away planets
+		// that were loaded still come back.
+		wm.restoreLoaded()
 		return nil
 	}
 	ms := wm.loaded[c.CurrentLocationID]
@@ -1207,6 +1256,9 @@ func (wm *WorldManager) EnterCurrent() (*MainState, error) {
 	if wm.Current() == nil {
 		if wm.Campaign.CurrentLocationID == "" {
 			return nil, fmt.Errorf("no location loaded — Travel first")
+		}
+		if wm.Campaign.IsAdrift() {
+			return nil, fmt.Errorf("adrift at the Wreck Site: nothing to land on — Travel to a world first")
 		}
 		if err := wm.Travel(wm.Campaign.CurrentLocationID); err != nil {
 			return nil, err

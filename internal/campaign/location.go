@@ -26,6 +26,10 @@ type Location struct {
 	// tag-gated quest templates posted to an existing system.
 	QuestTag string `json:"quest_tag,omitempty"`
 
+	// Tutorial marks the Training Ground: random contracts are never posted to
+	// it (see MaybeTravelQuests).
+	Tutorial bool `json:"tutorial,omitempty"`
+
 	// SaveFile is "" until the location has been visited and frozen; once set
 	// it is the relative path of the per-location level save inside the
 	// campaign directory.

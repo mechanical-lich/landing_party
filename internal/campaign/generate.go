@@ -143,10 +143,22 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 	}
 	c.Locations[home.ID] = home
 
-	// Start system at the origin.
-	start := c.newSystem(rng, lt, qt, startArchetype(rng, lt), 0, 0, "start")
+	// The ship begins adrift at the origin: the Wreck Site, an empty point with
+	// nothing to land on, so the first act is choosing a destination.
+	adrift := &Location{
+		ID: AdriftLocationID, Name: "Wreck Site", Kind: AdriftKind,
+		Discovered: true, Visited: true,
+		Summary: "Where the damaged life-raft came to rest. Empty space: nothing to orbit, nothing to land on. Choose a destination.",
+	}
+	c.Locations[adrift.ID] = adrift
+	c.CurrentLocationID = adrift.ID
+
+	// Start system: the nearest and cheapest destination, start_radius out in a
+	// random direction, so the first jump is always affordable.
+	sang := rng.Float64() * 2 * math.Pi
+	start := c.newSystem(rng, lt, qt, startArchetype(rng, lt),
+		math.Cos(sang)*cfg.StartRadius, math.Sin(sang)*cfg.StartRadius, StartLocationID)
 	start.Discovered = true
-	c.CurrentLocationID = start.ID
 
 	// Nearby systems, visible from the start so there's somewhere to go.
 	nearby := cfg.NearbyMin
@@ -215,7 +227,7 @@ func (c *Campaign) MaybeTravelQuests() ([]*Location, int) {
 	// deterministic — Go map iteration order is randomized.
 	existing := []*Location{}
 	for _, l := range c.Locations {
-		if l.Discovered && l.Kind != HomeKind {
+		if l.Discovered && l.HasSite() && !l.Tutorial {
 			existing = append(existing, l)
 		}
 	}
@@ -310,7 +322,7 @@ func (c *Campaign) expansionAnchor(rng *rand.Rand) (float64, float64) {
 	// Go's randomized map iteration.
 	systems := make([]*Location, 0, len(c.Locations))
 	for _, l := range c.Locations {
-		if l.Discovered && l.Kind != HomeKind {
+		if l.Discovered && l.HasSite() {
 			systems = append(systems, l)
 		}
 	}

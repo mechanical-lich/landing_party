@@ -18,6 +18,11 @@ type GenConfig struct {
 	StartColonists int     `json:"start_colonists"`
 	RosterCap      int     `json:"roster_cap"`
 
+	// StartRadius is how far the generated start system sits from the Wreck
+	// Site at the origin: the first jump's fuel cost. Keep it under
+	// NearbyRadiusMin so the start is the nearest destination.
+	StartRadius float64 `json:"start_radius"`
+
 	NearbyMin       int     `json:"nearby_min"`
 	NearbyMax       int     `json:"nearby_max"`
 	NearbyRadiusMin float64 `json:"nearby_radius_min"`
@@ -68,6 +73,7 @@ func defaultGenConfig() GenConfig {
 		StartFuel:        40,
 		StartColonists:   6,
 		RosterCap:        12,
+		StartRadius:      8,
 		NearbyMin:        2,
 		NearbyMax:        3,
 		NearbyRadiusMin:  9,

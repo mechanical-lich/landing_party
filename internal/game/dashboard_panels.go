@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/landing_party/internal/tutorial"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/state"
 	mlge_text "github.com/mechanical-lich/mlge/text"
@@ -225,7 +226,7 @@ func (p *globalInvPanel) rebuild() {
 				[]string{p.wm.currentColonyName()},
 			)
 		}
-		p.addMaterialBody("dash_gi_cur", summary, bodyX, bodyY, fullW, bodyH, "(no site loaded — travel and land first.)")
+		p.addMaterialBody("dash_gi_cur", summary, bodyX, bodyY, fullW, bodyH, "("+p.wm.NoSiteReason()+")")
 	case "all":
 		p.addMaterialBody("dash_gi_all", p.data.aggregateAllSummaries(), bodyX, bodyY, fullW, bodyH, "(no materials)")
 	case "site":
@@ -330,18 +331,42 @@ func (p *globalInvPanel) Transition() state.StateInterface { return nil }
 // ---- Encyclopedia (inline) ---------------------------------------------------
 
 type encyclopediaPanel struct {
-	campaign   *campaign.Campaign
-	wm         *WorldManager
-	list       *minui.ListBox
+	campaign *campaign.Campaign
+	wm       *WorldManager
+	list     *minui.ListBox
+	// blueprints is parallel to the list rows: a blueprint ID, or a Field
+	// Manual article keyed "topic:<id>".
 	blueprints []string
 	descCache  map[string]*rlcomponents.DescriptionComponent
+	manual     []tutorial.Topic
 }
+
+// topicKeyPrefix marks a Field Manual row in encyclopediaPanel.blueprints.
+const topicKeyPrefix = "topic:"
+
+// fieldManualTopics loads the Field Manual once. It is the tutorial's topic
+// list and is always available, with the tutorial on, off or finished, so
+// Skip never loses the reference.
+var fieldManualTopics = func() func() []tutorial.Topic {
+	var topics []tutorial.Topic
+	return func() []tutorial.Topic {
+		// A failed load (the file read from the wrong directory) is retried
+		// next time rather than cached as an empty manual.
+		if topics == nil {
+			if def, err := tutorial.Load(tutorial.DefinitionPath); err == nil {
+				topics = def.Topics
+			}
+		}
+		return topics
+	}
+}()
 
 func newEncyclopediaPanel(c *campaign.Campaign, wm *WorldManager) *encyclopediaPanel {
 	p := &encyclopediaPanel{
 		campaign:  c,
 		wm:        wm,
 		descCache: map[string]*rlcomponents.DescriptionComponent{},
+		manual:    fieldManualTopics(),
 	}
 	cfg := config.Global()
 	p.list = minui.NewListBox("dash_ency_list", nil)
@@ -355,6 +380,7 @@ func newEncyclopediaPanel(c *campaign.Campaign, wm *WorldManager) *encyclopediaP
 func (p *encyclopediaPanel) Enter() { p.populate() }
 
 func (p *encyclopediaPanel) populate() {
+	prev := p.selectedBlueprint()
 	type entry struct{ bp, name string }
 	var entries []entry
 	for _, bp := range p.campaign.KnownEntities {
@@ -363,8 +389,13 @@ func (p *encyclopediaPanel) populate() {
 	sort.Slice(entries, func(i, j int) bool {
 		return strings.ToLower(entries[i].name) < strings.ToLower(entries[j].name)
 	})
-	items := make([]string, 0, len(entries))
-	bps := make([]string, 0, len(entries))
+	items := make([]string, 0, len(entries)+len(p.manual))
+	bps := make([]string, 0, len(entries)+len(p.manual))
+	// The Field Manual leads the catalogue, in its authored order.
+	for _, tp := range p.manual {
+		items = append(items, "Manual: "+tp.Title)
+		bps = append(bps, topicKeyPrefix+tp.ID)
+	}
 	for _, en := range entries {
 		items = append(items, en.name)
 		bps = append(bps, en.bp)
@@ -375,9 +406,42 @@ func (p *encyclopediaPanel) populate() {
 	}
 	p.blueprints = bps
 	p.list.SetItems(items)
-	if len(bps) > 0 && bps[0] != "" && p.list.SelectedIndex < 0 {
+	// Keep the selection by key across a refresh; otherwise start at the top.
+	p.list.SelectedIndex = -1
+	for i, key := range bps {
+		if key == prev && key != "" {
+			p.list.SelectedIndex = i
+		}
+	}
+	if p.list.SelectedIndex < 0 && len(bps) > 0 && bps[0] != "" {
 		p.list.SelectedIndex = 0
 	}
+}
+
+// selectTopic selects a Field Manual article by ID, if present.
+func (p *encyclopediaPanel) selectTopic(id string) {
+	for i, key := range p.blueprints {
+		if key == topicKeyPrefix+id {
+			p.list.SelectedIndex = i
+			return
+		}
+	}
+}
+
+// selectedTopic returns the selected Field Manual article, or nil when a
+// catalogue entry (or nothing) is selected.
+func (p *encyclopediaPanel) selectedTopic() *tutorial.Topic {
+	key := p.selectedBlueprint()
+	id, ok := strings.CutPrefix(key, topicKeyPrefix)
+	if !ok {
+		return nil
+	}
+	for i := range p.manual {
+		if p.manual[i].ID == id {
+			return &p.manual[i]
+		}
+	}
+	return nil
 }
 
 func (p *encyclopediaPanel) lookupDescription(bp string) *rlcomponents.DescriptionComponent {
@@ -413,6 +477,13 @@ func (p *encyclopediaPanel) Draw(screen *ebiten.Image) {
 	detailY := dashContentTop + 24
 	detailW := cfg.ScreenWidth - detailX - 40
 
+	if tp := p.selectedTopic(); tp != nil {
+		// A Field Manual article: title and wrapped body, no portrait.
+		mlge_text.Draw(screen, "Field Manual", 13, detailX, detailY, color.RGBA{160, 185, 215, 255})
+		mlge_text.Draw(screen, tp.Title, 24, detailX, detailY+20, color.RGBA{230, 240, 255, 255})
+		drawWrapped(screen, tp.Body, 14, detailX, detailY+64, detailW, 22, color.RGBA{200, 220, 240, 255})
+		return
+	}
 	bp := p.selectedBlueprint()
 	if bp == "" {
 		mlge_text.Draw(screen, "Select an entry from the catalogue.", 14, detailX, detailY+12, color.RGBA{160, 185, 215, 255})

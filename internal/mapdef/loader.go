@@ -53,10 +53,17 @@ func ByID(id string) *MapDef {
 	return nil
 }
 
-// Random returns a random loaded map, or nil if none are loaded.
+// Random returns a random loaded map, or nil if none are loaded. Internal maps
+// are skipped.
 func Random() *MapDef {
-	if len(loaded) == 0 {
+	var pool []*MapDef
+	for i := range loaded {
+		if !loaded[i].Internal {
+			pool = append(pool, &loaded[i])
+		}
+	}
+	if len(pool) == 0 {
 		return nil
 	}
-	return &loaded[rand.Intn(len(loaded))]
+	return pool[rand.Intn(len(pool))]
 }

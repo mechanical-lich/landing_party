@@ -23,6 +23,9 @@ type MapDef struct {
 	Features      []FeatureBlock `json:"features"`       // ordered feature placements
 	// SkipBiomeFeatures leaves out the features biomes declare for themselves.
 	SkipBiomeFeatures bool `json:"skip_biome_features,omitempty"`
+	// Internal marks a map that only hand-placed locations use (the tutorial's
+	// Training Ground). Random() never returns it.
+	Internal bool `json:"internal,omitempty"`
 }
 
 // Clone returns a copy whose terrain params, biome list and feature list can be

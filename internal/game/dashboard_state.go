@@ -138,7 +138,7 @@ func (d *DashboardState) returnToShip() {
 
 func (d *DashboardState) returnToSite() {
 	if d.wm.Current() == nil {
-		d.status = "Not in orbit — travel to a site from the Star Map first."
+		d.status = d.wm.NoSiteReason()
 		return
 	}
 	ms, err := d.wm.EnterCurrent()
@@ -170,6 +170,7 @@ func (d *DashboardState) fuelAvailable() int {
 }
 
 func (d *DashboardState) Update() state.StateInterface {
+	tutorialFrameDash(d)
 	if d.wm != nil {
 		d.wm.TickBackground(nil)
 		if t := d.wm.updatePopup(); t != nil {
@@ -233,6 +234,8 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	site := "in transit"
 	if loc := d.campaign.CurrentLocation(); loc != nil && d.wm.Current() != nil {
 		site = "in orbit: " + loc.Name
+	} else if d.campaign.IsAdrift() {
+		site = "ADRIFT: " + loc.Name + " — choose a destination"
 	}
 	info := fmt.Sprintf("Fuel: %d      Day: %d      %s", d.fuelAvailable(), d.campaign.Day, site)
 	mlge_text.Draw(screen, info, 14, 20, 56, color.RGBA{160, 185, 215, 255})
@@ -246,6 +249,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	}
 	d.storageInspector.Draw(screen)
 	d.drawNotifications(screen)
+	tutorialDraw(screen)
 	d.wm.drawPopup(screen)
 	minui.FlushOverlays(screen)
 }

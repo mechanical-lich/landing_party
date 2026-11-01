@@ -65,6 +65,12 @@ type Config struct {
 	// still emit their sound event (AI hearing is unaffected).
 	FriendlyFootsteps bool `json:"friendlyFootsteps"`
 	EnemyFootsteps    bool `json:"enemyFootsteps"`
+
+	// TutorialOffDefault turns the New Expedition screen's "Guided first
+	// landing" toggle off by default. Written to config.local.json by the
+	// tutorial's "don't show again" choice; the player can still flip the
+	// toggle each time.
+	TutorialOffDefault bool `json:"tutorialOffDefault"`
 }
 
 // LoadConfig reads and unmarshals a JSON config file.
@@ -140,6 +146,36 @@ func mergeAudioOverrides(existing []byte, ui, game, music float64, friendlyFoot,
 	overrides["friendlyFootsteps"] = friendlyFoot
 	overrides["enemyFootsteps"] = enemyFoot
 	return json.MarshalIndent(overrides, "", "  ")
+}
+
+// mergeTutorialOverride layers tutorialOffDefault onto the existing
+// config.local.json contents, keeping every other local setting. Pure, like
+// mergeAudioOverrides.
+func mergeTutorialOverride(existing []byte, off bool) ([]byte, error) {
+	overrides := map[string]any{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &overrides) // best effort; a bad file is replaced
+	}
+	overrides["tutorialOffDefault"] = off
+	return json.MarshalIndent(overrides, "", "  ")
+}
+
+// SaveTutorialDefault records whether the New Expedition screen should offer
+// the guided first landing by default (off = true turns the toggle off). It
+// writes config.local.json, preserving other overrides, and reloads the
+// global config. It belongs in config rather than the campaign because it
+// outlives any one expedition.
+func SaveTutorialDefault(off bool) error {
+	existing, _ := os.ReadFile(localConfigPath) // missing file → empty, fine
+	out, err := mergeTutorialOverride(existing, off)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(localConfigPath, out, 0o644); err != nil {
+		return err
+	}
+	Reload()
+	return nil
 }
 
 // SaveAudioSettings writes the audio settings into config.local.json (preserving

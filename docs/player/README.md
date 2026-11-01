@@ -5,6 +5,7 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 ## Sections
 
 - [Getting Started](#getting-started) — what the game is and how it works
+- [The Guided First Landing](tutorial.md) — the optional tutorial a new expedition can start with
 - [The Ship & the Star Map](star_map.md) — expeditions, fuel travel, and beaming colonists
 - [Controls](controls.md) — keyboard and camera reference
 - [Colonists](colonists.md) — stats, needs, and how workers behave
@@ -12,7 +13,7 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 - [Storage & Materials](storage.md) — tagged materials, typed containers, beam, store, relocate
 - [Crafting](crafting.md) — workbenches, recipes, and gear
 - [Research](research.md) — the tech tree and how to unlock new structures
-- [Encyclopedia](encyclopedia.md) — the campaign-wide bestiary, gated by Archive Indexing
+- [Encyclopedia](encyclopedia.md) — the campaign-wide bestiary and the Field Manual
 - [Scenarios](scenarios.md) — the world types a location can use
 - [Quests](star_map.md#quests) — objectives, rewards, and unlocking new locations
 

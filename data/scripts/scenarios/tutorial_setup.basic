@@ -1,0 +1,45 @@
+function on_setup()
+    add_message("Training Ground. A quiet world to learn the basics on.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+
+    # Supply pad: the colony-owned container that bootstraps the site. Beam
+    # Resources Down needs a container, and every build fetches from one.
+    spawn_entity_owned("teleporter", sx - 4, sy - 4, sz, sname)
+    tag_region("tut_pad", sx - 4, sy - 4, sz)
+
+    # Rock outcrop east of the plaza: something to drag a Dig box over.
+    for ox = sx + 5 to sx + 10
+        for oy = sy - 3 to sy + 2
+            set_tile(ox, oy, sz, "rock")
+        next oy
+    next ox
+
+    # Ore and crystal on the outcrop's west face, so a Mine order reaches them
+    # straight away. Five of each: the cargo for the second planet.
+    set_tile(sx + 5, sy - 1, sz, "ore_deposit")
+    set_tile(sx + 5, sy, sz, "ore_deposit")
+    set_tile(sx + 6, sy - 1, sz, "ore_deposit")
+    set_tile(sx + 6, sy, sz, "ore_deposit")
+    set_tile(sx + 7, sy - 2, sz, "ore_deposit")
+    set_tile(sx + 5, sy + 1, sz, "crystal_vein")
+    set_tile(sx + 6, sy + 1, sz, "crystal_vein")
+    set_tile(sx + 7, sy + 1, sz, "crystal_vein")
+    set_tile(sx + 7, sy, sz, "crystal_vein")
+    set_tile(sx + 8, sy - 1, sz, "crystal_vein")
+    tag_region("tut_outcrop", sx + 7, sy, sz)
+
+    # Rations on the ground south-west of the plaza. Idle colonists do not haul
+    # loose items, so this is the hauling lesson as well as the food.
+    for rx = sx - 6 to sx - 3
+        for ry = sy + 3 to sy + 5
+            spawn_entity("ration_pack", rx, ry, sz)
+        next ry
+    next rx
+    tag_region("tut_rations", sx - 4, sy + 4, sz)
+
+    set_flag("tutorial_started", 1)
+endfunction

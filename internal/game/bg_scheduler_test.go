@@ -232,7 +232,7 @@ func TestIncidentTravelGoesThereAndPaysFuel(t *testing.T) {
 	if wm.ActiveIncident() == nil || wm.currentID != "live" {
 		t.Fatal("failed travel should leave the popup and the orbit alone")
 	}
-	wm.StockShipLocker(1000)
+	wm.StockShipLocker(1000, nil)
 	ms, err := wm.TravelToIncident()
 	if err != nil {
 		t.Fatalf("travel: %v", err)

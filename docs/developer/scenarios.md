@@ -207,6 +207,20 @@ endfunction
 
 ---
 
+## Internal maps and a fixed start
+
+Two switches exist for hand-placed locations such as the tutorial's Training
+Ground (`data/maps/tutorial.json`):
+
+- `"internal": true` on a map keeps it out of `mapdef.Random`, the fallback for
+  a blank map ID. `ByID` still finds it, so a location can name it directly.
+  Keep such maps out of every `location_templates.json` pool too.
+- `"center_start": true` in a planet map's `terrain_params` makes the planet
+  primer tag the map centre as a `starting_floor` anchor on the surface, so
+  `findStartingPlaza` lands there on every seed instead of rolling a random
+  spot. Make sure nothing (a biome's tree scatter, a feature) can occupy the
+  centre row, or the plaza falls back to a random spot.
+
 ## Adding a New Scenario
 
 1. Create a new file in `data/scenarios/` (e.g., `siege.json`).
