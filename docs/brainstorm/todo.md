@@ -8,11 +8,13 @@ alone and need a play-test or a judgment call.
 
 - Door sounds. `data/blueprints/structures/doors.json` has no `Sound`
   component and `data/audio.json` has no door entries.
-- Unified storage (lorewise a hyper-dimensional storage network where every
-  chest is a portal into one pool). **Partial:** colonists already walk to
-  the *closest container that holds the item* (`FindClosestStorageWith` in
-  `internal/workerai/storage.go`) and containers have tag filters, but each
-  container still holds its own stock; any chest does not expose everything.
+- Physical storage: all material use is carried, with a per-trip shopping
+  list and a Str-based carry limit. Decided 2026-10-31, replacing the old
+  "unified storage" idea. Plan: [physical_storage_plan.md](physical_storage_plan.md).
+- Expanding enemy factions: two-tier model (abstract per-location presence
+  on the campaign, materialized into worker-driven faction settlements on
+  loaded levels), data-driven doctrines, greyish fleets met in space.
+  Planned 2026-10-31. Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
 
 ## Verify
 

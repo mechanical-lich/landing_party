@@ -106,7 +106,7 @@ live levels**.
 Steps 1–5 give a visitable, persistent ship. Step 6 makes it *live* in the
 background — and is the reusable Phase 2 Part A machinery.
 
-## Scenario interaction (decided)
+## Scenario interaction (decided; amended 2026-10-31)
 
 The scenario stays a **global singleton** (= the currently-orbited location's
 scenario); it is deliberately **not** isolated per-level. This is a feature hook:
@@ -125,8 +125,14 @@ Consequences:
   the background it would spawn the *orbited planet's* hostiles **on the ship**.
   So ship hostile-spawning must be **gated off** until a scenario explicitly
   opts in via a future `ship_effects` block — otherwise orbiting an infested
-  planet dumps enemies onto your ship. (Not an issue yet: the ship is parked,
-  not ticking.)
+  planet dumps enemies onto your ship. (Handled: `suppressSpawns` on the
+  ship's GameMaster.)
+- **Amendment for background planets.** The global-scenario decision holds
+  for *the ship* only. Once more than one planet is loaded
+  ([background_simulation.md](background_simulation.md) Part B0), each planet
+  must read its **own** scenario or a background planet spawns the orbited
+  planet's hostiles. The ship keeps reading the orbited scenario explicitly,
+  which preserves the `ship_effects` hook.
 
 ## The ship is its own settlement (decided)
 
