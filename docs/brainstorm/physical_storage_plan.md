@@ -1,7 +1,11 @@
 # Physical Storage — Implementation Plan
 
-Status: **planned, not started** (2026-10-31). Supersedes the "unified
-storage" line in [todo.md](todo.md).
+Status (2026-10-31): **all seven steps implemented** on branch
+`claude/physical-storage` (eight commits including five end-to-end tests
+through the real update loop in `internal/game/physical_e2e_test.go`;
+tests green, not yet play-tested or merged). Supersedes the "unified storage" line in
+[todo.md](todo.md). See "Implementation notes" at the end for deviations
+the implementation made from this spec.
 
 ## Decision
 
@@ -186,7 +190,55 @@ Scope this tightly: it is **only** for items already on the worker's
 That keeps bags predictable for the colonist modal and the "insufficient
 materials" message, and never fights the player's container filters.
 
-### 6. Affordability gating at task pick
+### 6. Visualising the delivered tally
+
+A task that is waiting on materials must look different from one that is
+waiting on a worker, or the player cannot tell "nobody is free" from "the
+biomass is across the map". The tally is surfaced in three places the
+player already looks, all read-only from `Delivered`:
+
+**a. Task reticle (map).** `drawTaskReticle` in `internal/game/main_state.go`
+tints the reticle per action. Add a **fill fraction** = total delivered /
+total cost (0 when nothing is delivered, 1 when paid). Render the unpaid
+part of the reticle at reduced alpha (e.g. 40%) and the paid part at full,
+split vertically bottom-up like a gauge, so a build site visibly "fills" as
+material arrives. A paid task that is waiting on progress keeps the current
+full-brightness look, so nothing changes for dig/mine/attack, which have no
+cost. One sprite, one extra `DrawImage` with a sub-rect; no new asset.
+
+**b. Hover detail panel.** `HoveredTileInfo` in `internal/gui/hud_screen.go`
+gains:
+
+```go
+// TaskNeeds lists the materials a cost-bearing task at this tile is still
+// waiting on, in display order; nil when there is no such task or it is
+// paid. Each line renders as "metal_ore 3/5".
+TaskNeeds []TaskNeed // {Blueprint, Delivered, Required int}
+```
+
+filled by the hover code in `main_state.go` from the task at the tile. The
+panel shows a "Needs" block under the existing tile lines, one line per
+material, and "Materials delivered" once paid but not finished. Craft and
+research tasks are hovered at the bench/lab tile, so the same block covers
+all three consumers.
+
+**c. Queue lists in the craft and research modals.** `CraftQueueEntry` and
+`ResearchQueueEntry` carry only `Progress`. Add `Delivered, Required int`
+(summed over all inputs) and render the row as
+`"<name>  gathering 20/25"` until paid, then the existing `"<name>  NN%"`.
+That keeps the row a single string, which is all the ListBox supports.
+
+**d. (cheap, optional) Colonist state label.** The population list already
+shows `[state/task]`; the gather state reads `gather_materials` today. Map
+it to `gathering` in the label so the player can see who is on a supply
+run. No new data.
+
+Not doing: a per-task floating label on the map (clutters the view at the
+density tasks are painted), and a colony-wide "pending deliveries" panel
+(the Global Inventory already shows totals; what the player lacks is
+per-task state, which a, b and c give).
+
+### 7. Affordability gating at task pick
 
 Because the handlers no longer check the pool, the **task picker** must.
 When a worker considers a build/craft/research task, call `storage.Check`
@@ -196,7 +248,7 @@ it; stock may arrive). This is the one place pooled counting still gates
 work, and it is the right place: it answers "is there any point starting"
 without deciding where the materials are.
 
-### 7. Cancellation and cleanup
+### 8. Cancellation and cleanup
 
 - On task cancel/stop (right-click, `Task.Stop`, failed move): clear
   `GatherList` / `GatherTarget`. Items already in the bag stay there; the
@@ -216,8 +268,10 @@ without deciding where the materials are.
 | `internal/workerai/task_handlers.go` | build/craft/research handlers use `Delivered` (§4); drop pooled check/deduct |
 | `internal/workerai/materials.go` | generalise bag-to-Delivered helpers over a cost map; adjacent-ground grab |
 | `internal/workerai/storage.go` | `FindClosestStorageWithAny(level, owner, list, x,y,z)`; mark pooled check/deduct as pick-time only |
-| worker task picker (idle state in `states.go`) | `storage.Check` gate (§6) |
+| worker task picker (idle state in `states.go`) | `storage.Check` gate (§7) |
 | `internal/systems/WorkerSystem.go` | remove `gather_materials_craft` case |
+| `internal/game/main_state.go` (reticle draw + hover fill) | delivery fill on the reticle; `TaskNeeds` on hover (§6a, §6b) |
+| `internal/gui/hud_screen.go` | `TaskNeed` type, "Needs" block in the detail panel, `gathering` row text in craft/research queues (§6b, §6c) |
 | `docs/player/storage.md` | "Worker behaviour around storage": materials are physically carried; carry limit; teleporter as staging |
 | `docs/player/crafting.md`, `docs/player/research.md` | one line each: inputs are fetched to the bench/lab |
 | `docs/developer/ai.md` | the gather state and `Delivered` tally |
@@ -237,6 +291,9 @@ Existing `workerai_test.go` builds levels with storage entities; extend it:
 - A listed item within one tile of the route is picked up; an unlisted one
   is not.
 - Task picker skips an unaffordable task without cancelling it.
+- Hover info for a half-delivered build lists each material as
+  delivered/required; a paid task lists none.
+- Craft queue row text reads `gathering a/b` until paid, then a percentage.
 - `CarryCapacity` floors at baseline for Str < 10.
 
 ## Order of work
@@ -248,9 +305,12 @@ Existing `workerai_test.go` builds levels with storage entities; extend it:
 3. Trip planner rewrite (§3) with the list on the worker (§2). Build now
    does multi-item trips.
 4. Switch craft, then research, onto the same path (§4). Remove pooled
-   deduct. Add pick-time gate (§6).
-5. Route pickup (§5).
-6. Cleanup (§7), docs, todo.
+   deduct. Add pick-time gate (§7).
+5. Tally visualisation (§6): hover block and queue text first (pure data
+   plumbing), reticle fill last. Do this before route pickup so play-testing
+   the multi-trip behaviour has feedback.
+6. Route pickup (§5).
+7. Cleanup (§8), docs, todo.
 
 Each step leaves the game playable; stop after any of them.
 
@@ -264,3 +324,56 @@ Each step leaves the game playable; stop after any of them.
 - **Beam friction.** None added here. If hauling from the teleporter is not
   enough friction, a cooldown or per-beam fuel cost is a separate, small
   change in `BeamResourceDown`.
+
+## Implementation notes (2026-10-31)
+
+Deviations from the spec above, as built on `claude/physical-storage`:
+
+- **Affordability gate** skips an unaffordable task and offers the next
+  closest instead of leaving the worker idle; it counts what the worker is
+  already carrying toward the cost.
+- **Out of stock mid-trip:** the worker delivers what it already fetched
+  before the task stops, rather than stopping with materials in its bag.
+- **Bag full of unrelated items** (not covered by the spec; would loop):
+  the worker hands the task back and enters the `haul` state to empty its
+  bag.
+- **Research with `Progress > 0` in older saves** counts as paid, since it
+  was charged up front under the old rules. In-progress builds and crafts
+  from older saves must fetch their materials.
+- **Registries in tests:** `getBuildable` / `getRecipe` / `getTech` are
+  package variables in `internal/workerai` so tests can supply definitions
+  without `data/` on disk.
+- **`FindClosestStorageWithAny`** scans both `Entities` and
+  `StaticEntities`; a target emptied or destroyed mid-walk triggers a new
+  search.
+- **`CraftRequest` is a value, not a pointer**, so the handler writes it
+  back like `BuildRequest`.
+
+Steps 5–7 additions:
+
+- **Return trips:** an idle worker with no task takes `Material` items to
+  the nearest accepting container with a free slot, one per trip; gear
+  stays in the bag. (Closes the step-4 gap where surplus sat in bags.)
+- **Drop-off stuck state fixed:** a worker that cannot reach its drop-off
+  target gives up after 5 failed moves and waits 50 idle ticks before
+  retrying. Player-ordered drops now fail silently with the item kept.
+- **Directed drop-offs clear the worker target**, since the food and
+  bedroll states read a leftover target as somewhere to walk.
+- **Reticle:** each tile of a multi-tile build shows its own gauge.
+- **Started research** shows as paid on hover regardless of its tally,
+  matching the older-saves rule.
+- `deductFromSettlementStorage` kept with no callers; safe to delete.
+- Cancel-time clearing of gather fields (§8) relies on the gather state
+  noticing the task is gone rather than a hook in `internal/game`.
+
+Known issues left open (outside the branch's file list):
+
+- **Stack duplication in `StorageComponent.AddItem`**
+  (`internal/components`): when a stack only partly fits a full container
+  it tops up existing stacks, then returns false with the item's quantity
+  unchanged, so the merged units are duplicated. The return path skips full
+  containers to avoid it; other callers can still hit it. Worth a todo.
+- **Consequence:** a colonist will not return materials to a container with
+  no free slot even if an existing stack has room; they keep them and retry.
+- **`docs/developer/ai.md`** states table still cites `internal/ai/worker.go`
+  on rows other than gather.
