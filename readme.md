@@ -31,6 +31,8 @@ Go modules fetch the Go dependencies automatically the first time you build or r
 
 `make build`
 
+To experiment with location generation, run the Planet Generator tool: `make run-planet-generator`. See [World Generation](docs/developer/world_generation.md#planet-generator).
+
 To test with a local copy of the mlge library add this to the mod file.  It assumes that game_engine was cloned in the same parent directory as this repo. 
 
 `replace github.com/mechanical-lich/mlge => ../mlge`

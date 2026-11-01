@@ -30,6 +30,9 @@ type BuildWorldOptions struct {
 	// Width*Height / ReferenceArea so resource density stays constant across the
 	// size roll. 0 disables scaling (counts used as authored).
 	ReferenceArea int
+	// SkipBiomeFeatures leaves out the features biomes declare for themselves
+	// (forest trees etc.), keeping only those listed in Features.
+	SkipBiomeFeatures bool
 }
 
 // BuildWorld constructs a level by running primer → biome map → biome apply
@@ -81,14 +84,16 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		ExposeMountainTops(level)
 
 		// Collect and run features declared in each active biome.
-		for _, id := range opts.BiomeIDs {
-			if b := GetBiome(id); b != nil && len(b.Features) > 0 {
-				PlaceFeatures(level, b.Features, rng)
+		if !opts.SkipBiomeFeatures {
+			for _, id := range opts.BiomeIDs {
+				if b := GetBiome(id); b != nil && len(b.Features) > 0 {
+					PlaceFeatures(level, b.Features, rng)
+				}
 			}
-		}
-		if opts.BiomeSingle != "" {
-			if b := GetBiome(opts.BiomeSingle); b != nil && len(b.Features) > 0 {
-				PlaceFeatures(level, b.Features, rng)
+			if opts.BiomeSingle != "" {
+				if b := GetBiome(opts.BiomeSingle); b != nil && len(b.Features) > 0 {
+					PlaceFeatures(level, b.Features, rng)
+				}
 			}
 		}
 	}

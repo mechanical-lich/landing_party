@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
@@ -72,6 +73,16 @@ func LoadBiomes(dir string) error {
 // GetBiome returns the registered biome by ID, or nil.
 func GetBiome(id string) *Biome {
 	return biomes[id]
+}
+
+// BiomeIDs returns every registered biome ID, sorted.
+func BiomeIDs() []string {
+	ids := make([]string, 0, len(biomes))
+	for id := range biomes {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 // kindString stringifies TerrainKind to match JSON BiomeRule.Kind.

@@ -5,6 +5,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/crafting"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/event"
 )
 
 type PopulationEntry struct {
@@ -26,6 +27,11 @@ func NewGUIManager() *GUIManager {
 	sm := &ScreenManager{}
 	sm.Push(hud)
 	return &GUIManager{screens: sm, hud: hud}
+}
+
+// Close detaches the HUD from the global event queue.
+func (gm *GUIManager) Close() {
+	event.GetQueuedInstance().UnregisterListenerFromAll(gm.hud)
 }
 
 func (gm *GUIManager) Update() {

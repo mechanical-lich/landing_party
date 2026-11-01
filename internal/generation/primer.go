@@ -2,6 +2,7 @@ package generation
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
@@ -31,6 +32,16 @@ func GetPrimer(name string) (TerrainPrimer, error) {
 		return nil, fmt.Errorf("generation: no terrain primer named %q", name)
 	}
 	return p, nil
+}
+
+// PrimerNames returns every registered primer name, sorted.
+func PrimerNames() []string {
+	names := make([]string, 0, len(primers))
+	for name := range primers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // paramInt extracts an int from a JSON map[string]any (numbers decode as

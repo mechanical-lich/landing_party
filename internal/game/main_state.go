@@ -568,11 +568,17 @@ func (s *MainState) newGame() {
 	if activeScenario != nil {
 		s.settlementCfg.ScenarioID = activeScenario.ID
 	}
-	s.scenario = activeScenario
+	s.generate(md, activeScenario, mapW, mapH, mapZ, seed)
+}
 
-	// md is always non-nil here (mapdef.Random() guarantees it above, and
-	// md.Size.Roll already dereferenced it). BuildWorld is the single terrain
-	// path; it returns a usable (if degraded) level even on partial failure.
+// generate builds this state's level from a resolved map definition and scenario
+// (nil for none) at the given size, then sets up the settlement, setup scripts,
+// and starting colonists. md must be non-nil. BuildWorld is the single terrain
+// path; it returns a usable (if degraded) level even on partial failure.
+func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenario, mapW, mapH, mapZ int, seed int64) {
+	s.scenario = activeScenario
+	mapID := md.ID
+
 	opts := generation.BuildWorldOptions{
 		Width:               mapW,
 		Height:              mapH,
@@ -586,6 +592,7 @@ func (s *MainState) newGame() {
 		BiomeIDs:            md.BiomeMap.Biomes,
 		BiomeSingle:         md.BiomeMap.Single,
 		ReferenceArea:       md.Size.MidArea(),
+		SkipBiomeFeatures:   md.SkipBiomeFeatures,
 	}
 	for _, fb := range md.Features {
 		opts.Features = append(opts.Features, generation.FeatureSpec{
@@ -684,17 +691,26 @@ func (s *MainState) newGame() {
 			// Campaign: no auto-spawn — colonists beam down from the ship.
 		} else {
 			for i := 0; i < 5; i++ {
-				colonist, err := factory.Create("colonist", spawnX+i-2, spawnY, spawnZ)
-				if err == nil {
-					colonist.AddComponent(&components.SettlementComponent{Name: name})
-					colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
-					s.level.AddEntity(colonist)
+				if _, err := spawnColonist(s.level, name, spawnX+i-2, spawnY, spawnZ); err != nil {
+					log.Printf("spawn colonist: %v", err)
 				}
 			}
 		}
 	}
 	s.day = 0
 	s.lastDay = 0
+}
+
+// spawnColonist creates a colony worker belonging to the named settlement.
+func spawnColonist(level *world.Level, colony string, x, y, z int) (*ecs.Entity, error) {
+	colonist, err := factory.Create("colonist", x, y, z)
+	if err != nil {
+		return nil, err
+	}
+	colonist.AddComponent(&components.SettlementComponent{Name: colony})
+	colonist.AddComponent(&components.WorkerComponent{SelfDefend: true})
+	level.AddEntity(colonist)
+	return colonist, nil
 }
 
 func (s *MainState) applyScenarioLighting(level *world.Level) {

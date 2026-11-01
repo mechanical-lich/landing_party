@@ -53,6 +53,17 @@ The only intentionally non-reproducible generation randomness is gameplay-time d
 
 ---
 
+## Planet Generator
+
+`make run-planet-generator` (or `go run ./cmd/planet-generator -map earth_like -scenario earth_like -seed 42`) opens a tool for trying generation options. It edits private copies of a map and scenario, so nothing in `data/` changes, and generates through the same `MainState.generate` path as the game (`internal/game/planet_lab.go`).
+
+- **Options (left):** map, scenario, seed, size, primer params, biome map, features, spawn rules, lighting. Changes regenerate automatically when the mouse is released. Sliders for primer params come from the `primerParams` table in `cmd/planet-generator/options.go`, so add new primer params there too.
+- **Simulation (top):** run/pause (Space), step (`.`), speed (1/2/3). This runs the game's real systems.
+- **Dummy colonists:** Place Colonist (C), then click a walkable tile. They are ordinary workers in a "Lab Colony" settlement. Click any entity to inspect its AI state, task, needs and target, and turn on Paths to see its route.
+- **Camera:** WASD, Q/E, scroll to zoom, as in the game. `Level.RevealAll` removes fog of war for drawing only, so FOV and AI behave as they do in the game. Fullbright also ignores lighting, so caverns stay visible.
+
+---
+
 ## Lighting
 
 Sun intensity is calculated per-turn in `internal/world/level.go` based on the lighting mode:

@@ -62,8 +62,8 @@ func DrawLevel(level *Level, screen *ebiten.Image, cam view.Camera) {
 			tX := float64(screenX * tileSizeW)
 			tY := float64(screenY * tileSizeH)
 
-			seen := disableLighting || level.GetSeen(x, y, cameraZ)
-			visible := disableLighting || len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
+			seen := disableLighting || level.RevealAll || level.GetSeen(x, y, cameraZ)
+			visible := disableLighting || level.RevealAll || len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
 
 			// Never-seen tiles: skipped entirely. The world image is cleared to
 			// black each frame so there's nothing to draw here.
@@ -187,7 +187,7 @@ func DrawLevel(level *Level, screen *ebiten.Image, cam view.Camera) {
 			for y := cameraY; y < cameraY+viewH; y++ {
 				above := level.GetTilePtr(x, y, aboveZ)
 				hasCeiling := above != nil && !above.Floor.IsEmpty()
-				shadowVisible := len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
+				shadowVisible := level.RevealAll || len(level.Visible) == 0 || level.GetVisible(x, y, cameraZ)
 				if !hasCeiling && shadowVisible {
 					level.entitiesBuffer = level.entitiesBuffer[:0]
 					level.GetEntitiesAt(x, y, aboveZ, &level.entitiesBuffer)
@@ -422,7 +422,7 @@ func DrawRadiationOverlay(level *Level, screen *ebiten.Image, cam view.Camera) {
 			if tile == nil || tile.Radiation == 0 {
 				continue
 			}
-			if !level.GetVisible(cameraX+sx, cameraY+sy, cameraZ) {
+			if !level.RevealAll && !level.GetVisible(cameraX+sx, cameraY+sy, cameraZ) {
 				continue
 			}
 			a := uint8(int(tile.Radiation) * 40 / 255) // max ~16% on checker pixels

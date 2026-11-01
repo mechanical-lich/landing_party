@@ -161,7 +161,7 @@ func (m *Minimap) drawRegion(img *ebiten.Image, z, x0, y0, w, h int) {
 			}
 
 			tile := m.level.GetTilePtr(tx, ty, z)
-			seen := m.level.GetSeen(tx, ty, z)
+			seen := m.level.RevealAll || m.level.GetSeen(tx, ty, z)
 
 			var c color.RGBA
 			switch {

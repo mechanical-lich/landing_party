@@ -21,6 +21,21 @@ type MapDef struct {
 	TerrainParams map[string]any `json:"terrain_params"` // forwarded to the primer
 	BiomeMap      BiomeMapBlock  `json:"biome_map"`      // optional
 	Features      []FeatureBlock `json:"features"`       // ordered feature placements
+	// SkipBiomeFeatures leaves out the features biomes declare for themselves.
+	SkipBiomeFeatures bool `json:"skip_biome_features,omitempty"`
+}
+
+// Clone returns a copy whose terrain params, biome list and feature list can be
+// edited without touching the original. Feature params stay shared.
+func (m MapDef) Clone() MapDef {
+	c := m
+	c.TerrainParams = make(map[string]any, len(m.TerrainParams))
+	for k, v := range m.TerrainParams {
+		c.TerrainParams[k] = v
+	}
+	c.BiomeMap.Biomes = append([]string(nil), m.BiomeMap.Biomes...)
+	c.Features = append([]FeatureBlock(nil), m.Features...)
+	return c
 }
 
 // IntRange is an inclusive integer range. Authors write {"min": 200, "max": 360}

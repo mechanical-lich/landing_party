@@ -125,6 +125,11 @@ type Level struct {
 	LightMode    string // "day_night", "fixed", or "pitch_dark"
 	FixedAmbient int    // used when LightMode == "fixed"
 
+	// RevealAll draws the whole level as seen and visible, for dev tools. It only
+	// affects rendering: Seen/Visible keep their usual values, so the simulation
+	// behaves as it does in the game.
+	RevealAll bool
+
 	// Fog of war: Visible is reset each FOV pass and marks tiles with current
 	// line-of-sight from any worker. Seen (on the embedded Level) is permanent.
 	Visible []bool

@@ -14,6 +14,9 @@ clean:
 run:
 	go run $(LDFLAGS) ./cmd/game/*.go
 
+run-planet-generator:
+	go run $(LDFLAGS) ./cmd/planet-generator
+
 run-debug:
 	GODEBUG=gctrace=1 go run $(LDFLAGS) ./cmd/game/*.go
 

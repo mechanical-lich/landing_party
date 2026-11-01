@@ -8,6 +8,9 @@ alone and need a play-test or a judgment call.
 
 - Door sounds. `data/blueprints/structures/doors.json` has no `Sound`
   component and `data/audio.json` has no door entries.
+- Tutorial planet: a guided first landing with non-blocking prompts that
+  teach the basics, switchable off on the New Expedition screen. Planned
+  2026-10-31, code-grounded. Plan: [tutorial_plan.md](tutorial_plan.md).
 - Expanding enemy factions: two-tier model (abstract per-location presence
   on the campaign, materialized into worker-driven faction settlements on
   loaded levels), data-driven doctrines, greyish fleets met in space.
