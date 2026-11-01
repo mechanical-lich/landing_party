@@ -47,6 +47,20 @@ type WorkerComponent struct {
 	DropOffX          int
 	DropOffY          int
 	DropOffZ          int
+	// GatherList is what the worker still needs to fetch for CurrentTask,
+	// blueprint -> remaining quantity. Rebuilt when the task starts gathering;
+	// entries drop out as items land in the bag. Transient: a loaded worker
+	// re-plans on its next tick.
+	GatherList map[string]int `json:"-"`
+	// GatherTarget is the container the worker is currently walking to, or nil
+	// when it needs to pick the next hop. Transient, like GatherList.
+	GatherTarget *ecs.Entity `json:"-"`
+	// ReturnRetryTicks holds off returning carried materials to storage after an
+	// attempt found no room or no way there, counted down while idle.
+	ReturnRetryTicks int `json:"-"`
+	// LoggedUnassignable records that this worker already logged having no
+	// assignable task, so the line prints once per stretch rather than per tick.
+	LoggedUnassignable bool `json:"-"`
 	// SelfDefend causes the worker to counter-attack when struck, if they have
 	// not already used their turn this tick. Defaults to true.
 	SelfDefend bool

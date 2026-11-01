@@ -29,6 +29,22 @@ import (
 
 const sleepRecoveryPerCycle = 10
 
+// Cost registry lookups, vars so tests can supply definitions: the registries read
+// data/ relative to the working directory at package init.
+var (
+	getBuildable = construction.GetBuildable
+	getRecipe    = crafting.GetRecipe
+	getTech      = research.GetTech
+)
+
+// SetCostLookups replaces the cost registry lookups and returns a func restoring
+// them, for tests in packages whose working directory hid data/ at package init.
+func SetCostLookups(buildable func(string) construction.Buildable, recipe func(string) (crafting.Recipe, bool), tech func(string) (research.Tech, bool)) (restore func()) {
+	prevB, prevR, prevT := getBuildable, getRecipe, getTech
+	getBuildable, getRecipe, getTech = buildable, recipe, tech
+	return func() { getBuildable, getRecipe, getTech = prevB, prevR, prevT }
+}
+
 // maxApproachFailTicks cancels an equip/unequip task after this many consecutive
 // ticks of failing to advance toward its storage container, so a worker whose
 // storage is unreachable doesn't stay pinned to the task forever.
@@ -366,12 +382,20 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	recipe, found := crafting.GetRecipe(cr.RecipeID)
+	recipe, found := getRecipe(cr.RecipeID)
 	if !found {
 		log.Printf("[CRAFT] recipe not found: %s", cr.RecipeID)
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
 		aiMemory.State = "idle"
+		return
+	}
+
+	t := wc.CurrentTask
+	delivered, paid := deliverMaterials(level, entity, wc, aiMemory, recipe.Cost, cr.Delivered, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+	cr.Delivered = delivered
+	t.Data = cr
+	if !paid {
 		return
 	}
 
@@ -387,20 +411,10 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	// At workbench: check storage has ingredients on first tick
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
-	if cr.Progress == 0 && !checkSettlementStorageForCraft(level, sc.Name, recipe.Cost) {
-		wc.CurrentTask.Stop()
-		wc.CurrentTask = nil
-		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to craft "+recipe.Name)
-		aiMemory.State = "idle"
-		return
-	}
-
 	cr.Progress += workStep(wc, entity, "Int")
 	wc.CurrentTask.Data = cr
 	if cr.Progress >= cr.Required {
-		deductFromSettlementStorage(level, sc.Name, recipe.Cost)
 		output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
 		if err == nil {
 			if recipe.Output == "colonist" {
@@ -434,6 +448,13 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		return
 	}
 
+	tech, techFound := getTech(rr.TechKey)
+	delivered, paid := deliverMaterials(level, entity, wc, aiMemory, researchInputs(rr, tech), rr.Delivered, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
+	rr.Delivered = delivered
+	if !paid {
+		return
+	}
+
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
 		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
@@ -443,18 +464,6 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 		return
 	}
 
-	tech, techFound := research.GetTech(rr.TechKey)
-	if rr.Progress == 0 && techFound && len(tech.Cost) > 0 {
-		sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
-		if !checkSettlementStorageForCraft(level, sc.Name, tech.Cost) {
-			wc.CurrentTask.Stop()
-			wc.CurrentTask = nil
-			message.PostMessage(rlentity.GetName(entity), "Insufficient materials to research "+tech.Name)
-			aiMemory.State = "idle"
-			return
-		}
-		deductFromSettlementStorage(level, sc.Name, tech.Cost)
-	}
 	rr.Progress += workStep(wc, entity, "Int")
 	if rr.Progress >= rr.Required {
 		level.QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
@@ -850,9 +859,12 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		return
 	}
 
-	buildable := construction.GetBuildable(buildRequest.Type)
-	if !checkInventoryForMaterials(entity, buildable) {
-		aiMemory.State = "gather_materials"
+	buildable := getBuildable(buildRequest.Type)
+	t := wc.CurrentTask
+	delivered, paid := deliverMaterials(level, entity, wc, aiMemory, buildable.Cost, buildRequest.Delivered, t.X, t.Y, t.Z)
+	buildRequest.Delivered = delivered
+	t.Data = buildRequest
+	if !paid {
 		return
 	}
 
@@ -919,7 +931,6 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 				markSeenAroundStairs(level, buildRequest.X, buildRequest.Y, buildRequest.Z)
 				level.InvalidateSunColumn(buildRequest.X, buildRequest.Y)
 			}
-			removeMaterialsFromInventory(entity, buildable)
 			level.QueueEvent(eventsystem.StructureBuiltEvent{
 				Type: buildRequest.Type, Settlement: sc.Name,
 				X: buildRequest.X, Y: buildRequest.Y, Z: buildRequest.Z,

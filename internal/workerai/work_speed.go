@@ -22,6 +22,56 @@ const (
 	maxWorkRate = 3.0
 )
 
+// baseCarryCapacity is how many stack units a worker with baseline Str carries
+// on a gather trip. Only the gather planner enforces it; haul, pickup orders and
+// crafted output ignore it so no existing flow can get stuck on a full bag.
+const baseCarryCapacity = 20
+
+// CarryCapacity returns the stack units the entity may carry on a gather trip:
+// baseCarryCapacity scaled by Str, floored at the baseline so low or unset
+// stats are never a penalty.
+func CarryCapacity(entity *ecs.Entity) int {
+	if !entity.HasComponent(rlcomponents.Stats) {
+		return baseCarryCapacity
+	}
+	sc := entity.GetComponent(rlcomponents.Stats).(*rlcomponents.StatsComponent)
+	capacity := int(float64(baseCarryCapacity) * float64(sc.Str) / baseWorkStat)
+	if capacity < baseCarryCapacity {
+		return baseCarryCapacity
+	}
+	return capacity
+}
+
+// carryUnits is what one bag item counts for: a stack's quantity, or 1 for a
+// non-stackable item.
+func carryUnits(item *ecs.Entity) int {
+	if item.HasComponent(components.Material) {
+		return item.GetComponent(components.Material).(*components.MaterialComponent).Quantity
+	}
+	return 1
+}
+
+// CarryUsed sums the stack units in the entity's bag.
+func CarryUsed(entity *ecs.Entity) int {
+	if !entity.HasComponent(rlcomponents.Inventory) {
+		return 0
+	}
+	used := 0
+	for _, item := range entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).Bag {
+		used += carryUnits(item)
+	}
+	return used
+}
+
+// carryFree returns the room left in the bag, 0 when it is already overfull.
+func carryFree(entity *ecs.Entity) int {
+	free := CarryCapacity(entity) - CarryUsed(entity)
+	if free < 0 {
+		return 0
+	}
+	return free
+}
+
 // workRate returns the per-tick progress multiplier for the named governing
 // stat ("Str", "Int", "Dex", "Con"). Entities without a StatsComponent (or an
 // unrecognised stat) fall back to the baseline rate.

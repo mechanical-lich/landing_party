@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"image/color"
 	"sort"
 	"strconv"
@@ -474,6 +475,17 @@ type CraftQueueEntry struct {
 	Name     string
 	Sprite   *ebiten.Image // unused; retained for callsite compatibility
 	Progress float64       // 0..1
+	// Delivered and Required are material units summed over all inputs; the row
+	// reads "gathering" until Delivered reaches Required.
+	Delivered, Required int
+}
+
+// queueRowText renders one craft or research queue row.
+func queueRowText(name string, progress float64, delivered, required int) string {
+	if delivered < required {
+		return fmt.Sprintf("%s  gathering %d/%d", name, delivered, required)
+	}
+	return fmt.Sprintf("%s  %d%%", name, int(progress*100))
 }
 
 // RefreshCraftQueue updates the queue ListBox in the crafting modal.
@@ -483,7 +495,7 @@ func (h *HUDScreen) RefreshCraftQueue(entries []CraftQueueEntry) {
 	}
 	items := make([]string, 0, len(entries))
 	for _, e := range entries {
-		items = append(items, fmt.Sprintf("%s  %d%%", e.Name, int(e.Progress*100)))
+		items = append(items, queueRowText(e.Name, e.Progress, e.Delivered, e.Required))
 	}
 	h.craftingQueueList.Items = items
 	if h.craftingQueueList.SelectedIndex >= len(items) {
@@ -836,7 +848,7 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 
 	for i, entry := range entries {
 		captured := entry
-		h.populationItems[i].Text = fmt.Sprintf("%s  [%s/%s]", entry.Name, entry.State, entry.Task)
+		h.populationItems[i].Text = fmt.Sprintf("%s  [%s/%s]", entry.Name, workerStateLabel(entry.State), entry.Task)
 		h.populationItems[i].OnClick = func() {
 			event.GetQueuedInstance().QueueEvent(ColonistSelectedEvent{Entity: captured.Entity})
 		}
@@ -1192,6 +1204,8 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 type ResearchQueueEntry struct {
 	Name     string
 	Progress float64 // 0..1
+	// Delivered and Required are as on CraftQueueEntry.
+	Delivered, Required int
 }
 
 // OpenResearchModal opens the research modal for a given lab entity.
@@ -1271,7 +1285,7 @@ func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) 
 func (h *HUDScreen) populateResearchQueueList(completed []research.Tech, queue []ResearchQueueEntry) {
 	items := make([]string, 0, len(queue)+len(completed))
 	for _, e := range queue {
-		items = append(items, fmt.Sprintf("%s  %d%%", e.Name, int(e.Progress*100)))
+		items = append(items, queueRowText(e.Name, e.Progress, e.Delivered, e.Required))
 	}
 	for _, t := range completed {
 		items = append(items, fmt.Sprintf("%s  (done)", t.Name))
@@ -1327,6 +1341,13 @@ type TileSmell struct {
 	Strength float32
 }
 
+// TaskNeed is one input of the task at a hovered tile.
+type TaskNeed struct {
+	Blueprint string
+	Delivered int
+	Required  int
+}
+
 type HoveredTileInfo struct {
 	Name                     string
 	FloorName                string
@@ -1338,6 +1359,12 @@ type HoveredTileInfo struct {
 	ResourceAmount           int
 	Solid, Water, Air, Space bool
 	Smells                   []TileSmell
+	// TaskNeeds lists the materials a cost-bearing task at this tile is still
+	// waiting on, in display order; nil when there is no such task or it is paid.
+	TaskNeeds []TaskNeed
+	// TaskPaid is true when a cost-bearing task here has all its materials but
+	// isn't finished.
+	TaskPaid bool
 }
 
 // SetHoveredTile stores tile info to be rendered in the detail panel
@@ -1359,7 +1386,8 @@ func tileInfoEqual(a, b HoveredTileInfo) bool {
 		a.LightLevel != b.LightLevel || a.Radiation != b.Radiation ||
 		a.ResourceAmount != b.ResourceAmount ||
 		a.Solid != b.Solid || a.Water != b.Water || a.Air != b.Air || a.Space != b.Space ||
-		len(a.Smells) != len(b.Smells) {
+		len(a.Smells) != len(b.Smells) ||
+		a.TaskPaid != b.TaskPaid || !slices.Equal(a.TaskNeeds, b.TaskNeeds) {
 		return false
 	}
 	for i := range a.Smells {
@@ -1441,6 +1469,32 @@ func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 			add(fmt.Sprintf("  %s %.2f", sm.Tag, sm.Strength))
 		}
 	}
+	for _, line := range taskNeedLines(info) {
+		add(line)
+	}
+}
+
+// taskNeedLines renders the "Needs" block of the tile detail panel.
+func taskNeedLines(info *HoveredTileInfo) []string {
+	if info.TaskPaid {
+		return []string{"Materials delivered"}
+	}
+	if len(info.TaskNeeds) == 0 {
+		return nil
+	}
+	lines := []string{"Needs:"}
+	for _, n := range info.TaskNeeds {
+		lines = append(lines, fmt.Sprintf("  %s %d/%d", n.Blueprint, n.Delivered, n.Required))
+	}
+	return lines
+}
+
+// workerStateLabel is the player-facing name of a worker AI state.
+func workerStateLabel(state string) string {
+	if state == "gather_materials" {
+		return "gathering"
+	}
+	return state
 }
 
 func (h *HUDScreen) ClearHover() {
@@ -1589,7 +1643,7 @@ func (h *HUDScreen) appendEntityDetails() {
 	}
 	if entity.HasComponent(rlcomponents.AIMemory) {
 		aiMem := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
-		add("State: " + string(aiMem.State))
+		add("State: " + workerStateLabel(string(aiMem.State)))
 	}
 	if entity.HasComponent(components.Worker) {
 		wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)

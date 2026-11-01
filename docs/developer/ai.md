@@ -17,7 +17,7 @@ The game has two distinct AI systems: **WorkerSystem** for colonists and **Facti
 | `haul` | `internal/ai/worker.go` | Carries materials from a source to a build site or storage |
 | `dropoff` | `internal/ai/worker.go` | Returns gathered resources to a storage container |
 | `findfood` | `internal/ai/worker.go` | Navigates to the nearest accessible food item |
-| `gather_materials` | `internal/ai/worker.go` | Collects resources needed before beginning a task |
+| `gather_materials` | `internal/workerai/states.go` | Trip planner: fetches what a build, craft, or research task still needs from containers (see [Material Delivery](#material-delivery)) |
 
 ### Task Progress Model
 
@@ -25,6 +25,26 @@ Task progress is stored **on the task object, not the worker**. This means:
 
 - Multiple colonists can work the same task simultaneously and progress accumulates from all contributions.
 - If a colonist is interrupted (hunger, death, reassignment), the progress is not lost.
+
+### Material Delivery
+
+All material use is physical: nothing is deducted from a container the worker isn't standing next to. Each cost-bearing handler (`handleBuildTask`, `handleCraftTask`, `handleResearchTask`) starts with `deliverMaterials` in `internal/workerai/materials.go`:
+
+1. `need := cost - Delivered`. If empty, the task is paid and the handler works it.
+2. If the bag holds any of `need`, walk to the site and move it from the bag into `Delivered`.
+3. Otherwise enter `gather_materials`.
+
+`Delivered` is a `map[string]int` on `BuildRequest`, `CraftRequest`, and `ResearchRequest`. It lives on the task, so several workers and several trips add to one tally, and it is saved with the settlement's task queue. Progress only advances once it covers the cost. Materials delivered to a task that is later cancelled are lost. Started research counts as paid whatever its tally says, because research saved before delivery existed paid up front.
+
+`HandleGatherMaterialsState` builds `WorkerComponent.GatherList` once (`need` minus the bag), then repeatedly picks `GatherTarget`, the container closest to the worker holding anything listed, and takes every listed item there up to free capacity. While walking it also takes listed loose items within one tile, never detouring. It returns to `task` when the list is empty or the bag is full. Both fields are transient and rebuilt on each entry.
+
+The carry limit is `CarryCapacity` in `work_speed.go`: 20 stack units at Str 10, scaled by Str, never below 20. Only the planner enforces it. Haul, pickup orders, and crafted output can overfill a bag.
+
+`storage.Check` still gates task picking: `pickAffordableTask` passes over a task the colony's containers plus the worker's bag can't cover, without cancelling it, and offers the next closest. `storage.Deduct` no longer has a consumer in the worker AI.
+
+An idle worker with no task returns `Material` items in its bag to the nearest accepting container with a free slot, one per `dropoff`, so surplus counts as stock again (`startReturningMaterials`). Gear stays in the bag. A `dropoff` that can't advance for `maxApproachFailTicks` gives up and goes idle.
+
+Delivery shows up read-only through `TaskNeeds` and `TaskDeliveryTotals`: the hover "Needs" block, the `gathering a/b` queue rows, and the bottom-up reticle fill in `drawTaskReticle`.
 
 ### Stat Progression
 

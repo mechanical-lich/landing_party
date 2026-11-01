@@ -79,6 +79,81 @@ func FindClosestStorageWith(level *world.Level, settlementName, itemName string,
 	return closest
 }
 
+// FindClosestStorageWithAny returns the colony container nearest to (x,y) holding
+// at least one blueprint on list. Scans both Entities and StaticEntities so it
+// agrees with the storage.Provider counts that gate task picking.
+func FindClosestStorageWithAny(level *world.Level, settlementName string, list map[string]int, x, y, z int) *ecs.Entity {
+	var closest *ecs.Entity
+	minDist := 99999
+	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range src {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
+			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if sc.OwnedBy != settlementName || !storageHoldsAny(sc, list) {
+				continue
+			}
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			if closest == nil || d < minDist {
+				closest = e
+				minDist = d
+			}
+		}
+	}
+	return closest
+}
+
+// findClosestStorageWithRoomFor returns the nearest colony container that accepts
+// item and has a free slot. A full container is skipped even if it could merge part
+// of a stack, since AddItem refuses whatever doesn't fit in a slot.
+func findClosestStorageWithRoomFor(level *world.Level, settlementName string, item *ecs.Entity, x, y int) *ecs.Entity {
+	var closest *ecs.Entity
+	minDist := 99999
+	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range src {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
+			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+			if sc.OwnedBy != settlementName || !sc.Accepts(item) || (sc.Capacity > 0 && len(sc.Items) >= sc.Capacity) {
+				continue
+			}
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			if closest == nil || d < minDist {
+				closest = e
+				minDist = d
+			}
+		}
+	}
+	return closest
+}
+
+func storageHoldsAny(sc *components.StorageComponent, list map[string]int) bool {
+	for name := range list {
+		if sc.HasItem(name) {
+			return true
+		}
+	}
+	return false
+}
+
+// storageStillUsable reports whether a container picked earlier is still on the
+// level and still holds something on the list; it can be emptied or destroyed
+// while the worker walks to it.
+func storageStillUsable(level *world.Level, e *ecs.Entity, list map[string]int) bool {
+	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, candidate := range src {
+			if candidate == e {
+				return storageHoldsAny(e.GetComponent(components.Storage).(*components.StorageComponent), list)
+			}
+		}
+	}
+	return false
+}
+
 func FindClosestStorageWithComponent(level *world.Level, settlementName string, compType ecs.ComponentType, x, y, z int) *ecs.Entity {
 	var closest *ecs.Entity
 	minDist := 99999
@@ -99,11 +174,15 @@ func FindClosestStorageWithComponent(level *world.Level, settlementName string, 
 	return closest
 }
 
+// checkSettlementStorageForCraft answers "is there any point starting" at task
+// pick time. It counts the pool; the materials themselves are fetched physically.
 func checkSettlementStorageForCraft(level *world.Level, settlementName string, cost map[string]int) bool {
 	p, owners := StorageProviderFor(level, settlementName)
 	return storage.Check(p, owners, cost)
 }
 
+// deductFromSettlementStorage has no callers: nothing consumes from the pool since
+// crafting and research went physical.
 func deductFromSettlementStorage(level *world.Level, settlementName string, cost map[string]int) {
 	p, owners := StorageProviderFor(level, settlementName)
 	storage.Deduct(p, owners, cost)

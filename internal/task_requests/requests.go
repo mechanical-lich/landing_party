@@ -12,6 +12,10 @@ type BuildRequest struct {
 	Z        int
 	Progress int
 	Required int
+	// Delivered is what has already been carried to the task site and consumed
+	// from a worker's bag, blueprint -> quantity. The task's cost is satisfied
+	// when Delivered covers it.
+	Delivered map[string]int
 }
 
 type DigRequest struct {
@@ -38,6 +42,10 @@ type ResearchRequest struct {
 	Building string
 	Progress int
 	Required int
+	// Delivered is what has already been carried to the task site and consumed
+	// from a worker's bag, blueprint -> quantity. The task's cost is satisfied
+	// when Delivered covers it.
+	Delivered map[string]int
 }
 
 type CraftRequest struct {
@@ -47,6 +55,10 @@ type CraftRequest struct {
 	WorkbenchZ int
 	Progress   int
 	Required   int
+	// Delivered is what has already been carried to the task site and consumed
+	// from a worker's bag, blueprint -> quantity. The task's cost is satisfied
+	// when Delivered covers it.
+	Delivered map[string]int
 }
 
 type EquipRequest struct {

@@ -2,6 +2,7 @@ package game
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/campaign"
@@ -175,7 +176,7 @@ func TestQueuedOrdersSurviveCampaignSaveAndLoad(t *testing.T) {
 	if got == nil {
 		t.Fatal("ship build order not restored, or not available to workers")
 	}
-	if data, ok := got.Data.(task_requests.BuildRequest); !ok || data != shipOrder {
+	if data, ok := got.Data.(task_requests.BuildRequest); !ok || !reflect.DeepEqual(data, shipOrder) {
 		t.Errorf("ship order Data = %#v, want %#v", got.Data, shipOrder)
 	}
 	colony := settlement.Settlements[campaignColonyName(loaded.Campaign)]

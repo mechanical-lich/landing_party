@@ -35,6 +35,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/view"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
@@ -1001,7 +1002,8 @@ func (s *MainState) researchSnapshot() (available, locked, completed, inProgress
 		if rr.Required > 0 {
 			progress = float64(rr.Progress) / float64(rr.Required)
 		}
-		queue = append(queue, gui.ResearchQueueEntry{Name: name, Progress: progress})
+		delivered, required := workerai.TaskDeliveryTotals(t)
+		queue = append(queue, gui.ResearchQueueEntry{Name: name, Progress: progress, Delivered: delivered, Required: required})
 	}
 
 	for _, t := range research.AvailableTechs(s.knownTechs()) {
@@ -1956,7 +1958,10 @@ func (s *MainState) updateHovered() {
 		if !t.Middle.IsEmpty() && world.IsDepositTileName(def.Name) {
 			resourceAmt = s.level.ResourceAmountAt(tX, tY, s.camera.Z)
 		}
+		taskNeeds, taskPaid := s.taskNeedsAt(tX, tY, s.camera.Z)
 		s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
+			TaskNeeds:      taskNeeds,
+			TaskPaid:       taskPaid,
 			Name:           def.Name,
 			FloorName:      floorName,
 			X:              tX,
@@ -2155,6 +2160,31 @@ func (s *MainState) refreshHUD() {
 	}
 }
 
+// taskNeedsAt returns the delivery state of the first cost-bearing task at a tile.
+func (s *MainState) taskNeedsAt(x, y, z int) ([]gui.TaskNeed, bool) {
+	if s.MainSettlement == nil {
+		return nil, false
+	}
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.Completed || t.X != x || t.Y != y || t.Z != z {
+			continue
+		}
+		if _, required := workerai.TaskDeliveryTotals(t); required == 0 {
+			continue
+		}
+		needs := workerai.TaskNeeds(t)
+		if needs == nil {
+			return nil, true
+		}
+		out := make([]gui.TaskNeed, len(needs))
+		for i, n := range needs {
+			out[i] = gui.TaskNeed{Blueprint: n.Blueprint, Delivered: n.Delivered, Required: n.Required}
+		}
+		return out, false
+	}
+	return nil, false
+}
+
 func (s *MainState) refreshCraftQueue() {
 	if s.MainSettlement == nil {
 		return
@@ -2186,10 +2216,13 @@ func (s *MainState) refreshCraftQueue() {
 				sprite = tex.SubImage(image.Rect(ac.SpriteX, ac.SpriteY, ac.SpriteX+size, ac.SpriteY+size)).(*ebiten.Image)
 			}
 		}
+		delivered, required := workerai.TaskDeliveryTotals(t)
 		entries = append(entries, gui.CraftQueueEntry{
-			Name:     recipe.Name,
-			Sprite:   sprite,
-			Progress: progress,
+			Name:      recipe.Name,
+			Sprite:    sprite,
+			Progress:  progress,
+			Delivered: delivered,
+			Required:  required,
 		})
 	}
 	s.guiManager.RefreshCraftQueue(entries)
@@ -2388,6 +2421,10 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 			}
 			startX := t.X - fpW/2
 			startY := t.Y - fpH/2
+			fill := 1.0
+			if delivered, required := workerai.TaskDeliveryTotals(t); required > 0 {
+				fill = float64(delivered) / float64(required)
+			}
 			for dx := 0; dx < fpW; dx++ {
 				for dy := 0; dy < fpH; dy++ {
 					tx := startX + dx
@@ -2396,7 +2433,7 @@ func (s *MainState) drawTasks(screen *ebiten.Image) {
 						continue
 					}
 					sx, sy := s.camera.WorldToScreenF(tx, ty)
-					s.drawTaskReticle(screen, reticle, sx, sy, tw, th, tint)
+					s.drawTaskReticle(screen, reticle, sx, sy, tw, th, tint, fill)
 				}
 			}
 		}
@@ -2473,24 +2510,54 @@ func (s *MainState) drawCursorReticle(screen, img *ebiten.Image, frame int, sx, 
 	screen.DrawImage(sub, op)
 }
 
+// taskReticleUnpaidAlpha dims the part of a reticle whose materials haven't arrived.
+const taskReticleUnpaidAlpha = 0.4
+
+// reticleUnpaidRows returns how many rows from the top of a reticle of the given
+// height stay dimmed at a delivery fill of 0..1; the paid part fills bottom-up.
+func reticleUnpaidRows(height int, fill float64) int {
+	if fill >= 1 {
+		return 0
+	}
+	if fill <= 0 {
+		return height
+	}
+	return height - int(float64(height)*fill)
+}
+
 // drawTaskReticle draws the tinted task-location reticle sprite at screen
-// (sx,sy), scaled to fill one tile. If the sprite isn't loaded it falls back to
-// the previous tinted square + outline so indicators still render.
-func (s *MainState) drawTaskReticle(screen, img *ebiten.Image, sx, sy, tw, th float32, tint color.RGBA) {
+// (sx,sy), scaled to fill one tile, as a gauge of the task's delivery fill: full
+// brightness for what's paid, dimmed for the rest. If the sprite isn't loaded it
+// falls back to a tinted square + outline so indicators still render.
+func (s *MainState) drawTaskReticle(screen, img *ebiten.Image, sx, sy, tw, th float32, tint color.RGBA, fill float64) {
 	if img == nil {
 		vector.DrawFilledRect(screen, sx, sy, tw, th, color.RGBA{tint.R, tint.G, tint.B, 40}, false)
+		unpaid := float32(reticleUnpaidRows(int(th), fill))
+		vector.DrawFilledRect(screen, sx, sy+unpaid, tw, th-unpaid, color.RGBA{tint.R, tint.G, tint.B, 40}, false)
 		vector.StrokeRect(screen, sx, sy, tw, th, 1, color.RGBA{tint.R, tint.G, tint.B, 200}, false)
 		return
 	}
-	iw, ih := img.Bounds().Dx(), img.Bounds().Dy()
+	bounds := img.Bounds()
+	iw, ih := bounds.Dx(), bounds.Dy()
 	if iw == 0 || ih == 0 {
 		return
 	}
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(float64(tw)/float64(iw), float64(th)/float64(ih))
-	op.GeoM.Translate(float64(sx), float64(sy))
-	op.ColorScale.ScaleWithColor(tint)
-	screen.DrawImage(img, op)
+	unpaid := reticleUnpaidRows(ih, fill)
+	draw := func(rows image.Rectangle, top int, alpha float32) {
+		if rows.Empty() {
+			return
+		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(0, float64(top))
+		op.GeoM.Scale(float64(tw)/float64(iw), float64(th)/float64(ih))
+		op.GeoM.Translate(float64(sx), float64(sy))
+		op.ColorScale.ScaleWithColor(tint)
+		op.ColorScale.ScaleAlpha(alpha)
+		screen.DrawImage(img.SubImage(rows).(*ebiten.Image), op)
+	}
+	split := bounds.Min.Y + unpaid
+	draw(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, split), 0, taskReticleUnpaidAlpha)
+	draw(image.Rect(bounds.Min.X, split, bounds.Max.X, bounds.Max.Y), unpaid, 1)
 }
 
 // drawMarquee renders the live Dig/Mine drag-select: a translucent fill over each

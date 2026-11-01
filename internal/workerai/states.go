@@ -3,12 +3,11 @@ package workerai
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
-	"github.com/mechanical-lich/landing_party/internal/construction"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/landing_party/internal/factory"
-	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -38,6 +37,10 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 
+	if wc.ReturnRetryTicks > 0 {
+		wc.ReturnRetryTicks--
+	}
+
 	if mySettlement, ok := settlement.Settlements[sc.Name]; ok {
 		const momentumRadius = 15
 
@@ -50,6 +53,7 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 				t.Interruptible = task_requests.IsInterruptibleAction(t.Action)
 				wc.CurrentTask = t
 				wc.LastTaskAction = t.Action
+				wc.LoggedUnassignable = false
 				aiMemory.State = "task"
 				return
 			}
@@ -59,9 +63,9 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 
 		var t *task.Task
 		if wc.AllowedTasks == nil {
-			t = mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ())
+			t = pickAffordableTask(level, entity, &mySettlement.Tasks, sc.Name)
 		} else if len(wc.AllowedTasks) > 0 {
-			t = mySettlement.Tasks.GetClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ(), wc.AllowedTasks...)
+			t = pickAffordableTask(level, entity, &mySettlement.Tasks, sc.Name, wc.AllowedTasks...)
 		}
 		// else: AllowedTasks is non-nil empty — all tasks blocked, t stays nil
 		if t != nil {
@@ -72,10 +76,17 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 				aiMemory.State = "task"
 				wc.CurrentTask = t
 				wc.LastTaskAction = t.Action
+				wc.LoggedUnassignable = false
 				return
 			}
 		}
-		if mySettlement.Tasks.Count() > 0 {
+		if startReturningMaterials(level, entity, wc, aiMemory, sc.Name) {
+			return
+		}
+		if mySettlement.Tasks.Count() == 0 {
+			wc.LoggedUnassignable = false
+		} else if !wc.LoggedUnassignable {
+			wc.LoggedUnassignable = true
 			inProgress, completed, stopped := 0, 0, 0
 			for _, t := range mySettlement.Tasks.GetTasks() {
 				if t.Completed {
@@ -91,6 +102,95 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 		}
 
 	}
+}
+
+// returnRetryTicks is how long an idle worker waits before trying again to return
+// materials it couldn't store.
+const returnRetryTicks = 50
+
+// startReturningMaterials sends an idle worker to store one Material item from its
+// bag, so surplus and cancelled-task materials count as stock again. Each deposit
+// lands back in idle, which sends the next item. Gear stays with the worker.
+func startReturningMaterials(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent, settlementName string) bool {
+	if wc.ReturnRetryTicks > 0 || !entity.HasComponent(rlcomponents.Inventory) {
+		return false
+	}
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	carrying := false
+	for _, item := range entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).Bag {
+		if !item.HasComponent(components.Material) {
+			continue
+		}
+		carrying = true
+		dest := findClosestStorageWithRoomFor(level, settlementName, item, pc.GetX(), pc.GetY())
+		if dest == nil {
+			continue
+		}
+		spc := dest.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ = spc.GetX(), spc.GetY(), spc.GetZ()
+		wc.DropOffItem = item
+		wc.DropOffDestEntity = dest
+		wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+		aiMemory.State = "dropoff"
+		return true
+	}
+	if carrying {
+		wc.ReturnRetryTicks = returnRetryTicks
+	}
+	return false
+}
+
+// pickAffordableTask starts and returns the closest task the colony can pay for,
+// passing over any it can't without cancelling them, since stock may arrive. The
+// closest task alone isn't enough: an unaffordable one nearby must not idle a worker
+// while other work is queued. Passed-over tasks are held InProgress only during the
+// search so the scheduler offers the next closest.
+func pickAffordableTask(level *world.Level, entity *ecs.Entity, tasks *task.TaskScheduler, settlementName string, allowed ...task.TaskAction) *task.Task {
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	var skipped []*task.Task
+	defer func() {
+		for _, t := range skipped {
+			t.InProgress = false
+		}
+	}()
+	// Painted orders often share a cost, and each check scans every container.
+	checked := map[string]bool{}
+	for {
+		t := tasks.PeekClosestNextTask(pc.GetX(), pc.GetY(), pc.GetZ(), allowed...)
+		if t == nil {
+			return nil
+		}
+		if canAffordTask(level, entity, t, settlementName, checked) {
+			t.Start()
+			return t
+		}
+		t.InProgress = true
+		skipped = append(skipped, t)
+	}
+}
+
+// canAffordTask reports whether containers plus the worker's own bag cover what a
+// task still needs. Tasks without a material cost are always affordable.
+func canAffordTask(level *world.Level, entity *ecs.Entity, t *task.Task, settlementName string, checked map[string]bool) bool {
+	cost, ok := taskCost(t)
+	if !ok {
+		return true
+	}
+	need := remainingCost(cost.Inputs, cost.Delivered)
+	if len(need) == 0 {
+		return true
+	}
+	if !entity.HasComponent(rlcomponents.Inventory) {
+		return false
+	}
+	need = subtractBag(entity, need)
+	key := fmt.Sprint(need)
+	affordable, seen := checked[key]
+	if !seen {
+		affordable = checkSettlementStorageForCraft(level, settlementName, need)
+		checked[key] = affordable
+	}
+	return affordable
 }
 
 func HandleTaskState(level *world.Level, entity *ecs.Entity) {
@@ -152,8 +252,23 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); moved {
 			if wc != nil {
 				wc.InteractTicks = 0
+				wc.ApproachFailTicks = 0
 			}
 			return
+		}
+		// Blocked or unreachable: give up rather than stay pinned here, where the
+		// worker would ignore every task. The item stays in the bag.
+		if wc != nil {
+			wc.ApproachFailTicks++
+			if wc.ApproachFailTicks >= maxApproachFailTicks {
+				wc.ApproachFailTicks = 0
+				wc.DropOffItem = nil
+				wc.DropOffDestEntity = nil
+				wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+				wc.ReturnRetryTicks = returnRetryTicks
+				aiMemory.TargetX, aiMemory.TargetY = -1, -1
+				aiMemory.State = "idle"
+			}
 		}
 		return
 	}
@@ -174,6 +289,7 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	if wc != nil && wc.DropOffItem != nil && (wc.DropOffDestEntity != nil ||
 		(wc.DropOffX != 0 || wc.DropOffY != 0 || wc.DropOffZ != 0)) {
 		depositDirectedDropOff(level, entity, wc)
+		aiMemory.TargetX, aiMemory.TargetY = -1, -1
 		aiMemory.State = "idle"
 		return
 	}
@@ -305,100 +421,169 @@ func depositDirectedDropOff(level *world.Level, entity *ecs.Entity, wc *componen
 	}
 }
 
+// HandleGatherMaterialsState is the trip planner: the worker builds a shopping
+// list for its task once, then visits the nearest container holding anything on
+// it and takes all it can there, so one stop covers every input a chest holds. It
+// returns to the task when the list is empty or the bag is full; the task handler
+// delivers the load and sends it back out with a fresh list if the cost isn't met.
 func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
-	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 
-	if wc.CurrentTask == nil {
-		aiMemory.State = "idle"
-		return
+	leave := func(state string) {
+		wc.GatherList = nil
+		wc.GatherTarget = nil
+		aiMemory.State = state
 	}
 
-	buildRequest, ok := wc.CurrentTask.Data.(task_requests.BuildRequest)
+	if wc.CurrentTask == nil || wc.CurrentTask.Completed {
+		leave("idle")
+		return
+	}
+	cost, ok := taskCost(wc.CurrentTask)
 	if !ok {
-		aiMemory.State = "idle"
+		leave("idle")
 		return
 	}
-
-	buildable := construction.GetBuildable(buildRequest.Type)
-	if buildable.Name == "" {
-		aiMemory.State = "idle"
-		return
-	}
-
-	// Find the first missing material and compute the exact deficit.
-	searching := ""
-	deficit := 0
-	for name, cost := range buildable.Cost {
-		count := 0
-		for _, item := range inv.Bag {
-			if item.Blueprint != name {
-				continue
-			}
-			if item.HasComponent(components.Material) {
-				mc := item.GetComponent(components.Material).(*components.MaterialComponent)
-				count += mc.Quantity
-			} else {
-				count++
-			}
-		}
-		if count < cost {
-			searching = name
-			deficit = cost - count
-			break
-		}
-	}
-
-	if searching == "" {
-		aiMemory.State = "task"
-		return
-	}
-
-	storageEntity := FindClosestStorageWith(level, sc.Name, searching, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
-	if storageEntity == nil {
+	if !entity.HasComponent(rlcomponents.Inventory) {
 		wc.CurrentTask.Stop()
 		wc.CurrentTask = nil
-		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to build "+buildRequest.Type)
-		aiMemory.State = "idle"
+		leave("idle")
 		return
 	}
 
-	storagePC := storageEntity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	need := remainingCost(cost.Inputs, cost.Delivered)
+	if wc.GatherList == nil {
+		wc.GatherList = subtractBag(entity, need)
+	}
+	if len(wc.GatherList) == 0 {
+		leave("task")
+		return
+	}
 
-	MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ())
-	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
-		storageC := storageEntity.GetComponent(components.Storage).(*components.StorageComponent)
-
-		// Detect whether this item type is a stackable material.
-		isStackable := false
-		for _, item := range storageC.Items {
-			if item.Blueprint == searching && item.HasComponent(components.Material) {
-				isStackable = true
-				break
-			}
+	free := carryFree(entity)
+	if free == 0 {
+		if checkInventoryForMaterials(entity, need) {
+			leave("task")
+			return
 		}
+		// Full of things the task can't use, so no trip would ever make progress.
+		// Hand the task back and store the bag; haul empties it, then goes idle.
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+		message.PostMessage(rlentity.GetName(entity), "Bag too full to fetch materials")
+		leave("haul")
+		return
+	}
 
-		if isStackable {
-			// Deduct exactly the deficit, then carry a new entity with that quantity.
-			if storageC.DeductResource(searching, deficit) {
-				material, err := factory.Create(searching, 0, 0, 0)
-				if err == nil {
-					mc := material.GetComponent(components.Material).(*components.MaterialComponent)
-					mc.Quantity = deficit
-					inv.AddItem(material)
-				}
-			}
-		} else {
-			// Non-stackable item (equipment, etc.) — take one at a time.
-			material := storageC.TakeOne(searching)
-			if material != nil {
-				inv.AddItem(material)
-			}
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if wc.GatherTarget == nil || !storageStillUsable(level, wc.GatherTarget, wc.GatherList) {
+		wc.GatherTarget = FindClosestStorageWithAny(level, sc.Name, wc.GatherList, pc.GetX(), pc.GetY(), pc.GetZ())
+	}
+	if wc.GatherTarget == nil {
+		// Stock moved mid-trip. Deliver what was already fetched rather than
+		// stranding it; the next gather pass finds nothing and stops the task.
+		if checkInventoryForMaterials(entity, need) {
+			leave("task")
+			return
+		}
+		wc.CurrentTask.Stop()
+		wc.CurrentTask = nil
+		message.PostMessage(rlentity.GetName(entity), "Insufficient materials to "+cost.Verb+" "+cost.Name)
+		leave("idle")
+		return
+	}
+
+	storagePC := wc.GatherTarget.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), storagePC.GetX(), storagePC.GetY(), storagePC.GetZ(), 1, 1, 0) {
+		grabListedItemsNearby(level, entity, wc.GatherList)
+		if len(wc.GatherList) == 0 {
+			return
+		}
+		if moved, pathFound := MoveTowardsTarget(level, entity, storagePC.GetX(), storagePC.GetY(), storagePC.GetZ()); !moved {
+			releaseTaskAfterFailedMove(wc, pathFound)
+			leave("idle")
+		}
+		return
+	}
+
+	loadFromStorage(entity, wc.GatherTarget.GetComponent(components.Storage).(*components.StorageComponent), wc.GatherList, free)
+	wc.GatherTarget = nil
+}
+
+// subtractBag returns need minus what the bag already holds, positive entries only.
+func subtractBag(entity *ecs.Entity, need map[string]int) map[string]int {
+	list := make(map[string]int, len(need))
+	for name, qty := range need {
+		list[name] = qty
+	}
+	for _, item := range entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).Bag {
+		if _, listed := list[item.Blueprint]; listed {
+			list[item.Blueprint] -= carryUnits(item)
 		}
 	}
+	for name, qty := range list {
+		if qty <= 0 {
+			delete(list, name)
+		}
+	}
+	return list
+}
+
+// loadFromStorage moves every listed item the container holds into the bag, up to
+// free stack units, and takes what it moved off the list. Blueprints are visited
+// in name order so a tight bag splits a load the same way every time.
+func loadFromStorage(entity *ecs.Entity, storageC *components.StorageComponent, list map[string]int, free int) {
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	names := make([]string, 0, len(list))
+	for name := range list {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		take := min(list[name], storageC.CountResource(name), free)
+		if take <= 0 {
+			continue
+		}
+		taken := 0
+		if storageIsStackable(storageC, name) {
+			// Carry a new entity holding just this quantity; the rest stays stacked.
+			material, err := factory.Create(name, 0, 0, 0)
+			if err != nil {
+				log.Printf("[GATHER] can't create %s: %v", name, err)
+				continue
+			}
+			if storageC.DeductResource(name, take) {
+				material.GetComponent(components.Material).(*components.MaterialComponent).Quantity = take
+				inv.AddItem(material)
+				taken = take
+			}
+		} else {
+			for taken < take {
+				item := storageC.TakeOne(name)
+				if item == nil {
+					break
+				}
+				inv.AddItem(item)
+				taken++
+			}
+		}
+		free -= taken
+		if list[name] -= taken; list[name] <= 0 {
+			delete(list, name)
+		}
+	}
+}
+
+func storageIsStackable(storageC *components.StorageComponent, blueprint string) bool {
+	for _, item := range storageC.Items {
+		if item.Blueprint == blueprint && item.HasComponent(components.Material) {
+			return true
+		}
+	}
+	return false
 }
 
 // HandleHaulState drives the haul state: pick up a loose item on the ground
@@ -640,7 +825,7 @@ func workerQualifiesForTask(entity *ecs.Entity, t *task.Task) bool {
 	if !ok {
 		return true
 	}
-	tech, found := research.GetTech(rr.TechKey)
+	tech, found := getTech(rr.TechKey)
 	if !found || tech.RequiredInt == 0 {
 		return true
 	}

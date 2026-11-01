@@ -166,6 +166,14 @@ Cross-site totals come from a snapshot taken each time you leave a site (or save
 
 ## Worker behaviour around storage
 
+Materials are physically carried. Building, crafting, and research only use what a colonist has hauled to the site or bench, so where you keep your stock matters.
+
+- A colonist fetches from the container nearest to them and takes everything the task needs from it in one stop, then moves on to the next container if anything is still missing. Listed items lying within a tile of their path get picked up on the way.
+- Each colonist has a **carry limit**: 20 units at Strength 10, more with higher Strength. A bigger order takes several trips, and what has arrived stays with the task, so several colonists can supply one job. Hover a task to see each material as delivered/required; its map marker fills from the bottom as material arrives.
+- A task the colony can't afford in total waits in the queue without being cancelled, and colonists do other work until stock arrives. Materials already delivered to a task you cancel are lost.
+- Colonists with nothing to do return materials from their bags to storage. Those materials don't count as stock until they're back in a container.
+- The teleporter container is a staging area. Beamed-down material still has to be hauled from it, so build your workshops close by or expect longer trips.
+
 Workers respect tag filters automatically:
 
 - When a worker drops items at a container, items the container rejects stay in the worker's bag — nothing vanishes.
