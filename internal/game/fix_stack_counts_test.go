@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/gui"
 	"github.com/mechanical-lich/landing_party/internal/view"
@@ -95,6 +96,12 @@ func TestStackLabels_DataLevel(t *testing.T) {
 }
 
 func TestStacksHiddenOnTilesNotInView(t *testing.T) {
+	// A developer's config.local.json may turn this on, which shows every stack.
+	cfg := config.Global()
+	prev := cfg.DebugDisableLighting
+	cfg.DebugDisableLighting = false
+	t.Cleanup(func() { cfg.DebugDisableLighting = prev })
+
 	level := b0FloorLevel()
 	dropMaterial(t, level, "metal_ore", 37, 2, 1)
 	level.Visible = make([]bool, level.GetWidth()*level.GetHeight()*level.GetDepth())

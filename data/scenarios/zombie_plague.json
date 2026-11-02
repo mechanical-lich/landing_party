@@ -24,6 +24,7 @@
                 "grass",
                 "alien_ground",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],
@@ -35,6 +36,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand"
             ],
             "min_z_delta": -1,
@@ -56,6 +58,7 @@
                 "grass",
                 "alien_ground",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "rock_floor"
             ],
@@ -68,6 +71,7 @@
                 "grass",
                 "alien_ground",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],
@@ -81,6 +85,7 @@
                 "grass",
                 "alien_ground",
                 "regolith",
+                "crater_ground",
                 "sand"
             ],
             "min_z_delta": 0,
@@ -93,6 +98,7 @@
                 "grass",
                 "alien_ground",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],
@@ -113,6 +119,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand"
             ],
             "min_z_delta": -1,
@@ -132,6 +139,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand",
                 "rock_floor"
             ],
@@ -151,6 +159,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand"
             ],
             "min_z_delta": -1,
@@ -170,6 +179,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand"
             ],
             "min_z_delta": -1,

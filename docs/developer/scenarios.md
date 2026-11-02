@@ -112,7 +112,7 @@ Each `kind` places something specific; `params` are per-kind (defaults in parent
 | `ore_vein` | deposit tiles | underground rock | `tile` (`ore_deposit`), `radius` (3), `radius_max` (opt; rolls each vein's radius in `[radius, radius_max]`), `density` (1.0), `min_z`/`max_z` | ✓ |
 | `radiation_pocket` | radiation field + ore seeds | surface (or `min_z`/`max_z`) | `peak` (180), `radius` (4), `ore_tile` (`radioactive_ore`) | ✓ |
 | `crystal_grove` | crystal entities | surface | `blueprint` (`alien_crystal`), `radius` (4) | ✓ |
-| `lava_lake` | lava tiles | surface | `tile` (`lava`), `radius` (5) | ✓ |
+| `lava_lake` | lava tiles; removes entities on tiles it makes unstandable | surface | `tile` (`lava`), `radius` (5) | ✓ |
 | `scatter_tile` | single tiles | surface of a `kind` | `tile` (req), `kind` (`surface`) | ✓ |
 | `scatter_entity` | single entities | surface of a `kind` | `blueprint` (req), `kind` (`surface`) | ✓ |
 | `fauna_spawner` | entities | open air above surface | `blueprint` (req) | — |

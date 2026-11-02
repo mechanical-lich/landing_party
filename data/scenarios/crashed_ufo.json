@@ -33,6 +33,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand",
                 "grass",
                 "alien_ground",
@@ -47,6 +48,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand",
                 "grass",
                 "alien_ground",
@@ -61,6 +63,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand",
                 "grass",
                 "alien_ground",

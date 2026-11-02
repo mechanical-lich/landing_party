@@ -36,10 +36,10 @@ The `biome`, `in_region`, `count`, and `jitter` fields work the same as all othe
 
 ## How Placement Works
 
-1. The placer picks an anchor `(cx, cy)` using the standard feature center logic.
-2. It reads the surface Z at that column.
-3. The footprint top-left is set to `(cx - w/2, cy - h/2)`.
-4. `generate(x, y, w, h)` is called on the named script — exactly as quest fixture dispatch calls it.
+1. The placer samples up to 20 anchors `(cx, cy)` per stamp using the standard feature center logic, skipping columns with no surface.
+2. Each footprint's top-left is set to `(cx - w/2, cy - h/2)`, clamped so the footprint stays inside the map.
+3. Each footprint is scored by its share of open surface (not water, rock or lava). The first at 90% or above is taken; otherwise the best one sampled is used, so a stamp isn't dropped on a map with little open land.
+4. `generate(x, y, w, h)` is called on the named script — exactly as quest fixture dispatch calls it. Quest fixtures choose their position separately and don't use this scoring.
 
 The script has full access to all structure script builtins: `carve_room`, `clear_middle`, `spawn_entity`, `spawn_entity_named`, `add_epithet`, `mark_quest_target`, `gen_structure`, etc.
 

@@ -25,6 +25,35 @@ func init() {
 	RegisterFeature("buried_spawner", placeBuriedSpawner)
 }
 
+// standableTile reports whether something can stand on this tile: it exists and
+// neither slot blocks it. Tile.IsSolid only reads the Middle slot, and lava is a
+// solid Floor, so the Floor is checked here too.
+func standableTile(level *world.Level, x, y, z int) bool {
+	t := level.GetTilePtr(x, y, z)
+	if t == nil || t.IsSolid() || t.IsWater() {
+		return false
+	}
+	return t.Floor.IsEmpty() || !world.TileDefinitions[t.Floor.Type].Solid
+}
+
+// standableSurface reports whether column (x,y) is open surface. Mountain columns
+// have a surface z too, but their tile there is solid rock of another kind.
+func standableSurface(level *world.Level, x, y int) bool {
+	surfZ := level.GetSurfaceZ(x, y)
+	return surfZ >= 0 && level.GetTerrainKind(x, y, surfZ) == world.TKSurface && standableTile(level, x, y, surfZ)
+}
+
+// clearBlockedEntities removes whatever stands on (x,y,z) once a paint has made
+// the tile unstandable, so nothing is left embedded in it.
+func clearBlockedEntities(level *world.Level, x, y, z int) {
+	if standableTile(level, x, y, z) {
+		return
+	}
+	for e := level.GetEntityAt(x, y, z); e != nil; e = level.GetEntityAt(x, y, z) {
+		level.RemoveEntity(e)
+	}
+}
+
 // spawnTargets collects the (x,y,z) tiles a cave/buried spawner may use: open
 // cavern tiles when solid is false, solid rock (underground/subsurface) when
 // true. zone filters by elevation relative to the surface: "underground"
@@ -152,7 +181,7 @@ func placeScatterEntity(level *world.Level, s FeatureSpec, rng *rand.Rand) error
 		if kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
 			return false
 		}
-		if level.GetEntityAt(cx, cy, surfZ) != nil {
+		if !standableTile(level, cx, cy, surfZ) || level.GetEntityAt(cx, cy, surfZ) != nil {
 			return false
 		}
 		e, err := factory.Create(bp, cx, cy, surfZ)
@@ -183,6 +212,9 @@ func placeScatterTile(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			return false
 		}
 		if kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
+			return false
+		}
+		if level.GetEntityAt(cx, cy, surfZ) != nil {
 			return false
 		}
 		level.UpdateTileAt(cx, cy, surfZ, tile, world.TileVariantAt(tile, cx, cy, surfZ))
@@ -294,21 +326,31 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec, rng *rand.Rand) err
 			for j := 0; j < seeds; j++ {
 				ox := cx + rng.Intn(3) - 1
 				oy := cy + rng.Intn(3) - 1
-				t := level.GetTilePtr(ox, oy, z)
-				if t == nil || t.Middle.IsEmpty() {
+				if !oreSeedable(level, ox, oy, z) {
 					continue
 				}
-				def := world.TileDefinitions[t.Middle.Type]
-				if def.Air || def.Space || def.Water {
-					continue
-				}
-				world.SetTileTypeAndVariant(t, oreTile, world.TileVariantAt(oreTile, ox, oy, z))
+				level.UpdateTileAt(ox, oy, z, oreTile, world.TileVariantAt(oreTile, ox, oy, z))
 				level.SetResourceAmount(ox, oy, z, world.RollDepositRichnessRng(oreTile, rng))
 			}
 		}
 		return anyHit
 	})
 	return nil
+}
+
+// oreSeedable reports whether a radiation pocket may put ore on this tile: solid
+// ground it replaces, or open ground it stands on. Air, space, water, lava and
+// occupied tiles are skipped.
+func oreSeedable(level *world.Level, x, y, z int) bool {
+	t := level.GetTilePtr(x, y, z)
+	if t == nil || level.GetEntityAt(x, y, z) != nil {
+		return false
+	}
+	if t.Middle.IsEmpty() {
+		return !t.Floor.IsEmpty() && !world.TileDefinitions[t.Floor.Type].Solid
+	}
+	def := world.TileDefinitions[t.Middle.Type]
+	return !def.Air && !def.Space && !def.Water
 }
 
 // crystal_grove — surface cluster of crystal entities (spawned via factory).
@@ -337,7 +379,7 @@ func placeCrystalGrove(level *world.Level, s FeatureSpec, rng *rand.Rand) error 
 					continue
 				}
 				tx, ty := cx+dx, cy+dy
-				if level.GetTerrainKind(tx, ty, surfZ) != world.TKSurface {
+				if !standableSurface(level, tx, ty) {
 					continue
 				}
 				if level.GetEntityAt(tx, ty, surfZ) != nil {
@@ -379,6 +421,7 @@ func placeLavaLake(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 				k := level.GetTerrainKind(cx+dx, cy+dy, surfZ)
 				if k == world.TKSurface || k == world.TKSubsurface {
 					level.UpdateTileAt(cx+dx, cy+dy, surfZ, tile, world.TileVariantAt(tile, cx+dx, cy+dy, surfZ))
+					clearBlockedEntities(level, cx+dx, cy+dy, surfZ)
 					anyPainted = true
 				}
 			}
@@ -517,7 +560,46 @@ func placeBotanyBay(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	return nil
 }
 
+const (
+	// stampAttempts is how many candidate spots each stamp samples.
+	stampAttempts = 20
+	// stampGoodFit is the open-ground share of a footprint that ends the search.
+	stampGoodFit = 0.9
+)
+
+// clampFootprint moves a footprint's start so it stays inside the map along one
+// axis, or pins it to 0 if the map is smaller than the footprint.
+func clampFootprint(start, size, mapSize int) int {
+	if start > mapSize-size {
+		start = mapSize - size
+	}
+	if start < 0 {
+		start = 0
+	}
+	return start
+}
+
+// openGroundShare returns the fraction of a footprint that is standable surface.
+func openGroundShare(level *world.Level, x, y, w, h int) float64 {
+	open, total := 0, 0
+	for fy := y; fy < y+h && fy < level.GetHeight(); fy++ {
+		for fx := x; fx < x+w && fx < level.GetWidth(); fx++ {
+			total++
+			if standableSurface(level, fx, fy) {
+				open++
+			}
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return float64(open) / float64(total)
+}
+
 // stamp — runs a structure script at a surface location found during generation.
+// Each stamp samples candidate spots and takes the first that is mostly open
+// ground, else the best seen, so a scenario's structure is never silently dropped
+// on a map with little open land.
 //
 //	params: script (string, required — name of script in data/scripts/structures/),
 //	        w (int, default 9), h (int, default 7)
@@ -533,24 +615,30 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	if !ok {
 		return nil // region/biome not present on this map
 	}
-	placed := 0
-	for attempt := 0; placed < count && attempt < count*20; attempt++ {
-		cx, cy := next()
-		if s.InRegion != "" && !columnMatchesBiome(level, cx, cy, s.Biome) {
-			continue
+	for placed := 0; placed < count; placed++ {
+		bestX, bestY, bestShare := 0, 0, -1.0
+		for attempt := 0; attempt < stampAttempts && bestShare < stampGoodFit; attempt++ {
+			cx, cy := next()
+			if s.InRegion != "" && !columnMatchesBiome(level, cx, cy, s.Biome) {
+				continue
+			}
+			if level.GetSurfaceZ(cx, cy) < 0 {
+				continue
+			}
+			x := clampFootprint(cx-w/2, w, level.GetWidth())
+			y := clampFootprint(cy-h/2, h, level.GetHeight())
+			if share := openGroundShare(level, x, y, w, h); share > bestShare {
+				bestX, bestY, bestShare = x, y, share
+			}
 		}
-		surfZ := level.GetSurfaceZ(cx, cy)
-		if surfZ < 0 {
-			continue
+		if bestShare < 0 {
+			continue // every candidate was off the terrain
 		}
-		x := cx - w/2
-		y := cy - h/2
 		// Derive the script's seed from the build stream so it stays
 		// reproducible while remaining distinct per stamp.
-		if err := runStructure(level, script, x, y, w, h, rng.Int63()); err != nil {
+		if err := runStructure(level, script, bestX, bestY, w, h, rng.Int63()); err != nil {
 			return err
 		}
-		placed++
 	}
 	return nil
 }

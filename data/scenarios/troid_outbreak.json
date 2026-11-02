@@ -29,6 +29,7 @@
             "tiles": [
                 "rock_floor",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],
@@ -40,6 +41,7 @@
             "tiles": [
                 "rock_floor",
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],
@@ -50,6 +52,7 @@
             "light_min": 0,
             "tiles": [
                 "regolith",
+                "crater_ground",
                 "sand",
                 "ice_floor"
             ],

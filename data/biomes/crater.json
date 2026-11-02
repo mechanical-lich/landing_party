@@ -6,12 +6,12 @@
   ],
   "humidity_range": [
     0.0,
-    1.0
+    0.65
   ],
   "rules": [
     {
       "kind": "surface",
-      "tile": "regolith",
+      "tile": "crater_ground",
       "radiation": 60
     },
     {

@@ -1032,5 +1032,32 @@
             }
         ],
         "resource": "scifi_world"
+    },
+    {
+        "name": "crater_ground",
+        "layer": "floor",
+        "variants": [
+            {
+                "variant": 0,
+                "spriteX": 48,
+                "spriteY": 696
+            },
+            {
+                "variant": 1,
+                "spriteX": 24,
+                "spriteY": 696
+            },
+            {
+                "variant": 2,
+                "spriteX": 48,
+                "spriteY": 696
+            },
+            {
+                "variant": 3,
+                "spriteX": 0,
+                "spriteY": 696
+            }
+        ],
+        "resource": "scifi_world"
     }
 ]
