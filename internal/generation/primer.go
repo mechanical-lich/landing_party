@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rllayered"
 )
 
 // TerrainPrimer produces the terrain skeleton for a level: it allocates the
@@ -181,12 +182,34 @@ func ExposeMountainTops(level *world.Level) {
 // paintKind paints the layered defaults for a TerrainKind. Floor and Middle
 // are set independently so digging out the Middle reveals the Floor cleanly.
 func paintKind(level *world.Level, x, y, z int, k world.TerrainKind) {
+	if paintKindCell(level, x, y, z, k) {
+		level.InvalidateSunColumn(x, y)
+	}
+}
+
+// paintKindCell is paintKind without the sun-column invalidation, and reports
+// whether it changed a slot. It touches only this cell, so concurrent workers
+// may call it on distinct cells; rllayered's SetFloor and SetMiddle may not be
+// used there because each appends to the level's shared DirtyColumns.
+func paintKindCell(level *world.Level, x, y, z int, k world.TerrainKind) bool {
 	level.SetTerrainKind(x, y, z, k)
 
-	if floorName := floorForKind(k); floorName != "" {
-		level.SetFloor(x, y, z, floorName, world.TileVariantAt(floorName, x, y, z))
+	tile := level.GetTilePtr(x, y, z)
+	if tile == nil {
+		return false
 	}
-	if middleName := middleForKind(k); middleName != "" {
-		level.SetMiddle(x, y, z, middleName, world.TileVariantAt(middleName, x, y, z))
+	painted := false
+	if name := floorForKind(k); name != "" {
+		if idx, ok := world.TileNameToIndex[name]; ok {
+			tile.Floor = rllayered.Slot{Type: idx, Variant: world.TileVariantAt(name, x, y, z)}
+			painted = true
+		}
 	}
+	if name := middleForKind(k); name != "" {
+		if idx, ok := world.TileNameToIndex[name]; ok {
+			tile.Middle = rllayered.Slot{Type: idx, Variant: world.TileVariantAt(name, x, y, z)}
+			painted = true
+		}
+	}
+	return painted
 }

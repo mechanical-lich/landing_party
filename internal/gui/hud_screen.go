@@ -1399,6 +1399,13 @@ type TaskNeed struct {
 	Required  int
 }
 
+// LooseStack is the total quantity of one material lying loose on a hovered tile,
+// however many separate entities that total is spread over.
+type LooseStack struct {
+	Name     string
+	Quantity int
+}
+
 type HoveredTileInfo struct {
 	Name                     string
 	FloorName                string
@@ -1416,6 +1423,8 @@ type HoveredTileInfo struct {
 	// TaskPaid is true when a cost-bearing task here has all its materials but
 	// isn't finished.
 	TaskPaid bool
+	// LooseStacks lists the loose materials on this tile, one entry per material.
+	LooseStacks []LooseStack
 }
 
 // SetHoveredTile stores tile info to be rendered in the detail panel
@@ -1438,7 +1447,8 @@ func tileInfoEqual(a, b HoveredTileInfo) bool {
 		a.ResourceAmount != b.ResourceAmount ||
 		a.Solid != b.Solid || a.Water != b.Water || a.Air != b.Air || a.Space != b.Space ||
 		len(a.Smells) != len(b.Smells) ||
-		a.TaskPaid != b.TaskPaid || !slices.Equal(a.TaskNeeds, b.TaskNeeds) {
+		a.TaskPaid != b.TaskPaid || !slices.Equal(a.TaskNeeds, b.TaskNeeds) ||
+		!slices.Equal(a.LooseStacks, b.LooseStacks) {
 		return false
 	}
 	for i := range a.Smells {
@@ -1485,6 +1495,10 @@ func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 		labelID++
 	}
 
+	for _, line := range looseStackLines(info) {
+		add(line)
+	}
+
 	displayName := info.Name
 	if (info.Air || info.Name == "" || info.Name == "air") && info.FloorName != "" {
 		displayName = info.FloorName
@@ -1523,6 +1537,15 @@ func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 	for _, line := range taskNeedLines(info) {
 		add(line)
 	}
+}
+
+// looseStackLines renders a tile's loose materials, e.g. "Metal Ore x37".
+func looseStackLines(info *HoveredTileInfo) []string {
+	var lines []string
+	for _, st := range info.LooseStacks {
+		lines = append(lines, fmt.Sprintf("%s x%d", st.Name, st.Quantity))
+	}
+	return lines
 }
 
 // taskNeedLines renders the "Needs" block of the tile detail panel.

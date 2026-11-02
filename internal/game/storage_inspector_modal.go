@@ -279,7 +279,7 @@ func (s *StorageInspectorModal) build() {
 	s.modal.AddChild(s.allowedList)
 
 	// ── Action panel ──────────────────────────────────────────────────────
-	s.selectedLbl = minui.NewLabel("si_selected", "Select a material to transfer.")
+	s.selectedLbl = minui.NewLabel("si_selected", "Select an item to transfer.")
 	s.selectedLbl.SetPosition(siActionLblX, siActionY)
 	s.selectedLbl.SetSize(siInvColW, siSelectedH)
 	s.modal.AddChild(s.selectedLbl)
@@ -424,34 +424,7 @@ func (s *StorageInspectorModal) refreshInventory() {
 		s.invBPs = nil
 		return
 	}
-	type entry struct {
-		bp   string
-		name string
-		qty  int
-		tags []string
-	}
-	entries := []entry{}
-	seen := map[string]bool{}
-	for _, item := range sc.Items {
-		if !item.HasComponent(components.Material) {
-			continue
-		}
-		if seen[item.Blueprint] {
-			continue
-		}
-		seen[item.Blueprint] = true
-		mc := item.GetComponent(components.Material).(*components.MaterialComponent)
-		if s.activeTagFilter != "" && !mc.HasTag(s.activeTagFilter) {
-			continue
-		}
-		entries = append(entries, entry{
-			bp:   item.Blueprint,
-			name: displayMaterialName(item.Blueprint),
-			qty:  sc.CountResource(item.Blueprint),
-			tags: mc.Tags,
-		})
-	}
-	sort.Slice(entries, func(i, j int) bool { return entries[i].name < entries[j].name })
+	entries := inspectorEntries(sc, s.activeTagFilter)
 
 	items := make([]string, 0, len(entries))
 	bps := make([]string, 0, len(entries))
@@ -475,11 +448,44 @@ func (s *StorageInspectorModal) refreshInventory() {
 	s.selectedBP = ""
 }
 
+// inspectorEntry is one row of the inspector's inventory list.
+type inspectorEntry struct {
+	bp   string
+	name string
+	qty  int
+}
+
+// inspectorEntries lists a container's contents by blueprint, sorted by name.
+// Item-only entries (rations, gear) carry no tags, so a tag filter hides them.
+func inspectorEntries(sc *components.StorageComponent, tagFilter string) []inspectorEntry {
+	entries := []inspectorEntry{}
+	seen := map[string]bool{}
+	for _, item := range sc.Items {
+		if item == nil || seen[item.Blueprint] {
+			continue
+		}
+		seen[item.Blueprint] = true
+		if tagFilter != "" {
+			if !item.HasComponent(components.Material) ||
+				!item.GetComponent(components.Material).(*components.MaterialComponent).HasTag(tagFilter) {
+				continue
+			}
+		}
+		entries = append(entries, inspectorEntry{
+			bp:   item.Blueprint,
+			name: displayMaterialName(item.Blueprint),
+			qty:  sc.CountResource(item.Blueprint),
+		})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].name < entries[j].name })
+	return entries
+}
+
 // updateActionPanel refreshes the selected-material label and enables/disables
 // the action buttons.
 func (s *StorageInspectorModal) updateActionPanel() {
 	if s.selectedBP == "" {
-		s.selectedLbl.Text = "Select a material to transfer."
+		s.selectedLbl.Text = "Select an item to transfer."
 		s.actionBtn.SetEnabled(false)
 		if s.relocateBtn != nil {
 			s.relocateBtn.SetEnabled(false)
@@ -557,7 +563,7 @@ func (s *StorageInspectorModal) toggleFilterTag(tag string) {
 // performAction beams the selected material in the source's direction.
 func (s *StorageInspectorModal) performAction() {
 	if s.selectedBP == "" {
-		s.setStatus("Select a material first.")
+		s.setStatus("Select an item first.")
 		return
 	}
 	q := parseSIQty(s.amountInput.Text)
@@ -574,6 +580,10 @@ func (s *StorageInspectorModal) performAction() {
 	}
 	if err != nil {
 		s.setStatus(err.Error())
+		// A short beam still moved some, so the list may have changed.
+		s.refreshFilterList()
+		s.refreshInventory()
+		s.updateActionPanel()
 		return
 	}
 	if s.actionIsDown {

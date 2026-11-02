@@ -7,6 +7,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/emotes"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -83,8 +84,25 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 		emotes.Set(entity, emotes.Swirl, 10, 1)
 	}
 
+	// --- Hunger wakes a resting worker ---
+	// Rest tasks can't be interrupted like work, and hunger keeps climbing through
+	// them, so without this a worker sleeps through to starvation. Only wake for
+	// food that exists: with none, rest is still the best thing they can do. Waking
+	// keeps their exhaustion, so the usual rest rules take over again once fed.
+	if nc.IsHungry() && isRestTask(wc.CurrentTask) && workerai.FoodAvailable(level, entity) {
+		chatter.Post(name, "Woken by hunger, looking for food.")
+		workerai.WakeFromRest(level, entity, wc)
+		aiMemory.State = "idle"
+	}
+
 	// --- Idle food-seeking ---
 	if aiMemory.State == "idle" && nc.IsHungry() {
+		// Food-seeking returns before the sleep roll below, so a spent worker with
+		// nothing to eat has to be sent to rest here.
+		if nc.Exhaustion >= nc.MaxExhaustion && !workerai.FoodAvailable(level, entity) {
+			assignRestTask(level, entity, wc, nc, aiMemory)
+			return nil
+		}
 		aiMemory.TargetX = -1
 		aiMemory.TargetY = -1
 		aiMemory.State = "findfood"
@@ -128,6 +146,14 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 
 	assignRestTask(level, entity, wc, nc, aiMemory)
 	return nil
+}
+
+// isRestTask reports whether t is a live sleep or passout task.
+func isRestTask(t *task.Task) bool {
+	if t == nil || t.Completed {
+		return false
+	}
+	return t.Action == task_requests.SleepAction || t.Action == task_requests.PassoutAction
 }
 
 // assignRestTask finds the best available rest option (known bed → visible bed

@@ -72,6 +72,7 @@ func Create(name string, x, y, z int) (*ecs.Entity, error) {
 	pc.SetPosition(x, y, z)
 	entity.AddComponent(pc)
 	entity.AddComponent(&rlcomponents.DirectionComponent{Direction: 0})
+	entity.AddComponent(components.NewStableID())
 
 	return entity, nil
 }

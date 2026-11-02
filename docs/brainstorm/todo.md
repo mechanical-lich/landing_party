@@ -15,27 +15,13 @@ alone and need a play-test or a judgment call.
   headless walkthrough of all 24 steps in `internal/game`); not yet merged.
   Still to do: one real playthrough for pacing and panel layout, since no
   headless test can judge how the prompts read. Watch the ration burn aboard
-  the ship, how long hauling single mined units takes after the mining step,
-  and the two needs/generation bugs under Verify, which the walkthrough found.
+  the ship and how long hauling single mined units takes after the mining step.
 - Expanding enemy factions: two-tier model (abstract per-location presence
   on the campaign, materialized into worker-driven faction settlements on
   loaded levels), data-driven doctrines, greyish fleets met in space.
   Planned 2026-10-31. Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
 
 ## Verify
-
-- Colonists can starve beside food: a worker who passes out from exhaustion
-  (no bed or bag in reach) stays in the passout task while hunger climbs past
-  the starve threshold and health ticks down; the hunger interrupt and the
-  idle food-seeking in `NeedsSystem` never run for them. Seen 2026-11-01 in
-  the tutorial walkthrough at tick 18391 with three rations in the pad five
-  tiles away (`internal/systems/NeedsSystem.go`, `assignRestTask`).
-- Planet generation race: `PlanetPrimer.Prime` paints from several worker
-  goroutines and each `SetFloor`/`SetMiddle` appends to the level's
-  `DirtyColumns` (`rllayered.InvalidateSunColumn`) with no lock. About one
-  generation in twenty panics (nil dereference or index out of range inside
-  `append`). Seen 2026-11-01 in `internal/game` tests; fix is a per-worker
-  collect or a mutex in `internal/generation/primer_planet.go`.
 
 - Fix the resource tracker. No tracker-named code found; confirm which HUD
   readout this meant and whether it still misbehaves.
@@ -51,6 +37,16 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Attack, pickup, retrieve, store, relocate and entity-mine orders survive save
+  and load, via a `StableID` component; orders whose target is gone are dropped.
+- Rations and other single items list and beam in the Storage Inspector; beam-up
+  no longer destroys what a full hold refuses (fixed 2026-11-01).
+- Loose stack counts: the hover panel lists "Metal Ore x37" and the map labels
+  a pile with its tile total; mined units stay separate entities on the ground.
+- Colonists starving while asleep: hunger now wakes a sleeping or passed-out
+  worker when food exists, and they keep their exhaustion (fixed 2026-11-01).
+- Planet generation race: `PlanetPrimer.Prime` workers no longer touch the
+  shared `DirtyColumns`; columns are marked after the join (fixed 2026-11-01).
 - Stack duplication in `StorageComponent.AddItem` when a stackable partly
   fit a full container (fixed 2026-10-31; regression test in
   `internal/components/storage_test.go`).

@@ -132,6 +132,8 @@ The Relocate order is initiated from the **Storage Inspector** on a site contain
 - **Click another storage container** to move that quantity into it. The destination must accept the material.
 - **Click an open tile** to drop the material as a loose stack on the ground. Workers will later pick it up like any loose material.
 
+Loose material on the ground shows its count: a small number on the map when a tile holds more than one unit (hidden at the furthest zoom), and a line such as `Metal Ore x37` in the hover panel.
+
 Tooltip feedback per hover target:
 
 | Hover | Tooltip |

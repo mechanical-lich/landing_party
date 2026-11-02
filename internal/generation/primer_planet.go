@@ -136,7 +136,8 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 
 	// Each cell is written exactly once (mountain height is 2D, caverns are 3D
 	// noise — no cell reads a neighbour), so workers need no locking and z-order
-	// doesn't matter.
+	// doesn't matter. Workers paint with paintKindCell; the shared dirty-column
+	// list is filled after the join.
 	worker := func() {
 		for c := range chunkChan {
 			for x := c.xStart; x < c.xEnd; x++ {
@@ -147,24 +148,24 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 
 					switch {
 					case c.z == 0:
-						paintKind(level, x, y, c.z, world.TKBedrock)
+						paintKindCell(level, x, y, c.z, world.TKBedrock)
 
 					case c.z < cfg.SurfaceZ:
 						switch {
 						case c.z > 1 && c.z < cfg.SurfaceZ-1 && cavern > cavernThreshold:
-							paintKind(level, x, y, c.z, world.TKCavern)
+							paintKindCell(level, x, y, c.z, world.TKCavern)
 						case c.z >= cfg.SurfaceZ-3:
-							paintKind(level, x, y, c.z, world.TKSubsurface)
+							paintKindCell(level, x, y, c.z, world.TKSubsurface)
 						default:
-							paintKind(level, x, y, c.z, world.TKUnderground)
+							paintKindCell(level, x, y, c.z, world.TKUnderground)
 						}
 
 					case c.z == cfg.SurfaceZ:
 						if mh > 0 {
 							// A mountain occupies the surface level — solid base.
-							paintKind(level, x, y, c.z, world.TKUnderground)
+							paintKindCell(level, x, y, c.z, world.TKUnderground)
 						} else {
-							paintKind(level, x, y, c.z, world.TKSurface)
+							paintKindCell(level, x, y, c.z, world.TKSurface)
 						}
 						level.SetSurfaceZ(x, y, cfg.SurfaceZ)
 
@@ -172,16 +173,16 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 						// Inside a mountain. Carve enclosed caverns between the
 						// base and summit; the outer shell stays solid.
 						if c.z > cfg.SurfaceZ+1 && c.z < summit && cavern > cavernThreshold {
-							paintKind(level, x, y, c.z, world.TKCavern)
+							paintKindCell(level, x, y, c.z, world.TKCavern)
 						} else {
-							paintKind(level, x, y, c.z, world.TKUnderground)
+							paintKindCell(level, x, y, c.z, world.TKUnderground)
 						}
 
 					case c.z >= cfg.SpaceZ:
-						paintKind(level, x, y, c.z, world.TKSpace)
+						paintKindCell(level, x, y, c.z, world.TKSpace)
 
 					default:
-						paintKind(level, x, y, c.z, world.TKAtmosphere)
+						paintKindCell(level, x, y, c.z, world.TKAtmosphere)
 					}
 				}
 			}
@@ -208,6 +209,13 @@ func (PlanetPrimer) Prime(level *world.Level, params map[string]any, seed int64)
 	}
 	wg.Wait()
 	close(chunkChan)
+
+	// Every column was painted; one entry each is all the lighting system needs.
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			level.InvalidateSunColumn(x, y)
+		}
+	}
 
 	if paramBool(params, "center_start", false) {
 		level.TagRegion("starting_floor", w/2, h/2, cfg.SurfaceZ)

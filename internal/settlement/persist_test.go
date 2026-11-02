@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
-	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/task"
 )
 
@@ -89,13 +88,8 @@ func TestInProgressTaskIsRequeued(t *testing.T) {
 	}
 }
 
-func TestEntityBoundAndCompletedTasksAreNotSaved(t *testing.T) {
-	e := &ecs.Entity{}
+func TestCompletedTasksAreNotSaved(t *testing.T) {
 	s := &Settlement{Name: "s"}
-	s.Tasks.AddTask(&task.Task{Action: task_requests.AttackAction, Data: e})
-	s.Tasks.AddTask(&task.Task{Action: task_requests.RetrieveAction, Data: task_requests.RetrieveRequest{Item: e}})
-	s.Tasks.AddTask(&task.Task{Action: task_requests.RelocateAction, Data: task_requests.RelocateRequest{Source: e}})
-	s.Tasks.AddTask(&task.Task{Action: task_requests.MineAction, Data: task_requests.MineRequest{Target: e}})
 	s.Tasks.AddTask(&task.Task{Action: task_requests.DigAction, Completed: true})
 
 	if got := roundTrip(t, s).Tasks.GetTasks(); len(got) != 0 {

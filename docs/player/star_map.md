@@ -133,6 +133,11 @@ it too. From here:
   container on the planet — its inspector has a **▲ Beam Up** action that
   sends the selected amount into the ship hold.
 
+Rations, gear and other single items list and beam the same way, by count; they
+have no tags, so only an unfiltered container such as a Storage Locker takes
+them, and Beam Down says so if the site has none. Beam Up keeps whatever a full
+hold can't take in the container it came from.
+
 The ship hold accepts any material (no tag filters). Beam Down can fail in
 two ways:
 

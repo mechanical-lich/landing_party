@@ -174,6 +174,25 @@ func FindClosestStorageWithComponent(level *world.Level, settlementName string, 
 	return closest
 }
 
+// FoodAvailable reports whether HandleFindFood would find something for this
+// worker: food in their own bag or in settlement storage.
+func FoodAvailable(level *world.Level, entity *ecs.Entity) bool {
+	if entity.HasComponent(rlcomponents.Inventory) {
+		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+		for _, item := range inv.Bag {
+			if item.HasComponent(rlcomponents.Food) {
+				return true
+			}
+		}
+	}
+	if !entity.HasComponent(components.Settlement) {
+		return false
+	}
+	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	return FindClosestStorageWithComponent(level, sc.Name, rlcomponents.Food, pc.GetX(), pc.GetY(), pc.GetZ()) != nil
+}
+
 // checkSettlementStorageForCraft answers "is there any point starting" at task
 // pick time. It counts the pool; the materials themselves are fetched physically.
 func checkSettlementStorageForCraft(level *world.Level, settlementName string, cost map[string]int) bool {

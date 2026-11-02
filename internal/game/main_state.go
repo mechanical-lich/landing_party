@@ -902,6 +902,7 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	world.DrawRadiationOverlay(s.level, s.worldImage, s.camera)
 
 	s.drawTasks(s.worldImage)
+	drawStackLabels(s.worldImage, s.level, s.camera)
 	effect.GetEffectManager().Draw(s.worldImage, s.camera)
 	screen.DrawImage(s.worldImage, nil)
 	s.guiManager.Draw(screen)
@@ -2076,6 +2077,7 @@ func (s *MainState) updateHovered() {
 		s.guiManager.SetHoveredTile(gui.HoveredTileInfo{
 			TaskNeeds:      taskNeeds,
 			TaskPaid:       taskPaid,
+			LooseStacks:    looseStacksAt(s.level, tX, tY, s.camera.Z),
 			Name:           def.Name,
 			FloorName:      floorName,
 			X:              tX,

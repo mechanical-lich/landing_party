@@ -572,6 +572,15 @@ func handlePassoutTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 	aiMemory.State = "idle"
 }
 
+// WakeFromRest ends a sleep or passout task early, climbing off the bed if the
+// worker had reached it. Exhaustion stays as it is.
+func WakeFromRest(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent) {
+	if sr, ok := wc.CurrentTask.Data.(*task_requests.SleepRequest); ok && sr.OnBed {
+		dismountSleeper(level, entity, sr)
+	}
+	wc.CurrentTask = nil
+}
+
 // digSoundLoudness is the emitted loudness for a dig/mine "break". Modest — a
 // pick strike carries a few tiles for AI hearing, and the audio bridge plays it
 // positionally near the camera.

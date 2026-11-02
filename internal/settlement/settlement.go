@@ -10,13 +10,15 @@ import (
 var Settlements map[string]*Settlement = make(map[string]*Settlement)
 
 type Settlement struct {
-	Name       string
-	Color      color.Color
-	CenterX    int
-	CenterY    int
-	CenterZ    int
-	Tasks      task.TaskScheduler
-	KnownTechs []string
+	Name    string
+	Color   color.Color
+	CenterX int
+	CenterY int
+	CenterZ int
+	Tasks   task.TaskScheduler
+	// pendingBound holds loaded entity-bound tasks until RelinkTasks runs.
+	pendingBound []boundTask
+	KnownTechs   []string
 }
 
 func NewSettlement(centerX, centerY, centerZ int) *Settlement {

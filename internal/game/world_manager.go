@@ -559,37 +559,42 @@ func (wm *WorldManager) IsShipEntity(e *ecs.Entity) bool {
 	return false
 }
 
-// addToShipHold drops qty of a resource blueprint into the ship's storage.
-func (wm *WorldManager) addToShipHold(blueprint string, qty int) {
+// addToShipHold drops qty of a resource blueprint into the ship's storage and
+// returns how many units actually landed.
+func (wm *WorldManager) addToShipHold(blueprint string, qty int) int {
 	if qty <= 0 {
-		return
+		return 0
 	}
 	sc := wm.shipLocker()
 	if sc == nil {
-		return
+		return 0
 	}
 	e, err := factory.Create(blueprint, 0, 0, 0)
 	if err != nil {
-		return
+		return 0
 	}
 	if e.HasComponent(components.Material) {
 		if mc := e.GetComponent(components.Material).(*components.MaterialComponent); mc.IsStackable() {
 			mc.Quantity = qty
-			sc.AddItem(e)
-			return
+			if sc.AddItem(e) {
+				return qty
+			}
+			// A rejected partial fit leaves the remainder on the item.
+			return qty - mc.Quantity
 		}
 	}
 	// Non-stackables (rations, gear) are one entity per unit: qty of them.
 	for i := 0; i < qty; i++ {
 		if i > 0 {
 			if e, err = factory.Create(blueprint, 0, 0, 0); err != nil {
-				return
+				return i
 			}
 		}
 		if !sc.AddItem(e) {
-			return
+			return i
 		}
 	}
+	return qty
 }
 
 // startingRations is how many ration packs the ship begins with so the crew has
@@ -707,7 +712,7 @@ func addToSite(level *world.Level, colonyName, blueprint string, qty int) (int, 
 		}
 	}
 	if accepting == 0 {
-		return 0, fmt.Errorf("no storage container on site accepts %s", blueprint)
+		return 0, fmt.Errorf("no storage container on site accepts %s; build a Storage Locker", displayMaterialName(blueprint))
 	}
 
 	deposited := 0
@@ -825,8 +830,12 @@ func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint stri
 	if have < qty {
 		return fmt.Errorf("only %d %s here", have, blueprint)
 	}
-	sc.DeductResource(blueprint, qty)
-	wm.addToShipHold(blueprint, qty)
+	// Debit only what landed, so a full hold never loses cargo.
+	landed := wm.addToShipHold(blueprint, qty)
+	sc.DeductResource(blueprint, landed)
+	if landed < qty {
+		return fmt.Errorf("beamed %d of %d %s; ship hold is full or refused it", landed, qty, blueprint)
+	}
 	return nil
 }
 

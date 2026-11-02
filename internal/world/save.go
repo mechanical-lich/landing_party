@@ -364,6 +364,8 @@ func rebuildSaveEntityFromMap(m map[string]any) *ecs.Entity {
 // flattened, HostileAI paths are dropped). Safe for entities not on any level
 // (ship hold/roster, beaming).
 func EntityToSaveEntity(entity *ecs.Entity) *SaveEntity {
+	// Before the snapshot: the settlement queue saved alongside may refer to it.
+	components.EnsureStableID(entity)
 	se := &SaveEntity{Blueprint: entity.Blueprint, Components: make(map[ecs.ComponentType]any)}
 	for compType, comp := range entity.Components {
 		switch compType {
@@ -522,7 +524,16 @@ func LoadSaveData(data SaveData) *Level {
 
 	// Merge rather than replace: settlements of other loaded levels aren't this
 	// save's to drop. A save only carries its own level's (see SaveLevel).
+	byID := make(map[string]*ecs.Entity, len(level.Entities)+len(level.StaticEntities))
+	for _, ents := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range ents {
+			byID[components.EnsureStableID(e)] = e
+		}
+	}
 	for name, s := range data.Settlements {
+		if s != nil {
+			s.RelinkTasks(func(id string) *ecs.Entity { return byID[id] })
+		}
 		settlement.Settlements[name] = s
 	}
 	return level
@@ -609,5 +620,7 @@ func RebuildEntity(entity *SaveEntity) *ecs.Entity {
 		}
 		newEntity.AddComponent(comp)
 	}
+	// Saves older than stable IDs have none.
+	components.EnsureStableID(newEntity)
 	return newEntity
 }
