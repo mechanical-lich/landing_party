@@ -67,6 +67,9 @@ func newTutorialPanel(b *tutorialBridge) *tutorialPanel {
 	p := &tutorialPanel{b: b}
 	p.collapseBtn = minui.NewButton("tut_collapse", "-")
 	p.collapseBtn.SetSize(22, 18)
+	// The default 8px padding plus the border leaves no room for the label in
+	// a 22x18 button, so "-" / "+" was truncated to nothing.
+	p.collapseBtn.GetStyle().Padding = minui.NewEdgeInsets(1)
 	p.collapseBtn.OnClick = func() { p.collapsed = !p.collapsed }
 	p.manualBtn = minui.NewButton("tut_manual", "Manual")
 	p.manualBtn.SetSize(80, 24)

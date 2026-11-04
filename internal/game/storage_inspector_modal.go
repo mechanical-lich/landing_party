@@ -305,9 +305,9 @@ func (s *StorageInspectorModal) build() {
 	}
 	s.modal.AddChild(allBtn)
 
-	actionLabel := "▲ Beam Up"
+	actionLabel := "Beam Up  ^"
 	if ship {
-		actionLabel = "▼ Beam Down"
+		actionLabel = "Beam Down  v"
 	}
 	s.actionBtn = minui.NewButton("si_action", actionLabel)
 	s.actionBtn.SetPosition(siActionBtnX, siAmountRowY)
@@ -318,7 +318,7 @@ func (s *StorageInspectorModal) build() {
 	// Relocate is only meaningful for on-site containers — the ship hold can
 	// only "beam down" to a site, which doesn't fit the in-level move flow.
 	if !ship && s.OnBeginRelocate != nil {
-		s.relocateBtn = minui.NewButton("si_relocate", "↔ Relocate")
+		s.relocateBtn = minui.NewButton("si_relocate", "Relocate")
 		s.relocateBtn.SetPosition(siRelocateX, siAmountRowY)
 		s.relocateBtn.SetSize(siRelocateW, siActionBtnH)
 		s.relocateBtn.OnClick = s.beginRelocate
@@ -400,7 +400,7 @@ func (s *StorageInspectorModal) refreshAllowedList() {
 		mark := "    "
 		for _, ft := range sc.FilterTags {
 			if ft == t {
-				mark = "✓  "
+				mark = "•  "
 				break
 			}
 		}

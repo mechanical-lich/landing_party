@@ -42,6 +42,10 @@ alone and need a play-test or a judgment call.
   loaded levels), data-driven doctrines, greyish fleets met in space.
   Planned 2026-10-31. Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
 
+- The tutorial panel covers the bottom rows of the research and crafting
+  modals; it could collapse to its title row while a HUD modal is open, as it
+  does for the storage inspector.
+
 ## Verify
 
 - Fix the resource tracker. No tracker-named code found; confirm which HUD
@@ -57,6 +61,26 @@ alone and need a play-test or a judgment call.
   the tutorial's food budget.
 
 ## Done
+
+- VM play-test UI defects, fixed 2026-11-03 on `claude/ui-fixes-1229e3`:
+  - Modals draw their title bar, close X and button/field faces again: mlge
+    v1.14.1 strokes rounded borders with `FillRule: ebiten.NonZero` (since
+    Ebiten 2.9 the default FillAll filled the whole shape in the border
+    colour).
+  - Star Map info column clipped above the Scan / Pause row with an ellipsis.
+  - Tutorial panel collapse button shows its "-" / "+" (padding left no room).
+  - Esc menu buttons pinned to 240px, so "New Game" is no longer "New Ga…".
+  - Tutorial highlights stand down while any modal is open (HUD modals, map,
+    console, incident popup, scan report).
+  - Research and crafting cost lines sorted by material.
+  - Pause marker moved above the message log, clear of the tutorial panel.
+  - Arrows and other glyphs Roboto lacks replaced with ASCII (`< Back`,
+    `Beam Down  v`, `Beam Up  ^`, `Relocate`, `•`, `—`); a test checks every
+    UI string against the font.
+  - `ModalOpen` knows the colonist, crafting and research modals; the HUD's
+    own modals no longer feed `SetInputBlocked` (that would freeze them).
+  - Research modal widened to 760px so each tech row fits, its right edge
+    kept left of the minimap so the close X stays visible.
 
 - Attack, pickup, retrieve, store, relocate and entity-mine orders survive save
   and load, via a `StableID` component; orders whose target is gone are dropped.

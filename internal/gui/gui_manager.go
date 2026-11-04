@@ -55,9 +55,12 @@ func (gm *GUIManager) OpenModal(name string)      { gm.hud.OpenModal(name) }
 func (gm *GUIManager) CloseModal(name string)     { gm.hud.CloseModal(name) }
 func (gm *GUIManager) ModalOpen(name string) bool { return gm.hud.ModalOpen(name) }
 
-// ColonistModalVisible reports whether the colonist panel is up. It is separate
-// from ModalOpen because that drives SetInputBlocked, and the panel has to keep
-// taking input to be used and closed.
+// AnyModalOpen reports whether any HUD modal is up, including the colonist,
+// crafting and research panels.
+func (gm *GUIManager) AnyModalOpen() bool { return gm.hud.AnyModalOpen() }
+
+// ColonistModalVisible reports whether the colonist panel is up; the same as
+// ModalOpen("colonistModal").
 func (gm *GUIManager) ColonistModalVisible() bool { return gm.hud.ColonistModalVisible() }
 
 func (gm *GUIManager) ToggleModal(name string) {

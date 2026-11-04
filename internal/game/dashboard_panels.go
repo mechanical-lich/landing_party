@@ -162,7 +162,7 @@ func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager, inspector *Storag
 	p.subTabBar.Style.ActiveFill = color.RGBA{6, 8, 16, 255}
 	p.subTabBar.Style.FontSize = 13
 	p.subTabBar.OnChange = func(id string) { p.activeTab = id; p.dirty = true }
-	p.beamDownBtn = minui.NewButton("dash_gi_beam_down", "Beam Down ▼")
+	p.beamDownBtn = minui.NewButton("dash_gi_beam_down", "Beam Down  v")
 	p.beamDownBtn.SetPosition(sw-330, dashContentTop+6)
 	p.beamDownBtn.SetSize(150, 30)
 	p.beamDownBtn.OnClick = func() {
@@ -170,7 +170,7 @@ func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager, inspector *Storag
 			p.inspector.Open(hold)
 		}
 	}
-	p.beamUpBtn = minui.NewButton("dash_gi_beam_up", "Beam Up ▲")
+	p.beamUpBtn = minui.NewButton("dash_gi_beam_up", "Beam Up  ^")
 	p.beamUpBtn.SetPosition(sw-170, dashContentTop+6)
 	p.beamUpBtn.SetSize(150, 30)
 	p.beamUpBtn.OnClick = func() {

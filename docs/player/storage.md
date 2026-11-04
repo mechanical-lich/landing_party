@@ -60,12 +60,12 @@ Layout:
 │ │ All    │  │ Biomass            ×100│ │     Biomass  │ │
 │ │ Biomass│  │ Crystal            ×100│ │     Crystal  │ │
 │ │ Crystal│  │ Fuel               ×400│ │     Energy   │ │
-│ │ Fuel   │  │ Metal Ore          ×100│ │ ✓   Fuel     │ │
+│ │ Fuel   │  │ Metal Ore          ×100│ │ •   Fuel     │ │
 │ │ ...    │  │ ...                    │ │ ...          │ │
 │ └────────┘  └────────────────────────┘ └──────────────┘ │
 │                                                          │
 │ Selected: Metal Ore — 100 available  (metal, mineral)   │
-│ Amount: [____] [All] [▲ Beam Up] [↔ Relocate]          │
+│ Amount: [____] [All] [Beam Up ^] [Relocate]          │
 │                                                          │
 │                          [Close]                         │
 └──────────────────────────────────────────────────────────┘
@@ -73,7 +73,7 @@ Layout:
 
 - **Tag Filter (left)** — single-select. Pick a tag to narrow the inventory view to materials with that tag. Pick **All** to show everything.
 - **Inventory (centre)** — the container's contents, sorted, with current quantities. Click a row to select that material; the action panel below populates with its details.
-- **Allowed Tags (right)** — the tags this container will accept. A `✓` marks tags currently in your player filter list (see below).
+- **Allowed Tags (right)** — the tags this container will accept. A `•` marks tags currently in your player filter list (see below).
 - **Action panel** — shows the selected material's quantity, tag list, and the available actions (Beam, Relocate). The **All** button fills the Amount field with the full available count.
 
 The inspector auto-refreshes the inventory after each action so live counts stay correct.
@@ -87,7 +87,7 @@ Storage containers carry two tag lists:
 1. **Allowed Tags** — game-defined. Fixed by the container blueprint. A Fuel Tank will always be limited to "fuel/energy" no matter what; a Storage Locker will always accept everything.
 2. **Filter Tags** — player-defined, a subset of Allowed Tags. When non-empty, the container *only* accepts tags you've ticked here.
 
-You edit Filter Tags in the inspector's right-hand **Allowed Tags** list. Click a tag to toggle the `✓` mark.
+You edit Filter Tags in the inspector's right-hand **Allowed Tags** list. Click a tag to toggle the `•` mark.
 
 **Example.** Your Mineral Bin accepts metal, crystal, stone, and mineral. You want it dedicated to metal only. In the inspector, tick `Metal` in the Allowed Tags list. Now workers stop depositing crystal or stone there — those go elsewhere.
 
@@ -99,9 +99,9 @@ Filter Tags persist with your save.
 
 Materials move between the **ship hold** (in orbit) and **site storage** (on a planet) only via explicit beam operations. There is no automatic sweep when you leave a location — what's on a planet stays on the planet.
 
-**Star Map → Beam Resources...** opens the inspector pointed at the **ship hold**. The action button reads **▼ Beam Down**: each click moves the entered Amount of the selected material from the ship hold into the first colony-owned storage container at your current site that accepts it. (You must have travelled to a location for this to work.)
+**Star Map → Beam Resources...** opens the inspector pointed at the **ship hold**. The action button reads **Beam Down v**: each click moves the entered Amount of the selected material from the ship hold into the first colony-owned storage container at your current site that accepts it. (You must have travelled to a location for this to work.)
 
-**Clicking a storage container in-game** opens the inspector pointed at *that* container. The action button reads **▲ Beam Up**: each click moves the entered Amount from that container into the ship hold. The ship hold has effectively unlimited capacity.
+**Clicking a storage container in-game** opens the inspector pointed at *that* container. The action button reads **Beam Up ^**: each click moves the entered Amount from that container into the ship hold. The ship hold has effectively unlimited capacity.
 
 Constraints:
 
@@ -127,7 +127,7 @@ This is different from clicking an item in **Default mode**, which also queues a
 
 ### Relocate
 
-The Relocate order is initiated from the **Storage Inspector** on a site container (it doesn't apply to the ship hold). Select a material, enter an amount (or click **All**), then click **↔ Relocate**. The inspector closes and the cursor enters Relocate mode:
+The Relocate order is initiated from the **Storage Inspector** on a site container (it doesn't apply to the ship hold). Select a material, enter an amount (or click **All**), then click **Relocate**. The inspector closes and the cursor enters Relocate mode:
 
 - **Click another storage container** to move that quantity into it. The destination must accept the material.
 - **Click an open tile** to drop the material as a loose stack on the ground. Workers will later pick it up like any loose material.

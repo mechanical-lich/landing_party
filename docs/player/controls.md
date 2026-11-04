@@ -81,7 +81,7 @@ A colonist will retrieve the item and deliver it to that exact container. The mo
 
 ### Relocate (from the Storage Inspector)
 
-Relocate isn't in the Orders menu — it's launched from the **Storage Inspector** of a site container. Select a material, enter an amount, click **↔ Relocate**, then click a destination — another container that accepts the material, or any walkable tile (the worker drops it on the ground). See [Storage & Materials → Relocate](storage.md#relocate).
+Relocate isn't in the Orders menu — it's launched from the **Storage Inspector** of a site container. Select a material, enter an amount, click **Relocate**, then click a destination — another container that accepts the material, or any walkable tile (the worker drops it on the ground). See [Storage & Materials → Relocate](storage.md#relocate).
 
 ## Rogue Mode
 

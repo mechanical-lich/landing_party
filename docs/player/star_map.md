@@ -126,11 +126,11 @@ its supply pad to open the hold in the
 Inventory Survey, **Beam Down** on the dashboard's **Global Inventory** tab opens
 it too. From here:
 
-- Pick a material, set an amount, click **▼ Beam Down** to send it from the
+- Pick a material, set an amount, click **Beam Down v** to send it from the
   ship hold to the first colony-owned storage container at the loaded site
   that accepts it. Requires a loaded location.
 - To **beam up** instead, Resume / Land into the location and click a storage
-  container on the planet — its inspector has a **▲ Beam Up** action that
+  container on the planet — its inspector has a **Beam Up ^** action that
   sends the selected amount into the ship hold.
 
 Rations, gear and other single items list and beam the same way, by count; they

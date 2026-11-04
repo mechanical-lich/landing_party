@@ -46,6 +46,9 @@
 {"op":"screenshot","name":"s06_pause"}
 {"op":"key","key":"Space"}
 {"op":"wait_until","path":"tutorial.step","eq":"select","max_ticks":60}
+# Paused with the tutorial panel up: the PAUSED marker must stay visible.
+{"op":"assert","path":"pause_text","eq":"PAUSED"}
+{"op":"screenshot","name":"s06_paused"}
 {"op":"key","key":"Space"}
 {"op":"assert","path":"paused","eq":false}
 # 7 select

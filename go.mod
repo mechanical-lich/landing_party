@@ -14,8 +14,9 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.10.5
 	github.com/mechanical-lich/mechanical-basic v1.2.0
 	github.com/mechanical-lich/ml-rogue-lib v1.15.0
-	github.com/mechanical-lich/mlge v1.14.0
+	github.com/mechanical-lich/mlge v1.14.1
 	github.com/stretchr/testify v1.12.1
+	golang.org/x/image v0.47.0
 )
 
 require (
@@ -30,7 +31,6 @@ require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect

@@ -93,7 +93,7 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 	p.canvasH = sh - dashContentTop - 210
 
 	listY := sh - 188
-	btnY := sh - 64
+	btnY := sh - smButtonRowFromBottom
 
 	p.locList = minui.NewListBox("sm_locs", nil)
 	p.locList.SetBounds(minui.Rect{X: 20, Y: listY, Width: 300, Height: 116})
@@ -809,20 +809,23 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	if infoW < 220 {
 		infoW = 220
 	}
+	// The column ends above the Scan / Pause row; text that would run onto it
+	// is cut with an ellipsis.
+	infoMaxY := sh - smButtonRowFromBottom - 4
 	if sel != nil {
 		mlge_text.Draw(screen, sel.Name, 16, infoX, lblY, color.RGBA{220, 230, 255, 255})
 		line := fmt.Sprintf("%s   ·   fuel %d / %d", sel.Kind, p.campaign.FuelCost(sel.ID), p.fuelAvailable())
 		mlge_text.Draw(screen, line, 13, infoX, lblY+24, dashBodyColor)
 		y := lblY + 46
 		if p.travelLock != "" {
-			y = drawWrapped(screen, p.travelLock, 12, infoX, y, infoW, 16, color.RGBA{230, 160, 90, 255}) + 4
+			y = drawWrappedClip(screen, p.travelLock, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{230, 160, 90, 255}) + 4
 		}
 		if sel.Summary != "" {
-			y = drawWrapped(screen, sel.Summary, 12, infoX, y, infoW, 16, color.RGBA{150, 170, 195, 255}) + 6
+			y = drawWrappedClip(screen, sel.Summary, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{150, 170, 195, 255}) + 6
 		}
 		if sel.Visited {
 			if s := scenario.ByID(sel.ScenarioID); s != nil {
-				y = drawWrapped(screen, s.Name+": "+s.Description, 12, infoX, y, infoW, 16, color.RGBA{120, 200, 255, 220}) + 6
+				y = drawWrappedClip(screen, s.Name+": "+s.Description, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{120, 200, 255, 220}) + 6
 			}
 		}
 		if config.Global().DebugShowScenarioID {
@@ -839,6 +842,10 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		p.scanModal.Draw(screen)
 	}
 }
+
+// smButtonRowFromBottom is how far above the screen bottom the Star Map's
+// button row (Locate, Travel, Beam, Scan, Pause) sits.
+const smButtonRowFromBottom = 64
 
 // ---- procedural site icons ----
 

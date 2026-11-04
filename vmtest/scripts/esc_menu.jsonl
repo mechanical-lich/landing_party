@@ -1,0 +1,31 @@
+{"name":"esc_menu","seed":777}
+# Land on the start site with the tutorial off, open the Esc menu and frame it.
+# Covers the modal's title, button labels ("New Game" untruncated) and close.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"VM Esc"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:start"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"site"}
+{"op":"key","key":"Escape"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","eq":["mainMenu"]}
+{"op":"screenshot","name":"esc_menu"}
+{"op":"key","key":"Escape"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","eq":[]}
+{"op":"screenshot","name":"closed"}

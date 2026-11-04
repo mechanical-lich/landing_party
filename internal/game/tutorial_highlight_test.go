@@ -155,3 +155,45 @@ func TestTutorialHighlightRegionAndEntity(t *testing.T) {
 		t.Error("entity resolved off screen")
 	}
 }
+
+// Every highlight stands down while a modal covers the site: the Esc menu, the
+// crafting panel and the map, and comes back when it closes.
+func TestTutorialHighlightStandsDownUnderModals(t *testing.T) {
+	loadTutorialData(t)
+	isolateSettlements(t)
+	s := tutorialSite(t, 2)
+	c := &campaign.Campaign{Name: "HL", CurrentLocationID: campaign.TutorialLocationID, Locations: map[string]*campaign.Location{
+		campaign.TutorialLocationID: {ID: campaign.TutorialLocationID, Tutorial: true, Discovered: true},
+	}}
+	c.Tutorial = &campaign.TutorialProgress{StepID: "dig", NextLocationID: "x", Unlocked: []string{campaign.TutorialLocationID}}
+	wm := NewWorldManager(c)
+	wm.setCurrent(campaign.TutorialLocationID, s)
+	s.wm, s.campaign = wm, c
+	startTutorial(c, wm)
+	t.Cleanup(func() { activeTutorial = nil })
+	b := activeTutorial
+	if b == nil {
+		t.Fatal("no bridge")
+	}
+	b.step(tutorial.ContextSite, s, nil)
+	if len(b.highlightTargets()) == 0 {
+		t.Fatal("dig shows no highlights with nothing open")
+	}
+	for _, m := range []struct {
+		name        string
+		open, close func()
+	}{
+		{"Esc menu", func() { s.guiManager.OpenModal("mainMenu") }, func() { s.guiManager.CloseModal("mainMenu") }},
+		{"crafting", func() { s.guiManager.OpenCraftingModal("Workbench", nil, nil, nil) }, func() { s.guiManager.CloseModal("craftingModal") }},
+		{"map", func() { s.mapModal.Visible = true }, func() { s.mapModal.Visible = false }},
+	} {
+		m.open()
+		if got := b.highlightTargets(); len(got) != 0 {
+			t.Errorf("%s open: highlights %+v, want none", m.name, got)
+		}
+		m.close()
+		if len(b.highlightTargets()) == 0 {
+			t.Errorf("highlights did not come back after the %s closed", m.name)
+		}
+	}
+}

@@ -199,7 +199,7 @@
     },
     "scan_efficiency_1": {
         "name": "Scan Optimization",
-        "description": "Streamlines the scan cycle, halving the fuel each sweep burns (200 → 100).",
+        "description": "Streamlines the scan cycle, halving the fuel each sweep burns (200 to 100).",
         "duration": 100,
         "cost": { "metal_ore": 5, "crystal": 2 },
         "required_building": "research_lab",
@@ -208,7 +208,7 @@
     },
     "scan_efficiency_2": {
         "name": "Scan Calibration",
-        "description": "Fine-tunes the scanner to cut scan fuel cost further (100 → 50).",
+        "description": "Fine-tunes the scanner to cut scan fuel cost further (100 to 50).",
         "duration": 180,
         "cost": { "metal_ore": 10, "crystal": 4 },
         "required_building": "research_lab",

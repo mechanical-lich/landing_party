@@ -752,9 +752,12 @@ func (s *MainState) Update() state.StateInterface {
 		s.handleInput()
 	}
 	s.guiManager.SetKnownTechs(s.knownTechs())
+	// Blocking skips the HUD's whole GUI update, so only overlays the HUD does
+	// not own block it. Its own modals (colonist, crafting, research, Esc menu)
+	// already take the HUD's input exclusively, and must keep updating to be
+	// used and closed.
 	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible ||
-		(s.storageInspector != nil && s.storageInspector.Visible) ||
-		s.guiManager.ModalOpen("colonistModal") || s.incidentUp())
+		(s.storageInspector != nil && s.storageInspector.Visible) || s.incidentUp())
 	s.guiManager.SetPauseIndicator(s.pauseIndicatorText())
 	s.guiManager.Update()
 	// In Rogue mode the controlled colonist died or was lost — exit cleanly.

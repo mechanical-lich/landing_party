@@ -256,11 +256,13 @@ func (h *HUDScreen) setupHUDElements() {
 	h.rogueExitButton.SetVisible(false)
 	h.uiGUI.AddElement(h.rogueExitButton)
 
-	// Bottom centre, in the free band below the tallest modal (colonist, ending at
-	// y=680) and above the rogue exit button, left of the message log.
-	const pauseW, pauseH = 200, 32
+	// Just above the message log, flush with its right edge: clear of the
+	// tutorial panel (bottom left, x 220-728), the centred 640px HUD modals
+	// (x 256-896) and the 760px storage inspector (x 196-956), so the marker
+	// stays readable under any of them.
+	const pauseW, pauseH = 180, 32
 	h.pausePanel = minui.NewPanel("pauseIndicator")
-	h.pausePanel.SetBounds(minui.Rect{X: sw/2 - pauseW/2, Y: sh - 106, Width: pauseW, Height: pauseH})
+	h.pausePanel.SetBounds(minui.Rect{X: sw - 16 - pauseW, Y: sh - msgH - 10 - 6 - pauseH, Width: pauseW, Height: pauseH})
 	h.pauseLabel = minui.NewLabelWithColor("pauseLabel", "", color.RGBA{255, 210, 90, 255})
 	h.pauseLabel.SetPosition(10, 6)
 	// The panel re-lays the label out every frame from a per-character width
@@ -407,7 +409,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 
 		y := 4
 
-		back := minui.NewMenuItem("sub_back", "← Back")
+		back := minui.NewMenuItem("sub_back", "< Back")
 		back.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
 		back.OnClick = func() {
 			h.buildSubPanel.SetVisible(false)
@@ -588,6 +590,10 @@ func (h *HUDScreen) setSelectionLabel(title, desc string, icon *minui.Icon) {
 	h.selectionTooltip.Show()
 }
 
+// mainMenuBtnW is the Esc menu's button width: the 300px modal less the
+// 30px VBox inset on each side.
+const mainMenuBtnW = 240
+
 func (h *HUDScreen) setupModals() {
 	cfg := config.Global()
 	sw, sh := cfg.ScreenWidth, cfg.ScreenHeight
@@ -619,6 +625,11 @@ func (h *HUDScreen) setupModals() {
 	} {
 		action := entry.id
 		btn := minui.NewButton(entry.id, entry.label)
+		// The VBox sizes buttons from a per-character estimate narrower than
+		// the font, truncating "New Game" to "New Ga…". A pinned style width
+		// is what Layout honours; one width also lines the column up.
+		w := mainMenuBtnW
+		btn.GetStyle().Width = &w
 		btn.OnClick = func() {
 			switch action {
 			case "save":
@@ -731,11 +742,18 @@ func (h *HUDScreen) setupModals() {
 
 	h.uiGUI.AddModal(h.craftingModal)
 
-	// Research station modal — tech list (left) | active queue (right)
-	const rModalW, rModalH = 640, 500
-	const rColW, rColH = 300, 420
+	// Research station modal — tech list (left) | active queue (right). The
+	// tech column fits the longest row ("Advanced Radiation Shielding  [220
+	// ticks | crystal×6, metal_ore×10]", 421px at 14pt) plus the scrollbar.
+	// Centred, 760px would put the close X under the site's minimap (drawn on
+	// top, from x = sw-208), so the right edge sits 8px left of it; the modal
+	// covers part of the sidebar instead, which it draws over.
+	const rModalW, rModalH = 760, 500
+	const rColH = 420
+	const rTechColW, rQueueColW = 440, 276
+	const minimapLeftFromRight = 208
 	h.researchModal = minui.NewModal("researchModal", "Research", rModalW, rModalH)
-	h.researchModal.SetPosition(sw/2-rModalW/2, sh/2-rModalH/2)
+	h.researchModal.SetPosition(sw-minimapLeftFromRight-8-rModalW, sh/2-rModalH/2)
 	h.researchModal.SetVisible(false)
 	h.researchModal.Closeable = true
 
@@ -744,11 +762,11 @@ func (h *HUDScreen) setupModals() {
 	h.researchModal.AddChild(techHdr)
 
 	rQueueHdr := minui.NewLabel("researchQueueHdr", "Completed / Active")
-	rQueueHdr.SetPosition(14+rColW+16, 40)
+	rQueueHdr.SetPosition(14+rTechColW+16, 40)
 	h.researchModal.AddChild(rQueueHdr)
 
 	h.researchTechList = minui.NewListBox("researchTechList", nil)
-	h.researchTechList.SetBounds(minui.Rect{X: 14, Y: 60, Width: rColW, Height: rColH})
+	h.researchTechList.SetBounds(minui.Rect{X: 14, Y: 60, Width: rTechColW, Height: rColH})
 	h.researchTechList.OnSelect = func(idx int, _ string) {
 		if idx < 0 || idx >= len(h.researchTechKeys) {
 			return
@@ -766,7 +784,7 @@ func (h *HUDScreen) setupModals() {
 	h.researchModal.AddChild(h.researchTechList)
 
 	h.researchQueueList = minui.NewListBox("researchQueueList", nil)
-	h.researchQueueList.SetBounds(minui.Rect{X: 14 + rColW + 16, Y: 60, Width: rColW, Height: rColH})
+	h.researchQueueList.SetBounds(minui.Rect{X: 14 + rTechColW + 16, Y: 60, Width: rQueueColW, Height: rColH})
 	h.researchModal.AddChild(h.researchQueueList)
 
 	h.uiGUI.AddModal(h.researchModal)
@@ -877,7 +895,7 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 	for len(h.populationItems) < len(entries) {
 		idx := len(h.populationItems)
 		mi := minui.NewMenuItem(fmt.Sprintf("pop_%d", idx), "")
-		ctrl := minui.NewMenuItem(fmt.Sprintf("pop_ctrl_%d", idx), "  → Take Control")
+		ctrl := minui.NewMenuItem(fmt.Sprintf("pop_ctrl_%d", idx), "  > Take Control")
 		ctrlSize := 11
 		ctrl.GetStyle().FontSize = &ctrlSize
 		h.populationItems = append(h.populationItems, mi)
@@ -1040,7 +1058,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		h.colonistScroll.AddContent(exhaustionLabel)
 	}
 
-	eqHdr := minui.NewLabel("eqHdr", "── Equipment ──")
+	eqHdr := minui.NewLabel("eqHdr", "— Equipment —")
 	eqHdr.GetStyle().FontSize = &smallSize
 	h.colonistScroll.AddContent(eqHdr)
 
@@ -1089,7 +1107,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	}
 
 	// Task filter toggles
-	filterHdr := minui.NewLabel("filterHdr", "── Task Filters ──")
+	filterHdr := minui.NewLabel("filterHdr", "— Task Filters —")
 	filterHdr.GetStyle().FontSize = &smallSize
 	h.colonistScroll.AddContent(filterHdr)
 
@@ -1192,13 +1210,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 	h.craftTooltipDescs = h.craftTooltipDescs[:0]
 
 	appendRecipe := func(r crafting.Recipe, locked bool) {
-		costStr := ""
-		for mat, qty := range r.Cost {
-			if costStr != "" {
-				costStr += ", "
-			}
-			costStr += fmt.Sprintf("%s×%d", mat, qty)
-		}
+		costStr := costText(r.Cost)
 		var label string
 		if locked {
 			prereqName := r.RequiresTech
@@ -1276,19 +1288,28 @@ func (h *HUDScreen) RefreshResearchModal(available, locked, completed, inProgres
 	h.populateResearchQueueList(completed, queue)
 }
 
+// costText renders a material cost as "a×1, b×2" in material order, so list
+// rows read the same every time (ranging over the map would shuffle them).
+func costText(cost map[string]int) string {
+	mats := make([]string, 0, len(cost))
+	for m := range cost {
+		mats = append(mats, m)
+	}
+	sort.Strings(mats)
+	parts := make([]string, 0, len(mats))
+	for _, m := range mats {
+		parts = append(parts, fmt.Sprintf("%s×%d", m, cost[m]))
+	}
+	return strings.Join(parts, ", ")
+}
+
 func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) {
 	items := make([]string, 0, len(available)+len(locked))
 	keys := make([]string, 0, len(available)+len(locked))
 	colors := make([]color.Color, 0, len(available)+len(locked))
 	h.researchTooltipDescs = h.researchTooltipDescs[:0]
 	for _, t := range available {
-		costStr := ""
-		for mat, qty := range t.Cost {
-			if costStr != "" {
-				costStr += ", "
-			}
-			costStr += fmt.Sprintf("%s×%d", mat, qty)
-		}
+		costStr := costText(t.Cost)
 		label := fmt.Sprintf("%s  [%d ticks]", t.Name, t.Duration)
 		if costStr != "" {
 			label = fmt.Sprintf("%s  [%d ticks | %s]", t.Name, t.Duration, costStr)
@@ -1699,6 +1720,10 @@ func (h *HUDScreen) CloseModal(name string) {
 		h.saveModal.SetVisible(false)
 	case "loadModal":
 		h.loadModal.SetVisible(false)
+	case "craftingModal":
+		h.craftingModal.SetVisible(false)
+	case "researchModal":
+		h.researchModal.SetVisible(false)
 	}
 }
 
@@ -1707,16 +1732,37 @@ func (h *HUDScreen) ColonistModalVisible() bool {
 	return h.colonistModal != nil && h.colonistModal.IsVisible()
 }
 
-func (h *HUDScreen) ModalOpen(name string) bool {
-	switch name {
-	case "mainMenu":
-		return h.mainMenuModal.IsVisible()
-	case "saveModal":
-		return h.saveModal.IsVisible()
-	case "loadModal":
-		return h.loadModal.IsVisible()
+// AnyModalOpen reports whether any of the HUD's modals (Esc menu, save, load,
+// crafting, research, colonist) is up.
+func (h *HUDScreen) AnyModalOpen() bool {
+	for _, m := range []*minui.Modal{h.mainMenuModal, h.saveModal, h.loadModal,
+		h.craftingModal, h.researchModal, h.colonistModal} {
+		if m != nil && m.IsVisible() {
+			return true
+		}
 	}
 	return false
+}
+
+// ModalOpen reports whether the named HUD modal is up: mainMenu, saveModal,
+// loadModal, colonistModal, craftingModal or researchModal.
+func (h *HUDScreen) ModalOpen(name string) bool {
+	var m *minui.Modal
+	switch name {
+	case "mainMenu":
+		m = h.mainMenuModal
+	case "saveModal":
+		m = h.saveModal
+	case "loadModal":
+		m = h.loadModal
+	case "colonistModal":
+		m = h.colonistModal
+	case "craftingModal":
+		m = h.craftingModal
+	case "researchModal":
+		m = h.researchModal
+	}
+	return m != nil && m.IsVisible()
 }
 
 func (h *HUDScreen) UpdateResource(id string, value int) {
@@ -1819,7 +1865,7 @@ func (h *HUDScreen) appendEntityDetails() {
 			}
 		}
 		if hasEquipment {
-			add("── Equipment ──")
+			add("— Equipment —")
 			for _, sl := range equippedSlots {
 				if sl.item == nil {
 					continue

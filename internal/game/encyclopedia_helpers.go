@@ -54,8 +54,28 @@ func synthDescription(blueprint string, desc *rlcomponents.DescriptionComponent)
 // line, estimating characters at fontSize*6/10 wide. Returns the Y below the
 // last line drawn so callers can stack further content.
 func drawWrapped(screen *ebiten.Image, text string, fontSize, x, y, maxW, lineH int, col color.Color) int {
+	return drawWrappedClip(screen, text, fontSize, x, y, maxW, lineH, 0, col)
+}
+
+// drawWrappedClip is drawWrapped with a floor: no line is drawn whose bottom
+// would pass maxY, and the last line that fits ends in an ellipsis when text
+// was cut. maxY <= 0 means no limit.
+func drawWrappedClip(screen *ebiten.Image, text string, fontSize, x, y, maxW, lineH, maxY int, col color.Color) int {
+	lines := clipLines(wrapLines(text, fontSize, maxW), y, lineH, maxY)
+	for _, line := range lines {
+		if line != "" {
+			mlge_text.Draw(screen, line, float64(fontSize), x, y, col)
+		}
+		y += lineH
+	}
+	return y
+}
+
+// wrapLines splits text into display lines on word boundaries, estimating
+// characters at fontSize*6/10 wide. Blank paragraphs become empty lines.
+func wrapLines(text string, fontSize, maxW int) []string {
 	if text == "" {
-		return y
+		return nil
 	}
 	charW := fontSize * 6 / 10
 	if charW <= 0 {
@@ -65,10 +85,11 @@ func drawWrapped(screen *ebiten.Image, text string, fontSize, x, y, maxW, lineH 
 	if maxChars <= 0 {
 		maxChars = 1
 	}
+	var out []string
 	for _, paragraph := range strings.Split(text, "\n") {
 		words := strings.Fields(paragraph)
 		if len(words) == 0 {
-			y += lineH
+			out = append(out, "")
 			continue
 		}
 		line := ""
@@ -78,19 +99,38 @@ func drawWrapped(screen *ebiten.Image, text string, fontSize, x, y, maxW, lineH 
 				candidate = line + " " + w
 			}
 			if len(candidate) > maxChars && line != "" {
-				mlge_text.Draw(screen, line, float64(fontSize), x, y, col)
-				y += lineH
+				out = append(out, line)
 				line = w
 			} else {
 				line = candidate
 			}
 		}
 		if line != "" {
-			mlge_text.Draw(screen, line, float64(fontSize), x, y, col)
-			y += lineH
+			out = append(out, line)
 		}
 	}
-	return y
+	return out
+}
+
+// clipLines keeps the lines that fit between y and maxY at lineH each,
+// marking the last kept line with an ellipsis when any were dropped.
+// maxY <= 0 keeps everything.
+func clipLines(lines []string, y, lineH, maxY int) []string {
+	if maxY <= 0 || lineH <= 0 {
+		return lines
+	}
+	fit := (maxY - y) / lineH
+	if fit < 0 {
+		fit = 0
+	}
+	if fit >= len(lines) {
+		return lines
+	}
+	kept := append([]string(nil), lines[:fit]...)
+	if fit > 0 {
+		kept[fit-1] = strings.TrimRight(kept[fit-1], " .,;:") + "…"
+	}
+	return kept
 }
 
 // itoa avoids pulling strconv into the Draw hot path for tiny integers.

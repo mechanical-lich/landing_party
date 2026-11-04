@@ -184,6 +184,7 @@ runs; assert counts rather than specific enemies there.
 | `incident` | Away-damage popup on the ship: clock stops, Travel goes to the planet; again, Ignore resumes the clock |
 | `save_load` | Land, save, relaunch, load: day, location, fuel, hold, storage and crew match; back to title via the Esc menu; Q exits with status 0 |
 | `storage_beam` | Ship hold inspector beams metal down, site locker inspector beams some back; totals conserved |
+| `esc_menu` | Land on the start site, open the Esc menu (title, button labels), close it with Esc |
 
 ## Release builds
 

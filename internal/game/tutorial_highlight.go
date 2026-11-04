@@ -25,10 +25,11 @@ type highlight struct {
 // that is visible right now, so a Travel button and its planet mark together and
 // a sub-menu item joins its category once the menu is open. A target that does
 // not resolve draws nothing. World targets stand down while a storage inspector
-// is open, since their frames would draw across the modal.
+// is open, since their frames would draw across the modal, and every target
+// stands down while any other modal covers the screen.
 func (b *tutorialBridge) highlightTargets() []highlight {
 	step := b.dir.Current()
-	if step == nil || b.ended {
+	if step == nil || b.ended || b.modalCovering() {
 		return nil
 	}
 	var out []highlight
@@ -160,6 +161,29 @@ func (b *tutorialBridge) starHighlight(which string) (highlight, bool) {
 		return highlight{}, false
 	}
 	return highlight{x: sx, y: sy, radius: siteRadius(loc) + 9}, true
+}
+
+// modalCovering reports whether a modal other than the storage inspector is up
+// on this frame's host: the incident popup, a HUD modal (Esc menu, save, load,
+// crafting, research, colonist), the map or the developer console on a site,
+// or the scan report on the Star Map. Highlights would draw across it.
+func (b *tutorialBridge) modalCovering() bool {
+	if b.wm != nil && b.wm.ActiveIncident() != nil {
+		return true
+	}
+	if s := b.lastSite; s != nil {
+		if s.guiManager != nil && s.guiManager.AnyModalOpen() {
+			return true
+		}
+		if (s.mapModal != nil && s.mapModal.Visible) || (s.cheatModal != nil && s.cheatModal.Visible) {
+			return true
+		}
+	} else if d := b.lastDash; d != nil && strings.HasPrefix(b.lastCtx, "dash:") {
+		if p := d.starMapPanel(); p != nil && p.scanOpen {
+			return true
+		}
+	}
+	return false
 }
 
 // openInspector returns this frame's host's storage inspector when it is open.
@@ -323,6 +347,9 @@ func (b *tutorialBridge) drawStarMarker(screen *ebiten.Image) {
 // drawHighlight strokes every resolved target with a pulsing outline, and the
 // Star Map marker for steps that point at a destination.
 func (b *tutorialBridge) drawHighlight(screen *ebiten.Image) {
+	if b.modalCovering() {
+		return
+	}
 	b.drawStarMarker(screen)
 	pulse := 0.55 + 0.45*math.Sin(float64(b.frame)*0.12)
 	clr := color.RGBA{255, 220, 110, uint8(120 + 135*pulse)}
