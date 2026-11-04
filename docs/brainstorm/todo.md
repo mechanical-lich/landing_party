@@ -6,6 +6,27 @@ alone and need a play-test or a judgment call.
 
 ## Open
 
+- UI defects caught by the VM play-test framework on 2026-11-03 (frames in
+  the shared notes folder under `vmtest-report/catches/`); fix with
+  `make vmtest` before/after runs:
+  1. Star Map scenario description text overflows onto the Scan and Pause
+     buttons (`starmap_panel.go`).
+  2. The tutorial panel's top-right button draws as an empty square
+     (`tutorial_panel.go`).
+  3. minui modals draw without their title or child backgrounds: incident
+     popup, storage inspector, Esc menu, crafting and research modals (which
+     also show no close X). Check whether this came with the Ebiten 2.10 /
+     mlge v1.14 bump; `mlge/ui/minui/modal.go` still draws `Title`.
+  4. The Esc menu truncates "New Game" to "New Ga…".
+  5. The tutorial highlight draws on top of an open crafting modal.
+  6. Research and crafting cost lines print in Go map order
+     (`hud_screen.go` ~1196 and ~1286), so rows shuffle between identical
+     runs; sort them.
+  7. The tutorial panel hides the "PAUSED - incident" marker.
+  8. The font has no arrow glyphs: "← Back" renders as "Back".
+  9. `main_state.go` ~756 checks `ModalOpen("colonistModal")`, which is
+     never true, so HUD input is not blocked while the colonist panel is
+     open (read from code, not seen on screen).
 - Door sounds. `data/blueprints/structures/doors.json` has no `Sound`
   component and `data/audio.json` has no door entries.
 - Tutorial planet: a guided first landing with non-blocking prompts that

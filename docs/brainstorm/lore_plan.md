@@ -35,8 +35,11 @@ the same history as it happens.
 - **History only claims what the map can show.** Every event lists the evidence
   it leaves. Where the map doesn't already show it, the event adds it through
   the existing feature and `stamp` route.
-- **Scenarios stay random.** History constrains and weights the roll; the
-  player still never picks.
+- **History picks the scenario.** The threat chapter is an event, and the
+  event names the scenario it plays as. Nothing rolls a scenario on its own any
+  more; a site with no threat chapter plays its map's quiet `base_scenario`.
+  Scenarios stay random from the player's view, since the player never picks:
+  the dice moved up one level, into which chapter the history ends on.
 - **Events are data** (`data/history/*.json`): requirements, effects and what
   they add to generation. A new kind of disaster is a JSON change.
 
@@ -138,8 +141,10 @@ Each map gains a `present` block giving the state its history must end in:
 "present": {
   "life": ["none"],
   "status": ["untouched", "dead"],
-  "arcs": ["lifeless", "extinct_radiation", "failed_colony", "stellar_flare"]
-}
+  "arcs": ["lifeless", "extinct_radiation", "failed_colony", "stellar_flare"],
+  "quiet_weight": 4
+},
+"base_scenario": "moon"
 ```
 
 Defaults for the current maps:
@@ -202,6 +207,8 @@ population, and some of those end lifeless through an extinction event.
   "effects": { "life": "none", "status": "dead", "add_contaminants": ["radiation"] },
   "figures": [{ "role": "chief_engineer", "fate": "died" }],
   "origin": true,
+  "scenario": "crystalline_blight",
+  "weight": { "moon": 3, "earth_like": 1 },
   "evidence": [
     { "kind": "stamp", "params": { "script": "abandoned_reactor", "w": 15, "h": 15 }, "at": "origin" },
     { "kind": "radiation_pocket", "count": 3, "count_max": 6, "params": { "peak": 200, "radius": 5 } },
@@ -231,9 +238,15 @@ population, and some of those end lifeless through an extinction event.
 
 ## Threat origins
 
-Each scenario gains an `origins` list naming the event types that can start it.
-The site's history must make one of them possible, or the scenario can't be
-rolled there:
+A threat event carries `scenario`: the gameplay package it plays as. The
+scenario file stays what it is today (setup scripts, spawn rules, lighting,
+`hostile_max`); it just stops being rolled. `weight` is per map and is where the
+balance that used to live in the archetype scenario lists now lives: it says how
+often this chapter ends a history on that map. An event with no weight for a map
+can't happen there. The quiet outcome is weighted the same way, per map, so
+lifeless sites don't all get a threat bolted on.
+
+Seen from the scenario side, these are the events that can start each one:
 
 | Scenario | Origin events | Requires |
 |---|---|---|
@@ -246,10 +259,15 @@ rolled there:
 | `troid_outbreak` | `impact_colony` | An impact event |
 | `autonz_incursion` | `swarm_landing`, `wreck_nanites_wake` | A swarm spread path, or an ancient wreck with a dormant swarm aboard |
 | `worms`, `yeti_territory` | none: native | Native life; yeti are an ancient native civilization |
-| `earth_like`, `moon`, `asteroid_field` | none: no threat chapter | — |
+| `earth_like`, `moon`, `asteroid_field`, `abandoned_station` | none: the map's `base_scenario` | — |
 
 The threat chapter is the last event in the site's history, dated recently, and
 its `Origin` is where the threat started on the map.
+
+`supported_maps` on a scenario stays as a hard gate but becomes a validation
+check rather than a selector: no event may carry a scenario onto a map that
+scenario doesn't support. The `scenarios` lists in `location_templates.json`
+are retired; archetypes keep their `maps`, `tags`, weights and `start_ok`.
 
 ### Ancient wrecks as a source
 
@@ -282,16 +300,24 @@ two sources; the first `wreck_*` origin claims it.
 1. Pick the map from the archetype, as today.
 2. Bind a site history: reuse an unplaced site whose arc fits the map, or build
    one from the map's `arcs`.
-3. Pick the scenario from the archetype's list, **weighted and filtered by the
-   history**: a scenario needs one of its origins to be possible, or none.
-4. Append the threat chapter's origin event.
-5. Set `Name` and `Summary` from the history when it names the planet.
+3. End it with a chapter, chosen by per-map `weight` among the threat events
+   whose requirements the history meets, plus the quiet outcome. **The
+   scenario is that event's `scenario`**, or the map's `base_scenario` for the
+   quiet outcome.
+4. Set `Name` and `Summary` from the history when it names the planet.
+
+A caller can ask for a chapter. Contract quest templates today chart a location
+by `spawn_archetype` and expect a kind of threat there (a "Distress Call" wants
+a hive); they gain `spawn_event`, and the binder builds an arc that ends in
+that event. Cross-site spread uses the same door: a plague on a neighbour can
+seed `plague_arrives` here, which brings `zombie_plague` with it.
 
 All history randomness draws from its own stream, for example
 `rand.New(rand.NewSource(c.Seed ^ historySalt + int64(GenSeq)*K))`, so adding
-history does not shift the existing campaign rolls. The scenario roll moves onto
-that stream too, which changes which scenario a given seed gets: acceptable,
-since every campaign after this change is a new one.
+history does not shift the existing campaign rolls. The old scenario roll is
+gone rather than moved, so a given seed's map, position and name stay the same
+and only its scenario differs: acceptable, since every campaign after this
+change is a new one.
 
 ## Generation
 
@@ -368,8 +394,9 @@ Live events are dated in the star date, which this plan introduces in step 1.
    types, arcs, event types, the generator, and a headless command
    (`cmd/history-dump`) that prints a campaign's chronicle. This is where to
    judge whether the stories are interesting and whether civs recur enough.
-2. **Sites, visibly.** Bind histories in `newLocation`, history-weighted
-   scenario rolls, `SiteFeatures`, origin resolution and `at: "origin"`, lore
+2. **Sites, visibly.** Bind histories in `newLocation`, scenarios taken from
+   the chapter (and `spawn_event` on contracts), `SiteFeatures`, origin
+   resolution and `at: "origin"`, lore
    flags for setup scripts, lore datapads, history-driven names and the Star
    Map summary line. **One script, `zombie_plague`, is converted here** as the
    prototype for growing a threat from its origin, so the first playable
@@ -387,13 +414,19 @@ Live events are dated in the star date, which this plan introduces in step 1.
   load.
 - Every arc listed by a map can end in that map's `present` state, for every
   map.
-- Every scenario listed by an archetype has at least one reachable origin for
-  each map it can be paired with, so no pairing becomes impossible.
+- Every scenario is reachable: at least one event carries it, with a weight on
+  at least one map that supports it. No event carries a scenario onto a map
+  outside its `supported_maps`.
+- Every `spawn_event` named by a quest template exists and can end an arc on at
+  least one map of its archetype.
+- The dump tool reports scenario frequency per map across many seeds, and no
+  map's distribution has a scenario at zero that the old archetype lists
+  allowed, unless that was decided.
 - Every event's evidence names features and structure scripts that exist.
 - Lifeless arcs produce no civs, figures or population events on that site.
 - A version 1 campaign is refused on load with a clear message.
-- Adding history doesn't change the existing campaign rolls apart from the
-  scenario pick.
+- Adding history doesn't change a seed's maps, positions or names; only the
+  scenario, which now comes from the chapter.
 - Across many seeds, the lifeless share is near 25% and every civ count from
   1 to 10 occurs.
 - The star date advances with the live level and with jumps, and a planet
