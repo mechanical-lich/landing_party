@@ -18,6 +18,7 @@ Architecture notes, system references, and guides for extending the game.
 - [Names](names.md) — `data/names.json`, the `<type>` placeholder pattern for blueprints, seeded vs unseeded generation, and epithets
 - [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
 - [Tutorial](tutorial.md) — the guided first landing: step data, the director, ui.* flags, highlights, the Training Ground
+- [VM Play-Testing](vmtest.md) — run the real game headless from a script, read its frames and state, diff two runs
 - [Audio](audio.md) — the mixer/music engine, positional SFX, entity & material sound resolution, buses/volumes, and `data/audio.json`
 
 ---

@@ -269,6 +269,7 @@ func newExpedition(name string, seed int64, tutorial bool) (*campaign.Campaign, 
 }
 
 func (ts *TitleState) Update() state.StateInterface {
+	vmNote(ts)
 	audio.SetMusicState("menu")
 	switch ts.screen {
 	case screenMain:

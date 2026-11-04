@@ -170,6 +170,7 @@ func (d *DashboardState) fuelAvailable() int {
 }
 
 func (d *DashboardState) Update() state.StateInterface {
+	vmNote(d)
 	tutorialFrameDash(d)
 	if d.wm != nil {
 		d.wm.TickBackground(nil)

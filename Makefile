@@ -45,3 +45,47 @@ update-go-deps:
 ifneq (,$(wildcard vendor))
 	go mod vendor
 endif
+
+# ---- VM play-testing (docs/developer/vmtest.md) ----
+# make vmtest SCRIPT=new_expedition LABEL=before
+# make vmtest-diff SCRIPT=new_expedition A=before B=after
+SCRIPT ?= new_expedition
+LABEL ?=
+VMTEST_BIN_DIR := vmtest/out/.bin
+VMTEST_BIN := $(VMTEST_BIN_DIR)/vmtest
+VMTEST_FLAGS := $(if $(LABEL),-label $(LABEL))
+
+.PHONY: vmtest-host vmtest vmtest-all vmtest-diff vmtest-targets vmtest-check
+vmtest-host:
+	@mkdir -p $(VMTEST_BIN_DIR)
+	@go build -o $(VMTEST_BIN) ./cmd/vmtest
+
+vmtest: vmtest-host
+	$(VMTEST_BIN) run $(VMTEST_FLAGS) $(SCRIPT)
+
+vmtest-targets: vmtest-host
+	$(VMTEST_BIN) targets $(SCRIPT)
+
+vmtest-all: vmtest-host
+	@fail=0; for s in vmtest/scripts/*.jsonl; do \
+		$(VMTEST_BIN) run $(VMTEST_FLAGS) $$s || fail=1; \
+	done; exit $$fail
+
+vmtest-diff: vmtest-host
+	$(VMTEST_BIN) diff $(SCRIPT) $(A) $(B)
+
+# Proves release builds carry no guest code: cmd/game must not depend on the
+# VM host or the vmtest packages, and an untagged binary must not contain the
+# sidecar entry point. The tagged build must contain it, so the check can fail.
+# Both binaries are left in vmtest/out/.bin (gitignored).
+vmtest-check:
+	@mkdir -p $(VMTEST_BIN_DIR)
+	@n=$$(go list -deps ./cmd/game | grep -c 'exp/vmhost\|landing_party/internal/vmtest\|landing_party/internal/vmproto'); \
+	if [ "$$n" != 0 ]; then echo "vmtest-check: cmd/game depends on vmhost/vmtest/vmproto ($$n packages)"; exit 1; fi
+	@go build -o $(VMTEST_BIN_DIR)/lp-release ./cmd/game
+	@go build -tags ebitenginevmguest -o $(VMTEST_BIN_DIR)/lp-guest ./cmd/game
+	@rel=$$(go tool nm $(VMTEST_BIN_DIR)/lp-release | grep -c vmStartServer); \
+	guest=$$(go tool nm $(VMTEST_BIN_DIR)/lp-guest | grep -c vmStartServer); \
+	if [ "$$rel" != 0 ]; then echo "vmtest-check: release binary contains vmStartServer"; exit 1; fi; \
+	if [ "$$guest" = 0 ]; then echo "vmtest-check: guest binary lacks vmStartServer, so this check proves nothing"; exit 1; fi; \
+	echo "vmtest-check: ok (release binary has no guest hook; guest binary has it)"

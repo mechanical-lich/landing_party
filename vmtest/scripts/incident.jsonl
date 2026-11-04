@@ -1,0 +1,62 @@
+{"name":"incident","seed":2024}
+# Tutorial expedition: land on the Training Ground, beam one colonist down, go
+# to the ship, raise an away-damage incident on the planet, answer Travel; then
+# raise another from the ship and answer Ignore.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"VM Incident"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"2024"}
+{"op":"assert","path":"title_fields.tutorial","eq":true}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"tutorial.step","eq":"choose_planet"}
+{"op":"click","target":"row:locList:tutorial"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"tutorial"}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"crew_on_site","eq":1}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"wait","ticks":60}
+{"op":"assert","path":"incident","eq":null}
+{"op":"debug","cmd":"incident tutorial"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"incident.location_id","eq":"tutorial"}
+{"op":"assert","path":"modal","contains":"incident"}
+{"op":"assert","path":"pause_text","eq":"PAUSED - incident"}
+{"op":"assert","path":"notifications.#","eq":1}
+{"op":"save_as","name":"paused"}
+{"op":"wait","ticks":60}
+# The clock is stopped while the popup is up.
+{"op":"assert","path":"tick","eq_saved":"paused"}
+{"op":"screenshot","name":"popup_on_ship"}
+{"op":"click","target":"popup:travel"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"assert","path":"incident","eq":null}
+{"op":"assert","path":"campaign.location_id","eq":"tutorial"}
+{"op":"assert","path":"paused","eq":false}
+{"op":"screenshot","name":"arrived"}
+# Second pass: back to the ship, another incident, Ignore.
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"debug","cmd":"incident tutorial"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"pause_text","eq":"PAUSED - incident"}
+{"op":"screenshot","name":"popup_again"}
+{"op":"click","target":"popup:ignore"}
+{"op":"assert","path":"incident","eq":null}
+{"op":"assert","path":"state","eq":"ship"}
+{"op":"save_as","name":"ignored"}
+{"op":"wait","ticks":60}
+{"op":"assert","path":"paused","eq":false}
+# The clock runs again after Ignore.
+{"op":"assert","path":"tick","ne_saved":"ignored"}
+{"op":"screenshot","name":"ignored"}

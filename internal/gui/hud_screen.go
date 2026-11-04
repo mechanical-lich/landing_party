@@ -1606,6 +1606,37 @@ func (h *HUDScreen) ElementBounds(id string) (x, y, w, h2 int, ok bool) {
 	return x, y, b.Width, b.Height, true
 }
 
+// ModalElement returns the element with the given ID inside one of the HUD's
+// named modals (mainMenu, saveModal, loadModal, craftingModal, researchModal,
+// colonistModal), searching nested children, or the modal itself for id "".
+// It returns nil while that modal is closed. Read-only; used by test tooling,
+// since ElementBounds does not search modals.
+func (h *HUDScreen) ModalElement(modal, id string) minui.Element {
+	m := map[string]*minui.Modal{
+		"mainMenu": h.mainMenuModal, "saveModal": h.saveModal, "loadModal": h.loadModal,
+		"craftingModal": h.craftingModal, "researchModal": h.researchModal, "colonistModal": h.colonistModal,
+	}[modal]
+	if m == nil || !m.IsVisible() {
+		return nil
+	}
+	if id == "" {
+		return m
+	}
+	var find func(els []minui.Element) minui.Element
+	find = func(els []minui.Element) minui.Element {
+		for _, el := range els {
+			if el.GetID() == id {
+				return el
+			}
+			if f := find(el.GetChildren()); f != nil {
+				return f
+			}
+		}
+		return nil
+	}
+	return find(m.GetChildren())
+}
+
 func (h *HUDScreen) openLoadModal() {
 	h.loadModal.SetVisible(true)
 }

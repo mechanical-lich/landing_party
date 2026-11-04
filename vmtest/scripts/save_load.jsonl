@@ -1,0 +1,59 @@
+{"name":"save_load","seed":4242}
+# Land, play, save from the dashboard, relaunch the game, load the expedition,
+# check it came back the same, then quit from the title (Q) with exit status 0.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"VM Save"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"4242"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:start"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"wait","ticks":900}
+{"op":"screenshot","name":"site_before"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:saveBtn"}
+{"op":"assert","path":"status","eq":"Expedition saved."}
+{"op":"save_as","name":"saved"}
+{"op":"screenshot","name":"saved"}
+{"op":"relaunch"}
+{"op":"wait","ticks":10}
+{"op":"assert","path":"state","eq":"title"}
+{"op":"click","target":"title:load"}
+{"op":"assert","path":"title_screen","eq":"load"}
+{"op":"screenshot","name":"load_screen"}
+{"op":"click","target":"title:save:vm_save"}
+{"op":"click","target":"title:load_confirm"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"screenshot","name":"loaded"}
+{"op":"assert","path":"campaign.name","eq_saved":"saved"}
+{"op":"assert","path":"campaign.day","eq_saved":"saved"}
+{"op":"assert","path":"campaign.location_id","eq_saved":"saved"}
+{"op":"assert","path":"campaign.in_orbit","eq_saved":"saved"}
+{"op":"assert","path":"fuel","eq_saved":"saved"}
+{"op":"assert","path":"hold","eq_saved":"saved"}
+{"op":"assert","path":"site_storage","eq_saved":"saved"}
+{"op":"assert","path":"crew_at","eq_saved":"saved"}
+{"op":"assert","path":"crew.#","eq_saved":"saved"}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"assert","path":"crew_on_site","eq":1}
+{"op":"screenshot","name":"site_after_load"}
+# Back to the title through the HUD main menu, then quit with Q.
+{"op":"key","key":"Escape"}
+{"op":"assert","path":"modal","contains":"mainMenu"}
+{"op":"click","target":"menu:newgame"}
+{"op":"wait_until","path":"state","eq":"title","max_ticks":30}
+{"op":"screenshot","name":"title_again"}
+{"op":"expect_exit","key":"Q","max_ticks":30}

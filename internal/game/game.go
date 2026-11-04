@@ -43,6 +43,7 @@ func NewGame(title string) (*Game, error) {
 	audio.SetFootstepAudio(cfg.FriendlyFootsteps, cfg.EnemyFootsteps)
 
 	g.StateMachine.PushState(NewTitleState())
+	vmStart(g) // VM play-testing sidecar; a no-op outside guest builds
 	return g, nil
 }
 
@@ -51,6 +52,7 @@ func (g *Game) Run() error {
 }
 
 func (g *Game) Update() error {
+	defer vmLock()()
 	g.InputManager.HandleInput()
 	event.GetQueuedInstance().HandleQueue()
 	g.Audio.Update() // drain finished voices; safe on a nil System
@@ -59,6 +61,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	defer vmLock()()
 	g.StateMachine.Draw(screen)
 }
 

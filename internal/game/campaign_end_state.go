@@ -35,6 +35,7 @@ func NewCampaignEndState(victory bool, detail string) *CampaignEndState {
 }
 
 func (e *CampaignEndState) Update() state.StateInterface {
+	vmNote(e)
 	e.backBtn.Update()
 	return e.next
 }

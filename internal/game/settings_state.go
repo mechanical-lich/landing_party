@@ -126,6 +126,7 @@ func (ss *SettingsState) commit() {
 }
 
 func (ss *SettingsState) Update() state.StateInterface {
+	vmNote(ss)
 	audio.SetMusicState("menu")
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		ss.commit()

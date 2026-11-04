@@ -1,0 +1,241 @@
+{"name":"tutorial","seed":11}
+# The guided first landing, all 24 steps, with real input in the order of
+# TestTutorialWalkthrough. A frame per step; tutorial.step checked at each.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"VM Tutorial"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"11"}
+{"op":"assert","path":"title_fields.tutorial","eq":true}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"wait","ticks":5}
+# 1 choose_planet: the Training Ground is preselected; the jump costs 6 of 400 fuel.
+{"op":"assert","path":"tutorial.step","eq":"choose_planet"}
+{"op":"assert","path":"tutorial.count","eq":24}
+{"op":"assert","path":"selected_location.id","eq":"tutorial"}
+{"op":"assert","path":"selected_location.fuel_cost","eq":6}
+{"op":"assert","path":"fuel","eq":400}
+{"op":"screenshot","name":"s01_choose_planet"}
+{"op":"click","target":"dash:travelBtn"}
+# 2 beam_party
+{"op":"wait_until","path":"tutorial.step","eq":"beam_party","max_ticks":60}
+{"op":"assert","path":"fuel","eq":394}
+{"op":"screenshot","name":"s02_beam_party"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+# 3 to_site
+{"op":"wait_until","path":"tutorial.step","eq":"to_site","max_ticks":90}
+{"op":"assert","path":"crew_on_site","eq":2}
+{"op":"screenshot","name":"s03_to_site"}
+{"op":"click","target":"dash:returnSiteBtn"}
+# 4 camera
+{"op":"wait_until","path":"tutorial.step","eq":"camera","max_ticks":60}
+{"op":"screenshot","name":"s04_camera"}
+{"op":"key","key":"D","hold":10}
+# 5 z_levels
+{"op":"wait_until","path":"tutorial.step","eq":"z_levels","max_ticks":60}
+{"op":"screenshot","name":"s05_z_levels"}
+{"op":"key","key":"Q"}
+{"op":"key","key":"E"}
+# 6 pause
+{"op":"wait_until","path":"tutorial.step","eq":"pause","max_ticks":60}
+{"op":"screenshot","name":"s06_pause"}
+{"op":"key","key":"Space"}
+{"op":"wait_until","path":"tutorial.step","eq":"select","max_ticks":60}
+{"op":"key","key":"Space"}
+{"op":"assert","path":"paused","eq":false}
+# 7 select
+{"op":"screenshot","name":"s07_select"}
+{"op":"click","target":"entity:colonist"}
+# 8 close_colonist
+{"op":"wait_until","path":"tutorial.step","eq":"close_colonist","max_ticks":60}
+{"op":"assert","path":"modal","contains":"colonistModal"}
+{"op":"screenshot","name":"s08_close_colonist"}
+{"op":"click","target":"modal:colonistModal:close"}
+# 9 haul_food: click three rations.
+{"op":"wait_until","path":"tutorial.step","eq":"haul_food","max_ticks":60}
+{"op":"screenshot","name":"s09_haul_food"}
+{"op":"click","target":"entity:ration_pack:0"}
+{"op":"click","target":"entity:ration_pack:4"}
+{"op":"click","target":"entity:ration_pack:8"}
+# 10 beam_metal, aboard the ship.
+{"op":"wait_until","path":"tutorial.step","eq":"beam_metal","max_ticks":8000}
+{"op":"screenshot","name":"s10_beam_metal"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"click","target":"ship:hold"}
+{"op":"click","target":"inspector:item:metal_ore"}
+{"op":"click","target":"inspector:amount"}
+{"op":"type","text":"10"}
+{"op":"screenshot","name":"s10_hold_inspector"}
+{"op":"click","target":"inspector:beam"}
+{"op":"assert","path":"site_storage.metal_ore","eq":10}
+{"op":"click","target":"inspector:close"}
+# 11 build_locker
+{"op":"wait_until","path":"tutorial.step","eq":"build_locker","max_ticks":90}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"screenshot","name":"s11_build_locker"}
+{"op":"click","target":"hud:cat_structures"}
+{"op":"click","target":"hud:build_storage_locker"}
+{"op":"click","target":"settle:0,-2"}
+{"op":"click","target":"hud:sub_back"}
+# 12 dig: a one-tile marquee on the outcrop.
+{"op":"wait_until","path":"tutorial.step","eq":"dig","max_ticks":8000}
+{"op":"assert","path":"site_structures.storage_locker","eq":1}
+{"op":"screenshot","name":"s12_dig"}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"click","target":"hud:order_dig"}
+{"op":"click","target":"region:tut_outcrop"}
+# 13 mine_cargo: the outcrop's west face.
+{"op":"wait_until","path":"tutorial.step","eq":"mine_cargo","max_ticks":60}
+{"op":"screenshot","name":"s13_mine_cargo"}
+{"op":"click","target":"hud:order_mine"}
+{"op":"click","target":"settle:5,0"}
+{"op":"click","target":"settle:5,1"}
+# 14 storage: open the locker's inspector.
+{"op":"wait_until","path":"tutorial.step","eq":"storage","max_ticks":20000}
+{"op":"screenshot","name":"s14_storage"}
+{"op":"click","target":"hud:order_default"}
+{"op":"click","target":"entity:storage_locker"}
+{"op":"assert","path":"modal","contains":"inspector"}
+{"op":"screenshot","name":"s14_inspector"}
+{"op":"click","target":"inspector:close"}
+# 15 needs: a bed.
+{"op":"wait_until","path":"tutorial.step","eq":"needs","max_ticks":60}
+{"op":"screenshot","name":"s15_needs"}
+{"op":"click","target":"hud:sub_back"}
+{"op":"click","target":"hud:cat_structures"}
+{"op":"click","target":"hud:build_bed"}
+{"op":"click","target":"settle:-2,-2"}
+# 16 workbench
+{"op":"wait_until","path":"tutorial.step","eq":"workbench","max_ticks":20000}
+{"op":"assert","path":"site_structures.bed","eq":1}
+{"op":"screenshot","name":"s16_workbench"}
+{"op":"click","target":"hud:build_basic_workbench"}
+{"op":"click","target":"settle:2,-2"}
+# 17 craft: biomass (and crystal for the lab) down from the ship, then a sleeping bag.
+{"op":"wait_until","path":"tutorial.step","eq":"craft","max_ticks":20000}
+{"op":"assert","path":"site_structures.basic_workbench","eq":1}
+{"op":"click","target":"hud:sub_back"}
+{"op":"screenshot","name":"s17_craft"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"click","target":"ship:hold"}
+{"op":"click","target":"inspector:item:biomass"}
+{"op":"click","target":"inspector:amount"}
+{"op":"type","text":"5"}
+{"op":"click","target":"inspector:beam"}
+{"op":"click","target":"inspector:item:crystal"}
+{"op":"click","target":"inspector:amount"}
+{"op":"key","key":"Backspace"}
+{"op":"type","text":"5"}
+{"op":"click","target":"inspector:beam"}
+{"op":"click","target":"inspector:close"}
+{"op":"assert","path":"site_storage.biomass","gte":5}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"click","target":"entity:basic_workbench"}
+{"op":"assert","path":"modal","contains":"craftingModal"}
+{"op":"click","target":"modal:craftingModal:item:craftRecipeList:sleeping bag"}
+{"op":"screenshot","name":"s17_crafting_modal"}
+{"op":"click","target":"modal:craftingModal:close"}
+{"op":"assert","path":"modal","eq":[]}
+# 18 research: a lab, then Basic Metallurgy.
+{"op":"wait_until","path":"tutorial.step","eq":"research","max_ticks":20000}
+{"op":"screenshot","name":"s18_research"}
+{"op":"click","target":"hud:cat_structures"}
+{"op":"click","target":"hud:build_research_lab"}
+{"op":"click","target":"settle:0,3"}
+{"op":"click","target":"hud:sub_back"}
+{"op":"wait_until","path":"site_structures.research_lab","eq":1,"max_ticks":20000}
+{"op":"click","target":"entity:research_lab"}
+{"op":"assert","path":"modal","contains":"researchModal"}
+{"op":"click","target":"modal:researchModal:item:researchTechList:basic metallurgy"}
+{"op":"screenshot","name":"s18_research_modal"}
+{"op":"click","target":"modal:researchModal:close"}
+# 19 pack_cargo: metal and crystal up from the supply pad, where the ore went.
+{"op":"wait_until","path":"tutorial.step","eq":"pack_cargo","max_ticks":20000}
+{"op":"assert","path":"campaign.known_techs","contains":"basic_metallurgy"}
+{"op":"screenshot","name":"s19_pack_cargo"}
+{"op":"click","target":"entity:teleporter"}
+{"op":"assert","path":"modal","contains":"inspector"}
+{"op":"click","target":"inspector:item:metal_ore"}
+{"op":"click","target":"inspector:amount"}
+{"op":"type","text":"6"}
+{"op":"click","target":"inspector:beam"}
+{"op":"click","target":"inspector:item:crystal"}
+{"op":"click","target":"inspector:amount"}
+{"op":"key","key":"Backspace"}
+{"op":"type","text":"3"}
+{"op":"click","target":"inspector:beam"}
+{"op":"screenshot","name":"s19_packed"}
+{"op":"click","target":"inspector:close"}
+# 20 crew_up
+{"op":"wait_until","path":"tutorial.step","eq":"crew_up","max_ticks":120}
+{"op":"assert","path":"hold.metal_ore","eq":6}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"screenshot","name":"s20_crew_up"}
+{"op":"click","target":"row:planList:0"}
+{"op":"click","target":"dash:beamUpBtn"}
+{"op":"click","target":"row:planList:0"}
+{"op":"click","target":"dash:beamUpBtn"}
+# 21 next_jump: the start system is preselected; 5 fuel.
+{"op":"wait_until","path":"tutorial.step","eq":"next_jump","max_ticks":120}
+{"op":"assert","path":"crew_on_site","eq":0}
+{"op":"assert","path":"crew_at.ship","eq":6}
+{"op":"assert","path":"selected_location.id","eq":"start"}
+{"op":"assert","path":"selected_location.fuel_cost","eq":5}
+{"op":"screenshot","name":"s21_next_jump"}
+{"op":"click","target":"dash:travelBtn"}
+# 22 land_again: the cargo survived the jump.
+{"op":"wait_until","path":"tutorial.step","eq":"land_again","max_ticks":120}
+{"op":"assert","path":"fuel","eq":389}
+{"op":"assert","path":"hold.metal_ore","eq":6}
+{"op":"screenshot","name":"s22_land_again"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+# 23 land_cargo
+{"op":"wait_until","path":"tutorial.step","eq":"land_cargo","max_ticks":120}
+{"op":"screenshot","name":"s23_land_cargo"}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"click","target":"ship:hold"}
+{"op":"click","target":"inspector:item:metal_ore"}
+{"op":"click","target":"inspector:all"}
+{"op":"click","target":"inspector:beam"}
+{"op":"click","target":"inspector:close"}
+# 24 first_build
+{"op":"wait_until","path":"tutorial.step","eq":"first_build","max_ticks":120}
+{"op":"assert","path":"site_storage.metal_ore","eq":6}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"screenshot","name":"s24_first_build"}
+{"op":"click","target":"hud:cat_structures"}
+{"op":"click","target":"hud:build_storage_locker"}
+{"op":"click","target":"settle:0,-2"}
+{"op":"click","target":"hud:sub_back"}
+{"op":"wait_until","path":"tutorial.done","eq":true,"max_ticks":6000}
+{"op":"assert","path":"tutorial.ended","eq":true}
+{"op":"assert","path":"tutorial.skipped","eq":false}
+{"op":"screenshot","name":"s25_end_panel"}
+{"op":"click","target":"tutorial:close"}
+{"op":"assert","path":"tutorial","eq":null}
+{"op":"screenshot","name":"s26_closed"}

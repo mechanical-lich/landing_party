@@ -6,6 +6,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/event"
+	"github.com/mechanical-lich/mlge/ui/minui"
 )
 
 type PopulationEntry struct {
@@ -81,6 +82,11 @@ func (gm *GUIManager) WithinModalBounds(x, y int) bool { return gm.hud.WithinMod
 // tutorial's highlights use it.
 func (gm *GUIManager) ElementBounds(id string) (x, y, w, h int, ok bool) {
 	return gm.hud.ElementBounds(id)
+}
+
+// ModalElement finds an element inside a named HUD modal; see HUDScreen.ModalElement.
+func (gm *GUIManager) ModalElement(modal, id string) minui.Element {
+	return gm.hud.ModalElement(modal, id)
 }
 
 func (gm *GUIManager) SetHoveredEntity(entity *ecs.Entity) { gm.hud.SetHoveredEntity(entity) }

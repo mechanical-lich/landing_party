@@ -6,7 +6,9 @@
 saves/
 bin/
 dist/
-.claude/
+.claude/*
+!.claude/skills/
 cpu.pprof
 mem.pprof
 data/config.local.json
+/vmtest/out/

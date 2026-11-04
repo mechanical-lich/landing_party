@@ -1,0 +1,56 @@
+{"name":"storage_beam","seed":777}
+# Ship hold inspector: beam 30 metal ore down. Site storage locker inspector:
+# beam 10 back up. Hold and site storage move by the beamed amounts and the
+# total (100 at the start) is conserved.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"VM Beam"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:start"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"assert","path":"hold.metal_ore","eq":100}
+{"op":"assert","path":"site_storage","eq":{}}
+{"op":"click","target":"ship:hold"}
+{"op":"assert","path":"modal","contains":"inspector"}
+{"op":"click","target":"inspector:item:metal_ore"}
+{"op":"click","target":"inspector:amount"}
+{"op":"type","text":"30"}
+{"op":"screenshot","name":"hold_inspector"}
+{"op":"click","target":"inspector:beam"}
+{"op":"assert","path":"hold.metal_ore","eq":70}
+{"op":"assert","path":"site_storage.metal_ore","eq":30}
+{"op":"screenshot","name":"beamed_down"}
+{"op":"click","target":"inspector:close"}
+{"op":"assert","path":"modal","eq":[]}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"click","target":"entity:storage_locker"}
+{"op":"assert","path":"modal","contains":"inspector"}
+{"op":"click","target":"inspector:item:metal_ore"}
+{"op":"click","target":"inspector:amount"}
+{"op":"type","text":"10"}
+{"op":"screenshot","name":"site_inspector"}
+{"op":"click","target":"inspector:beam"}
+{"op":"assert","path":"hold.metal_ore","eq":80}
+{"op":"assert","path":"site_storage.metal_ore","eq":20}
+{"op":"screenshot","name":"beamed_up"}
+{"op":"click","target":"inspector:close"}
+{"op":"assert","path":"modal","eq":[]}
+{"op":"wait","ticks":120}
+# Nothing leaks once the colony runs a little.
+{"op":"assert","path":"hold.metal_ore","eq":80}
+{"op":"assert","path":"site_storage.metal_ore","eq":20}
