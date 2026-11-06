@@ -6,41 +6,18 @@ alone and need a play-test or a judgment call.
 
 ## Open
 
-- UI defects caught by the VM play-test framework on 2026-11-03 (frames in
-  the shared notes folder under `vmtest-report/catches/`); fix with
-  `make vmtest` before/after runs:
-  1. Star Map scenario description text overflows onto the Scan and Pause
-     buttons (`starmap_panel.go`).
-  2. The tutorial panel's top-right button draws as an empty square
-     (`tutorial_panel.go`).
-  3. minui modals draw without their title or child backgrounds: incident
-     popup, storage inspector, Esc menu, crafting and research modals (which
-     also show no close X). Check whether this came with the Ebiten 2.10 /
-     mlge v1.14 bump; `mlge/ui/minui/modal.go` still draws `Title`.
-  4. The Esc menu truncates "New Game" to "New Ga…".
-  5. The tutorial highlight draws on top of an open crafting modal.
-  6. Research and crafting cost lines print in Go map order
-     (`hud_screen.go` ~1196 and ~1286), so rows shuffle between identical
-     runs; sort them.
-  7. The tutorial panel hides the "PAUSED - incident" marker.
-  8. The font has no arrow glyphs: "← Back" renders as "Back".
-  9. `main_state.go` ~756 checks `ModalOpen("colonistModal")`, which is
-     never true, so HUD input is not blocked while the colonist panel is
-     open (read from code, not seen on screen).
 - Door sounds. `data/blueprints/structures/doors.json` has no `Sound`
   component and `data/audio.json` has no door entries.
-- Tutorial planet: a guided first landing with non-blocking prompts that
-  teach the basics, switchable off on the New Expedition screen. Planned
-  2026-10-31, code-grounded. Plan: [tutorial_plan.md](tutorial_plan.md).
-  Implemented 2026-11-01 on branch `claude/tutorial-planet` (ten commits,
-  headless walkthrough of all 24 steps in `internal/game`); not yet merged.
-  Still to do: one real playthrough for pacing and panel layout, since no
-  headless test can judge how the prompts read. Watch the ration burn aboard
-  the ship and how long hauling single mined units takes after the mining step.
-- Expanding enemy factions: two-tier model (abstract per-location presence
-  on the campaign, materialized into worker-driven faction settlements on
-  loaded levels), data-driven doctrines, greyish fleets met in space.
-  Planned 2026-10-31. Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
+- Expanding enemy factions: two-tier model (abstract presence on the
+  campaign, carried by a planet or a fleet; materialized into worker-driven
+  faction settlements on loaded levels), data-driven doctrines. Order:
+  xenos → mirror colony → greyish → autonz. Xenos spread via a
+  research-ranged egg launcher; doctrine-driven player settlement so races
+  become playable later. Planned 2026-10-31, updated 2026-11-05.
+  Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
+- Observer mode / self-play: a director that runs the player's own colony
+  (phase C1 of the factions plan), driven by vmtest for integration and
+  balance soak runs. Useful on its own before any enemy faction exists.
 
 - The tutorial panel covers the bottom rows of the research and crafting
   modals; it could collapse to its title row while a HUD modal is open, as it
@@ -62,6 +39,20 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Tutorial planet, merged 2026-11-01 (`80d3132`): guided first landing,
+  Travel lock, pack-up and jump-start on a second planet, every expedition
+  now starts adrift at the Wreck Site. Plan: [tutorial_plan.md](tutorial_plan.md).
+  A real playthrough for pacing and prompt wording is still owed; the vmtest
+  `tutorial` script drives all steps headlessly.
+- Background planet simulation, merged 2026-11-01 (`52151dc`): per-level
+  scenario and settlements, scoped saves, staffed planets stay loaded and
+  tick on an owed-ticks budget, incident popup, dashboard notifications,
+  Star Map pause, HUD pause marker. Plan: `docs/developer/background_simulation.md`.
+- VM play-test framework, merged 2026-11-03 (`a2b8b69`), then moved into
+  mlge v1.15.0 and run from the engine via `go tool vmtest` (`a7b0e72`,
+  2026-11-05). Six starter scripts under `vmtest/scripts/`; see
+  `docs/developer/vmtest.md`. Plans: [vmtest_plan.md](vmtest_plan.md),
+  [vmtest_mlge_plan.md](vmtest_mlge_plan.md).
 - VM play-test UI defects, fixed 2026-11-03 on `claude/ui-fixes-1229e3`:
   - Modals draw their title bar, close X and button/field faces again: mlge
     v1.14.1 strokes rounded borders with `FillRule: ebiten.NonZero` (since

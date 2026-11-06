@@ -1,7 +1,16 @@
 # Expanding Enemy Factions — Plan
 
 Status: **planned, not started** (2026-10-31). Code-reviewed the same day;
-see "Code review findings" below for what the audit changed. Sequencing:
+see "Code review findings" below for what the audit changed. Updated
+2026-11-05 with the design chat: faction order (xenos → greyish → autonz),
+presences that live on a fleet rather than a planet, the **mirror colony**
+and **observer mode** (see "The mirror colony" and the revised Phasing).
+Updated again the same day: xenos spread by an **egg launcher** structure
+(population-triggered, research-ranged, shared by AI and player), eggs in
+flight are fleets, and a **doctrine-driven player settlement** is adopted
+as a design constraint so greyish/autonz/xenos can become playable races
+(see "Playable races").
+Sequencing:
 background simulation **Part B0** first (per-level scenario, per-location
 settlement names, scoped saves, and the colony-worker predicate from
 finding 1), then Phase A here can run in parallel with Part B.
@@ -83,7 +92,9 @@ planet with the same task system colonists use, grow in number as they
 expand, stockpile / strip / convert the planets they hold, and spread from
 planet to planet while the player is elsewhere. Several archetypes with
 distinct personalities (cyborg, insect, greyish, ...), some planet-bound,
-some with ships that can be met in space.
+some with ships that can be met in space. One of them, the **mirror
+colony**, plays exactly as the player does and doubles as the engine's
+self-play harness (observer mode).
 
 ## The constraint that shapes the design
 
@@ -125,15 +136,30 @@ type FactionPresence struct {
     Stage       int            `json:"stage"`        // 0 scouts, 1 outpost, 2 colony, 3 hive/fortress
     ArrivedDay  int            `json:"arrived_day"`
     LastStepDay int            `json:"last_step_day"`
+    KnownTechs  []string       `json:"known_techs"`  // walked from doctrine.research
+    ResearchPts int            `json:"research_pts"` // progress toward the next tech
+    LastShotDay int            `json:"last_shot_day"`// launcher cooldown
     Seed        int64          `json:"seed"`         // deterministic materialization
 }
 ```
 
-- `Location.Factions []FactionPresence` (omitempty). Several factions on one
-  planet is allowed and is where fights between them happen (see Tier 2).
-- `Campaign.Fleets []Fleet` for spaceborne factions (greyish): `Faction`,
-  `X, Y`, `FromID, ToID`, `Progress`, `Strength`, `Cargo`. A fleet is a
-  faction presence that is *between* locations.
+**Where a presence lives** depends on the faction, and this is the main
+design split:
+
+- **Planet-carried** (xenos, troids, autonz): `Location.Factions
+  []FactionPresence` (omitempty). The planet *is* the colony; when it is
+  cleared the presence is gone. Several factions on one planet is allowed
+  and is where fights between them happen (see Tier 2).
+- **Fleet-carried** (greyish, the mirror colony): `Campaign.Fleets
+  []Fleet`, where `Fleet` *embeds* a `FactionPresence` plus `ID`, `X, Y`,
+  `FromID, ToID`, `Progress`, `Kind` (`ship` / `projectile`), `ShipTier`. The ship is
+  the settlement: population, stockpile, techs and ship size travel with it.
+  A "base" is a fleet that has landed; the Location only holds
+  `FleetIDs []string` saying who is parked there. Leaving takes the
+  stockpile along and leaves the stamped structure behind as ruins.
+
+Materialize and reconcile (Tier 2) take a `*FactionPresence` and do not
+care which carrier it came from.
 - A per-planet **carrying capacity** derived from the location archetype
   tags (`data/location_templates.json`): `ore`/`biomass` tags feed strippers
   and insects, `hostile` tolerates more. Capacity is what stops the campaign
@@ -147,29 +173,44 @@ Consistent with the "data-driven races" decision in
 ```json
 "troid": {
   "name": "Troids",
-  "mobility":   { "kind": "spore", "range": 2.5, "chance_per_day": 0.02 },
+  "mobility":   { "kind": "launcher", "spread_pop": 16, "base_range": 2.0,
+                  "cooldown_days": 6, "payload": "troid_egg" },
   "economy":    "biomass",
   "growth":     { "per_day": 0.08, "cap_per_capacity": 1.0 },
   "conversion": { "tile": "hive_floor", "per_day": 0.0 },
   "stages": [
     { "pop": 0,  "stamp": null,          "workers": ["troid_hatchling"] },
     { "pop": 8,  "stamp": "troid_nest",  "workers": ["troid_hatchling", "troid_stage2"] },
-    { "pop": 24, "stamp": "troid_hive",  "workers": ["troid_stage2"], "guards": ["troid_stage3"] }
+    { "pop": 24, "stamp": "troid_hive",  "workers": ["troid_stage2"], "guards": ["troid_stage3"],
+      "launcher": "egg_launcher" }
   ],
-  "tasks": ["forage", "haul", "dig"],
+  "tasks": ["forage", "haul", "dig", "build"],
+  "research": ["launcher_range_1", "launcher_range_2", "hardened_carapace"],
   "aggression": 8
 }
 ```
 
-Axes and the three starting archetypes:
+`mobility.kind` is one of `launcher` (xenos, troids), `fleet` (greyish,
+mirror), `signal` (autonz, planet-bound slow seeding). `research` is the
+ordered list the abstract tier walks and the director researches at the
+stage's lab; entries live in `research.json` under a faction key so the
+same file serves the player and the AI.
 
-| Axis | Cyborg (autonz) | Insect (troids / xenos) | Greyish |
-|---|---|---|---|
-| **Mobility** | planet-bound, spreads to adjacent systems slowly via "signal" | planet-bound, spores to nearby systems, no ship | **fleet**: moves on the star map, lands, salvages, leaves |
-| **Economy** | **convert** (wire_placer already lays conversion tiles) + mine ore | **biomass**: forage, eggs, grows with food | **stockpile**: mine + haul into their ship, hoard tech |
-| **Growth** | slow, capped by conversion % | fast, hard cap from capacity | fixed crew per fleet; fleets multiply at a mothership |
-| **Blueprints today** | `autonz.json`: enforcer, wire_placer | `troids.json`, `xenomorphs.json`: egg → hatchling → stage2/3 | `greyish.json`: greenish/greyish/pinkish/whitish |
-| **Scenario today** | `autonz_incursion` | `troid_outbreak`, `exterminate_xenos` | `grey_contact` |
+Axes and the four archetypes, in build order (see Phasing):
+
+| Axis | Insect (troids / xenos) | Mirror colony | Greyish | Cyborg (autonz) |
+|---|---|---|---|---|
+| **Carrier** | planet | fleet | fleet | planet |
+| **Mobility** | consume, then **launch an egg** at a system within launcher range once population hits `spread_pop`; no ship | ship, travels like the player | **fleet**: lands, salvages, leaves | planet-bound, spreads to adjacent systems slowly via "signal" |
+| **Economy** | **biomass**: forage, eggs, grows with food | the player's: build, mine, craft, research | **stockpile**: mine + haul into their ship, hoard tech | **convert** (wire_placer already lays conversion tiles) + mine ore |
+| **Growth** | fast, hard cap from capacity, then starves | bioprinter + research, same as the player | bioprinter per unit type; **ship tier** gates crew cap and only rises at the mothership | slow, capped by conversion % |
+| **Bases** | permanent until cleared; leave a husk when exhausted | semi-permanent, like the player's sites | temporary; ruins remain, stockpile leaves | permanent and growing |
+| **Blueprints today** | `troids.json`, `xenomorphs.json`: egg → hatchling → stage2/3 | `colonists.json`, `robots.json` | `greyish.json`: greenish/greyish/pinkish/whitish | `autonz.json`: enforcer, wire_placer |
+| **Scenario today** | `troid_outbreak`, `exterminate_xenos` | none (a second life-raft crew) | `grey_contact`, `crashed_ufo` (a fleet that never left) | `autonz_incursion` |
+
+Autonz are deliberately last: they combine the two carriers the first two
+factions establish (planet-carried growth, fleet-style building and
+research) and add nothing structurally new.
 
 Existing scenarios become the **materialization templates** for stage 1–2
 presences instead of standalone scenario rolls. Scenarios stay random per
@@ -193,22 +234,77 @@ Per location, per presence, for each elapsed day:
    `Stockpile` (strip/hoard) or raise `Conversion` (convert). This is the
    abstract mirror of what their workers do when the level is live.
 3. **Stage up** when `pop` crosses the next stage threshold.
-4. **Spread**: with `mobility.chance_per_day`, pick a Discovered-or-not
-   location within `range` (star-map distance, same metric as `FuelCost`)
-   and seed a stage-0 presence there. Spore/signal factions seed directly;
-   fleet factions spawn a `Fleet` that travels and lands.
-5. **Skip** locations whose level is currently loaded (live or parked):
+4. **Research**: advance a per-presence research counter; on completion
+   push the next `research` entry into the presence's `KnownTechs`
+   (launcher range, better units, etc.).
+5. **Spread**, by `mobility.kind`:
+   - `launcher`: when `pop >= spread_pop`, the current stage has a
+     `launcher`, and `cooldown_days` have passed since the last shot, pick
+     a location within `base_range` plus any range techs (star-map
+     distance, same metric as `FuelCost`) and fire: spawn a **projectile
+     fleet** carrying a stage-0 presence with `Population 1` and the
+     `payload` blueprint. Prefer unoccupied sites with the economy's tag
+     (`biomass`). The hive keeps growing; the shot costs one egg from
+     `Stockpile`.
+   - `fleet`: the fleet itself decides to move (greyish target rule
+     below).
+   - `signal`: with a small chance per day, seed a stage-0 presence at an
+     adjacent system directly. Autonz only.
+6. **Skip** locations whose level is currently loaded (live or parked):
    those are simulated for real and reconciled on freeze.
 
-**Fleets**: advance `Progress` along `From→To` by speed; on arrival become a
-presence (greyish: stage 1, then leave after N days with the planet's
-stockpile delta as `Cargo`, heading to the mothership location).
+**Fleets** carry a `Kind`: `ship` (greyish, mirror) or `projectile` (an
+egg in flight). Both advance `Progress` along `From→To` by speed; on
+arrival a ship is parked at the location and its presence grows/works like
+any other, while a projectile is consumed and its presence is added to
+`loc.Factions` (or merged into an existing presence of the same faction).
+Projectiles are visible on the Star Map once their origin or target is
+Discovered, so a human player can see an egg incoming and prepare.
+Greyish doctrine: pick the destination whose archetype tags feed the next
+entry in the greyish tech list (the abstract mirror of the player choosing
+where to land), mine for N days, then leave with the stockpile. Abstract
+research is a counter per day that pops the next tech into
+`Fleet.KnownTechs`; a tech can unlock a better unit type for the
+bioprinter. **Ship tier only rises when the fleet is at the mothership**
+location, which caps growth over a long campaign and gives the player a
+target. The mothership is itself a fleet with `ShipTier` max and no
+`ToID`.
+
+### Initial seeding and the faction-count option
+
+How many AI factions a campaign has is the **player's choice at New
+Expedition**, alongside name, seed and the tutorial toggle in
+`title_state.go`. Decided 2026-11-05.
+
+- A stepper **"Rival factions: 0 … N"** on the New Expedition screen. `0`
+  gives today's game (hostile waves still come from scenarios; nothing
+  expands). Default and max come from `data/generation.json`
+  (`factions_default`, `factions_max`), so balancing is data.
+- The value travels with the seed: `GenerateCampaign(name, seed, opts)`
+  gains a `GenOptions{Factions int}` and `Campaign.FactionCount` persists
+  it, so a saved game knows what it was created with and `Expand` /
+  `MaybeTravelQuests` can scale later seeding to it.
+- **Which** factions is random, drawn without replacement from the
+  doctrines flagged `"seedable": true` in `data/factions.json`, with the
+  campaign RNG (`Seed + GenSeq`). This follows the scenarios-are-random
+  decision: the player tunes pressure, not the roster. A per-faction
+  toggle can come later as an "advanced" row if wanted; it is UI only.
+- Each chosen faction gets one stage-0/1 presence on a generated system
+  that is **not** the start system and not within one jump of it (so the
+  first landing is the player's), biased toward systems whose tags match
+  its economy. Fleet factions start as a parked ship at that system; the
+  greyish mothership is placed far from Home. Mirror colonies start as a
+  fleet aboard a ship at a system of their own.
+- `FactionCount` also scales the Tier 1 **spread** budget: the launcher
+  and signal rolls use `cooldown_days` divided by a pressure factor so
+  "many factions" and "aggressive factions" are one knob, not two.
 
 ## Tier 2 — Level: materialize, simulate, reconcile
 
 ### Materialize (on `buildParked` → after `spawnLocationFixtures`)
 
-For each `FactionPresence` on the location, seeded by `presence.Seed`:
+For each `FactionPresence` on the location (`loc.Factions` plus the
+presence of every fleet in `loc.FleetIDs`), seeded by `presence.Seed`:
 
 - Create a **faction settlement** (`settlement.Settlement`) named
   `"<faction>:<locID>"` with a centre picked like the player's plaza
@@ -254,10 +350,74 @@ pass per faction settlement per N ticks (not per entity):
   print an enforcer at a stamped fabricator). Same mechanism the player
   uses at the Robot Workbench, so later "steal their fabricator" is free.
 
+**The egg launcher on a live planet.** No buildable has a footprint today
+(`construction.Buildable` has no size field), so the launcher is a stamped
+structure for its visuals plus **one core entity** carrying a
+`LauncherComponent{Range, Charge, Required, Payload}`. Building it is a
+normal `BuildAction` on the core, which runs the stamp on completion.
+Firing is a task chain the director (or the player) posts: haul one
+`payload` item to the core (a carried input, per the physical storage
+plan), charge for `Required` ticks, then fire, which spawns a projectile
+fleet on the campaign exactly as the abstract step does. Range techs raise
+`Range` on the component when researched. The same component and tasks
+serve the player when xenos are playable (see "Playable races").
+
 Combat stays as it is: `rlcombat.IsFriendly` compares
 `Description.Faction`, so two factions on one planet already fight each
 other and both fight colonists. Doctrine `aggression` just sets the
 `hostility` var the humanoid script already reads.
+
+### The mirror colony and observer mode
+
+A **mirror colony** is a faction whose doctrine is the player's own game:
+colonist blueprints, the real build menu, the real crafting recipes and
+`research.json`, a bioprinter for growth. It exists for two reasons.
+
+1. **It is the director's unit test.** Everything the greyish need on a
+   live planet is "a director running a colony with a different unit list
+   and tech tree". Building the director first against the player's own
+   settlement proves it on content that already exists, and greyish become
+   a doctrine swap (unit list, tech list, leave-when-done rule).
+2. **Observer mode.** A flag (config, or a scenario option) attaches the
+   director to the *player's* settlement and leaves the cursor inert. The
+   game then plays itself, which turns the vmtest harness
+   ([vmtest.md](../developer/vmtest.md)) into an integration and balance
+   tool with no harness changes:
+   - a vmtest script starts a campaign with the flag set and `wait_until`s
+     on milestones (first bed, first storage, first research done, N
+     colonists alive at tick T) with a tick budget;
+   - the sidecar state snapshot gains **settlement stats**: colonist count,
+     storage totals, structures built, techs known, tasks pending and tasks
+     stuck (no progress for N ticks);
+   - a second, faster layer is a plain Go test: `generation.BuildWorld`, attach
+     the director, step the logic systems for N ticks, assert on the
+     settlement. The `workerai` tests already construct levels; whether the
+     full system stack steps cleanly outside `MainState` is **unverified**
+     and is the first thing to check.
+
+   Soak runs (ten seeds, 5,000 ticks) directly address two todo Verify
+   items, building cost balance and the resource tracker, and act as a
+   regression test for the physical-storage work: a director that stops
+   building is a hauling bug.
+
+Director design rules that follow from this:
+
+- **Goal-driven, not scripted.** A needs ladder (shelter → storage → food
+  → defence → research), with the doctrine supplying weights and the unit
+  and tech lists. A build-order script would pass the observer test and
+  teach nothing, and would not transfer to greyish or autonz.
+- **Determinism.** Systems use global `rand`. Observer runs assert on
+  milestones and ranges, not exact state, unless a seed is threaded through
+  (frame diffs are already noisy for the same reason).
+- **Faction-blind plumbing.** The director posts tasks through
+  `task_requests` onto its settlement's `TaskScheduler`; `WorkerSystem`
+  stays unchanged. Only the colony-worker predicate (finding 1) tells the
+  UI and the loss check which settlement is the player's.
+
+As an in-game faction the mirror is a second life-raft crew competing for
+the same planets. It can start neutral and turn hostile only when the
+player lands on a planet it holds, which is a different pressure from the
+xenos and a natural place for trade later.
 
 ### Reconcile (on `Freeze`)
 
@@ -265,7 +425,10 @@ Alongside `loc.Colonists` and `loc.StorageSummary`: count living entities
 per faction settlement → `Population`; `storage.Summarize` over the faction
 settlement's owners → `Stockpile`; count converted tiles / total →
 `Conversion`; keep `Stage`. If `Population == 0` and no eggs remain, drop
-the presence (planet cleared).
+the presence (planet cleared). For a fleet-carried presence the record is
+written back onto the `Fleet`, and a fleet with zero population is removed
+from `Campaign.Fleets` (its ruins stay as a stamped structure in the level
+save). Delete the faction settlement from the global map here (finding 5).
 
 ### Keep-loaded rule
 
@@ -298,17 +461,61 @@ planet would count as staffed and stay loaded.
   planets change biome and spawn rules. That is the real pressure, more
   than the hostiles themselves.
 
+## Playable races (design constraint, not a phase)
+
+The doctrine is the unit list, build menu filter, research list, growth
+mechanism and mobility kind. If the **player's settlement reads those from
+a doctrine too**, a playable race is a title-screen choice plus a doctrine
+entry. If the player side keeps its hardcoded defaults (colonist blueprint,
+one build menu, one tech tree, the craft handler's `"colonist"` special
+case) while only the AI uses doctrines, the refactor happens twice.
+
+So, adopted now at zero cost to the schedule:
+
+- From C1 on, the player's settlement carries a `Doctrine` and the build
+  menu, research tree, printer unit list and `SeedShipCrew` filter through
+  it. The default doctrine is `"colony"`, which reproduces today's game
+  exactly.
+- The colony-worker predicate (finding 1) means "my settlement", never "the
+  colonist blueprint".
+- Campaign gets a `Mode` derived from the doctrine's mobility: `ship`
+  (hold, roster, fuel, travel, reach-Home win) or `launcher` (no ship; the
+  player views any live hive from the Star Map for free, launches eggs from
+  a charged launcher, several hives tick at once via the background sim,
+  and wins by an alternative rule such as infesting N systems or landing an
+  egg on Home).
+
+What each race then costs:
+
+| Race | Mode | Extra work beyond the doctrine |
+|---|---|---|
+| Greyish | ship | Own build/recipe/tech content; `Needs` component (or a race that does not eat); bioprinter unit list. Nearly free. |
+| Autonz | ship | Own content; `ConvertAction` as a player build. |
+| Xenos | launcher | The `launcher` campaign mode: Star Map action set, no-ship hub, alternative win rule. Bounded, mostly UI. |
+| Mirror | ship | Nothing; it is the default. |
+
+Needs, stats, equipment slots and the colonist modal stay shared across
+races; a race that lacks a component simply skips that system.
+
 ## Phasing
 
-| Phase | Deliverable | Why first |
-|---|---|---|
-| **A** | `FactionPresence` + `data/factions.json` + `AdvanceDay` + Tier 1 step + save/load. Star Map badges. No level changes. | Cheapest, fully testable with unit tests (deterministic RNG). |
-| **B** | Materialize using **existing** stamps, scenarios and hostiles; reconcile on freeze. No director yet. | Biggest visible payoff: planets change while you're away. |
-| **C** | Faction settlements + director + `ConvertAction`; faction workers on the `WorkerSystem`. **Prerequisite: finding 1's colony-worker predicate (Part B0), plus findings 3 and 4.** | Rival-colony feel on the live planet. |
-| **D** | Fleets, interception encounters, greyish mothership. | Depends on A–C; most new UI. |
+Faction order is **xenos → mirror colony → greyish → autonz**. Xenos need
+only A and B (no director, no worker reuse) and prove the campaign tier.
+The mirror proves the director on existing content. Greyish are the
+flagship once both exist. Autonz combine the two.
 
-Phase A ships without B being visible, so the todo should list them as
-separate items.
+| Phase | Deliverable | Why here |
+|---|---|---|
+| **A** | `FactionPresence` + `data/factions.json` + `AdvanceDay` + Tier 1 step + save/load. **New Expedition "Rival factions" stepper** and initial seeding. Star Map badges. Xenos doctrine only. No level changes. | Cheapest, fully testable with unit tests (deterministic RNG). |
+| **B** | Materialize xenos using **existing** stamps, scenarios and hostiles; reconcile on freeze; husk on exhaustion; abstract launcher spread (projectile fleets). No director yet. | Biggest visible payoff: planets change while you're away. |
+| **C1** | The director, run against the **player's own settlement**: observer-mode flag, settlement stats in the vmtest sidecar, one observer vmtest script, one Go soak test. **Prerequisite: finding 1's colony-worker predicate (Part B0), finding 4's `deploy_on_craft`.** | Proves the director on content that exists; delivers the integration/balance tool. |
+| **C2** | Faction settlements on loaded levels; mirror colony as a fleet-carried faction; `ConvertAction`; finding 3's hostility seeding. | Rival-colony feel on the live planet. |
+| **D** | Fleets, greyish doctrine (tech list, bioprinter units, ship tiers, mothership), interception encounters, ruins on departure. | Depends on A–C; most new UI. |
+| **E** | Autonz doctrine: convert economy on a planet carrier, signal spread. | Pure data plus `ConvertAction` once C2 exists. |
+| **F** | Playable races: title-screen doctrine choice; greyish content; `launcher` campaign mode for xenos. | Everything it needs exists by E; F is content plus the no-ship Star Map. |
+
+Phase A ships without B being visible, and C1 is useful with no enemy
+faction at all, so the todo should list them as separate items.
 
 ## Open questions
 
@@ -325,6 +532,20 @@ separate items.
   until the level is live? Proposal: ignore in A, revisit after B.
 - **Does the player get `ConvertAction`?** The design wants it ("just like
   the players would"); gate it behind research so it lands with C.
-- **Insects without a ship spreading across space** needs a fiction hook
-  (spores riding debris, hitching on the player's hull?). The last one is a
-  fun mechanic: carrying eggs in the hold seeds the next planet.
+- **Insect spread: decided.** Population-triggered egg launcher with
+  researchable range, shared by AI and player; eggs in flight are
+  projectile fleets. The earlier "player as vector" idea (eggs riding the
+  hull) is demoted to optional flavour. Still open: does a hive keep
+  launching at the same target, stacking presences, or does each shot need
+  an unoccupied site?
+- **Launcher mode win rule.** Infest N systems, land an egg on Home, or
+  survive to a day count? Decide with F.
+- **Greyish growth ceiling.** Ship tier rises only at the mothership
+  (decided above). Still open: what happens when the player destroys the
+  mothership (fleets freeze at current tier? scatter?).
+- **Mirror colony diplomacy.** Neutral until the player lands on a planet it
+  holds, or hostile from the start? Proposal: neutral in C2, hostility and
+  trade as a later phase.
+- **Go-test stepping.** Can the logic system stack be stepped outside
+  `MainState` for the soak test, or does it need `stepBackground` extracted
+  to a function taking a `*world.Level`? Check before C1.
