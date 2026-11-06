@@ -118,8 +118,12 @@ truth; it advances one day per level-day of simulation of the **live** level
 (background planets tick on the same clock and don't advance it separately),
 plus the day cost of each jump. Levels keep their own `Day`/`Hour` only for the
 day-night cycle; the HUD shows the star date. Prehistory dates are negative.
-This replaces the enemy factions plan's clock fix (its finding 2), which should
-now point here.
+This is the single campaign clock both this plan and the enemy factions
+plan depend on; whichever ships first builds it, and the other cites it.
+**Open (2026-11-05):** the clock must count the world manager's ticks, not
+the live level's days: since background simulation merged, the player is
+often on the Star Map with no live level while away planets tick, and time
+must pass then. Pausing the world clock pauses the star date.
 
 ### Planet state
 
@@ -425,8 +429,11 @@ Live events are dated in the star date, which this plan introduces in step 1.
 - Every event's evidence names features and structure scripts that exist.
 - Lifeless arcs produce no civs, figures or population events on that site.
 - A version 1 campaign is refused on load with a clear message.
-- Adding history doesn't change a seed's maps, positions or names; only the
-  scenario, which now comes from the chapter.
+- ~~Adding history doesn't change a seed's maps, positions or names.~~ Not
+  true as written (2026-11-05): the scenario pick is the last of three draws
+  per site from the shared campaign rng, so dropping it shifts every later
+  site. Either keep a discard draw in its place or accept the shift (saves
+  break anyway); if accepted, this test goes.
 - Across many seeds, the lifeless share is near 25% and every civ count from
   1 to 10 occurs.
 - The star date advances with the live level and with jumps, and a planet
@@ -455,5 +462,17 @@ Live events are dated in the star date, which this plan introduces in step 1.
   before step 3.
 - Whether the per-level event buses carry enough to record deaths with a cause
   and killer.
-- How the enemy factions plan's campaign tier should share `Civs` with history.
-  Settle before building either.
+- ~~How the enemy factions plan's campaign tier should share `Civs` with
+  history.~~ **Decided 2026-11-05: history and factions are independent
+  layers.** History is always generated and always picks the site's chapter
+  and scenario. An enemy faction is *placed* on a planet exactly as the
+  player's party is, on top of whatever the history left there, and has to
+  deal with the live scenario (zombies, blight, native hostiles) like the
+  player would. A presence never replaces or rewrites a chapter. Consequences
+  for the factions plan: Tier 1's abstract step needs a per-scenario hazard
+  factor (a presence on a plague world grows slower or dies off), Tier 2
+  materialises the chapter's evidence and threat first and the presence
+  second, and the live-history recorder logs faction arrivals, departures and
+  wipes as ordinary events so the Legends screen can tell them. History
+  `Civs` and faction doctrines stay separate too; a history civ that maps to
+  a playable species (`Civ.Species`) is flavour, not a presence.

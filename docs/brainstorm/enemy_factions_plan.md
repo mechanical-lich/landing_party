@@ -10,10 +10,90 @@ Updated again the same day: xenos spread by an **egg launcher** structure
 flight are fleets, and a **doctrine-driven player settlement** is adopted
 as a design constraint so greyish/autonz/xenos can become playable races
 (see "Playable races").
+Sequencing: background simulation Part B0 and Parts B–D are **merged**
+(2026-11-01), so finding 1's colony-worker predicate exists
+(`components.IsColonyWorker`) and **Phase A can start now**. See "Second
+review" below for what the 2026-11-05 revision still needs to absorb.
+
+## Second review (2026-11-05, against `dev` at `a7b0e72`)
+
+Stale against merged code:
+
+- **B0 is done.** Remove it from the prerequisites of C1 and from the
+  status; the predicate, per-level scenario and scoped saves are all in.
+- **The soak-test stepping question is answered.** The physical-storage
+  and tutorial walkthrough tests (`internal/game/physical_e2e_test.go`,
+  `tutorial_walkthrough_test.go`) already drive the full system stack
+  headlessly through a `MainState` built with `newMainStateFromLevel` and
+  stepped with `stepWorld`, no rendering. The Go soak test in C1 should use
+  that path; nothing needs extracting. (Remember to reset the per-frame
+  pathfinding budget each tick, as those tests do.)
+- **Seeding must respect the adrift start and the tutorial.** "Not the
+  start system and not within one jump of it" predates both. The current
+  start is the Wreck Site (`campaign.AdriftKind`, no site) and a tutorial
+  expedition adds the Training Ground (`Location.Tutorial`). Seeding and
+  every later spread roll must skip any location where `!HasSite()` and
+  any tutorial location, or a presence can land on empty space or on the
+  training planet.
+
 Sequencing:
-background simulation **Part B0** first (per-level scenario, per-location
-settlement names, scoped saves, and the colony-worker predicate from
-finding 1), then Phase A here can run in parallel with Part B.
+
+- **The campaign clock is a Phase A deliverable, not an open question.**
+  Tier 1 cannot run without it. Decide in A: campaign `Day` is the source
+  of truth, levels display it, day length as today (750 ticks per hour via
+  `advanceClock`), and a jump costs `ceil(FuelCost / 3)` days unless play
+  says otherwise.
+- **Phase B carries fleet machinery.** Eggs in flight are projectile fleets
+  that travel between locations, so the `Fleet` record, its movement and
+  arrival land in B, not D. B is "materialise plus Star Map motion", and
+  its table row should say so; D then adds ship-kind fleets, tiers and the
+  mothership on top of a working fleet loop.
+- **A live hive must still launch.** Tier 1 skips loaded planets, and the
+  director does not exist until C1, so in B a hive on a loaded (live or
+  background-ticking) planet needs a minimal launch rule of its own, or
+  the xenos stop spreading whenever the player is nearby. Simplest: the
+  reconcile-on-Freeze path and a per-tick check on loaded presences both
+  consult the same `LastShotDay` cooldown.
+- **The doctrine plumbing roughly doubles C1.** Making the player's
+  settlement read its build menu, research tree, printer unit list and crew
+  seeding from a doctrine touches the build menu, research modal, crafting
+  handler and `SeedShipCrew` in one phase whose headline is the director.
+  Make it its own step, **C0: doctrine-driven player settlement**, between
+  B and C1, with the `"colony"` doctrine reproducing today's game exactly
+  and the vmtest scripts as the regression check.
+
+Cross-plan decision (2026-11-05): **history and factions are independent
+layers.** The lore plan always generates a site's history and chapter, which
+picks the scenario. A faction presence is placed on top of that, exactly as
+the player's party lands on a site, and must deal with the live scenario.
+So: Tier 1 gains a per-scenario hazard factor on growth (a presence on a
+plague or blight world grows slower or dies off; data in `data/factions.json`
+per scenario id); Tier 2 materialises the history's evidence and threat
+first and the presence second; a xeno presence and an `exterminate_xenos`
+chapter on one planet are two hives, not one; and faction arrivals,
+departures and wipes are recorded as live-history events. The campaign
+clock is the lore plan's star date; Phase A builds it if the lore plan has
+not shipped it first, and both plans cite one definition.
+
+Design points to pin down:
+
+- **Observer mode and input.** The cursor is inert, but the incident popup
+  and the Star Map pause still expect input. Decide: observer runs
+  auto-answer incidents with Ignore (and log them), and soak scripts never
+  pause.
+- **What a soak failure looks like.** Milestones and ranges are right
+  (systems use global `rand`, and the VM work showed same-seed generated
+  planets can still differ), but write the thresholds down: e.g. "no bed
+  by tick 5,000 in any of ten seeds fails", "colonists alive at tick 20,000
+  below N in more than two seeds fails". Without them soak runs are noise.
+- **Two homes for known techs.** Presences carry `KnownTechs`; the player's
+  live on the campaign. Once the mirror colony is a fleet, its techs ride
+  the fleet while the player's do not. Pick one place (proposal: on the
+  presence for everyone, with the player's settlement owning a presence
+  under C0).
+- **New Expedition layout.** The screen already moved Launch and Cancel
+  down for the tutorial toggle; the "Rival factions" stepper needs the
+  layout re-checked with the `new_expedition` vmtest script.
 
 ## Code review findings (2026-10-31)
 
@@ -508,7 +588,8 @@ flagship once both exist. Autonz combine the two.
 |---|---|---|
 | **A** | `FactionPresence` + `data/factions.json` + `AdvanceDay` + Tier 1 step + save/load. **New Expedition "Rival factions" stepper** and initial seeding. Star Map badges. Xenos doctrine only. No level changes. | Cheapest, fully testable with unit tests (deterministic RNG). |
 | **B** | Materialize xenos using **existing** stamps, scenarios and hostiles; reconcile on freeze; husk on exhaustion; abstract launcher spread (projectile fleets). No director yet. | Biggest visible payoff: planets change while you're away. |
-| **C1** | The director, run against the **player's own settlement**: observer-mode flag, settlement stats in the vmtest sidecar, one observer vmtest script, one Go soak test. **Prerequisite: finding 1's colony-worker predicate (Part B0), finding 4's `deploy_on_craft`.** | Proves the director on content that exists; delivers the integration/balance tool. |
+| **C0** | Doctrine-driven player settlement: build menu, research tree, printer unit list and `SeedShipCrew` read from a doctrine; `"colony"` reproduces today's game; vmtest scripts unchanged. Also finding 4's `deploy_on_craft`. | Pulled out of C1 (second review); it is the refactor the playable-races constraint requires and should land alone. |
+| **C1** | The director, run against the **player's own settlement**: observer-mode flag, settlement stats in the vmtest sidecar, one observer vmtest script, one Go soak test with written failure thresholds. | Proves the director on content that exists; delivers the integration/balance tool. |
 | **C2** | Faction settlements on loaded levels; mirror colony as a fleet-carried faction; `ConvertAction`; finding 3's hostility seeding. | Rival-colony feel on the live planet. |
 | **D** | Fleets, greyish doctrine (tech list, bioprinter units, ship tiers, mothership), interception encounters, ruins on departure. | Depends on A–C; most new UI. |
 | **E** | Autonz doctrine: convert economy on a planet carrier, signal spread. | Pure data plus `ConvertAction` once C2 exists. |
@@ -546,6 +627,5 @@ faction at all, so the todo should list them as separate items.
 - **Mirror colony diplomacy.** Neutral until the player lands on a planet it
   holds, or hostile from the start? Proposal: neutral in C2, hostility and
   trade as a later phase.
-- **Go-test stepping.** Can the logic system stack be stepped outside
-  `MainState` for the soak test, or does it need `stepBackground` extracted
-  to a function taking a `*world.Level`? Check before C1.
+- ~~**Go-test stepping.**~~ Answered (second review): step a headless
+  `MainState` as the physical-storage and tutorial tests do.
