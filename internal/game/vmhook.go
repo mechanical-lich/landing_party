@@ -3,130 +3,45 @@
 package game
 
 // VM play-testing hook, linked only into guest builds (-tags ebitenginevmguest).
-// When LP_VMTEST_SOCKET names a unix socket, the game dials it and answers
-// JSON-line requests from cmd/vmtest: a state summary, named UI targets and
-// debug commands. Requests are served under a mutex that Game.Update and
-// Game.Draw also hold, so they cost no ticks and never race the game.
+// Game.Run wraps the game with mlge's vmtest/guest, which serves this hook to
+// the vmtest host over the sidecar socket: a state summary, named UI targets
+// and debug commands, under a lock that the wrapped Update and Draw also take.
+// The current screen is StateMachine.Current().
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net"
-	"os"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/tutorial"
-	"github.com/mechanical-lich/landing_party/internal/vmproto"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/ui/minui"
+	"github.com/mechanical-lich/mlge/vmtest/guest"
+	"github.com/mechanical-lich/mlge/vmtest/guest/minuitarget"
 )
 
-var vm struct {
-	mu     sync.Mutex
-	active bool
-	cur    state.StateInterface
-}
+func init() { vmHook = func(g *Game) guest.Hook { return &lpHook{g: g} } }
 
-func vmNoop() {}
+// lpHook is Landing Party's guest.Hook.
+type lpHook struct{ g *Game }
 
-// vmStart dials the sidecar socket when the host asked for one.
-func vmStart(*Game) {
-	path := os.Getenv("LP_VMTEST_SOCKET")
-	if path == "" {
-		return
-	}
-	vmStartServer(path)
-}
-
-// vmStartServer is the sidecar entry point. make vmtest-check looks for this
-// symbol to prove release binaries do not contain the hook.
-func vmStartServer(path string) {
-	conn, err := net.Dial("unix", path)
-	if err != nil {
-		log.Printf("vmtest: sidecar dial: %v", err)
-		return
-	}
-	vm.active = true
-	go vmServe(conn)
-}
-
-func vmServe(conn net.Conn) {
-	r := bufio.NewReaderSize(conn, 1<<16)
-	enc := json.NewEncoder(conn)
-	for {
-		line, err := r.ReadBytes('\n')
-		if err != nil {
-			return
-		}
-		var req vmproto.Request
-		var rep vmproto.Reply
-		if err := json.Unmarshal(line, &req); err != nil {
-			rep.Error = err.Error()
-		} else {
-			vm.mu.Lock()
-			rep = vmHandle(req)
-			vm.mu.Unlock()
-		}
-		if err := enc.Encode(rep); err != nil {
-			return
-		}
-	}
-}
-
-// vmLock is taken by Game.Update and Game.Draw.
-func vmLock() func() {
-	if !vm.active {
-		return vmNoop
-	}
-	vm.mu.Lock()
-	return vm.mu.Unlock
-}
-
-// vmNote records the state running this tick; StateMachine has no getter.
-func vmNote(s state.StateInterface) { vm.cur = s }
-
-func vmHandle(req vmproto.Request) (rep vmproto.Reply) {
-	defer func() {
-		if r := recover(); r != nil {
-			rep = vmproto.Reply{Error: fmt.Sprintf("guest panic in %s: %v", req.Op, r)}
-		}
-	}()
-	switch req.Op {
-	case vmproto.OpState:
-		return vmproto.Reply{OK: true, State: vmState()}
-	case vmproto.OpTarget:
-		x, y, w, h, err := vmTarget(req.Name)
-		if err != nil {
-			return vmproto.Reply{Error: err.Error()}
-		}
-		return vmproto.Reply{OK: true, X: x, Y: y, W: w, H: h}
-	case vmproto.OpTargets:
-		return vmproto.Reply{OK: true, Targets: vmTargets()}
-	case vmproto.OpDebug:
-		out, err := vmDebug(req.Cmd)
-		if err != nil {
-			return vmproto.Reply{Error: err.Error()}
-		}
-		return vmproto.Reply{OK: true, Output: out}
-	}
-	return vmproto.Reply{Error: "unknown op " + req.Op}
-}
+func (h *lpHook) cur() state.StateInterface             { return h.g.StateMachine.Current() }
+func (h *lpHook) State() any                            { return vmState(h.cur()) }
+func (h *lpHook) Target(name string) (guest.Rect, bool) { return vmTarget(h.cur(), name) }
+func (h *lpHook) Candidates() []string                  { return vmCandidates(h.cur()) }
+func (h *lpHook) Debug(cmd string) (string, error)      { return vmDebug(h.cur(), cmd) }
 
 // vmWorld returns the campaign's world manager behind the current state.
-func vmWorld() *WorldManager {
-	switch s := vm.cur.(type) {
+func vmWorld(cur state.StateInterface) *WorldManager {
+	switch s := cur.(type) {
 	case *DashboardState:
 		return s.wm
 	case *MainState:
@@ -139,10 +54,10 @@ func vmWorld() *WorldManager {
 
 var titleScreenNames = map[titleScreen]string{screenMain: "main", screenNewSettlement: "new", screenLoad: "load"}
 
-func vmState() map[string]any {
+func vmState(cur state.StateInterface) map[string]any {
 	out := map[string]any{}
 	var modals []string
-	switch s := vm.cur.(type) {
+	switch s := cur.(type) {
 	case nil:
 		out["state"] = "none"
 	case *TitleState:
@@ -215,7 +130,7 @@ func vmState() map[string]any {
 	default:
 		out["state"] = fmt.Sprintf("%T", s)
 	}
-	if wm := vmWorld(); wm != nil {
+	if wm := vmWorld(cur); wm != nil {
 		if wm.ActiveIncident() != nil {
 			modals = append(modals, "incident")
 		}
@@ -380,13 +295,13 @@ func vmStock(p storage.Provider, owners []string) map[string]any {
 
 // vmBridge is a throwaway tutorialBridge for the current frame, so the
 // tutorial's highlight resolvers serve as script targets with the tutorial off.
-func vmBridge() *tutorialBridge {
-	wm := vmWorld()
+func vmBridge(cur state.StateInterface) *tutorialBridge {
+	wm := vmWorld(cur)
 	if wm == nil {
 		return nil
 	}
 	b := &tutorialBridge{c: wm.Campaign, wm: wm}
-	switch s := vm.cur.(type) {
+	switch s := cur.(type) {
 	case *DashboardState:
 		b.lastDash = s
 		b.lastCtx = "dash:"
@@ -403,160 +318,97 @@ func vmBridge() *tutorialBridge {
 	return b
 }
 
-func vmRectOf(el minui.Element) (float64, float64, float64, float64, bool) {
-	if el == nil || !el.IsVisible() {
-		return 0, 0, 0, 0, false
-	}
-	for p := el.GetParent(); p != nil; p = p.GetParent() {
-		if !p.IsVisible() {
-			return 0, 0, 0, 0, false
-		}
-	}
-	x, y := el.GetAbsolutePosition()
-	r := el.GetBounds()
-	if r.Width <= 0 || r.Height <= 0 {
-		return 0, 0, 0, 0, false
-	}
-	return float64(x), float64(y), float64(r.Width), float64(r.Height), true
-}
-
-// vmListRow is row n of a list box, assuming it is not scrolled.
-func vmListRow(lb *minui.ListBox, n int) (float64, float64, float64, float64, bool) {
-	if lb == nil || !lb.IsVisible() || n < 0 || n >= len(lb.Items) {
-		return 0, 0, 0, 0, false
-	}
-	content := minui.GetContentBounds(lb.GetBounds(), lb.GetComputedStyle())
-	const rowH = 20
-	ax, ay := lb.GetAbsolutePosition()
-	b := lb.GetBounds()
-	x := content.X + ax - b.X
-	y := content.Y + ay - b.Y + n*rowH
-	if y+rowH > content.Y+ay-b.Y+content.Height {
-		return 0, 0, 0, 0, false
-	}
-	return float64(x), float64(y), float64(content.Width), rowH, true
-}
-
-// vmTabRect mirrors minui's horizontal tab strip layout.
-func vmTabRect(tb *minui.TabBar, id string) (float64, float64, float64, float64, bool) {
-	if tb == nil || !tb.IsVisible() {
-		return 0, 0, 0, 0, false
-	}
-	x, y := tb.GetAbsolutePosition()
-	h := tb.GetBounds().Height
-	st := tb.Style
-	for _, t := range tb.Tabs {
-		w := st.Pad * 2
-		if t.Icon != nil {
-			w += t.Icon.ScaledWidth() + 4
-		}
-		w += len(t.Label) * (st.FontSize*6/10 + 1)
-		w = max(w, st.MinTabW)
-		if t.ID == id {
-			return float64(x), float64(y), float64(w), float64(h), true
-		}
-		x += w
-	}
-	return 0, 0, 0, 0, false
-}
-
 // vmTarget resolves a script target name to a rectangle (a ring becomes the
-// square around its centre).
-func vmTarget(name string) (x, y, w, h float64, err error) {
-	kind, rest, _ := strings.Cut(name, ":")
-	ok := false
-	fail := func() (float64, float64, float64, float64, error) {
-		return 0, 0, 0, 0, fmt.Errorf("target %q does not resolve on this screen", name)
-	}
-	fromHL := func(hl highlight, found bool) (float64, float64, float64, float64, bool) {
-		if !found {
-			return 0, 0, 0, 0, false
-		}
-		if hl.radius > 0 {
-			return float64(hl.x - 1), float64(hl.y - 1), 2, 2, true
-		}
-		return float64(hl.x), float64(hl.y), float64(hl.w), float64(hl.h), true
-	}
-	switch s := vm.cur.(type) {
+// square around its centre). Kinds that depend on the screen are tried
+// first, then the tutorial's highlight resolvers.
+func vmTarget(cur state.StateInterface, name string) (guest.Rect, bool) {
+	var r guest.Router
+	switch s := cur.(type) {
 	case *TitleState:
-		if kind == "title" {
-			x, y, w, h, ok = vmTitleTarget(s, rest)
-		}
+		r.Handle("title", func(rest string) (guest.Rect, bool) { return vmTitleTarget(s, rest) })
 	case *DashboardState:
-		switch kind {
-		case "tab":
-			x, y, w, h, ok = vmTabRect(s.tabBar, rest)
-		case "row":
-			x, y, w, h, ok = vmDashRow(s, rest)
-		case "gi":
-			x, y, w, h, ok = vmGITarget(s, rest)
-		}
+		r.Handle("tab", func(rest string) (guest.Rect, bool) { return minuitarget.Tab(s.tabBar, rest) })
+		r.Handle("row", func(rest string) (guest.Rect, bool) { return vmDashRow(s, rest) })
+		r.Handle("gi", func(rest string) (guest.Rect, bool) { return vmGITarget(s, rest) })
 	case *MainState:
-		switch kind {
-		case "hud":
-			if s.guiManager != nil {
-				ix, iy, iw, ih, found := s.guiManager.ElementBounds(rest)
-				x, y, w, h, ok = float64(ix), float64(iy), float64(iw), float64(ih), found && iw > 0 && ih > 0
+		r.Handle("hud", func(rest string) (guest.Rect, bool) {
+			if s.guiManager == nil {
+				return guest.Rect{}, false
 			}
-		case "menu":
-			// menu:<id> is a button in the HUD main menu (Esc): save, load, newgame, quit.
-			x, y, w, h, ok = vmModalTarget(s, "mainMenu:"+rest)
-		case "modal":
-			x, y, w, h, ok = vmModalTarget(s, rest)
-		case "tile":
-			x, y, w, h, ok = vmTileTarget(s, rest)
-		case "settle":
-			// settle:dx,dy is the tile dx,dy from the colony's centre, on the
-			// level the camera shows.
-			if st := s.MainSettlement; st != nil {
-				var dx, dy int
-				if _, err := fmt.Sscanf(rest, "%d,%d", &dx, &dy); err == nil {
-					x, y, w, h, ok = vmTileTarget(s, fmt.Sprintf("%d,%d,%d", st.CenterX+dx, st.CenterY+dy, s.camera.Z))
-				}
+			x, y, w, h, ok := s.guiManager.ElementBounds(rest)
+			return guest.Rect{X: float64(x), Y: float64(y), W: float64(w), H: float64(h)}, ok
+		})
+		// menu:<id> is a button in the HUD main menu (Esc): save, load, newgame, quit.
+		r.Handle("menu", func(rest string) (guest.Rect, bool) { return vmModalTarget(s, "mainMenu:"+rest) })
+		r.Handle("modal", func(rest string) (guest.Rect, bool) { return vmModalTarget(s, rest) })
+		r.Handle("tile", func(rest string) (guest.Rect, bool) { return vmTileTarget(s, rest) })
+		// settle:dx,dy is the tile dx,dy from the colony's centre, on the
+		// level the camera shows.
+		r.Handle("settle", func(rest string) (guest.Rect, bool) {
+			st := s.MainSettlement
+			var dx, dy int
+			if st == nil {
+				return guest.Rect{}, false
 			}
-		case "btn":
+			if _, err := fmt.Sscanf(rest, "%d,%d", &dx, &dy); err != nil {
+				return guest.Rect{}, false
+			}
+			return vmTileTarget(s, fmt.Sprintf("%d,%d,%d", st.CenterX+dx, st.CenterY+dy, s.camera.Z))
+		})
+		r.Handle("btn", func(rest string) (guest.Rect, bool) {
 			if rest == "dashboard" && s.dashboardBtn != nil {
-				x, y, w, h, ok = vmRectOf(s.dashboardBtn)
+				return minuitarget.Element(s.dashboardBtn)
 			}
-		}
+			return guest.Rect{}, false
+		})
 	}
-	if !ok {
-		if b := vmBridge(); b != nil {
-			switch kind {
-			case "dash":
-				x, y, w, h, ok = fromHL(b.dashHighlight(rest))
-			case "star":
-				x, y, w, h, ok = fromHL(b.starHighlight(rest))
-			case "ship":
-				x, y, w, h, ok = fromHL(b.shipHoldHighlight())
-			case "inspector":
-				if rest == "beam" || rest == "list" {
-					x, y, w, h, ok = fromHL(b.inspectorHighlight(rest))
-				} else {
-					x, y, w, h, ok = vmInspectorTarget(b.openInspector(), rest)
-				}
-			case "region":
-				x, y, w, h, ok = fromHL(b.regionHighlight(rest))
-			case "entity":
-				if bp, n, has := strings.Cut(rest, ":"); has {
-					x, y, w, h, ok = vmNthEntity(b, bp, n)
-				} else {
-					x, y, w, h, ok = fromHL(b.entityHighlight(rest))
-				}
-			case "tutorial":
-				x, y, w, h, ok = vmTutorialTarget(rest)
-			case "popup":
-				x, y, w, h, ok = vmPopupTarget(b.wm, rest)
-			}
-		}
+	if b := vmBridge(cur); b != nil {
+		r.Fallback(func(name string) (guest.Rect, bool) { return vmBridgeTarget(b, name) })
 	}
-	if !ok {
-		return fail()
-	}
-	return x, y, w, h, nil
+	return r.Target(name)
 }
 
-func vmTitleTarget(s *TitleState, name string) (float64, float64, float64, float64, bool) {
+func fromHL(hl highlight, found bool) (guest.Rect, bool) {
+	if !found {
+		return guest.Rect{}, false
+	}
+	if hl.radius > 0 {
+		return guest.Rect{X: float64(hl.x - 1), Y: float64(hl.y - 1), W: 2, H: 2}, true
+	}
+	return guest.Rect{X: float64(hl.x), Y: float64(hl.y), W: float64(hl.w), H: float64(hl.h)}, true
+}
+
+// vmBridgeTarget resolves the kinds backed by the tutorial's highlights.
+func vmBridgeTarget(b *tutorialBridge, name string) (guest.Rect, bool) {
+	kind, rest, _ := strings.Cut(name, ":")
+	switch kind {
+	case "dash":
+		return fromHL(b.dashHighlight(rest))
+	case "star":
+		return fromHL(b.starHighlight(rest))
+	case "ship":
+		return fromHL(b.shipHoldHighlight())
+	case "inspector":
+		if rest == "beam" || rest == "list" {
+			return fromHL(b.inspectorHighlight(rest))
+		}
+		return vmInspectorTarget(b.openInspector(), rest)
+	case "region":
+		return fromHL(b.regionHighlight(rest))
+	case "entity":
+		if bp, n, has := strings.Cut(rest, ":"); has {
+			return vmNthEntity(b, bp, n)
+		}
+		return fromHL(b.entityHighlight(rest))
+	case "tutorial":
+		return vmTutorialTarget(rest)
+	case "popup":
+		return vmPopupTarget(b.wm, rest)
+	}
+	return guest.Rect{}, false
+}
+
+func vmTitleTarget(s *TitleState, name string) (guest.Rect, bool) {
 	var el minui.Element
 	switch s.screen {
 	case screenMain:
@@ -593,178 +445,145 @@ func vmTitleTarget(s *TitleState, name string) (float64, float64, float64, float
 		if strings.HasPrefix(name, "save:") {
 			for i, n := range s.campaignNames {
 				if n == strings.TrimPrefix(name, "save:") {
-					return vmListRow(s.saveListBox, i)
+					return minuitarget.ListRow(s.saveListBox, i)
 				}
 			}
 		}
 	}
 	if el == nil {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	if t, ok := el.(*minui.Toggle); ok {
 		// A toggle's bounds can be zero-sized; its box sits at its position.
 		x, y := t.GetAbsolutePosition()
 		r := t.GetBounds()
-		return float64(x), float64(y), float64(max(r.Width, 20)), float64(max(r.Height, 20)), true
+		return guest.Rect{X: float64(x), Y: float64(y), W: float64(max(r.Width, 20)), H: float64(max(r.Height, 20))}, true
 	}
-	return vmRectOf(el)
+	return minuitarget.Element(el)
 }
 
 // vmDashRow resolves row:locList:<location id>, row:shipList:<n>,
 // row:planList:<n> and row:crew:<n> on the dashboard.
-func vmDashRow(d *DashboardState, rest string) (float64, float64, float64, float64, bool) {
+func vmDashRow(d *DashboardState, rest string) (guest.Rect, bool) {
 	list, key, _ := strings.Cut(rest, ":")
 	n, nerr := strconv.Atoi(key)
 	if p := d.starMapPanel(); p != nil && d.tabs[d.active].id == "starmap" {
 		switch list {
 		case "locList":
 			if r, ok := p.rowRect(key); ok {
-				return float64(r.X), float64(r.Y), float64(r.Width), float64(r.Height), true
+				return minuitarget.FromRect(r), true
 			}
-			return 0, 0, 0, 0, false
+			return guest.Rect{}, false
 		case "shipList":
 			if nerr == nil {
-				return vmListRow(p.shipList, n)
+				return minuitarget.ListRow(p.shipList, n)
 			}
 		case "planList":
 			if nerr == nil {
-				return vmListRow(p.planList, n)
+				return minuitarget.ListRow(p.planList, n)
 			}
 		}
 	}
-	return 0, 0, 0, 0, false
+	return guest.Rect{}, false
 }
 
 // vmGITarget resolves the Global Inventory tab's buttons: gi:beam_down, gi:beam_up.
-func vmGITarget(d *DashboardState, name string) (float64, float64, float64, float64, bool) {
+func vmGITarget(d *DashboardState, name string) (guest.Rect, bool) {
 	if d.tabs[d.active].id != "inventory" {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	p, ok := d.tabs[d.active].panel.(*globalInvPanel)
 	if !ok {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	switch name {
 	case "beam_down":
-		return vmRectOf(p.beamDownBtn)
+		return minuitarget.Element(p.beamDownBtn)
 	case "beam_up":
-		return vmRectOf(p.beamUpBtn)
+		return minuitarget.Element(p.beamUpBtn)
 	}
-	return 0, 0, 0, 0, false
+	return guest.Rect{}, false
 }
 
 // vmInspectorTarget resolves inspector:amount, :all, :close and :item:<blueprint>.
-func vmInspectorTarget(insp *StorageInspectorModal, name string) (float64, float64, float64, float64, bool) {
+func vmInspectorTarget(insp *StorageInspectorModal, name string) (guest.Rect, bool) {
 	if insp == nil {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	switch {
 	case name == "amount":
-		return vmRectOf(insp.amountInput)
+		return minuitarget.Element(insp.amountInput)
 	case name == "close":
-		return vmRectOf(insp.modal.FindChildByID("si_close"))
+		return minuitarget.Element(insp.modal.FindChildByID("si_close"))
 	case name == "all":
-		return vmRectOf(insp.modal.FindChildByID("si_all"))
+		return minuitarget.Element(insp.modal.FindChildByID("si_all"))
 	case strings.HasPrefix(name, "item:"):
 		bp := strings.TrimPrefix(name, "item:")
 		for i, b := range insp.invBPs {
 			if b == bp {
-				return vmListRow(insp.invList, i)
+				return minuitarget.ListRow(insp.invList, i)
 			}
 		}
 	}
-	return 0, 0, 0, 0, false
+	return guest.Rect{}, false
 }
 
-func vmTutorialTarget(name string) (float64, float64, float64, float64, bool) {
+func vmTutorialTarget(name string) (guest.Rect, bool) {
 	b := activeTutorial
 	if b == nil || b.panel == nil {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	p := b.panel
 	switch name {
 	case "skip":
 		if !p.ending && !p.collapsed && !p.inspector {
-			return vmRectOf(p.skipBtn)
+			return minuitarget.Element(p.skipBtn)
 		}
 	case "manual":
 		if step := b.dir.Current(); !p.ending && !p.collapsed && !p.inspector && step != nil && step.Topic != "" {
-			return vmRectOf(p.manualBtn)
+			return minuitarget.Element(p.manualBtn)
 		}
 	case "close":
 		if p.ending && !p.collapsed {
-			return vmRectOf(p.closeBtn)
+			return minuitarget.Element(p.closeBtn)
 		}
 	case "collapse":
 		if !p.inspector {
-			return vmRectOf(p.collapseBtn)
+			return minuitarget.Element(p.collapseBtn)
 		}
 	}
-	return 0, 0, 0, 0, false
+	return guest.Rect{}, false
 }
 
-func vmPopupTarget(wm *WorldManager, name string) (float64, float64, float64, float64, bool) {
+func vmPopupTarget(wm *WorldManager, name string) (guest.Rect, bool) {
 	if wm == nil || wm.popup == nil || wm.ActiveIncident() == nil {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	id := map[string]string{"pause": "incident_pause", "travel": "incident_travel", "ignore": "incident_ignore"}[name]
 	if id == "" {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
-	return vmRectOf(wm.popup.modal.FindChildByID(id))
+	return minuitarget.Element(wm.popup.modal.FindChildByID(id))
 }
 
-// vmModalTarget resolves targets inside a HUD modal:
-//
-//	modal:<modal>:close                   the title-bar X
-//	modal:<modal>:<element id>            any element
-//	modal:<modal>:row:<list id>:<n>       row n of a list box
-//	modal:<modal>:item:<list id>:<text>   first row whose text contains text
-func vmModalTarget(s *MainState, spec string) (float64, float64, float64, float64, bool) {
-	none := func() (float64, float64, float64, float64, bool) { return 0, 0, 0, 0, false }
+// vmModalTarget resolves modal:<modal>:<sub> inside a named HUD modal, with
+// minuitarget.Modal's grammar: close, <element id>, row:<list id>:<n>,
+// item:<list id>:<text>.
+func vmModalTarget(s *MainState, spec string) (guest.Rect, bool) {
 	if s.guiManager == nil {
-		return none()
+		return guest.Rect{}, false
 	}
 	modal, rest, _ := strings.Cut(spec, ":")
-	m := s.guiManager.ModalElement(modal, "")
-	if m == nil {
-		return none()
-	}
-	switch {
-	case rest == "close":
-		mx, my := m.GetAbsolutePosition()
-		return float64(mx + m.GetBounds().Width - 28), float64(my + 4), 24, 22, true
-	case strings.HasPrefix(rest, "row:") || strings.HasPrefix(rest, "item:"):
-		kind, r, _ := strings.Cut(rest, ":")
-		listID, key, _ := strings.Cut(r, ":")
-		lb, ok := s.guiManager.ModalElement(modal, listID).(*minui.ListBox)
-		if !ok {
-			return none()
-		}
-		if kind == "row" {
-			n, err := strconv.Atoi(key)
-			if err != nil {
-				return none()
-			}
-			return vmListRow(lb, n)
-		}
-		for i, it := range lb.Items {
-			if strings.Contains(strings.ToLower(it), strings.ToLower(key)) {
-				return vmListRow(lb, i)
-			}
-		}
-		return none()
-	}
-	return vmRectOf(s.guiManager.ModalElement(modal, rest))
+	return minuitarget.Modal(s.guiManager.ModalElement(modal, ""), rest)
 }
 
 // vmNthEntity resolves entity:<blueprint>:<n>, the nth living entity of that
 // blueprint on screen at the camera's level, in level order (0-based).
-func vmNthEntity(b *tutorialBridge, bp, nth string) (float64, float64, float64, float64, bool) {
+func vmNthEntity(b *tutorialBridge, bp, nth string) (guest.Rect, bool) {
 	n, err := strconv.Atoi(nth)
 	s := b.liveSite()
 	if err != nil || s == nil || s.level == nil {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	for _, ents := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
 		for _, e := range ents {
@@ -777,37 +596,38 @@ func vmNthEntity(b *tutorialBridge, bp, nth string) (float64, float64, float64, 
 			}
 			if n == 0 {
 				hl, ok := b.tileHighlight(s, pc.GetX(), pc.GetY(), pc.GetZ(), 0)
-				return float64(hl.x), float64(hl.y), float64(hl.w), float64(hl.h), ok
+				return guest.Rect{X: float64(hl.x), Y: float64(hl.y), W: float64(hl.w), H: float64(hl.h)}, ok
 			}
 			n--
 		}
 	}
-	return 0, 0, 0, 0, false
+	return guest.Rect{}, false
 }
 
 // vmTileTarget resolves tile:x,y,z to that tile's screen square.
-func vmTileTarget(s *MainState, rest string) (float64, float64, float64, float64, bool) {
+func vmTileTarget(s *MainState, rest string) (guest.Rect, bool) {
 	parts := strings.Split(rest, ",")
 	if len(parts) != 3 {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	var v [3]int
 	for i, p := range parts {
 		n, err := strconv.Atoi(strings.TrimSpace(p))
 		if err != nil {
-			return 0, 0, 0, 0, false
+			return guest.Rect{}, false
 		}
 		v[i] = n
 	}
 	if !s.camera.Contains(v[0], v[1], v[2]) || v[2] != s.camera.Z {
-		return 0, 0, 0, 0, false
+		return guest.Rect{}, false
 	}
 	x, y := s.camera.WorldToScreenF(v[0], v[1])
-	return float64(x), float64(y), float64(s.camera.TileW), float64(s.camera.TileH), true
+	return guest.Rect{X: float64(x), Y: float64(y), W: float64(s.camera.TileW), H: float64(s.camera.TileH)}, true
 }
 
-// vmCandidates are names worth listing when they resolve.
-func vmCandidates() []string {
+// vmCandidates are names worth listing when they resolve; the engine keeps
+// those vmTarget resolves.
+func vmCandidates(cur state.StateInterface) []string {
 	names := []string{
 		"title:new", "title:load", "title:settings", "title:quit", "title:name", "title:seed",
 		"title:tutorial", "title:launch", "title:cancel", "title:load_confirm", "title:load_cancel",
@@ -827,7 +647,7 @@ func vmCandidates() []string {
 		"region:tut_outcrop", "region:tut_rations", "settle:0,0",
 		"entity:colonist", "entity:storage_locker", "entity:basic_workbench", "entity:research_lab",
 	}
-	switch s := vm.cur.(type) {
+	switch s := cur.(type) {
 	case *DashboardState:
 		if p := s.starMapPanel(); p != nil {
 			for _, id := range p.locIDs {
@@ -845,7 +665,7 @@ func vmCandidates() []string {
 			names = append(names, "title:save:"+n)
 		}
 	}
-	if b := vmBridge(); b != nil {
+	if b := vmBridge(cur); b != nil {
 		if insp := b.openInspector(); insp != nil {
 			for _, bp := range insp.invBPs {
 				names = append(names, "inspector:item:"+bp)
@@ -855,26 +675,16 @@ func vmCandidates() []string {
 	return names
 }
 
-func vmTargets() []string {
-	var out []string
-	for _, n := range vmCandidates() {
-		if _, _, _, _, err := vmTarget(n); err == nil {
-			out = append(out, n)
-		}
-	}
-	return out
-}
-
 // ---- debug commands ----
 
 // vmDebug runs "cheat <console command>" on the live level, or
 // "incident <location id|ship>" to raise the away-damage popup for a level.
-func vmDebug(cmd string) (string, error) {
+func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 	verb, rest, _ := strings.Cut(strings.TrimSpace(cmd), " ")
 	rest = strings.TrimSpace(rest)
 	switch verb {
 	case "cheat":
-		s, ok := vm.cur.(*MainState)
+		s, ok := cur.(*MainState)
 		if !ok || s.cheatModal == nil {
 			return "", fmt.Errorf("cheat needs a site or the ship on screen")
 		}
@@ -882,7 +692,7 @@ func vmDebug(cmd string) (string, error) {
 		s.cheatModal.runCommand(rest)
 		return strings.Join(message.MessageLog[before:], "\n"), nil
 	case "incident":
-		wm := vmWorld()
+		wm := vmWorld(cur)
 		if wm == nil {
 			return "", fmt.Errorf("no campaign")
 		}

@@ -5,9 +5,11 @@ description: Play the real Landing Party UI headlessly from a script and look at
 
 # Play-test the game in a VM
 
-`cmd/vmtest` runs the game as an Ebitengine VM guest (no window, no desktop
-input), plays `vmtest/scripts/<name>.jsonl`, and writes frames and state to
-`vmtest/out/<name>/<label>/`. Full reference: `docs/developer/vmtest.md`.
+`go tool vmtest` (mlge's vmtest, a go.mod tool) runs the game as an
+Ebitengine VM guest (no window, no desktop input), plays
+`vmtest/scripts/<name>.jsonl`, and writes frames and state to
+`vmtest/out/<name>/<label>/`. Game reference: `docs/developer/vmtest.md`;
+engine reference: mlge `docs/vmtest.md`.
 
 ## Steps
 
@@ -17,8 +19,8 @@ input), plays `vmtest/scripts/<name>.jsonl`, and writes frames and state to
    make vmtest SCRIPT=new_expedition LABEL=before
    ```
 
-   Starters: `new_expedition`, `tutorial`, `incident`, `save_load`, `storage_beam`.
-   `make vmtest-all` runs them all.
+   Starters: `new_expedition`, `tutorial`, `incident`, `save_load`,
+   `storage_beam`, `esc_menu`. `make vmtest-all` runs them all.
 
 2. Read `vmtest/out/<script>/<label>/log.txt`, `result.json`, then the
    `NNNN_<name>.png` frames with the image tool. Frames are 1152x800, the same

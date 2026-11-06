@@ -1608,23 +1608,13 @@ func (h *HUDScreen) WithinModalBounds(x, y int) bool { return h.uiGUI.WithinModa
 
 // ElementBounds resolves a HUD element ID to its absolute rectangle. It
 // reports false for an unknown element and for one hidden by itself or by any
-// ancestor (a closed sub-menu, a hidden sidebar).
+// ancestor (a closed sub-menu, a hidden sidebar), and for an empty rect.
 func (h *HUDScreen) ElementBounds(id string) (x, y, w, h2 int, ok bool) {
 	if h.uiGUI == nil {
 		return 0, 0, 0, 0, false
 	}
-	el := h.uiGUI.FindElementByID(id)
-	if el == nil {
-		return 0, 0, 0, 0, false
-	}
-	for e := el; e != nil; e = e.GetParent() {
-		if !e.IsVisible() {
-			return 0, 0, 0, 0, false
-		}
-	}
-	x, y = el.GetAbsolutePosition()
-	b := el.GetBounds()
-	return x, y, b.Width, b.Height, true
+	r, ok := minui.VisibleRect(h.uiGUI.FindElementByID(id))
+	return r.X, r.Y, r.Width, r.Height, ok
 }
 
 // ModalElement returns the element with the given ID inside one of the HUD's
@@ -1643,19 +1633,7 @@ func (h *HUDScreen) ModalElement(modal, id string) minui.Element {
 	if id == "" {
 		return m
 	}
-	var find func(els []minui.Element) minui.Element
-	find = func(els []minui.Element) minui.Element {
-		for _, el := range els {
-			if el.GetID() == id {
-				return el
-			}
-			if f := find(el.GetChildren()); f != nil {
-				return f
-			}
-		}
-		return nil
-	}
-	return find(m.GetChildren())
+	return minui.FindIn(m, id)
 }
 
 func (h *HUDScreen) openLoadModal() {

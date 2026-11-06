@@ -14,7 +14,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.10.5
 	github.com/mechanical-lich/mechanical-basic v1.2.0
 	github.com/mechanical-lich/ml-rogue-lib v1.15.0
-	github.com/mechanical-lich/mlge v1.14.1
+	github.com/mechanical-lich/mlge v1.15.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/image v0.47.0
 )
@@ -35,3 +35,5 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+
+tool github.com/mechanical-lich/mlge/cmd/vmtest

@@ -29,8 +29,8 @@ github.com/mechanical-lich/mechanical-basic v1.2.0 h1:a4YMXAs/D8/J1fj3Zra7AuB16+
 github.com/mechanical-lich/mechanical-basic v1.2.0/go.mod h1:W6AUQYju/VDAtDtYs5vU3SJI9GIO9swi1BeB/qZp5Z8=
 github.com/mechanical-lich/ml-rogue-lib v1.15.0 h1:8qKD8MhOjXjop5UvktTdSLEcNWz72kDTydUphamynjk=
 github.com/mechanical-lich/ml-rogue-lib v1.15.0/go.mod h1:61D9MwCRiSt46x83UrmNZzltrUncni1mB8W2lN06mGc=
-github.com/mechanical-lich/mlge v1.14.1 h1:Ofp4xj+srV5uBD/mriAkE3YIsT7ROyFlcdcZOgq0qS4=
-github.com/mechanical-lich/mlge v1.14.1/go.mod h1:h2RSSUTL+psjZ6N7SNYsMLlOn4rvlQIuyBMa0D5+OWk=
+github.com/mechanical-lich/mlge v1.15.0 h1:QdhUZnd23sx2FzHT2w+k8Aish4fZp8rI8H91760k088=
+github.com/mechanical-lich/mlge v1.15.0/go.mod h1:h2RSSUTL+psjZ6N7SNYsMLlOn4rvlQIuyBMa0D5+OWk=
 github.com/pierrec/lz4/v4 v4.1.29 h1:CDQY6qZOLI4DW0Nx6R1vRrifrCeQHnNXkMb0hZWXFjg=
 github.com/pierrec/lz4/v4 v4.1.29/go.mod h1:EoQMVJgeeEOMsCqCzqFm2O0cJvljX2nGZjcRIPL34O4=
 github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef h1:Ch6Q+AZUxDBCVqdkI8FSpFyZDtCVBc2VmejdNrm5rRQ=

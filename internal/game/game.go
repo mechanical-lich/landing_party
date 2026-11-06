@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/mlge/input"
 	"github.com/mechanical-lich/mlge/resource"
 	"github.com/mechanical-lich/mlge/state"
+	"github.com/mechanical-lich/mlge/vmtest/guest"
 )
 
 type Game struct {
@@ -43,16 +44,23 @@ func NewGame(title string) (*Game, error) {
 	audio.SetFootstepAudio(cfg.FriendlyFootsteps, cfg.EnemyFootsteps)
 
 	g.StateMachine.PushState(NewTitleState())
-	vmStart(g) // VM play-testing sidecar; a no-op outside guest builds
 	return g, nil
 }
 
+// vmHook builds the VM play-testing hook; set by vmhook.go in guest builds
+// (-tags ebitenginevmguest) and nil otherwise.
+var vmHook func(*Game) guest.Hook
+
 func (g *Game) Run() error {
-	return ebiten.RunGame(g)
+	var h guest.Hook
+	if vmHook != nil {
+		h = vmHook(g)
+	}
+	// Wrap returns g itself unless this is a guest build run by vmtest.
+	return ebiten.RunGame(guest.Wrap(g, h))
 }
 
 func (g *Game) Update() error {
-	defer vmLock()()
 	g.InputManager.HandleInput()
 	event.GetQueuedInstance().HandleQueue()
 	g.Audio.Update() // drain finished voices; safe on a nil System
@@ -61,7 +69,6 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	defer vmLock()()
 	g.StateMachine.Draw(screen)
 }
 

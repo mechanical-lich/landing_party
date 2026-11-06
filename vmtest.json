@@ -1,0 +1,11 @@
+{
+  "guest": "./cmd/game",
+  "link": ["assets", "data"],
+  "local_config": "data/config.local.json",
+  "empty_dirs": ["saves"],
+  "scripts": "vmtest/scripts",
+  "out": "vmtest/out",
+  "ignore_state_keys": ["id", "stable_id", "created", "timestamp"],
+  "screen": null,
+  "check_symbols": ["game.(*lpHook)"]
+}

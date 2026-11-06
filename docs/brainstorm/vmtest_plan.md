@@ -1,10 +1,12 @@
 # VM Play-Testing Framework — Implementation Plan
 
-Status (2026-11-02): **plan only, nothing implemented.** Every API and behaviour
-claim marked *probed* was run against the real game on this Mac (Ebitengine
-2.10.5, arm64, 2x display) with a throwaway host; the probe sources are in the
-session notes folder, not the repo. Depends on the uncommitted `go.mod`/`go.sum`
-Ebiten bump in the working tree.
+Status (2026-11-05): **implemented, then moved into mlge** (v1.15.0:
+`vmtest`, `vmtest/guest`, `cmd/vmtest`, run here as `go tool vmtest`); see
+[vmtest_mlge_plan.md](vmtest_mlge_plan.md) for the move, mlge's
+`docs/vmtest.md` for the engine reference and
+[docs/developer/vmtest.md](../developer/vmtest.md) for this game's side. The
+rest of this file is the original design: paths such as `cmd/vmtest`,
+`internal/vmtest` and `vmhook_on.go` are as they were before the move.
 
 ## Decision
 

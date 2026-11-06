@@ -732,7 +732,6 @@ func (s *MainState) applyScenarioLighting(level *world.Level) {
 }
 
 func (s *MainState) Update() state.StateInterface {
-	vmNote(s)
 	fspath.ResetFrameCounter()
 	tutorialFrameSite(s)
 	audio.SetMusicState("field") // base state in-game; combat overrides it
