@@ -18,6 +18,11 @@
 //	R             reset the world
 //	Esc           close picker modal
 //
+// The sidebar's Presets… list (data/history/structure_presets.json) sets the
+// script, footprint and params a history stamp would use, one click per ship
+// purpose, tech level role and fixed event stamp; the Damage control sets the
+// damage param (0 intact to 3 ruin). Hovering a named room shows its name.
+//
 // View-only: the spawned entities are rendered but no game logic runs.
 package main
 
@@ -40,6 +45,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/game"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/view"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/resource"
@@ -110,6 +116,11 @@ type Viewer struct {
 	// modal state
 	pickerOpen   bool
 	pickerScroll int
+	// pickerPresets switches the modal from the script list to the presets
+	// (data/history/structure_presets.json, lore plan step 8d).
+	pickerPresets bool
+	presets       []history.StructurePreset
+	presetIdx     int // the last preset applied, -1 for none
 
 	// params seeded onto the script's top frame before each stamp.
 	params    []paramRow
@@ -129,6 +140,8 @@ type Viewer struct {
 	btnWidthMinus, btnWidthPlus      rect
 	btnHeightMinus, btnHeightPlus    rect
 	btnPicker, btnReset, btnAddParam rect
+	btnPresets                       rect
+	btnDamageMinus, btnDamagePlus    rect
 	boxWidth, boxHeight              rect
 	// Per-row hitboxes for the params list. Length == len(params).
 	paramKeyBoxes []rect
@@ -170,7 +183,14 @@ func main() {
 		log.Fatalf("no structure scripts found in data/scripts/structures")
 	}
 
+	presets, err := history.LoadPresets("data/history")
+	if err != nil {
+		log.Printf("presets: %v (the Presets list stays empty)", err)
+	}
+
 	v := &Viewer{
+		presets:        presets,
+		presetIdx:      -1,
 		worldW:         *defWidth,
 		worldH:         *defHeight,
 		worldD:         *defDepth,
@@ -407,7 +427,14 @@ func (v *Viewer) handleSidebarClicks(mx, my int) bool {
 		v.adjustHeight(+1)
 	case v.btnPicker.contains(mx, my):
 		v.commitFocusedNumber()
-		v.pickerOpen = true
+		v.pickerOpen, v.pickerPresets, v.pickerScroll = true, false, 0
+	case v.btnPresets.contains(mx, my):
+		v.commitFocusedNumber()
+		v.pickerOpen, v.pickerPresets, v.pickerScroll = true, true, 0
+	case v.btnDamageMinus.contains(mx, my):
+		v.setDamage(v.damage() - 1)
+	case v.btnDamagePlus.contains(mx, my):
+		v.setDamage(v.damage() + 1)
 	case v.btnReset.contains(mx, my):
 		game.ClearStructureScriptCache()
 		v.resetWorld()
@@ -586,8 +613,12 @@ func (v *Viewer) updatePicker(mx, my int) {
 		}
 		if mx >= listX && mx < listX+mr.w-32 {
 			row := (my - listY + v.pickerScroll) / rowH
-			if row >= 0 && row < len(v.scripts) {
-				v.scriptIdx = row
+			if row >= 0 && row < len(v.pickerItems()) {
+				if v.pickerPresets {
+					v.applyPreset(row)
+				} else {
+					v.scriptIdx = row
+				}
 				v.pickerOpen = false
 				return
 			}
@@ -599,13 +630,93 @@ func (v *Viewer) updatePicker(mx, my int) {
 		if v.pickerScroll < 0 {
 			v.pickerScroll = 0
 		}
-		max := len(v.scripts)*rowH - (mr.h - 60)
+		max := len(v.pickerItems())*rowH - (mr.h - 60)
 		if max < 0 {
 			max = 0
 		}
 		if v.pickerScroll > max {
 			v.pickerScroll = max
 		}
+	}
+}
+
+// pickerItems are the modal's rows: the scripts, or the presets as
+// "group: name WxH".
+func (v *Viewer) pickerItems() []string {
+	if !v.pickerPresets {
+		return v.scripts
+	}
+	out := make([]string, len(v.presets))
+	for i, p := range v.presets {
+		out[i] = fmt.Sprintf("%s: %s  %dx%d", p.Group, p.Name, p.W, p.H)
+	}
+	return out
+}
+
+// applyPreset selects a preset's script, footprint and params, keeping the
+// damage set on the slider. A footprint larger than the world grows it.
+func (v *Viewer) applyPreset(i int) {
+	p := v.presets[i]
+	idx := -1
+	for j, s := range v.scripts {
+		if s == p.Script {
+			idx = j
+		}
+	}
+	if idx < 0 {
+		v.status = "preset script " + p.Script + " not found"
+		return
+	}
+	d := v.damage()
+	v.presetIdx, v.scriptIdx = i, idx
+	v.stampW, v.stampH = p.W, p.H
+	keys := make([]string, 0, len(p.Params))
+	for k := range p.Params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	v.params = v.params[:0]
+	for _, k := range keys {
+		v.params = append(v.params, paramRow{Key: k, Value: fmt.Sprint(p.Params[k])})
+	}
+	v.setDamage(d)
+	if need := max(p.W, p.H) + 8; need > v.worldW || need > v.worldH {
+		v.worldW, v.worldH = max(v.worldW, need), max(v.worldH, need)
+		game.ClearStructureScriptCache()
+		v.resetWorld()
+	}
+	v.status = "preset " + p.Name
+}
+
+// damageNames label the damage slider (ruin_pass's levels).
+var damageNames = []string{"0 intact", "1 worn", "2 broken", "3 ruin"}
+
+// damage is the "damage" param row's value, 0 when absent.
+func (v *Viewer) damage() int {
+	for _, p := range v.params {
+		if p.Key == "damage" {
+			n, _ := strconv.Atoi(strings.TrimSpace(p.Value))
+			return max(0, min(n, 3))
+		}
+	}
+	return 0
+}
+
+// setDamage writes the "damage" param row (removing it at 0).
+func (v *Viewer) setDamage(d int) {
+	d = max(0, min(d, 3))
+	for i, p := range v.params {
+		if p.Key == "damage" {
+			if d == 0 {
+				v.params = append(v.params[:i], v.params[i+1:]...)
+			} else {
+				v.params[i].Value = strconv.Itoa(d)
+			}
+			return
+		}
+	}
+	if d > 0 {
+		v.params = append(v.params, paramRow{Key: "damage", Value: strconv.Itoa(d)})
 	}
 }
 
@@ -717,6 +828,9 @@ func (v *Viewer) drawToolbar(screen *ebiten.Image) {
 	hover := "—"
 	if v.hoverValid {
 		hover = fmt.Sprintf("(%d, %d)", v.hoverTX, v.hoverTY)
+		if room := v.level.RoomAt(v.hoverTX, v.hoverTY, v.camZ); room != "" {
+			hover += " " + room
+		}
 	}
 	mlge_text.Draw(screen,
 		fmt.Sprintf("WASD pan  Q/E z  Click to stamp  R reset  |  Z: %d/%d  Hover: %s  |  %s",
@@ -742,9 +856,17 @@ func (v *Viewer) drawSidebar(screen *ebiten.Image) {
 	mlge_text.Draw(screen, v.scripts[v.scriptIdx], 12, x+pad+8, y+9, color.RGBA{220, 230, 255, 255})
 	y += 36
 
-	v.btnPicker = rect{x: x + pad, y: y, w: sidebarW - pad*2, h: 30}
-	drawButton(screen, v.btnPicker, "Pick Structure…", color.RGBA{60, 100, 160, 255})
-	y += 42
+	half := (sidebarW - pad*2 - 6) / 2
+	v.btnPicker = rect{x: x + pad, y: y, w: half, h: 30}
+	drawButton(screen, v.btnPicker, "Structure…", color.RGBA{60, 100, 160, 255})
+	v.btnPresets = rect{x: x + pad + half + 6, y: y, w: half, h: 30}
+	drawButton(screen, v.btnPresets, "Presets…", color.RGBA{100, 70, 150, 255})
+	y += 36
+	if v.presetIdx >= 0 {
+		p := v.presets[v.presetIdx]
+		mlge_text.Draw(screen, p.Group+": "+p.Name, 10, x+pad, y, color.RGBA{190, 160, 230, 255})
+	}
+	y += 18
 
 	// Footprint section. Layout per row: [label] [ − ] [text box] [ + ]
 	mlge_text.Draw(screen, "Footprint", 13, x+pad, y, color.RGBA{160, 200, 255, 255})
@@ -778,6 +900,24 @@ func (v *Viewer) drawSidebar(screen *ebiten.Image) {
 		htext = strconv.Itoa(v.stampH)
 	}
 	drawTextBox(screen, v.boxHeight, htext, "", v.focusKind == focusHeight)
+	y += btnSize + 8
+
+	// Damage: the "damage" param (ruin_pass), 0 intact to 3 ruin.
+	v.btnDamageMinus = rect{x: x + pad + labelW, y: y, w: btnSize, h: btnSize}
+	v.btnDamagePlus = rect{x: v.btnDamageMinus.x + btnSize + gap + innerW + gap, y: y, w: btnSize, h: btnSize}
+	mlge_text.Draw(screen, "Damage", 11, x+pad, y+8, color.RGBA{200, 220, 240, 255})
+	drawButton(screen, v.btnDamageMinus, "−", color.RGBA{50, 54, 70, 255})
+	drawButton(screen, v.btnDamagePlus, "+", color.RGBA{50, 54, 70, 255})
+	d := v.damage()
+	for i := 0; i < 3; i++ {
+		seg := rect{x: v.btnDamageMinus.x + btnSize + gap + i*innerW/3, y: y + 4, w: innerW/3 - 2, h: btnSize - 8}
+		c := color.RGBA{40, 44, 58, 255}
+		if i < d {
+			c = color.RGBA{uint8(150 + 35*i), uint8(120 - 35*i), 60, 255}
+		}
+		vector.DrawFilledRect(screen, float32(seg.x), float32(seg.y), float32(seg.w), float32(seg.h), c, false)
+	}
+	mlge_text.Draw(screen, damageNames[d], 10, v.btnDamageMinus.x+btnSize+gap+4, y+8, color.RGBA{230, 235, 250, 255})
 	y += btnSize + 12
 
 	// Params section — one row per UI-defined param. Each row has a key text
@@ -853,8 +993,8 @@ func drawTextBox(dst *ebiten.Image, r rect, value, placeholder string, focused b
 }
 
 func (v *Viewer) pickerRect() rect {
-	w := 480
-	h := 480
+	w := 560
+	h := 640
 	return rect{x: (screenW - w) / 2, y: (screenH - h) / 2, w: w, h: h}
 }
 
@@ -877,7 +1017,11 @@ func (v *Viewer) drawPicker(screen *ebiten.Image) {
 		color.RGBA{28, 32, 44, 255}, false)
 	drawOutline(screen, mr.x, mr.y, mr.w, mr.h, 2, color.RGBA{90, 110, 150, 255})
 
-	mlge_text.Draw(screen, "Pick a Structure", 14, mr.x+16, mr.y+14, color.RGBA{220, 230, 255, 255})
+	title := "Pick a Structure"
+	if v.pickerPresets {
+		title = "Pick a Preset (as history stamps it)"
+	}
+	mlge_text.Draw(screen, title, 14, mr.x+16, mr.y+14, color.RGBA{220, 230, 255, 255})
 	mlge_text.Draw(screen, "(Esc to cancel)", 10, mr.x+mr.w-110, mr.y+18, color.RGBA{140, 160, 190, 255})
 
 	listX, listY, listW, rowH := v.pickerListLayout(mr)
@@ -885,11 +1029,15 @@ func (v *Viewer) drawPicker(screen *ebiten.Image) {
 	clip := screen.SubImage(image.Rect(listX, listY, listX+listW, listY+mr.h-60)).(*ebiten.Image)
 
 	mx, my := ebiten.CursorPosition()
-	for i, name := range v.scripts {
+	current := v.scriptIdx
+	if v.pickerPresets {
+		current = v.presetIdx
+	}
+	for i, name := range v.pickerItems() {
 		y := listY + i*rowH - v.pickerScroll
 		row := rect{x: listX, y: y, w: listW, h: rowH - 2}
 		bg := color.RGBA{34, 38, 52, 255}
-		if i == v.scriptIdx {
+		if i == current {
 			bg = color.RGBA{60, 90, 140, 255}
 		} else if row.contains(mx, my) {
 			bg = color.RGBA{48, 54, 72, 255}

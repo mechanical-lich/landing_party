@@ -1,0 +1,28 @@
+# old_munition — goes off when a colonist steps on or next to it, or when it
+# is struck (dug at, shot): hits everyone beside it twice, leaves a crater,
+# and is gone.
+function on_turn()
+    if was_attacked() = 1 then
+        explode()
+        return
+    endif
+    # The search box runs one short on its far side: look 2 out, act at 1.
+    if find_nearest_worker(2) = 1 and dist(get_self_x(), get_self_y(), get_nearest_x(), get_nearest_y()) < 1.5 then
+        explode()
+    endif
+endfunction
+
+function explode()
+    x = get_self_x()
+    y = get_self_y()
+    z = get_self_z()
+    add_message("An old munition went off!")
+    for j = -1 to 1
+        for i = -1 to 1
+            attack_at(x + i, y + j, z)
+            attack_at(x + i, y + j, z)
+        next i
+    next j
+    set_floor(x, y, z, "crater_ground")
+    despawn_self()
+endfunction

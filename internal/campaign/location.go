@@ -13,7 +13,11 @@ type Location struct {
 	// History is the SiteHistory ID bound at charting (see Campaign.History);
 	// "" for Home, the Wreck Site and the tutorial.
 	History string `json:"history,omitempty"`
-	Seed    int64  `json:"seed"`
+	// Tier is the site history's danger class ("threat", "hazard", "quiet"),
+	// shown on the Star Map from charting; "" for a site without a history.
+	// Saves from before tiers derive it (Campaign.LocationTier).
+	Tier string `json:"tier,omitempty"`
+	Seed int64  `json:"seed"`
 
 	Discovered bool `json:"discovered"`
 	Visited    bool `json:"visited"`

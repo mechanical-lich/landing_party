@@ -11,8 +11,8 @@
         "life": "native"
       },
       "gap_days": [
-        21900,
-        73000
+        18250,
+        54750
       ],
       "text": "{date}: the first native life took hold on {site}."
     },
@@ -26,8 +26,8 @@
         "life": "alien"
       },
       "gap_days": [
-        21900,
-        73000
+        18250,
+        54750
       ],
       "text": "{date}: a strange biosphere bloomed across {site}, unlike anything native to the region."
     },
@@ -55,7 +55,97 @@
         7300,
         29200
       ],
-      "text": "{date}: the {civ} rose on {site}, first among its living things, led by {founder}."
+      "text": "{date}: the {civ} rose on {site}, first among its living things, led by {founder}.",
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@dwelling",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "their first homes"
+    },
+    {
+      "id": "civ_rises_on_ruins",
+      "requires": {
+        "life": [
+          "native",
+          "alien"
+        ],
+        "remains": [
+          "ruins"
+        ],
+        "resident": false
+      },
+      "civ": "native",
+      "effects": {
+        "population": "civilization",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        7300,
+        29200
+      ],
+      "text": "{date}: a new people, the {civ}, built over the ruins of the {former} on {site}, led by {founder}.",
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@dwelling",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "their first homes"
+    },
+    {
+      "id": "settles_on_ruins",
+      "requires": {
+        "remains": [
+          "ruins"
+        ],
+        "resident": false,
+        "tech_min": "spacefaring"
+      },
+      "civ": "arrive",
+      "effects": {},
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}{during_war}: {civ} settlers under {founder} moved into the empty halls the {former} left on {site}."
     },
     {
       "id": "ancient_natives_rise",
@@ -87,7 +177,8 @@
     {
       "id": "civ_settles",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -108,7 +199,8 @@
     {
       "id": "outpost_founded",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -124,7 +216,8 @@
     {
       "id": "mining_claim_staked",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -152,7 +245,8 @@
             "script": "underground_hideout",
             "w": 21,
             "h": 17,
-            "occupants": "none"
+            "occupants": "none",
+            "purpose": "mine_office"
           },
           "at": "origin"
         },
@@ -169,7 +263,8 @@
       "id": "station_built",
       "requires": {
         "resident": false,
-        "population": "never"
+        "population": "never",
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -199,7 +294,8 @@
     {
       "id": "drone_station_built",
       "requires": {
-        "population": "never"
+        "population": "never",
+        "tech_min": "spacefaring"
       },
       "civ": "visitor",
       "effects": {
@@ -226,7 +322,8 @@
       "id": "islands_settled",
       "requires": {
         "resident": false,
-        "life": "alien"
+        "life": "alien",
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -267,6 +364,23 @@
       "text": "{date}: the {civ} colony on {site} grew into a nation."
     },
     {
+      "id": "tech_advances",
+      "requires": {
+        "resident": true,
+        "tech_max": "industrial"
+      },
+      "civ": "resident",
+      "repeatable": true,
+      "effects": {
+        "tech": "+1"
+      },
+      "gap_days": [
+        3650,
+        18250
+      ],
+      "text": "{date}: the {civ} of {site} left the {tech} behind."
+    },
+    {
       "id": "civ_rises",
       "requires": {
         "resident": true,
@@ -292,7 +406,7 @@
           "kind": "stamp",
           "count": 1,
           "params": {
-            "script": "circle_tower",
+            "script": "@seat",
             "w": 25,
             "h": 25,
             "occupants": "none"
@@ -311,7 +425,8 @@
     {
       "id": "reactor_built",
       "requires": {
-        "resident": true
+        "resident": true,
+        "tech_min": "atomic"
       },
       "effects": {
         "add_remains": [
@@ -352,7 +467,8 @@
     {
       "id": "lab_founded",
       "requires": {
-        "resident": true
+        "resident": true,
+        "tech_min": "industrial"
       },
       "effects": {
         "add_remains": [
@@ -388,12 +504,20 @@
         }
       ],
       "text": "{date}: the {civ} opened a sealed laboratory on {site}; {researcher} led it.",
-      "place": "the laboratory"
+      "place": "the laboratory",
+      "vars": {
+        "purpose": [
+          "plague_study",
+          "xenobiology",
+          "weapons_research"
+        ]
+      }
     },
     {
       "id": "refugees_arrive",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "arrive",
       "effects": {
@@ -414,7 +538,8 @@
     {
       "id": "observatory_built",
       "requires": {
-        "resident": true
+        "resident": true,
+        "tech_min": "medieval"
       },
       "effects": {
         "add_remains": [
@@ -439,7 +564,8 @@
             "script": "circle_tower",
             "w": 25,
             "h": 25,
-            "occupants": "none"
+            "occupants": "none",
+            "purpose": "observatory"
           },
           "at": "origin"
         },
@@ -455,7 +581,8 @@
     {
       "id": "archive_sealed",
       "requires": {
-        "resident": true
+        "resident": true,
+        "tech_min": "medieval"
       },
       "effects": {
         "add_remains": [
@@ -480,7 +607,8 @@
             "script": "underground_hideout",
             "w": 21,
             "h": 17,
-            "occupants": "none"
+            "occupants": "none",
+            "purpose": "archive"
           },
           "at": "origin"
         },
@@ -516,7 +644,10 @@
         1825,
         21900
       ],
-      "text": "{date}{during_war}: a {civ} survey ship mapped {site} and moved on."
+      "text": "{date}{during_war}: a {civ} survey ship mapped {site} and moved on.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "claim_beacon",
@@ -539,7 +670,10 @@
         }
       ],
       "text": "{date}: the {civ} planted a claim beacon on {site}. Nobody came to work the claim.",
-      "place": "the claim beacon"
+      "place": "the claim beacon",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "ancient_wreck",
@@ -559,11 +693,12 @@
           "kind": "stamp",
           "count": 1,
           "params": {
-            "script": "crashed_ufo",
-            "w": 17,
+            "script": "crashed_ship",
+            "w": 21,
             "h": 17,
+            "occupants": "none",
             "crew": "dead",
-            "occupants": "none"
+            "damage": 2
           },
           "at": "origin"
         },
@@ -574,12 +709,26 @@
         }
       ],
       "text": "{date}{during_war}: a {civ} ship came down hard on {site}. No one walked away from it.",
-      "place": "the wreck"
+      "place": "the wreck",
+      "requires": {
+        "tech_min": "spacefaring"
+      },
+      "vars": {
+        "purpose": [
+          "survey",
+          "cargo",
+          "colony_hold",
+          "warship",
+          "flagship",
+          "smuggling"
+        ]
+      }
     },
     {
       "id": "crew_crash",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "visitor",
       "effects": {
@@ -604,11 +753,12 @@
           "kind": "stamp",
           "count": 1,
           "params": {
-            "script": "crashed_ufo",
-            "w": 17,
+            "script": "crashed_ship",
+            "w": 21,
             "h": 17,
+            "occupants": "none",
             "crew": "dead",
-            "occupants": "none"
+            "damage": 1
           },
           "at": "origin"
         },
@@ -619,12 +769,19 @@
         }
       ],
       "text": "{date}{during_war}: a {civ} lander crashed on {site}; {pilot} and the crew are buried beside it.",
-      "place": "the crash site"
+      "place": "the crash site",
+      "vars": {
+        "purpose": [
+          "survey",
+          "courier"
+        ]
+      }
     },
     {
       "id": "expedition_lost",
       "requires": {
-        "resident": false
+        "resident": false,
+        "tech_min": "spacefaring"
       },
       "civ": "visitor",
       "effects": {
@@ -651,7 +808,8 @@
             "script": "underground_hideout",
             "w": 21,
             "h": 17,
-            "occupants": "none"
+            "occupants": "none",
+            "purpose": "hideout"
           },
           "at": "origin"
         },
@@ -676,7 +834,10 @@
         3650,
         29200
       ],
-      "text": "{date}: {civ} and {enemy} pickets clashed over {site}; the hulks were left where they fell."
+      "text": "{date}: {civ} and {enemy} pickets clashed over {site}; the hulks were left where they fell.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "war_battle",
@@ -696,11 +857,12 @@
           "kind": "stamp",
           "count": 1,
           "params": {
-            "script": "crashed_ufo",
-            "w": 17,
+            "script": "crashed_ship",
+            "w": 21,
             "h": 17,
+            "occupants": "none",
             "crew": "dead",
-            "occupants": "none"
+            "damage": 3
           },
           "at": "origin"
         },
@@ -710,7 +872,15 @@
           "at": "origin"
         }
       ],
-      "text": "{date}{during_war}: the {civ} and the {enemy} fought over {site}; the wreckage still circles it."
+      "text": "{date}{during_war}: the {civ} and the {enemy} fought over {site}; the wreckage still circles it.",
+      "requires": {
+        "tech_min": "spacefaring"
+      },
+      "vars": {
+        "purpose": [
+          "warship"
+        ]
+      }
     },
     {
       "id": "impact",
@@ -859,6 +1029,17 @@
       "origin": true,
       "evidence": [
         {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@grave",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
           "kind": "lore_datapad",
           "count": 1,
           "at": "origin"
@@ -871,7 +1052,8 @@
       "id": "civ_collapses",
       "requires": {
         "resident": true,
-        "population": "civilization"
+        "population": "civilization",
+        "rival": false
       },
       "effects": {
         "status": "fallen",
@@ -879,7 +1061,8 @@
           "ruins",
           "graves"
         ],
-        "resident_fate": "died"
+        "resident_fate": "died",
+        "tech": "-1"
       },
       "figures": [
         {
@@ -897,10 +1080,11 @@
           "kind": "stamp",
           "count": 1,
           "params": {
-            "script": "castle",
+            "script": "@seat",
             "w": 28,
             "h": 22,
-            "occupants": "none"
+            "occupants": "none",
+            "damage": 3
           },
           "at": "origin"
         },
@@ -916,7 +1100,8 @@
     {
       "id": "natives_dwindle",
       "requires": {
-        "resident": true
+        "resident": true,
+        "rival": false
       },
       "effects": {
         "status": "fallen",
@@ -1025,7 +1210,8 @@
       "id": "nuclear_war",
       "requires": {
         "resident": true,
-        "population": "civilization"
+        "population": "civilization",
+        "tech_min": "atomic"
       },
       "effects": {
         "life": "none",
@@ -1052,7 +1238,8 @@
             "script": "bunker",
             "w": 11,
             "h": 9,
-            "occupants": "none"
+            "occupants": "none",
+            "purpose": "command"
           },
           "at": "origin"
         },
@@ -1071,7 +1258,7 @@
           "at": "origin"
         }
       ],
-      "text": "{date}{during_war}: the {civ} of {site} turned their weapons on each other. The fallout killed everything.",
+      "text": "{date}{during_war}: the {civ} of {site} turned their {weapon} on each other. The fallout killed everything.",
       "place": "the bunker"
     },
     {
@@ -1080,7 +1267,8 @@
         "resident": true,
         "remains": [
           "reactor"
-        ]
+        ],
+        "tech_min": "atomic"
       },
       "effects": {
         "life": "none",
@@ -1233,9 +1421,890 @@
       "place": "the buried halls"
     },
     {
+      "id": "figure_born",
+      "requires": {
+        "resident": true
+      },
+      "interlude": true,
+      "figures": [
+        {
+          "role": "sage"
+        }
+      ],
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: {sage} was born among the {civ} of {site}; the {civ} still quote {sage}."
+    },
+    {
+      "id": "figure_dies",
+      "requires": {
+        "resident": true
+      },
+      "interlude": true,
+      "figures": [
+        {
+          "role": "elder",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: {elder} of the {civ} died, and all of {site} mourned."
+    },
+    {
+      "id": "festival",
+      "requires": {
+        "resident": true
+      },
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "vars": {
+        "feast": [
+          "Feast of Lamps",
+          "Long Night",
+          "Return of the Herds",
+          "Day of Names"
+        ]
+      },
+      "text": "{date}: the {civ} of {site} first kept the {feast}."
+    },
+    {
+      "id": "famine_year",
+      "requires": {
+        "resident": true
+      },
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: a famine year on {site}; the {civ} ate their seed grain."
+    },
+    {
+      "id": "migration",
+      "requires": {
+        "resident": true,
+        "population": [
+          "colony",
+          "civilization"
+        ]
+      },
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: part of the {civ} of {site} migrated to the far side of the world."
+    },
+    {
+      "id": "trader_visit",
+      "requires": {
+        "resident": true,
+        "tech_min": "spacefaring"
+      },
+      "civ": "visitor",
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}{during_war}: a {civ} trading ship called at {site} and stayed a season."
+    },
+    {
+      "id": "raid",
+      "requires": {
+        "resident": true,
+        "tech_min": "spacefaring"
+      },
+      "civ": "visitor",
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}{during_war}: {civ} raiders struck the settlements of {site} and were gone by morning."
+    },
+    {
+      "id": "monument_raised",
+      "requires": {
+        "resident": true
+      },
+      "interlude": true,
+      "origin": true,
+      "figures": [
+        {
+          "role": "leader"
+        }
+      ],
+      "gap_days": [
+        365,
+        5475
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the monument",
+      "text": "{date}: the {civ} raised a monument on {site} to {leader}."
+    },
+    {
+      "id": "quake",
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: a great quake shook {site}."
+    },
+    {
+      "id": "comet_pass",
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: a comet passed close over {site}; its tail lit the sky for a season."
+    },
+    {
+      "id": "herds_migrate",
+      "requires": {
+        "life": [
+          "native",
+          "alien"
+        ]
+      },
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}: great herds crossed {site}, and the land changed behind them."
+    },
+    {
+      "id": "meteor_fall",
+      "interlude": true,
+      "origin": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the fall site",
+      "text": "{date}: a meteor fell on {site} and left a glassy scar."
+    },
+    {
+      "id": "passing_ship",
+      "civ": "visitor",
+      "interlude": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "text": "{date}{during_war}: a {civ} ship crossed the sky over {site} without stopping.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
+    },
+    {
+      "id": "buried_cache",
+      "civ": "visitor",
+      "interlude": true,
+      "origin": true,
+      "gap_days": [
+        365,
+        5475
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the cache",
+      "text": "{date}{during_war}: {civ} spacers buried a cache on {site} and never came back for it.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
+    },
+    {
+      "id": "twin_peoples_rise",
+      "requires": {
+        "life": [
+          "native",
+          "alien"
+        ],
+        "population": "never",
+        "resident": false
+      },
+      "civ": "twins",
+      "per_side": true,
+      "origin_at": "side",
+      "effects": {
+        "population": "civilization",
+        "status": "thriving",
+        "add_remains": [
+          "ruins"
+        ]
+      },
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        7300,
+        29200
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@dwelling",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "their first halls",
+      "text": "{date}: two peoples rose on {site} at once, the {civ} on one side of the world and the {enemy} on the other; {founder} led the {civ}.",
+      "text_side": "{date}: we, the {civ}, rose under {founder}. Across the water lived the {enemy}, and they were not like us.",
+      "text_meanwhile": "{date}: on the far side of {site}, {founder} led the {civ}."
+    },
+    {
+      "id": "rival_tech_advances",
+      "requires": {
+        "rival": true,
+        "tech_max": "industrial"
+      },
+      "civ": "rivals",
+      "per_side": true,
+      "repeatable": true,
+      "effects": {
+        "tech": "+1"
+      },
+      "gap_days": [
+        3650,
+        14600
+      ],
+      "text": "{date}: the {civ} of {site} left the {tech} behind, and the {enemy} took note.",
+      "text_meanwhile": "{date}: the {civ} kept pace, leaving the {tech} behind."
+    },
+    {
+      "id": "border_drawn",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "origin_at": "border",
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the border",
+      "text": "{date}: the {civ} and the {enemy} drew a border across {site}."
+    },
+    {
+      "id": "uneasy_peace",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "gap_days": [
+        3650,
+        18250
+      ],
+      "text": "{date}: an uneasy peace held between the {civ} and the {enemy} for a generation."
+    },
+    {
+      "id": "rival_war_begins",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "per_side": true,
+      "figures": [
+        {
+          "role": "warlord"
+        }
+      ],
+      "gap_days": [
+        365,
+        3650
+      ],
+      "text": "{date}: war broke out on {site} between the {civ} and the {enemy}; {warlord} led the {civ}.",
+      "text_side": "{date}: the {enemy} struck first. {warlord} called us, the {civ}, to arms.",
+      "text_meanwhile": "{date}: {warlord} led the {civ} against them."
+    },
+    {
+      "id": "fortify",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "per_side": true,
+      "origin_at": "side",
+      "gap_days": [
+        365,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@fort",
+            "w": 28,
+            "h": 22,
+            "occupants": "none",
+            "purpose": "fort"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the fort",
+      "text": "{date}: the {civ} fortified their side of {site} against the {enemy}.",
+      "text_side": "{date}: we, the {civ}, built our walls against the {enemy}. Let them come.",
+      "text_meanwhile": "{date}: across the border the {civ} fortified their own side."
+    },
+    {
+      "id": "great_battle",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "repeatable": true,
+      "origin_at": "border",
+      "effects": {
+        "add_remains": [
+          "graves"
+        ]
+      },
+      "figures": [
+        {
+          "role": "warlord"
+        }
+      ],
+      "gap_days": [
+        365,
+        7300
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@battlefield",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the battlefield",
+      "text": "{date}: the {civ} and the {enemy} met in battle on {site} with {weapon}; the dead lie where they fell, and {warlord} lived to fight again."
+    },
+    {
+      "id": "great_battle_bloody",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "repeatable": true,
+      "origin_at": "border",
+      "effects": {
+        "add_remains": [
+          "graves"
+        ]
+      },
+      "figures": [
+        {
+          "role": "warlord",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        365,
+        7300
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@battlefield",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the battlefield",
+      "text": "{date}: the {civ} and the {enemy} met in battle on {site} with {weapon}; {warlord} of the {civ} fell with half the army."
+    },
+    {
+      "id": "truce_broken",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "figures": [
+        {
+          "role": "envoy",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        365,
+        3650
+      ],
+      "text": "{date}: a truce between the {civ} and the {enemy} ended when {envoy} was murdered at the border."
+    },
+    {
+      "id": "mutual_ruin",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "per_side": true,
+      "origin_at": "side",
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died",
+        "rival_fate": "died",
+        "tech": "-1"
+      },
+      "gap_days": [
+        1825,
+        18250
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@seat",
+            "w": 25,
+            "h": 21,
+            "occupants": "none",
+            "damage": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the last hall",
+      "text": "{date}: the war on {site} ended with nobody left to win it; the {civ} starved in their ruined halls, as did the {enemy}.",
+      "text_side": "{date}: we, the last of the {civ}, have outlived the {enemy}, but not by long.",
+      "text_meanwhile": "{date}: the {civ} did not outlast them by a season."
+    },
+    {
+      "id": "mutual_annihilation",
+      "requires": {
+        "rival": true,
+        "tech_min": "atomic"
+      },
+      "civ": "rivals",
+      "per_side": true,
+      "origin_at": "side",
+      "effects": {
+        "life": "none",
+        "status": "dead",
+        "add_contaminants": [
+          "radiation"
+        ],
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died",
+        "rival_fate": "died"
+      },
+      "gap_days": [
+        1825,
+        18250
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@seat",
+            "w": 25,
+            "h": 21,
+            "occupants": "none",
+            "damage": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "radiation_pocket",
+          "count": 1,
+          "params": {
+            "peak": 150,
+            "radius": 5,
+            "ore_tile": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the bunker",
+      "text": "{date}: the {civ} and the {enemy} turned their {weapon} on each other. Nothing on {site} survived.",
+      "text_side": "{date}: the {enemy} launched. So did we, the {civ}, and the sky burned.",
+      "text_meanwhile": "{date}: the {civ} answered with {weapon} within the hour."
+    },
+    {
+      "id": "one_side_prevails",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "origin_at": "side",
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "rival_fate": "died",
+        "resident_fate": "dwindled",
+        "tech": "primitive"
+      },
+      "gap_days": [
+        1825,
+        18250
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@seat",
+            "w": 25,
+            "h": 21,
+            "occupants": "none",
+            "damage": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the conquered hall",
+      "text": "{date}: the {civ} won their war against the {enemy} and lost everything else; they live as wanderers among the ruins of both."
+    },
+    {
+      "id": "uplift_contact",
+      "requires": {
+        "rival": false,
+        "tech_max": "primitive"
+      },
+      "civ": "rival_visitor",
+      "origin": true,
+      "figures": [
+        {
+          "role": "envoy"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@landing",
+            "w": 17,
+            "h": 17,
+            "occupants": "none",
+            "crew": "dead"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the landing",
+      "text": "{date}: a {civ} ship landed among the {enemy} of {site}; {envoy} came bearing gifts."
+    },
+    {
+      "id": "uplift_gift",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "effects": {
+        "tech": "+2"
+      },
+      "gap_days": [
+        3650,
+        14600
+      ],
+      "text": "{date}: taught by the {enemy}, the {civ} of {site} left the {tech} behind in a single generation."
+    },
+    {
+      "id": "uplifters_depart",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rival",
+      "effects": {
+        "rival_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}: the {civ} left {site} as suddenly as they came; the {enemy} carried on alone."
+    },
+    {
+      "id": "uplift_turned",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rival",
+      "effects": {
+        "rival_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        7300
+      ],
+      "text": "{date}: the {civ} left {site}, and the {enemy} quarrelled over the weapons they left behind."
+    },
+    {
+      "id": "schism",
+      "requires": {
+        "events": [
+          "uplift_turned"
+        ]
+      },
+      "civ": "rival_native",
+      "gap_days": [
+        365,
+        3650
+      ],
+      "text": "{date}: the {civ} broke away from the {enemy} of {site}, taking the visitors' weapons with them."
+    },
+    {
+      "id": "subjugation",
+      "requires": {
+        "rival": false,
+        "tech_max": "medieval"
+      },
+      "civ": "rival_visitor",
+      "origin": true,
+      "figures": [
+        {
+          "role": "overseer"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@landing",
+            "w": 17,
+            "h": 17,
+            "occupants": "none",
+            "crew": "dead"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@works",
+            "w": 21,
+            "h": 17,
+            "occupants": "none",
+            "purpose": "forced_labour"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the mines",
+      "text": "{date}: the {civ} came down on {site} and put the {enemy} to work in their mines; {overseer} held the whip."
+    },
+    {
+      "id": "forced_labour",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "repeatable": true,
+      "effects": {
+        "add_remains": [
+          "graves"
+        ]
+      },
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "text": "{date}: another generation of the {civ} died in the mines of the {enemy}."
+    },
+    {
+      "id": "uprising_won",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rival",
+      "origin": true,
+      "figures": [
+        {
+          "role": "overseer",
+          "fate": "died"
+        }
+      ],
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "wrecks"
+        ],
+        "rival_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "crashed_ship",
+            "w": 21,
+            "h": 17,
+            "occupants": "none",
+            "crew": "dead",
+            "damage": 1
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the abandoned warship",
+      "text": "{date}: the {enemy} rose against the {civ} on {site}; {overseer} died, and the {civ} fled and left a warship behind.",
+      "vars": {
+        "purpose": [
+          "warship",
+          "prison_hulk"
+        ]
+      }
+    },
+    {
+      "id": "uprising_crushed",
+      "requires": {
+        "rival": true
+      },
+      "civ": "rivals",
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "graves",
+          "ruins"
+        ],
+        "resident_fate": "died",
+        "rival_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}: the {civ} rose against the {enemy} and were crushed; the {enemy} left {site} with all they had dug."
+    },
+    {
       "id": "war_begins",
       "civ": "war",
-      "text": "{date}: war broke out between the {civ} and the {enemy}{war_end}."
+      "text": "{date}: war broke out between the {civ} and the {enemy}{war_end}.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "wreck_disturbed",
@@ -1268,13 +2337,13 @@
       "scenario": "zombie_plague",
       "origin": true,
       "weight": {
-        "earth_like": 54,
-        "moon": 27,
-        "asteroid": 25,
-        "alien": 421,
-        "desert_planet": 61,
-        "frozen_planet": 61,
-        "ocean_planet": 163
+        "earth_like": 34,
+        "moon": 28,
+        "asteroid": 18,
+        "alien": 288,
+        "desert_planet": 40,
+        "frozen_planet": 33,
+        "ocean_planet": 243
       },
       "gap_days": [
         5,
@@ -1311,12 +2380,12 @@
       "scenario": "zombie_plague",
       "origin_from": "lab_founded",
       "weight": {
-        "earth_like": 28,
-        "moon": 27,
-        "alien": 421,
-        "desert_planet": 32,
-        "asteroid": 25,
-        "ocean_planet": 163
+        "earth_like": 17,
+        "moon": 28,
+        "alien": 288,
+        "desert_planet": 21,
+        "asteroid": 18,
+        "ocean_planet": 243
       },
       "gap_days": [
         5,
@@ -1342,13 +2411,13 @@
       "scenario": "zombie_plague",
       "origin_from": "crew_crash",
       "weight": {
-        "earth_like": 28,
-        "alien": 421,
-        "moon": 27,
-        "asteroid": 25,
-        "desert_planet": 32,
-        "frozen_planet": 61,
-        "ocean_planet": 163
+        "earth_like": 17,
+        "alien": 288,
+        "moon": 28,
+        "asteroid": 18,
+        "desert_planet": 21,
+        "frozen_planet": 33,
+        "ocean_planet": 243
       },
       "gap_days": [
         5,
@@ -1377,13 +2446,13 @@
       "scenario": "zombie_plague",
       "origin_from": "ancient_wreck",
       "weight": {
-        "earth_like": 28,
-        "alien": 421,
-        "moon": 27,
-        "asteroid": 25,
-        "desert_planet": 32,
-        "frozen_planet": 61,
-        "ocean_planet": 163
+        "earth_like": 17,
+        "alien": 288,
+        "moon": 28,
+        "asteroid": 18,
+        "desert_planet": 21,
+        "frozen_planet": 33,
+        "ocean_planet": 243
       },
       "gap_days": [
         5,
@@ -1407,7 +2476,7 @@
       "scenario": "crystalline_blight",
       "origin": true,
       "weight": {
-        "alien": 53
+        "alien": 24
       },
       "gap_days": [
         5,
@@ -1443,8 +2512,8 @@
       "scenario": "alien_world",
       "origin_from": "reactor_built",
       "weight": {
-        "alien": 27,
-        "ocean_planet": 12
+        "alien": 1518,
+        "ocean_planet": 495
       },
       "gap_days": [
         5,
@@ -1483,8 +2552,8 @@
       "scenario": "alien_world",
       "origin_from": "ancient_wreck",
       "weight": {
-        "alien": 13,
-        "ocean_planet": 7
+        "alien": 732,
+        "ocean_planet": 286
       },
       "gap_days": [
         5,
@@ -1517,7 +2586,7 @@
           "drone_station_built"
         ]
       },
-      "scenario": "abandoned_station",
+      "scenario": "station_mutants",
       "origin": true,
       "weight": {
         "abandoned_station": 7
@@ -1542,13 +2611,13 @@
       "scenario": "crashed_ufo",
       "origin": true,
       "weight": {
-        "earth_like": 17,
-        "alien": 38,
-        "moon": 8,
-        "asteroid": 7,
-        "desert_planet": 7,
-        "frozen_planet": 6,
-        "ocean_planet": 10
+        "earth_like": 40,
+        "alien": 70,
+        "moon": 14,
+        "asteroid": 19,
+        "desert_planet": 17,
+        "frozen_planet": 22,
+        "ocean_planet": 19
       },
       "gap_days": [
         5,
@@ -1562,7 +2631,10 @@
         }
       ],
       "text": "{date}{during_war}: a {civ} warship, hunted by the {enemy}, was shot down over {site}.",
-      "omen": "A warship came down here recently."
+      "omen": "A warship came down here recently.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "fled_battle",
@@ -1570,13 +2642,13 @@
       "scenario": "crashed_ufo",
       "origin": true,
       "weight": {
-        "earth_like": 17,
-        "alien": 38,
-        "moon": 8,
-        "asteroid": 7,
-        "desert_planet": 7,
-        "frozen_planet": 6,
-        "ocean_planet": 10
+        "earth_like": 40,
+        "alien": 70,
+        "moon": 14,
+        "asteroid": 19,
+        "desert_planet": 17,
+        "frozen_planet": 22,
+        "ocean_planet": 19
       },
       "gap_days": [
         5,
@@ -1590,20 +2662,24 @@
         }
       ],
       "text": "{date}{during_war}: a {civ} ship fleeing the {enemy} limped down onto {site}.",
-      "omen": "A damaged ship came down here recently."
+      "omen": "A damaged ship came down here recently.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "scout_accident",
       "civ": "visitor",
       "scenario": "crashed_ufo",
+      "tier": "hazard",
       "origin": true,
       "weight": {
-        "earth_like": 17,
-        "alien": 38,
-        "moon": 8,
-        "asteroid": 7,
-        "desert_planet": 7,
-        "frozen_planet": 6,
+        "earth_like": 10,
+        "alien": 10,
+        "moon": 10,
+        "asteroid": 10,
+        "desert_planet": 10,
+        "frozen_planet": 10,
         "ocean_planet": 10
       },
       "gap_days": [
@@ -1620,9 +2696,13 @@
       "text": "{date}{during_war}: a {civ} scout misjudged its landing on {site}.",
       "omen": "A scout ship crashed here recently.",
       "flags": {
-        "chapter_crew": "dead"
+        "chapter_crew": "dead",
+        "hazard": "scout_accident"
       },
-      "safe_start": true
+      "safe_start": true,
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "salvage_expedition",
@@ -1631,13 +2711,14 @@
           "station_built",
           "drone_station_built",
           "ancient_wreck"
-        ]
+        ],
+        "tech_min": "spacefaring"
       },
       "civ": "visitor",
       "species": "greyish",
       "scenario": "grey_contact",
       "weight": {
-        "abandoned_station": 9
+        "abandoned_station": 10
       },
       "gap_days": [
         5,
@@ -1665,10 +2746,10 @@
       "weight": {
         "earth_like": 1,
         "alien": 1,
-        "moon": 9,
-        "asteroid": 9,
-        "desert_planet": 6,
-        "ocean_planet": 8
+        "moon": 5,
+        "asteroid": 6,
+        "desert_planet": 4,
+        "ocean_planet": 4
       },
       "gap_days": [
         5,
@@ -1699,11 +2780,11 @@
       "scenario": "exterminate_xenos",
       "origin": true,
       "weight": {
-        "abandoned_station": 10,
+        "abandoned_station": 9,
         "earth_like": 1,
-        "moon": 9,
-        "asteroid": 9,
-        "ocean_planet": 8
+        "moon": 5,
+        "asteroid": 6,
+        "ocean_planet": 4
       },
       "gap_days": [
         5,
@@ -1727,7 +2808,7 @@
       "weight": {
         "earth_like": 1,
         "alien": 1,
-        "desert_planet": 6
+        "desert_planet": 4
       },
       "gap_days": [
         5,
@@ -1741,7 +2822,10 @@
         }
       ],
       "text": "{date}{during_war}: the {civ} seeded {site} with xenos to deny it to the {enemy}.",
-      "omen": "Xenos were seeded here on purpose."
+      "omen": "Xenos were seeded here on purpose.",
+      "requires": {
+        "tech_min": "spacefaring"
+      }
     },
     {
       "id": "wreck_eggs_hatch",
@@ -1758,11 +2842,11 @@
       "weight": {
         "earth_like": 1,
         "alien": 1,
-        "moon": 9,
-        "asteroid": 9,
-        "desert_planet": 6,
-        "ocean_planet": 8,
-        "abandoned_station": 10
+        "moon": 5,
+        "asteroid": 6,
+        "desert_planet": 4,
+        "ocean_planet": 4,
+        "abandoned_station": 9
       },
       "gap_days": [
         5,
@@ -1792,10 +2876,10 @@
         "impact_cataclysm"
       ],
       "weight": {
-        "moon": 241,
-        "asteroid": 189,
-        "desert_planet": 966,
-        "frozen_planet": 288
+        "moon": 489,
+        "asteroid": 335,
+        "desert_planet": 2366,
+        "frozen_planet": 329
       },
       "gap_days": [
         5,
@@ -1816,13 +2900,13 @@
       "scenario": "autonz_incursion",
       "origin": true,
       "weight": {
-        "earth_like": 21,
-        "alien": 48,
-        "moon": 11,
-        "asteroid": 11,
-        "desert_planet": 9,
-        "frozen_planet": 8,
-        "ocean_planet": 13,
+        "earth_like": 15,
+        "alien": 22,
+        "moon": 10,
+        "asteroid": 9,
+        "desert_planet": 7,
+        "frozen_planet": 4,
+        "ocean_planet": 6,
         "abandoned_station": 7
       },
       "gap_days": [
@@ -1852,13 +2936,13 @@
       "scenario": "autonz_incursion",
       "origin_from": "ancient_wreck",
       "weight": {
-        "earth_like": 21,
-        "alien": 48,
-        "moon": 11,
-        "asteroid": 11,
-        "desert_planet": 9,
-        "frozen_planet": 8,
-        "ocean_planet": 13,
+        "earth_like": 15,
+        "alien": 22,
+        "moon": 10,
+        "asteroid": 9,
+        "desert_planet": 7,
+        "frozen_planet": 4,
+        "ocean_planet": 6,
         "abandoned_station": 7
       },
       "gap_days": [
@@ -1879,12 +2963,13 @@
       "id": "burrowers_stir",
       "scenario": "worms",
       "weight": {
-        "earth_like": 25,
-        "alien": 53,
-        "moon": 11,
-        "asteroid": 12,
-        "frozen_planet": 10,
-        "ocean_planet": 14
+        "earth_like": 14,
+        "alien": 22,
+        "moon": 9,
+        "asteroid": 10,
+        "frozen_planet": 5,
+        "ocean_planet": 5,
+        "desert_planet": 6
       },
       "gap_days": [
         5,
@@ -1902,8 +2987,8 @@
       },
       "scenario": "yeti_territory",
       "weight": {
-        "earth_like": 177,
-        "frozen_planet": 12
+        "earth_like": 145,
+        "frozen_planet": 35
       },
       "gap_days": [
         5,
@@ -1911,6 +2996,809 @@
       ],
       "text": "{date}: the descendants of the {civ} came back down from the high country of {site}.",
       "omen": "The old natives have come back down."
+    },
+    {
+      "id": "old_reactor_leak",
+      "requires": {
+        "remains": [
+          "reactor"
+        ]
+      },
+      "tier": "hazard",
+      "origin_from": [
+        "reactor_meltdown",
+        "reactor_built"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "count": 1,
+          "params": {
+            "peak": 120,
+            "radius": 4,
+            "ore_tile": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the old {civ} reactor on {site} cracked open again. It has been leaking ever since.",
+      "omen": "An old reactor is leaking.",
+      "flags": {
+        "hazard": "old_reactor_leak"
+      },
+      "place": "the leaking reactor",
+      "safe_start": true
+    },
+    {
+      "id": "fallout_hotspots",
+      "requires": {
+        "contaminants": [
+          "radiation"
+        ]
+      },
+      "tier": "hazard",
+      "origin": true,
+      "origin_from": [
+        "nuclear_war",
+        "reactor_meltdown"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "count": 2,
+          "count_max": 3,
+          "jitter": 12,
+          "params": {
+            "peak": 100,
+            "radius": 4
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: rain washed the old fallout on {site} into a few hot pools that never cooled.",
+      "omen": "Pockets of old fallout are still hot.",
+      "flags": {
+        "hazard": "fallout_hotspots"
+      },
+      "place": "the hot pools",
+      "safe_start": true
+    },
+    {
+      "id": "wreck_leak",
+      "tier": "hazard",
+      "origin_from": [
+        "ancient_wreck",
+        "crew_crash"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40,
+        "abandoned_station": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "count": 1,
+          "params": {
+            "peak": 90,
+            "radius": 3,
+            "ore_tile": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the drive core of the {civ} wreck on {site} split and began to bleed radiation.",
+      "omen": "A wrecked drive core is leaking.",
+      "flags": {
+        "hazard": "wreck_leak"
+      },
+      "place": "the leaking wreck",
+      "safe_start": true
+    },
+    {
+      "id": "blight_patch",
+      "tier": "hazard",
+      "origin": true,
+      "weight": {
+        "alien": 10,
+        "ocean_planet": 10,
+        "earth_like": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "crystal_grove",
+          "count": 1,
+          "params": {
+            "blueprint": "alien_crystal",
+            "radius": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "radiation_pocket",
+          "count": 1,
+          "params": {
+            "peak": 60,
+            "radius": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a patch of glowing crystal broke through the ground of {site} and stopped growing.",
+      "omen": "A patch of glowing crystal has taken root.",
+      "flags": {
+        "hazard": "blight_patch"
+      },
+      "place": "the crystal patch",
+      "safe_start": true
+    },
+    {
+      "id": "worm_sign",
+      "tier": "hazard",
+      "origin": true,
+      "weight": {
+        "earth_like": 10,
+        "frozen_planet": 10,
+        "alien": 10,
+        "ocean_planet": 10,
+        "desert_planet": 10,
+        "moon": 10,
+        "asteroid": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "cave_spawner",
+          "count": 1,
+          "count_max": 2,
+          "jitter": 40,
+          "params": {
+            "blueprint": "worm",
+            "zone": "underground"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: seismic tremors on {site} traced a burrow; something has nested in the rock.",
+      "omen": "Tremors trace a burrow in the rock.",
+      "flags": {
+        "hazard": "worm_sign"
+      },
+      "place": "the burrow",
+      "safe_start": true
+    },
+    {
+      "id": "dormant_nest",
+      "tier": "hazard",
+      "origin_from": [
+        "ancient_wreck"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "moon": 40,
+        "asteroid": 40,
+        "abandoned_station": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "derelict_pod",
+          "count": 2,
+          "count_max": 3,
+          "params": {
+            "blueprint": "xeno_egg"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: something laid its eggs in the shelter of the {civ} wreck on {site}. They have not hatched yet.",
+      "omen": "Something has nested here. The eggs have not hatched.",
+      "flags": {
+        "hazard": "dormant_nest"
+      },
+      "place": "the nest"
+    },
+    {
+      "id": "troid_clutch",
+      "tier": "hazard",
+      "origin_from": [
+        "impact",
+        "impact_cataclysm"
+      ],
+      "weight": {
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40,
+        "frozen_planet": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "derelict_pod",
+          "count": 2,
+          "count_max": 3,
+          "params": {
+            "blueprint": "troid_egg"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: troids laid a clutch in the old impact crater on {site}.",
+      "omen": "A troid clutch sits in an old crater.",
+      "flags": {
+        "hazard": "troid_clutch"
+      },
+      "place": "the clutch"
+    },
+    {
+      "id": "hostile_fauna",
+      "requires": {
+        "life": "native"
+      },
+      "tier": "hazard",
+      "origin": true,
+      "weight": {
+        "frozen_planet": 10,
+        "earth_like": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "fauna_spawner",
+          "count": 2,
+          "params": {
+            "blueprint": "yeti"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a pair of yetis came down from the high country of {site} and made it their hunting ground.",
+      "omen": "A pair of yetis hunts nearby.",
+      "flags": {
+        "hazard": "hostile_fauna"
+      },
+      "place": "the yetis' hunting ground"
+    },
+    {
+      "id": "mutant_band",
+      "tier": "hazard",
+      "origin": true,
+      "origin_from": [
+        "civ_collapses",
+        "impact_cataclysm",
+        "colony_starves",
+        "mining_claim_staked",
+        "station_built",
+        "civ_rises"
+      ],
+      "weight": {
+        "alien": 10,
+        "ocean_planet": 10,
+        "earth_like": 10,
+        "abandoned_station": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "fauna_spawner",
+          "count": 2,
+          "count_max": 3,
+          "params": {
+            "blueprint": "mutant_grunt"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "fauna_spawner",
+          "count": 1,
+          "params": {
+            "blueprint": "mutant_scout"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a band of mutants made a lair on {site}.",
+      "omen": "A mutant band lairs in the ruins.",
+      "flags": {
+        "hazard": "mutant_band"
+      },
+      "place": "the mutants' lair"
+    },
+    {
+      "id": "restless_graves",
+      "requires": {
+        "remains": [
+          "graves"
+        ]
+      },
+      "tier": "hazard",
+      "origin": true,
+      "origin_from": [
+        "civ_collapses",
+        "colony_starves",
+        "impact_cataclysm",
+        "nuclear_war",
+        "crew_crash",
+        "expedition_lost"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40,
+        "abandoned_station": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "fauna_spawner",
+          "count": 2,
+          "count_max": 4,
+          "params": {
+            "blueprint": "zombie"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} dead on {site} did not stay buried.",
+      "omen": "The old graves are restless.",
+      "flags": {
+        "hazard": "restless_graves"
+      },
+      "place": "the graves"
+    },
+    {
+      "id": "autonz_sleeper",
+      "tier": "hazard",
+      "origin_from": [
+        "ancient_wreck",
+        "drone_station_built"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40,
+        "abandoned_station": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "derelict_pod",
+          "count": 1,
+          "params": {
+            "blueprint": "enforcer"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: an Autonz enforcer crawled into the old {civ} hull on {site} and powered down, waiting.",
+      "omen": "Something mechanical waits, powered down.",
+      "flags": {
+        "hazard": "autonz_sleeper"
+      },
+      "place": "the sleeper"
+    },
+    {
+      "id": "remnant_band",
+      "requires": {
+        "events": [
+          "one_side_prevails"
+        ]
+      },
+      "tier": "hazard",
+      "origin_from": [
+        "twin_peoples_rise"
+      ],
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "fauna_spawner",
+          "count": 3,
+          "count_max": 5,
+          "params": {
+            "blueprint": "yeti"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the last of the {civ} still haunt the ruins of {site}; they take strangers for enemies.",
+      "omen": "Survivors of an old war still hold the ruins.",
+      "flags": {
+        "hazard": "remnant_band"
+      },
+      "place": "the survivors' camp"
+    },
+    {
+      "id": "remnant_band_alien",
+      "requires": {
+        "events": [
+          "one_side_prevails"
+        ]
+      },
+      "tier": "hazard",
+      "origin_from": [
+        "twin_peoples_rise"
+      ],
+      "weight": {
+        "alien": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "fauna_spawner",
+          "count": 3,
+          "count_max": 5,
+          "params": {
+            "blueprint": "mutant_scout"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the last of the {civ}, changed by their world, still haunt the ruins of {site}.",
+      "omen": "Survivors of an old war still hold the ruins.",
+      "flags": {
+        "hazard": "remnant_band_alien"
+      },
+      "place": "the survivors' camp"
+    },
+    {
+      "id": "toxic_bloom",
+      "tier": "hazard",
+      "origin": true,
+      "place": "the spore field",
+      "weight": {
+        "alien": 10,
+        "ocean_planet": 10,
+        "earth_like": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "scatter_entity",
+          "count": 4,
+          "count_max": 6,
+          "jitter": 4,
+          "params": {
+            "blueprint": "spore_pod",
+            "kind": "surface",
+            "hostiles": 6
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: spore pods swelled up out of the ground of {site}; anything that brushes them sickens.",
+      "omen": "Spore pods have taken root here.",
+      "flags": {
+        "hazard": "toxic_bloom"
+      },
+      "safe_start": true
+    },
+    {
+      "id": "unstable_ground",
+      "tier": "hazard",
+      "origin": true,
+      "place": "the cave-in",
+      "weight": {
+        "earth_like": 10,
+        "frozen_planet": 10,
+        "alien": 10,
+        "ocean_planet": 10,
+        "desert_planet": 10,
+        "moon": 10,
+        "asteroid": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "rubble_field",
+          "count": 1,
+          "params": {
+            "radius": 2,
+            "relic": "carved_idol",
+            "cache": 3
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a cave under {site} came down; something was buried in the fall.",
+      "omen": "The ground here has fallen in.",
+      "flags": {
+        "hazard": "unstable_ground"
+      },
+      "safe_start": true
+    },
+    {
+      "id": "ancient_defences",
+      "tier": "hazard",
+      "origin": true,
+      "origin_from": [
+        "fortify",
+        "war_battle",
+        "drone_station_built",
+        "civ_rises"
+      ],
+      "place": "the defence post",
+      "weight": {
+        "earth_like": 10,
+        "frozen_planet": 10,
+        "alien": 10,
+        "ocean_planet": 10,
+        "desert_planet": 10,
+        "moon": 10,
+        "asteroid": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "defence_post",
+            "w": 11,
+            "h": 11,
+            "occupants": "dormant",
+            "turrets": 2,
+            "hostiles": 2
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the old defences of {site} were never stood down; they are waiting still.",
+      "omen": "Old defences still guard this place.",
+      "flags": {
+        "hazard": "ancient_defences"
+      }
+    },
+    {
+      "id": "unexploded_ordnance",
+      "tier": "hazard",
+      "origin_from": [
+        "great_battle",
+        "great_battle_bloody",
+        "war_battle"
+      ],
+      "place": "the shell field",
+      "weight": {
+        "earth_like": 40,
+        "frozen_planet": 40,
+        "alien": 40,
+        "ocean_planet": 40,
+        "desert_planet": 40,
+        "moon": 40,
+        "asteroid": 40
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "scatter_entity",
+          "count": 3,
+          "count_max": 5,
+          "jitter": 6,
+          "params": {
+            "blueprint": "old_munition",
+            "kind": "surface",
+            "hostiles": 5
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the shells that did not go off in the battle on {site} are still in the ground.",
+      "omen": "Unexploded shells litter an old battlefield.",
+      "flags": {
+        "hazard": "unexploded_ordnance"
+      }
+    },
+    {
+      "id": "hull_breach",
+      "tier": "hazard",
+      "origin": true,
+      "place": "the breached section",
+      "weight": {
+        "abandoned_station": 10
+      },
+      "gap_days": [
+        30,
+        3650
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "hull_breach",
+            "w": 11,
+            "h": 9,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a section of the station on {site} blew out; its stores are still in there, in the vacuum.",
+      "omen": "A section of the station is open to space.",
+      "flags": {
+        "hazard": "hull_breach"
+      }
     },
     {
       "id": "colony_founded",

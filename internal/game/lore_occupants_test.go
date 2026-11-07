@@ -17,8 +17,9 @@ var loreStructureScripts = []string{"abandoned_reactor", "bunker", "castle", "ci
 // loreStampAll builds mapID quiet (no chapter: the base scenario plays as
 // without a history) with every guarded structure stamped at its own origin,
 // passing occupants as given ("" leaves the param out, as scenarios and quest
-// fixtures do). It returns the level's brutes, named guards and lockers.
-func loreStampAll(t *testing.T, mapID, occupants string) (brutes, guards, lockers int) {
+// fixtures do). It returns the level's brutes, named guards and lockers, and
+// how many stamps were placed (a small map cannot space them all).
+func loreStampAll(t *testing.T, mapID, occupants string) (brutes, guards, lockers, placed int) {
 	t.Helper()
 	loreLoadData(t)
 	md := mapdef.ByID(mapID)
@@ -42,6 +43,7 @@ func loreStampAll(t *testing.T, mapID, occupants string) (brutes, guards, locker
 		t.Fatal(err)
 	}
 	t.Cleanup(ms.teardown)
+	placed = len(ms.level.StampFootprints)
 	for _, e := range ms.level.Entities {
 		switch {
 		case e == nil:
@@ -68,14 +70,16 @@ func TestLoreQuietSiteStructuresAreEmpty(t *testing.T) {
 		}
 	}
 	for _, m := range maps {
-		brutes, guards, lockers := loreStampAll(t, m, "none")
+		brutes, guards, lockers, placed := loreStampAll(t, m, "none")
 		if brutes != 0 || guards != 0 {
 			t.Errorf("%s: %d brutes and %d guards in empty structures", m, brutes, guards)
 		}
 		// Stamps need open surface; a station has none, so none are placed
 		// there (as before this change): only the no-guards check applies.
-		if m != "abandoned_station" && lockers < len(loreStructureScripts) {
-			t.Errorf("%s: %d lockers, want the %d structures built", m, lockers, len(loreStructureScripts))
+		// Elsewhere every placed stamp is there (its locker); a small map
+		// drops the ones its stamp spacing cannot fit.
+		if m != "abandoned_station" && (lockers < placed || placed < len(loreStructureScripts)/2) {
+			t.Errorf("%s: %d lockers for %d of %d structures placed", m, lockers, placed, len(loreStructureScripts))
 		}
 	}
 }
@@ -83,8 +87,8 @@ func TestLoreQuietSiteStructuresAreEmpty(t *testing.T) {
 // Without the param (a scenario or quest stamp) the structures keep their
 // guards and boss, as before.
 func TestLoreStructuresKeepGuardsByDefault(t *testing.T) {
-	brutes, guards, _ := loreStampAll(t, "moon", "")
-	if brutes < len(loreStructureScripts) || guards == 0 {
+	brutes, guards, _, placed := loreStampAll(t, "moon", "")
+	if brutes < placed || placed == 0 || guards == 0 {
 		t.Errorf("default occupants: %d brutes, %d guards; want a brute per structure and its guards", brutes, guards)
 	}
 }

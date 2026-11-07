@@ -1,0 +1,6 @@
+# The desert's calm base: no hostiles of its own. A hazard chapter brings its
+# own (placed by its evidence at generation); a threat plays another scenario.
+function on_setup()
+    add_message("Day 1. Touchdown. Sand to the horizon, and nothing moving on it.")
+    set_flag("desert_started", 1)
+endfunction

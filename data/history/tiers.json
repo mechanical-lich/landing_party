@@ -1,0 +1,8 @@
+{
+  "_draft": "DRAFT Star Map tags for a site's danger class: the word and its colour (RGB). The owner rewrites the words.",
+  "tiers": {
+    "quiet": {"label": "Calm", "color": [140, 165, 190]},
+    "hazard": {"label": "Hazard", "color": [235, 175, 60]},
+    "threat": {"label": "Threat", "color": [230, 80, 70]}
+  }
+}

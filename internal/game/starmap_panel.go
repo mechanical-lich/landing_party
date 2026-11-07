@@ -15,6 +15,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -821,6 +822,9 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 			y = drawWrappedClip(screen, p.travelLock, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{230, 160, 90, 255}) + 4
 		}
 		if sel.Summary != "" {
+			// The danger class, from charting like the summary: how bad, not
+			// which scenario, so nothing becomes pickable.
+			y = drawTierTag(screen, p.campaign.LocationTier(sel), infoX, y)
 			y = drawWrappedClip(screen, sel.Summary, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{150, 170, 195, 255}) + 6
 		}
 		if sel.Visited {
@@ -1042,4 +1046,29 @@ func entityDisplayName(e *ecs.Entity) string {
 		name += fmt.Sprintf("  [S:%d D:%d I:%d]", prog.Str.Level, prog.Dex.Level, prog.Int.Level)
 	}
 	return name
+}
+
+// drawTierTag draws a site's tier tag (tiers.json's word, outlined in its
+// colour) at (x, y) and returns the y below it; nothing for "" or an unknown
+// tier.
+func drawTierTag(screen *ebiten.Image, tier string, x, y int) int {
+	if tier == "" {
+		return y
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return y
+	}
+	tag, ok := lib.TierTags[tier]
+	if !ok || tag.Label == "" {
+		return y
+	}
+	col := color.RGBA{tag.Color[0], tag.Color[1], tag.Color[2], 255}
+	const size = 12
+	w, _ := mlge_text.Measure(tag.Label, size)
+	bw, bh := float32(w)+10, float32(17)
+	vector.DrawFilledRect(screen, float32(x), float32(y-1), bw, bh, color.RGBA{col.R / 5, col.G / 5, col.B / 5, 220}, false)
+	vector.StrokeRect(screen, float32(x), float32(y-1), bw, bh, 1, col, false)
+	mlge_text.Draw(screen, tag.Label, size, x+5, y+1, col)
+	return y + int(bh) + 4
 }

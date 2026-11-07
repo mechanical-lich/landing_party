@@ -73,6 +73,7 @@ func (h *History) RollPool(lib *Library) {
 			Name:    h.civName(ct, rng, nil),
 			Fate:    FateExtant,
 			Species: weightedPick(rng, species, ct.Species),
+			Tech:    TechSpacefaring,
 		}
 		if i > 0 && rng.Intn(100) < ct.AncestorChance {
 			c.Ancestor = h.Pool[rng.Intn(len(h.Pool))]
@@ -252,10 +253,15 @@ type draftEvent struct {
 
 // newCiv is a native civ invented on this site; ID "new<N>" until committed.
 type newCiv struct {
-	id      string
-	name    string
-	species string
+	id       string
+	name     string
+	species  string
+	ancestor string // a civ ID, or another newCiv's
 }
+
+// formerAncestorPercent is the chance a native people rising on an older
+// people's ruins descends from them.
+const formerAncestorPercent = 30
 
 // siteSim walks one attempt at a site's history without touching the History.
 type siteSim struct {
@@ -265,15 +271,33 @@ type siteSim struct {
 	rng  *rand.Rand
 	seed int64
 	arc  *ArcDef
+	// layer is the older people's arc run before arc, if any.
+	layer *ArcDef
 
-	state        PlanetState
-	events       []draftEvent
-	resident     string
+	state    PlanetState
+	events   []draftEvent
+	resident string
+	// rival is a second people on the site (a war, an overlord); side is
+	// each one's half of the map (0 or 1) across axis (0 splits x, 1 y).
+	rival string
+	side  map[string]int
+	axis  int
+	// lead and other cast a per-side emission; sideOnly skips the planet
+	// effects on all but the last emission.
+	lead, other  string
+	sideOnly     bool
 	lastResident string
 	outcomes     map[string]string
 	natives      []newCiv
 	figs         []draftFigure
 	claimed      map[int]bool
+	// tech is each civ's level on this site as the history walks (index in
+	// TechLevels); peak the highest a native reached. Pool civs are
+	// spacefaring and not stored.
+	tech, peak map[string]int
+	// strict fails an attempt whose required stage could only repeat a beat
+	// (the early attempts of a site), so another arc gets a chance first.
+	strict bool
 	// doneBefore holds (civ, event type) beats from sites already bound.
 	doneBefore map[string]bool
 	mapW, mapH int
@@ -293,6 +317,17 @@ func (s *siteSim) clone() *siteSim {
 	c.claimed = map[int]bool{}
 	for k, v := range s.claimed {
 		c.claimed[k] = v
+	}
+	c.side = map[string]int{}
+	for k, v := range s.side {
+		c.side[k] = v
+	}
+	c.tech, c.peak = map[string]int{}, map[string]int{}
+	for k, v := range s.tech {
+		c.tech[k] = v
+	}
+	for k, v := range s.peak {
+		c.peak[k] = v
 	}
 	return &c
 }
@@ -320,7 +355,7 @@ func (s *siteSim) originSource(types []string) int {
 
 // populates reports whether the event would put people on the site.
 func populates(def *EventDef) bool {
-	return def.Civ == CivArrive || def.Civ == CivNative || len(def.Figures) > 0 ||
+	return def.Civ == CivArrive || def.Civ == CivNative || def.Civ == CivTwins || def.Civ == CivRivalNative || len(def.Figures) > 0 ||
 		(def.Effects.Population != "" && def.Effects.Population != PopNever)
 }
 
@@ -350,6 +385,9 @@ func (s *siteSim) eligible(def *EventDef) bool {
 	if r.Resident != nil && (s.resident != "") != *r.Resident {
 		return false
 	}
+	if r.Rival != nil && (s.rival != "") != *r.Rival {
+		return false
+	}
 	if s.arc.Uninhabited && populates(def) {
 		return false
 	}
@@ -366,17 +404,117 @@ func (s *siteSim) eligible(def *EventDef) bool {
 		if len(s.h.Pool) == 0 {
 			return false
 		}
+	case CivTwins:
+		if s.resident != "" || s.rival != "" {
+			return false
+		}
+	case CivRivalNative:
+		if s.resident == "" || s.rival != "" {
+			return false
+		}
+	case CivRivalVisitor:
+		if s.resident == "" || s.rival != "" || len(s.h.Pool) == 0 {
+			return false
+		}
+	case CivRivals, CivRival:
+		if s.resident == "" || s.rival == "" {
+			return false
+		}
 	}
-	if len(def.OriginFrom) > 0 && s.originSource(def.OriginFrom) < 0 {
+	// An advance is not for a people already at their cap.
+	if strings.HasPrefix(def.Effects.Tech, "+") && def.Civ == CivResident && s.resident != "" && s.techOf(s.resident) >= s.techCap(s.resident) {
+		return false
+	}
+	if r.TechMin != "" || r.TechMax != "" {
+		if lvl, ok := s.actorTech(def); ok {
+			if r.TechMin != "" && lvl < TechIndex(r.TechMin) {
+				return false
+			}
+			if r.TechMax != "" && lvl > TechIndex(r.TechMax) {
+				return false
+			}
+		}
+	}
+	// origin_from alone needs its source; with origin too it is a preference
+	// and the event rolls its own origin without one.
+	if len(def.OriginFrom) > 0 && !def.Origin && s.originSource(def.OriginFrom) < 0 {
 		return false
 	}
 	return true
 }
 
+// techOf is a civ's level on this site: an invented native's as tracked, a
+// pool civ's spacefaring.
+func (s *siteSim) techOf(civ string) int {
+	if v, ok := s.tech[civ]; ok {
+		return v
+	}
+	if strings.HasPrefix(civ, "new") {
+		return 0
+	}
+	return TechIndex(TechSpacefaring)
+}
+
+// techCap is the highest level a civ can reach on this site: atomic for a
+// native people, lower if its species caps it (civs.json species_tech_max).
+func (s *siteSim) techCap(civ string) int {
+	if !strings.HasPrefix(civ, "new") {
+		return TechIndex(TechSpacefaring)
+	}
+	top := nativeTechMax
+	for _, n := range s.natives {
+		if n.id == civ {
+			if c := TechIndex(s.lib.Civs.SpeciesTechMax[n.species]); c >= 0 && c < top {
+				top = c
+			}
+		}
+	}
+	return top
+}
+
+// actorTech is the level of the civ that would lead def now; ok is false for
+// a new native civ (not yet rolled) or no civ at all.
+func (s *siteSim) actorTech(def *EventDef) (int, bool) {
+	switch def.Civ {
+	case CivResident:
+		return s.techOf(s.resident), s.resident != ""
+	case CivArrive, CivVisitor, CivWar:
+		return TechIndex(TechSpacefaring), true
+	case CivNative, CivTwins, CivRivalNative:
+		return 0, false
+	case CivRivals, CivRivalVisitor:
+		// An overlord's gates read the people it comes down on.
+		return s.techOf(s.resident), s.resident != ""
+	case CivRival:
+		return s.techOf(s.rival), s.rival != ""
+	}
+	if s.resident != "" {
+		return s.techOf(s.resident), true
+	}
+	if s.lastResident != "" {
+		return s.techOf(s.lastResident), true
+	}
+	return 0, false
+}
+
+// rollNativeTech is a new native people's starting level, capped by its
+// species.
+func (s *siteSim) rollNativeTech(species string) int {
+	ct := s.lib.Civs
+	lvl := TechIndex(weightedPick(s.rng, sortedKeys(ct.NativeTech), ct.NativeTech))
+	if lvl < 0 {
+		lvl = 0
+	}
+	if c := TechIndex(ct.SpeciesTechMax[species]); c >= 0 && lvl > c {
+		lvl = c
+	}
+	return lvl
+}
+
 // beat reports whether an event type is a memorable beat (it names a figure
 // or a place on the map) that should not repeat for the same civ.
 func beat(def *EventDef) bool {
-	return len(def.Figures) > 0 || def.Origin || len(def.OriginFrom) > 0
+	return len(def.Figures) > 0 || def.Origin || def.OriginAt != "" || len(def.OriginFrom) > 0
 }
 
 func beatKey(civ, typ string) string { return civ + "\x00" + typ }
@@ -490,6 +628,15 @@ func (s *siteSim) inheritedCiv(def *EventDef, src int) string {
 
 // apply records def as the next event and applies its effects.
 func (s *siteSim) apply(def *EventDef) {
+	if def.PerSide {
+		s.applyPerSide(def)
+		return
+	}
+	s.applyOne(def)
+}
+
+// applyOne records one event (one side's, for a per-side event).
+func (s *siteSim) applyOne(def *EventDef) {
 	d := draftEvent{def: def}
 	prev := len(s.events) - 1
 	// Origin: reuse and claim an earlier event's, or roll a fresh one.
@@ -508,6 +655,8 @@ func (s *siteSim) apply(def *EventDef) {
 	if prev >= 0 && prev != src {
 		d.causes = append(d.causes, prev)
 	}
+	// {former} is whoever lived here before (an older layer's people).
+	former := s.lastResident
 	// Cast the civs.
 	switch def.Civ {
 	case CivResident:
@@ -524,14 +673,40 @@ func (s *siteSim) apply(def *EventDef) {
 			s.resident = id
 		}
 	case CivNative:
-		var taken []string
-		for _, n := range s.natives {
-			taken = append(taken, n.name)
+		id := s.newNative(def, former)
+		d.civs = []string{id}
+		s.resident = id
+	case CivTwins:
+		d.civs = []string{s.lead, s.other}
+	case CivRivalNative:
+		// A people splits off from the resident: same kind, same level.
+		res := s.resident
+		id := s.newNative(&EventDef{Species: s.nativeSpecies(res)}, "")
+		s.tech[id], s.peak[id] = s.techOf(res), s.techOf(res)
+		s.setRival(id)
+		d.civs = []string{id, res}
+	case CivRivalVisitor:
+		w := map[string]int{}
+		var cands []string
+		for _, c := range s.h.Pool {
+			if c != s.resident {
+				cands = append(cands, c)
+			}
 		}
-		n := newCiv{id: fmt.Sprintf("new%d", len(s.natives)), name: s.h.civName(s.lib.Civs, s.rng, taken), species: def.Species}
-		s.natives = append(s.natives, n)
-		d.civs = []string{n.id}
-		s.resident = n.id
+		for _, id := range cands {
+			w[id] = 1 + s.lib.Civs.Reuse*len(s.h.Civs[id].Sites)
+		}
+		id := weightedPick(s.rng, cands, w)
+		s.setRival(id)
+		d.civs = []string{id, s.resident}
+	case CivRivals:
+		if s.lead != "" {
+			d.civs = []string{s.lead, s.other}
+		} else {
+			d.civs = []string{s.resident, s.rival}
+		}
+	case CivRival:
+		d.civs = []string{s.rival, s.resident}
 	case CivWar:
 		wars := s.h.wars(def.IsChapter())
 		if beat(def) {
@@ -551,6 +726,9 @@ func (s *siteSim) apply(def *EventDef) {
 		if c := s.inheritedCiv(def, src); c != "" {
 			d.civs = []string{c}
 		}
+	}
+	if d.origin == nil && def.OriginAt != "" && len(d.civs) > 0 {
+		d.origin = s.rollAt(def.OriginAt, d.civs[0])
 	}
 	if s.resident != "" {
 		s.lastResident = s.resident
@@ -580,6 +758,13 @@ func (s *siteSim) apply(def *EventDef) {
 		d.figures = append(d.figures, idx)
 	}
 	// Template vars.
+	if strings.Contains(def.Text, "{former}") {
+		name := s.civName(former)
+		if name == "" {
+			name = "those before"
+		}
+		d.vars = map[string]string{"former": name}
+	}
 	for _, k := range sortedVarKeys(def.Vars) {
 		if opts := def.Vars[k]; len(opts) > 0 {
 			if d.vars == nil {
@@ -587,6 +772,29 @@ func (s *siteSim) apply(def *EventDef) {
 			}
 			d.vars[k] = opts[s.rng.Intn(len(opts))]
 		}
+	}
+	// The acting civ's level then: evidence and text render it ("@seat" is
+	// a castle in a medieval age, a bunker in an atomic one).
+	if len(d.civs) > 0 {
+		civ := d.civs[0]
+		lvl := s.techOf(civ)
+		if d.vars == nil {
+			d.vars = map[string]string{}
+		}
+		d.vars["tech"] = TechLevels[lvl]
+		if strings.Contains(def.Text, "{weapon}") {
+			if td := s.lib.Tech(TechLevels[lvl]); td != nil && len(td.Weapons) > 0 {
+				d.vars["weapon"] = td.Weapons[s.rng.Intn(len(td.Weapons))]
+			}
+		}
+		if def.Effects.Tech != "" && strings.HasPrefix(civ, "new") {
+			s.tech[civ] = min(applyTech(lvl, def.Effects.Tech, true), s.techCap(civ))
+			s.peak[civ] = max(s.peak[civ], s.tech[civ])
+		}
+	}
+	if s.sideOnly {
+		s.events = append(s.events, d)
+		return
 	}
 	// Planet state.
 	e := def.Effects
@@ -619,7 +827,139 @@ func (s *siteSim) apply(def *EventDef) {
 		s.outcomes[s.resident] = out
 		s.resident = ""
 	}
+	if e.RivalFate != "" && s.rival != "" {
+		out := e.RivalFate
+		if out == "dwindled" {
+			out = OutcomeRemained
+		}
+		s.outcomes[s.rival] = out
+		s.rival = ""
+	}
 	s.events = append(s.events, d)
+}
+
+// newNative invents a native people on this site with its starting level;
+// former, if set, is the people it may descend from.
+func (s *siteSim) newNative(def *EventDef, former string) string {
+	var taken []string
+	for _, n := range s.natives {
+		taken = append(taken, n.name)
+	}
+	n := newCiv{id: fmt.Sprintf("new%d", len(s.natives)), name: s.h.civName(s.lib.Civs, s.rng, taken), species: def.Species}
+	// A people rising on another's ruins may descend from them.
+	if former != "" && strings.Contains(def.Text, "{former}") && s.rng.Intn(100) < formerAncestorPercent {
+		n.ancestor = former
+	}
+	s.natives = append(s.natives, n)
+	if s.tech == nil {
+		s.tech, s.peak = map[string]int{}, map[string]int{}
+	}
+	s.tech[n.id] = s.rollNativeTech(n.species)
+	s.peak[n.id] = s.tech[n.id]
+	return n.id
+}
+
+// nativeSpecies is an invented people's species, "" for any other civ.
+func (s *siteSim) nativeSpecies(civ string) string {
+	for _, n := range s.natives {
+		if n.id == civ {
+			return n.species
+		}
+	}
+	return ""
+}
+
+// setRival makes civ the site's rival people: the resident keeps side 0, the
+// rival takes side 1 across a freshly rolled axis.
+func (s *siteSim) setRival(civ string) {
+	s.rival = civ
+	s.axis = s.rng.Intn(2)
+	if s.side == nil {
+		s.side = map[string]int{}
+	}
+	s.side[s.resident], s.side[civ] = 0, 1
+}
+
+// rollAt rolls an origin "side" (in civ's half, short of the border) or
+// "border" (the middle band); anything else rolls anywhere.
+func (s *siteSim) rollAt(at, civ string) *SitePoint {
+	p := s.rollPoint()
+	if s.rival == "" && at != "side" {
+		return p
+	}
+	span := s.mapW
+	if s.axis == 1 {
+		span = s.mapH
+	}
+	const margin = 12
+	var lo, hi int
+	switch at {
+	case "side":
+		if s.side[civ] == 0 {
+			lo, hi = margin, span*42/100
+		} else {
+			lo, hi = span*58/100, span-margin
+		}
+	case "border":
+		lo, hi = span*45/100, span*55/100
+	default:
+		return p
+	}
+	v := lo
+	if hi > lo {
+		v = lo + s.rng.Intn(hi-lo)
+	}
+	if s.axis == 0 {
+		p.X = v
+	} else {
+		p.Y = v
+	}
+	return p
+}
+
+// sideEligible reports whether lead may lead its emission of a per-side
+// event: the event's tech gates, and an advance below its cap.
+func (s *siteSim) sideEligible(def *EventDef, lead string) bool {
+	lvl := s.techOf(lead)
+	r := def.Requires
+	if r.TechMin != "" && lvl < TechIndex(r.TechMin) || r.TechMax != "" && lvl > TechIndex(r.TechMax) {
+		return false
+	}
+	return !strings.HasPrefix(def.Effects.Tech, "+") || lvl < s.techCap(lead)
+}
+
+// meanwhileVar marks the second people's half of a per-side event.
+const meanwhileVar = "meanwhile"
+
+// applyPerSide emits a per-side event once led by each people (the twins
+// event creates both first), the second following from the first; planet
+// effects and fates apply with the last emission.
+func (s *siteSim) applyPerSide(def *EventDef) {
+	if def.Civ == CivTwins {
+		a := s.newNative(def, "")
+		s.resident = a
+		b := s.newNative(def, "")
+		s.setRival(b)
+	}
+	var sides [][2]string
+	for _, sd := range [][2]string{{s.resident, s.rival}, {s.rival, s.resident}} {
+		if sd[0] != "" && s.sideEligible(def, sd[0]) {
+			sides = append(sides, sd)
+		}
+	}
+	for i, sd := range sides {
+		s.lead, s.other = sd[0], sd[1]
+		s.sideOnly = i < len(sides)-1
+		s.applyOne(def)
+		if i > 0 {
+			d := &s.events[len(s.events)-1]
+			if d.vars == nil {
+				d.vars = map[string]string{}
+			}
+			d.vars[meanwhileVar] = "1"
+		}
+	}
+	s.lead, s.other, s.sideOnly = "", "", false
 }
 
 func sortedVarKeys(m map[string][]string) []string {
@@ -644,40 +984,109 @@ func (s *siteSim) rollPoint() *SitePoint {
 	return &SitePoint{X: x, Y: y}
 }
 
-// walk runs the arc's stages; false if a required stage had nothing eligible.
-func (s *siteSim) walk() bool {
-	for _, st := range s.arc.Stages {
-		var ok []*EventDef
-		for _, id := range st.Pick {
-			if def := s.lib.Events[id]; def != nil && s.eligible(def) {
+// walk runs the main arc's stages; false if a required stage had nothing
+// eligible.
+func (s *siteSim) walk() bool { return s.walkArc(s.arc) }
+
+// walkArc runs an arc's stages. A main arc's epoch stage is skipped after an
+// older layer (which set the world up). An optional stage happens at its chance
+// (default 50%). A repeating stage picks several events, each re-checked; a
+// type already picked in the stage repeats only if repeatable. No event type
+// directly follows itself unless repeatable. After each stage one interlude
+// may follow (Present.Density).
+func (s *siteSim) walkArc(arc *ArcDef) bool {
+	for _, st := range arc.Stages {
+		if st.Epoch && s.layer != nil && arc != s.layer {
+			continue // the older layer already set the world up
+		}
+		n := 1
+		if len(st.Repeat) > 0 {
+			n = rollRange(s.rng, st.Repeat, [2]int{1, 1})
+		}
+		chance := st.Chance
+		if chance <= 0 {
+			chance = 50
+		}
+		picked := map[string]bool{}
+		for k := 0; k < n; k++ {
+			var ok []*EventDef
+			for _, id := range st.Pick {
+				def := s.lib.Events[id]
+				if def == nil || !s.eligible(def) || (!def.Repeatable && (picked[id] || s.lastType() == id)) {
+					continue
+				}
 				ok = append(ok, def)
 			}
-		}
-		// A beat its civ already had elsewhere yields to any other choice; an
-		// optional stage with only repeats left is skipped.
-		var fresh []*EventDef
-		for _, def := range ok {
-			if !s.repeats(def) {
-				fresh = append(fresh, def)
+			// A beat its civ already had elsewhere yields to any other choice;
+			// an optional stage with only repeats left is skipped.
+			var fresh []*EventDef
+			for _, def := range ok {
+				if !s.repeats(def) {
+					fresh = append(fresh, def)
+				}
 			}
-		}
-		if len(fresh) > 0 {
-			ok = fresh
-		} else if st.Optional {
-			continue
-		}
-		if len(ok) == 0 {
-			if st.Optional {
-				continue
+			if len(fresh) > 0 {
+				ok = fresh
+			} else if st.Optional || k > 0 {
+				break
+			} else if s.strict && len(ok) > 0 {
+				return false // try another arc before repeating a beat
 			}
-			return false
+			if len(ok) == 0 {
+				if st.Optional || k > 0 {
+					break
+				}
+				return false
+			}
+			if k == 0 && st.Optional && s.rng.Intn(100) >= chance {
+				break
+			}
+			def := ok[s.rng.Intn(len(ok))]
+			s.apply(def)
+			picked[def.ID] = true
 		}
-		if st.Optional && s.rng.Intn(2) == 0 {
-			continue
-		}
-		s.apply(ok[s.rng.Intn(len(ok))])
+		s.interlude()
 	}
 	return true
+}
+
+// lastType is the type of the site's latest event, "" for none.
+func (s *siteSim) lastType() string {
+	if len(s.events) == 0 {
+		return ""
+	}
+	return s.events[len(s.events)-1].def.ID
+}
+
+// interlude rolls the map's density for one small happening after a stage.
+// Each interlude type happens once per site unless repeatable.
+func (s *siteSim) interlude() {
+	if s.md.Present.Density <= 0 || s.rng.Intn(100) >= s.md.Present.Density {
+		return
+	}
+	var ok []*EventDef
+	for _, def := range s.lib.Interludes() {
+		if s.eligible(def) && (def.Repeatable || !s.hasType(def.ID)) && !s.repeats(def) {
+			ok = append(ok, def)
+		}
+	}
+	if len(ok) > 0 {
+		s.apply(ok[s.rng.Intn(len(ok))])
+	}
+}
+
+// civName is a civ's display name inside the simulation (an invented native
+// has no Civ yet).
+func (s *siteSim) civName(id string) string {
+	for _, n := range s.natives {
+		if n.id == id {
+			return n.name
+		}
+	}
+	if c := s.h.Civs[id]; c != nil {
+		return c.Name
+	}
+	return ""
 }
 
 func presentHolds(p *mapdef.Present, st PlanetState) bool {
@@ -705,10 +1114,40 @@ func (s *siteSim) tryChapter(def *EventDef) *siteSim {
 	return c
 }
 
-// chooseChapter picks the threat chapter by per-map weight among those the
-// history allows, against the map's quiet weight. It returns the finished sim
-// and the chapter (nil for the quiet outcome).
+// chooseChapter ends the history in two rolls on the site stream: a tier by
+// the map's tiers (safe_tiers on a first jump), then a chapter of that tier by
+// the chapters' per-map weights. A tier with nothing eligible falls back
+// threat → hazard → quiet; quiet always succeeds. On a first jump threat is
+// never rolled and a hazard must be safe_start. It returns the finished sim
+// and the chapter (nil for quiet).
 func (s *siteSim) chooseChapter(safe bool) (*siteSim, *EventDef) {
+	weights := s.md.Present.Tiers
+	if safe {
+		weights = map[string]int{}
+		for k, v := range s.md.Present.SafeTiers {
+			if k != TierThreat {
+				weights[k] = v
+			}
+		}
+	}
+	tier := weightedPick(s.rng, Tiers, weights)
+	switch tier {
+	case TierThreat:
+		if sim, def := s.pickChapter(TierThreat, safe); def != nil {
+			return sim, def
+		}
+		fallthrough
+	case TierHazard:
+		if sim, def := s.pickChapter(TierHazard, safe); def != nil {
+			return sim, def
+		}
+	}
+	return s, nil
+}
+
+// pickChapter picks a chapter of tier by per-map weight among those the
+// history allows; nil if none can end it.
+func (s *siteSim) pickChapter(tier string, safe bool) (*siteSim, *EventDef) {
 	type cand struct {
 		def *EventDef
 		sim *siteSim
@@ -716,13 +1155,9 @@ func (s *siteSim) chooseChapter(safe bool) (*siteSim, *EventDef) {
 	}
 	var cands []cand
 	total := 0
-	if q := s.md.Present.QuietWeight; q > 0 && (!safe || s.md.Present.QuietSafe) {
-		cands = append(cands, cand{w: q})
-		total += q
-	}
 	for _, def := range s.lib.ChapterEvents() {
 		w := def.Weight[s.md.ID]
-		if w <= 0 || s.repeats(def) || (safe && !def.SafeStart) {
+		if w <= 0 || def.ChapterTier() != tier || s.repeats(def) || (safe && !def.SafeStart) {
 			continue
 		}
 		// The trial runs on its own copy of the stream so rejected chapters
@@ -740,9 +1175,6 @@ func (s *siteSim) chooseChapter(safe bool) (*siteSim, *EventDef) {
 	r := s.rng.Intn(total)
 	for _, c := range cands {
 		if r < c.w {
-			if c.def == nil {
-				return s, nil
-			}
 			return c.sim, c.def
 		}
 		r -= c.w
@@ -759,9 +1191,9 @@ func (h *History) BindSite(lib *Library, mapID string, seed int64) (*SiteHistory
 	return h.bind(lib, mapID, seed, "", false)
 }
 
-// BindSiteSafe is BindSite for a first jump: the chapter is drawn only from
-// the safe set, the map's quiet outcome if its present is quiet_safe and the
-// chapters flagged safe_start. With nothing safe on the map it ends quiet.
+// BindSiteSafe is BindSite for a first jump: the tier is rolled by the map's
+// safe_tiers (hazard or quiet, never threat) and a hazard must be safe_start.
+// With nothing safe eligible it ends quiet.
 func (h *History) BindSiteSafe(lib *Library, mapID string, seed int64) (*SiteHistory, error) {
 	return h.bind(lib, mapID, seed, "", true)
 }
@@ -780,7 +1212,7 @@ func (h *History) BindSiteEnding(lib *Library, mapID string, seed int64, eventTy
 		return site, nil
 	}
 	for _, alt := range lib.ChapterEvents() {
-		if alt.ID != eventType && alt.Scenario == def.Scenario && alt.Weight[mapID] > 0 {
+		if alt.ID != eventType && def.Scenario != "" && alt.Scenario == def.Scenario && alt.Weight[mapID] > 0 {
 			if site, err2 := h.bind(lib, mapID, seed, alt.ID, false); err2 == nil {
 				return site, nil
 			}
@@ -837,9 +1269,19 @@ func (h *History) bind(lib *Library, mapID string, seed int64, want string, safe
 			state:      InitialState(),
 			outcomes:   map[string]string{},
 			claimed:    map[int]bool{},
+			tech:       map[string]int{},
+			peak:       map[string]int{},
 			mapW:       w,
 			mapH:       hh,
 			doneBefore: doneBefore,
+			strict:     attempt < attempts/2,
+		}
+		// An older people's layer first, ending with nobody living here.
+		if l := md.Present.Layers; l != nil && !s.arc.Uninhabited && len(l.Arcs) > 0 && rng.Intn(100) < l.Chance {
+			s.layer = lib.Arcs[l.Arcs[rng.Intn(len(l.Arcs))]]
+			if s.layer == nil || !s.walkArc(s.layer) || !s.layer.Ends.Holds(s.state) || s.resident != "" {
+				continue
+			}
 		}
 		if !s.walk() || !s.arc.Ends.Holds(s.state) || !presentHolds(md.Present, s.state) {
 			continue
@@ -875,16 +1317,19 @@ func (h *History) commit(s *siteSim, chapter *EventDef) *SiteHistory {
 		Arc:   s.arc.ID,
 		State: s.state,
 	}
+	site.Scenario = s.md.BaseScenario
+	site.Tier = TierQuiet
 	if chapter != nil {
-		site.Scenario = chapter.Scenario
-	} else {
-		site.Scenario = s.md.BaseScenario
+		site.Tier = chapter.ChapterTier()
+		if chapter.Scenario != "" {
+			site.Scenario = chapter.Scenario
+		}
 	}
 	// Invented natives become real civs.
 	civID := map[string]string{}
 	for _, n := range s.natives {
 		id := fmt.Sprintf("civ%d", len(h.Civs)+1)
-		h.Civs[id] = &Civ{ID: id, Name: n.name, Fate: FateExtant, Species: n.species}
+		h.Civs[id] = &Civ{ID: id, Name: n.name, Fate: FateExtant, Species: n.species, Tech: TechLevels[s.peak[n.id]]}
 		civID[n.id] = id
 	}
 	resolve := func(id string) string {
@@ -893,12 +1338,24 @@ func (h *History) commit(s *siteSim, chapter *EventDef) *SiteHistory {
 		}
 		return id
 	}
+	for _, n := range s.natives {
+		if n.ancestor != "" {
+			h.Civs[civID[n.id]].Ancestor = resolve(n.ancestor)
+		}
+	}
+	if s.layer != nil {
+		site.Layer = s.layer.ID
+	}
 	// Dates run backwards from the present: each event sits its own gap before
 	// the next one, the last its gap before the campaign begins.
 	dates := make([]StarDate, len(s.events))
 	next := StarDate(0)
 	for i := len(s.events) - 1; i >= 0; i-- {
 		gap := rollRange(s.rng, s.events[i].def.GapDays, defaultGapDays)
+		// The two sides of a per-side event happen together ("meanwhile").
+		if i+1 < len(s.events) && s.events[i].def.PerSide && s.events[i+1].def == s.events[i].def {
+			gap = 1 + s.rng.Intn(30)
+		}
 		if gap < 1 {
 			gap = 1
 		}
@@ -953,6 +1410,9 @@ func (h *History) commit(s *siteSim, chapter *EventDef) *SiteHistory {
 	// Whoever still lives here remained.
 	if s.resident != "" {
 		s.outcomes[s.resident] = OutcomeRemained
+	}
+	if s.rival != "" {
+		s.outcomes[s.rival] = OutcomeRemained
 	}
 	if len(s.outcomes) > 0 {
 		site.Outcomes = map[string]string{}

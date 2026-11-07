@@ -34,6 +34,7 @@ func siteLoreFor(h *history.History, site *history.SiteHistory) (siteLore, bool)
 func (l siteLore) apply(cfg *SettlementConfig) {
 	cfg.SiteFeatures = l.evidence.Features
 	cfg.SiteOrigins = l.evidence.Origins
+	cfg.SiteKeepOut = l.evidence.KeepOut
 	cfg.SiteChapter = l.evidence.Chapter
 	cfg.SiteFlags = l.flags
 }

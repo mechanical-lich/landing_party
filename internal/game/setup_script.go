@@ -36,6 +36,10 @@ type setupContext struct {
 	// itself, directly or via a cycle).
 	genDepth int
 
+	// mirrors holds one frame of reflections per active gen_structure call
+	// (the builtin mirror; setup_mirror.go).
+	mirrors [][]mirrorFlip
+
 	// bindTarget, when set, lets mark_quest_target push the script-chosen NPC
 	// name back into the campaign quest. nil for plain setup scripts.
 	bindTarget func(questID, npc string)
@@ -96,9 +100,11 @@ func runGenStructure(ctx *setupContext, name string, x, y, w, h int) error {
 		return fmt.Errorf("gen_structure %q: missing function generate(x,y,w,h)", name)
 	}
 	ctx.pushParamsCopy()
+	ctx.mirrors = append(ctx.mirrors, nil)
 	ctx.genDepth++
 	_, err := interp.Call("generate", float64(x), float64(y), float64(w), float64(h))
 	ctx.genDepth--
+	ctx.mirrors = ctx.mirrors[:len(ctx.mirrors)-1]
 	ctx.popParams()
 	if err != nil {
 		return fmt.Errorf("gen_structure %q: %w", name, err)
@@ -169,18 +175,22 @@ func runSetupScript(path string, level *world.Level, rng *rand.Rand) error {
 
 func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	level := ctx.Level
+	reg := func(name string, fn func(args ...any) (any, error)) {
+		registerMirrored(interp, ctx, name, fn)
+	}
+	registerMirror(interp, ctx)
 
-	interp.RegisterFunc("get_z_count", func(args ...any) (any, error) {
+	reg("get_z_count", func(args ...any) (any, error) {
 		return float64(level.GetDepth()), nil
 	})
-	interp.RegisterFunc("get_width", func(args ...any) (any, error) {
+	reg("get_width", func(args ...any) (any, error) {
 		return float64(level.GetWidth()), nil
 	})
-	interp.RegisterFunc("get_height", func(args ...any) (any, error) {
+	reg("get_height", func(args ...any) (any, error) {
 		return float64(level.GetHeight()), nil
 	})
 
-	interp.RegisterFunc("set_tile", func(args ...any) (any, error) {
+	reg("set_tile", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return nil, nil
 		}
@@ -197,7 +207,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return nil, nil
 	})
 
-	interp.RegisterFunc("get_tile_type", func(args ...any) (any, error) {
+	reg("get_tile_type", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return "", nil
 		}
@@ -220,7 +230,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return world.TileIndexToName[slot.Type], nil
 	})
 
-	interp.RegisterFunc("spawn_entity", func(args ...any) (any, error) {
+	reg("spawn_entity", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return nil, nil
 		}
@@ -238,7 +248,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 
 	// spawn_entity_owned(blueprint, x, y, z, owner) — like spawn_entity but sets
 	// OwnedBy on Door, Storage, and Workbench components.
-	interp.RegisterFunc("spawn_entity_owned", func(args ...any) (any, error) {
+	reg("spawn_entity_owned", func(args ...any) (any, error) {
 		if len(args) < 5 {
 			return nil, nil
 		}
@@ -268,7 +278,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 
 	// spawn_entity_named(blueprint, x, y, z, name) — spawn and set its display
 	// name. For guards / flavor NPCs a structure wants to customize.
-	interp.RegisterFunc("spawn_entity_named", func(args ...any) (any, error) {
+	reg("spawn_entity_named", func(args ...any) (any, error) {
 		if len(args) < 5 {
 			return float64(0), nil
 		}
@@ -295,7 +305,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// add_epithet(x, y, z) — decorate the name of the entity at (x,y,z) with a
 	// random epithet, e.g. "Warden of the Sealed Bunker the Destroyer". Call
 	// before mark_quest_target so the quest title adopts the boss name.
-	interp.RegisterFunc("add_epithet", func(args ...any) (any, error) {
+	reg("add_epithet", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return float64(0), nil
 		}
@@ -320,7 +330,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// (x,y,z) as this structure's quest target. Tags it with the param
 	// "quest_id" so target_killed fires, and feeds its display name back into
 	// the campaign so the quest title adopts the script-chosen name.
-	interp.RegisterFunc("mark_quest_target", func(args ...any) (any, error) {
+	reg("mark_quest_target", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return float64(0), nil
 		}
@@ -351,7 +361,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	var lastOpenX, lastOpenY, lastOpenZ int
-	interp.RegisterFunc("find_open_tile", func(args ...any) (any, error) {
+	reg("find_open_tile", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return float64(0), nil
 		}
@@ -376,7 +386,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 	// find_open_tile_near(x, y, z, radius) is find_open_tile within radius tiles
 	// of (x, y): how a threat grows from a history origin.
-	interp.RegisterFunc("find_open_tile_near", func(args ...any) (any, error) {
+	reg("find_open_tile_near", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return float64(0), nil
 		}
@@ -406,7 +416,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 	// find_open_tile_any_z() is find_open_tile on a random level of the map
 	// (every deck of a station); get_open_z reads the level it found.
-	interp.RegisterFunc("find_open_tile_any_z", func(args ...any) (any, error) {
+	reg("find_open_tile_any_z", func(args ...any) (any, error) {
 		w, h, depth := level.GetWidth(), level.GetHeight(), level.GetDepth()
 		for attempt := 0; attempt < 400; attempt++ {
 			x, y, z := ctx.rng.Intn(w), ctx.rng.Intn(h), ctx.rng.Intn(depth)
@@ -422,17 +432,17 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return float64(0), nil
 	})
-	interp.RegisterFunc("get_open_z", func(args ...any) (any, error) {
+	reg("get_open_z", func(args ...any) (any, error) {
 		return float64(lastOpenZ), nil
 	})
-	interp.RegisterFunc("get_open_x", func(args ...any) (any, error) {
+	reg("get_open_x", func(args ...any) (any, error) {
 		return float64(lastOpenX), nil
 	})
-	interp.RegisterFunc("get_open_y", func(args ...any) (any, error) {
+	reg("get_open_y", func(args ...any) (any, error) {
 		return float64(lastOpenY), nil
 	})
 
-	interp.RegisterFunc("set_flag", func(args ...any) (any, error) {
+	reg("set_flag", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return nil, nil
 		}
@@ -441,7 +451,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 	// get_flag_or(key, default) is get_flag with a value for a flag the level
 	// does not have (a lore flag on a site with no history).
-	interp.RegisterFunc("get_flag_or", func(args ...any) (any, error) {
+	reg("get_flag_or", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return nil, nil
 		}
@@ -451,7 +461,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return args[1], nil
 	})
 
-	interp.RegisterFunc("get_flag", func(args ...any) (any, error) {
+	reg("get_flag", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil
 		}
@@ -459,13 +469,13 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// debug_log(text) writes to the developer log, not the player's.
-	interp.RegisterFunc("debug_log", func(args ...any) (any, error) {
+	reg("debug_log", func(args ...any) (any, error) {
 		if len(args) > 0 {
 			log.Printf("[script] %v", args[0])
 		}
 		return nil, nil
 	})
-	interp.RegisterFunc("add_message", func(args ...any) (any, error) {
+	reg("add_message", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil
 		}
@@ -473,19 +483,19 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return nil, nil
 	})
 
-	interp.RegisterFunc("num_to_str", func(args ...any) (any, error) {
+	reg("num_to_str", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return "", nil
 		}
 		return fmt.Sprint(args[0]), nil
 	})
-	interp.RegisterFunc("chr", func(args ...any) (any, error) {
+	reg("chr", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return "", nil
 		}
 		return string(rune(int(toSetupFloat(args[0])))), nil
 	})
-	interp.RegisterFunc("rnd_int", func(args ...any) (any, error) {
+	reg("rnd_int", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return float64(0), nil
 		}
@@ -495,7 +505,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return float64(ctx.rng.Intn(n)), nil
 	})
-	interp.RegisterFunc("dist", func(args ...any) (any, error) {
+	reg("dist", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return float64(0), nil
 		}
@@ -505,7 +515,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// set_radiation(x, y, z, level) — set a single tile's radiation (0..255).
-	interp.RegisterFunc("set_radiation", func(args ...any) (any, error) {
+	reg("set_radiation", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return nil, nil
 		}
@@ -529,7 +539,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// place_radiation_blob(cx, cy, z, radius, peak) — circular blob with linear
 	// falloff from `peak` at the center to 0 at the edge. Existing radiation
 	// is preserved if higher (blobs add, never reduce).
-	interp.RegisterFunc("place_radiation_blob", func(args ...any) (any, error) {
+	reg("place_radiation_blob", func(args ...any) (any, error) {
 		if len(args) < 5 {
 			return nil, nil
 		}
@@ -569,7 +579,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// across the current Z level. Convenience wrapper that the scenario can
 	// call once instead of looping in script. Each blob also seeds 1–3
 	// radioactive_ore tiles near its centre to represent the leak's source.
-	interp.RegisterFunc("scatter_radiation", func(args ...any) (any, error) {
+	reg("scatter_radiation", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return nil, nil
 		}
@@ -626,7 +636,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// get_biome(x, y) — returns the biome ID at column (x,y), or "".
-	interp.RegisterFunc("get_biome", func(args ...any) (any, error) {
+	reg("get_biome", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return "", nil
 		}
@@ -636,7 +646,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// get_surface_z(x, y) — returns the surface Z for the column, -1 if none.
-	interp.RegisterFunc("get_surface_z", func(args ...any) (any, error) {
+	reg("get_surface_z", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return float64(-1), nil
 		}
@@ -648,7 +658,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// find_cave_tile() — random search for a TKCavern tile anywhere in the level.
 	// Returns 1 on success; use get_cave_x/y/z to retrieve the coords.
 	var lastCaveX, lastCaveY, lastCaveZ int
-	interp.RegisterFunc("find_cave_tile", func(args ...any) (any, error) {
+	reg("find_cave_tile", func(args ...any) (any, error) {
 		w := level.GetWidth()
 		h := level.GetHeight()
 		depth := level.GetDepth()
@@ -676,7 +686,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 	// find_cave_tile_near(x, y, radius) is find_cave_tile within radius tiles
 	// of (x, y) at any depth: eggs festering under an impact site.
-	interp.RegisterFunc("find_cave_tile_near", func(args ...any) (any, error) {
+	reg("find_cave_tile_near", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return float64(0), nil
 		}
@@ -705,12 +715,12 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return float64(0), nil
 	})
-	interp.RegisterFunc("get_cave_x", func(args ...any) (any, error) { return float64(lastCaveX), nil })
-	interp.RegisterFunc("get_cave_y", func(args ...any) (any, error) { return float64(lastCaveY), nil })
-	interp.RegisterFunc("get_cave_z", func(args ...any) (any, error) { return float64(lastCaveZ), nil })
+	reg("get_cave_x", func(args ...any) (any, error) { return float64(lastCaveX), nil })
+	reg("get_cave_y", func(args ...any) (any, error) { return float64(lastCaveY), nil })
+	reg("get_cave_z", func(args ...any) (any, error) { return float64(lastCaveZ), nil })
 
 	// tag_region(name, x, y, z) — record an anchor point for later lookup.
-	interp.RegisterFunc("tag_region", func(args ...any) (any, error) {
+	reg("tag_region", func(args ...any) (any, error) {
 		if len(args) < 4 {
 			return nil, nil
 		}
@@ -723,7 +733,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// get_region_count(name) — number of anchors for a tag.
-	interp.RegisterFunc("get_region_count", func(args ...any) (any, error) {
+	reg("get_region_count", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return float64(0), nil
 		}
@@ -732,20 +742,20 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// get_region_x(name, i) / _y / _z — read the i-th anchor.
-	interp.RegisterFunc("get_region_x", func(args ...any) (any, error) {
+	reg("get_region_x", func(args ...any) (any, error) {
 		return regionCoord(level, args, 0)
 	})
-	interp.RegisterFunc("get_region_y", func(args ...any) (any, error) {
+	reg("get_region_y", func(args ...any) (any, error) {
 		return regionCoord(level, args, 1)
 	})
-	interp.RegisterFunc("get_region_z", func(args ...any) (any, error) {
+	reg("get_region_z", func(args ...any) (any, error) {
 		return regionCoord(level, args, 2)
 	})
 
 	// carve_room(x, y, z, w, h, wall_tile, floor_tile) — bordered room. The
 	// floor tile is always stamped (Floor slot) so destroyed walls leave a
 	// walkable cell; wall tiles are also stamped on edges (Middle slot).
-	interp.RegisterFunc("carve_room", func(args ...any) (any, error) {
+	reg("carve_room", func(args ...any) (any, error) {
 		if len(args) < 7 {
 			return nil, nil
 		}
@@ -771,7 +781,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// carve_rect(x, y, z, w, h, tile) — fill a rectangle (no border).
-	interp.RegisterFunc("carve_rect", func(args ...any) (any, error) {
+	reg("carve_rect", func(args ...any) (any, error) {
 		if len(args) < 6 {
 			return nil, nil
 		}
@@ -792,7 +802,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// clear_middle(x, y, z) — remove whatever occupies the blocking Middle
 	// slot (wall/ore), leaving the Floor intact. Use to knock a hole in a
 	// wall or open a passage; the cell becomes walkable if it has a floor.
-	interp.RegisterFunc("clear_middle", func(args ...any) (any, error) {
+	reg("clear_middle", func(args ...any) (any, error) {
 		if len(args) < 3 {
 			return nil, nil
 		}
@@ -804,12 +814,14 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// carve_round_room(cx, cy, z, r, wall_tile, floor_tile) — bordered disc.
-	// The interior (cells whose distance from center is < r) gets the floor
-	// tile stamped on the Floor slot with the Middle cleared; the perimeter
-	// ring (cells whose squared distance falls in ((r-1)², r²]) gets the same
-	// floor stamped beneath the wall so a destroyed wall leaves a walkable
-	// cell, matching the behavior of carve_room.
-	interp.RegisterFunc("carve_round_room", func(args ...any) (any, error) {
+	// The disc is the cells within r + 0.5 of the centre (d² <= r² + r), so
+	// its four tips are flat rather than single protruding cells. Its outline
+	// is every disc cell with any neighbour (of 8) outside the disc, less the inner
+	// cell of any 2x2 block it would lay: a wall that steps diagonally in
+	// L-shaped runs, never touching only at a corner nor doubled (the
+	// autotiler draws both as posts). Floor is stamped beneath the wall too,
+	// so a destroyed wall leaves a walkable cell, as carve_room does.
+	reg("carve_round_room", func(args ...any) (any, error) {
 		if len(args) < 6 {
 			return nil, nil
 		}
@@ -822,17 +834,46 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		if r < 1 {
 			return nil, nil
 		}
-		rr := r * r
-		inner := (r - 1) * (r - 1)
+		in := func(dx, dy int) bool { return dx*dx+dy*dy <= r*r+r }
+		wall := map[[2]int]bool{}
 		for dy := -r; dy <= r; dy++ {
 			for dx := -r; dx <= r; dx++ {
-				d2 := dx*dx + dy*dy
-				if d2 > rr {
+				if !in(dx, dy) {
+					continue
+				}
+				for _, n := range [][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
+					if !in(dx+n[0], dy+n[1]) {
+						wall[[2]int{dx, dy}] = true
+						break
+					}
+				}
+			}
+		}
+		// Where the outline steps diagonally it can lay four walls in a 2x2
+		// block; the one nearest the centre is not needed to close the wall.
+		for dy := -r; dy < r; dy++ {
+			for dx := -r; dx < r; dx++ {
+				block := [][2]int{{dx, dy}, {dx + 1, dy}, {dx, dy + 1}, {dx + 1, dy + 1}}
+				if !wall[block[0]] || !wall[block[1]] || !wall[block[2]] || !wall[block[3]] {
+					continue
+				}
+				best := block[0]
+				for _, c := range block[1:] {
+					if c[0]*c[0]+c[1]*c[1] < best[0]*best[0]+best[1]*best[1] {
+						best = c
+					}
+				}
+				delete(wall, best)
+			}
+		}
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if !in(dx, dy) {
 					continue
 				}
 				x, y := cx+dx, cy+dy
 				level.SetFloor(x, y, z, floorTile, world.TileVariantAt(floorTile, x, y, z))
-				if d2 > inner {
+				if wall[[2]int{dx, dy}] {
 					level.SetMiddle(x, y, z, wallTile, world.TileVariantAt(wallTile, x, y, z))
 				} else {
 					level.ClearMiddle(x, y, z)
@@ -843,7 +884,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 
 	// carve_circle(cx, cy, z, radius, tile) — disc fill.
-	interp.RegisterFunc("carve_circle", func(args ...any) (any, error) {
+	reg("carve_circle", func(args ...any) (any, error) {
 		if len(args) < 5 {
 			return nil, nil
 		}
@@ -862,10 +903,60 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return nil, nil
 	})
 
+	// name_room(x, y, z, w, h, name) — name a rectangle: the hover panel
+	// shows "Room: <name>" over its tiles. Later names win where rooms nest.
+	reg("name_room", func(args ...any) (any, error) {
+		if len(args) < 6 {
+			return nil, nil
+		}
+		level.AddRoom(int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2])),
+			int(toSetupFloat(args[3])), int(toSetupFloat(args[4])), fmt.Sprint(args[5]))
+		return nil, nil
+	})
+
+	// spawn_lore_datapad(x, y, z) — a datapad bound to the structure's
+	// history event (param "event"), reading the param "clue" when the
+	// history gave one. Returns 1 if placed.
+	reg("spawn_lore_datapad", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x, y, z := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		ev, _ := ctx.topParams()["event"].(string)
+		clue, _ := ctx.topParams()["clue"].(string)
+		if ev == "" && clue == "" {
+			return float64(0), nil
+		}
+		e, err := factory.Create("datapad", x, y, z)
+		if err != nil {
+			return float64(0), nil
+		}
+		dp, ok := e.GetComponent(components.Datapad).(*components.DatapadComponent)
+		if !ok {
+			dp = &components.DatapadComponent{}
+			e.AddComponent(dp)
+		}
+		dp.EventID, dp.Text = ev, clue
+		level.AddEntity(e)
+		return float64(1), nil
+	})
+
+	// fill_container(x, y, z, table) — fill the storage container at (x, y,
+	// z) from a loot table (data/history/loot.json), rolling each entry's
+	// chance and quantity on the structure's seeded stream. Returns how many
+	// stacks went in.
+	reg("fill_container", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return float64(0), nil
+		}
+		x, y, z := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		return float64(fillContainer(level, x, y, z, fmt.Sprint(args[3]), ctx.rng)), nil
+	})
+
 	// place_feature(kind, count) — invoke a registered feature placer with
 	// no biome restriction and default params. For richer placement use the
 	// scenario JSON's features block.
-	interp.RegisterFunc("place_feature", func(args ...any) (any, error) {
+	reg("place_feature", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return nil, nil
 		}
@@ -882,7 +973,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 
 	// set_param(key, value) — stage a parameter for the next gen_structure
 	// call. Children inherit a copy of the current frame.
-	interp.RegisterFunc("set_param", func(args ...any) (any, error) {
+	reg("set_param", func(args ...any) (any, error) {
 		if len(args) < 2 {
 			return nil, nil
 		}
@@ -891,7 +982,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	})
 	// get_param(key) — read a parameter seeded by the caller. Returns "" if
 	// unset (callers comparing numerically should add +0).
-	interp.RegisterFunc("get_param", func(args ...any) (any, error) {
+	reg("get_param", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return "", nil
 		}
@@ -904,7 +995,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 	// gen_structure(name, x, y, w, h) — stamp a structure script. Reentrant:
 	// a structure may call gen_structure to compose sub-structures. Returns 1
 	// on success, 0 on failure (logged).
-	interp.RegisterFunc("gen_structure", func(args ...any) (any, error) {
+	reg("gen_structure", func(args ...any) (any, error) {
 		if len(args) < 5 {
 			return float64(0), nil
 		}

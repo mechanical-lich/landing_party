@@ -149,4 +149,41 @@ function generate(x, y, w, h)
 
         flip = 1 - flip
     next level
+
+    # ── History: names, goods, the clue, wear (only when history asks) ──
+    name_room(x, y, sz - depth, w, h, lore_room("room_hall", "Hideout"))
+    lore_fill(nw_cx, se_cy, sz - depth)
+    lore_pad(se_cx, se_cy, sz - depth)
+    lore_ruin(x, y, w, h, "bunker_wall", "bunker_floor")
+endfunction
+
+# ── History helpers: act only on params a history stamp passes ──────────────
+
+function lore_room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# lore_fill fills the locker at (lx, ly, lz) from the param holds, if set.
+function lore_fill(lx, ly, lz)
+    if get_param("holds") <> "" then
+        fill_container(lx, ly, lz, get_param("holds"))
+    endif
+endfunction
+
+# lore_pad places the history's clue datapad, if the stamp has an event.
+function lore_pad(px, py, pz)
+    spawn_lore_datapad(px, py, pz)
+endfunction
+
+# lore_ruin wears the footprint by the param damage (ruin_pass), if set.
+function lore_ruin(rx, ry, rw, rh, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", rx, ry, rw, rh)
+    endif
 endfunction

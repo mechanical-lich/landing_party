@@ -63,6 +63,17 @@ func TestLoreMapsHavePresents(t *testing.T) {
 		} else if !scenario.ByID(m.BaseScenario).SupportsMap(id) {
 			t.Errorf("map %s: base_scenario %q does not support it", id, m.BaseScenario)
 		}
+		for _, tier := range Tiers {
+			if m.Present.Tiers[tier] <= 0 {
+				t.Errorf("map %s: tiers.%s must be positive", id, tier)
+			}
+		}
+		if m.Present.SafeTiers[TierThreat] > 0 {
+			t.Errorf("map %s: safe_tiers may not weigh threat", id)
+		}
+		if m.Present.SafeTiers[TierHazard]+m.Present.SafeTiers[TierQuiet] <= 0 {
+			t.Errorf("map %s: safe_tiers weighs nothing", id)
+		}
 		if len(m.Present.Life) == 0 || len(m.Present.Status) == 0 {
 			t.Errorf("map %s: present needs life and status", id)
 		}
@@ -111,7 +122,8 @@ func TestLoreLibraryReferencesResolve(t *testing.T) {
 			}
 		}
 	}
-	roles := map[string]bool{CivNone: true, CivResident: true, CivArrive: true, CivNative: true, CivVisitor: true, CivWar: true}
+	roles := map[string]bool{CivNone: true, CivResident: true, CivArrive: true, CivNative: true, CivVisitor: true, CivWar: true,
+		CivTwins: true, CivRivalNative: true, CivRivalVisitor: true, CivRivals: true, CivRival: true}
 	fates := map[string]bool{"": true, "died": true, "fled": true, "dwindled": true}
 	for _, id := range lib.EventIDs() {
 		e := lib.Events[id]
@@ -130,6 +142,18 @@ func TestLoreLibraryReferencesResolve(t *testing.T) {
 		if !fates[e.Effects.ResidentFate] {
 			t.Errorf("event %s: unknown resident_fate %q", id, e.Effects.ResidentFate)
 		}
+		if !fates[e.Effects.RivalFate] {
+			t.Errorf("event %s: unknown rival_fate %q", id, e.Effects.RivalFate)
+		}
+		if (e.TextSide != "" || e.TextMeanwhile != "") && !e.PerSide {
+			t.Errorf("event %s has text_side or text_meanwhile but is not per_side", id)
+		}
+		if e.PerSide && e.TextMeanwhile == "" {
+			t.Errorf("per-side event %s has no text_meanwhile", id)
+		}
+		if a := e.OriginAt; a != "" && a != "side" && a != "border" {
+			t.Errorf("event %s: unknown origin_at %q", id, a)
+		}
 		if e.Text == "" {
 			t.Errorf("event %s has no text", id)
 		}
@@ -144,8 +168,15 @@ func TestLoreTextTemplatesFill(t *testing.T) {
 	for _, id := range lib.EventIDs() {
 		e := lib.Events[id]
 		ok := map[string]bool{"date": true, "site": true, "civ": true, "during_war": true, "war_end": true}
-		if e.Civ == CivWar {
+		switch e.Civ {
+		case CivWar, CivTwins, CivRivalNative, CivRivalVisitor, CivRivals, CivRival:
 			ok["enemy"] = true
+		}
+		if e.Civ != CivNone || strings.Contains(e.Text, "{civ}") {
+			ok["tech"], ok["weapon"] = true, true // the acting civ's level then
+		}
+		if Has(e.Requires.Remains, "ruins") {
+			ok["former"] = true // whoever left the ruins
 		}
 		for _, f := range e.Figures {
 			ok[f.Role] = true
@@ -156,7 +187,7 @@ func TestLoreTextTemplatesFill(t *testing.T) {
 		for _, k := range e.Fills {
 			ok[k] = true
 		}
-		for _, m := range lorePlaceholder.FindAllStringSubmatch(e.Text, -1) {
+		for _, m := range lorePlaceholder.FindAllStringSubmatch(e.Text+" "+e.TextSide+" "+e.TextMeanwhile, -1) {
 			if !ok[m[1]] {
 				t.Errorf("event %s: {%s} has nothing to fill it", id, m[1])
 			}
@@ -172,7 +203,7 @@ func TestLoreEvidenceExists(t *testing.T) {
 	bps := loreBlueprintText(t)
 	for _, id := range lib.EventIDs() {
 		e := lib.Events[id]
-		hasOrigin := e.Origin || len(e.OriginFrom) > 0
+		hasOrigin := e.Origin || len(e.OriginFrom) > 0 || e.OriginAt != ""
 		for i, ev := range e.Evidence {
 			where := id + " evidence " + string(rune('0'+i))
 			if ev.Kind != "lore_datapad" && generation.GetFeature(ev.Kind) == nil {
@@ -190,7 +221,22 @@ func TestLoreEvidenceExists(t *testing.T) {
 			default:
 				t.Errorf("%s: unknown anchor %q", where, ev.At)
 			}
-			if s, ok := ev.Params["script"].(string); ok {
+			if s, ok := ev.Params["script"].(string); ok && strings.HasPrefix(s, "@") {
+				// A role: every level that has it names a real script, and
+				// some level has it.
+				any := false
+				for _, td := range lib.TechDefs {
+					for _, alt := range td.Structures[s[1:]] {
+						any = true
+						if _, err := os.Stat(filepath.Join(loreDataRoot, "scripts", "structures", alt.Script+".basic")); err != nil {
+							t.Errorf("%s: %s at %s is %q, which does not exist", where, s, td.ID, alt.Script)
+						}
+					}
+				}
+				if !any {
+					t.Errorf("%s: no tech level has a structure for %s", where, s)
+				}
+			} else if ok {
 				if _, err := os.Stat(filepath.Join(loreDataRoot, "scripts", "structures", s+".basic")); err != nil {
 					t.Errorf("%s: structure script %q does not exist", where, s)
 				}
@@ -226,7 +272,7 @@ var loreThreatOrigins = map[string][]string{
 	"zombie_plague":      {"colony_plague", "lab_leak", "crash_pathogen", "wreck_pathogen"},
 	"crystalline_blight": {"blight_spread"},
 	"alien_world":        {"reactor_mutation", "wreck_reactor_leak"},
-	"abandoned_station":  {"station_experiment"},
+	"station_mutants":    {"station_experiment"},
 	"crashed_ufo":        {"ship_shot_down", "fled_battle", "scout_accident"},
 	"grey_contact":       {"salvage_expedition"},
 	"exterminate_xenos":  {"meteor_seeding", "infested_colonists", "deliberate_drop", "wreck_eggs_hatch"},
@@ -242,6 +288,18 @@ func TestLoreScenariosCoveredAndSupported(t *testing.T) {
 	lib := loreLibrary(t)
 	reach := map[string]bool{}
 	for _, e := range lib.ChapterEvents() {
+		if e.Tier != "" && e.Tier != TierThreat && e.Tier != TierHazard {
+			t.Errorf("chapter %s: unknown tier %q", e.ID, e.Tier)
+		}
+		if e.Scenario == "" {
+			// A hazard plays each map's base scenario.
+			for m := range e.Weight {
+				if md := lib.Maps[m]; md == nil || md.Present == nil {
+					t.Errorf("chapter %s weighs map %q, which has no history", e.ID, m)
+				}
+			}
+			continue
+		}
 		sc := scenario.ByID(e.Scenario)
 		if sc == nil {
 			t.Errorf("chapter %s: unknown scenario %q", e.ID, e.Scenario)
@@ -294,7 +352,7 @@ func TestLoreScenariosCoveredAndSupported(t *testing.T) {
 }
 
 // Every arc has a Star Map summary and every chapter an omen; summaries only
-// use {civ}.
+// use {civ} and {tech}.
 func TestLoreSummariesAndOmens(t *testing.T) {
 	lib := loreLibrary(t)
 	for _, id := range lib.ArcIDs() {
@@ -303,7 +361,7 @@ func TestLoreSummariesAndOmens(t *testing.T) {
 			t.Errorf("arc %s has no summary", id)
 		}
 		for _, m := range lorePlaceholder.FindAllStringSubmatch(a.Summary, -1) {
-			if m[1] != "civ" {
+			if m[1] != "civ" && m[1] != "tech" {
 				t.Errorf("arc %s summary uses {%s}", id, m[1])
 			}
 		}

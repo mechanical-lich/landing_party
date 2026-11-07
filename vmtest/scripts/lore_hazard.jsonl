@@ -1,0 +1,34 @@
+{"name":"lore_hazard","seed":407}
+# A hazard-tier site: seed 407's sys_17 is an earth_like world whose history
+# ends in dormant_nest (unhatched eggs in an old wreck). The Star Map shows
+# the amber Hazard tag before its summary; on the ground the eggs stand by the
+# wreck at the history's origin. Re-find with: make history-dump HFIND=hazard,dormant_nest
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore Hazard"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"407"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:sys_17"}
+{"op":"assert","path":"selected_location.id","eq":"sys_17"}
+{"op":"assert","path":"selected_location.tier","eq":"hazard"}
+{"op":"assert","path":"selected_location.history_summary","eq":true}
+{"op":"screenshot","name":"starmap_tag"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_17"}
+{"op":"assert","path":"campaign.tier","eq":"hazard"}
+{"op":"assert","path":"campaign.chapter","eq":"dormant_nest"}
+{"op":"assert","path":"campaign.scenario","eq":"earth_like"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"origin walk"}
+{"op":"wait","ticks":20}
+{"op":"move","target":"region:lore_origin"}
+{"op":"screenshot","name":"hazard"}

@@ -24,9 +24,11 @@
     "present": {
         "life": ["alien"],
         "status": ["untouched", "fallen"],
-        "arcs": ["pristine_alien", "alien_ruins", "hive_world"],
-        "quiet_weight": 52,
-        "quiet_safe": true
+        "arcs": ["pristine_alien", "alien_ruins", "hive_world", "sundered_world", "uplifted_people", "enslaved_world"],
+        "tiers": {"threat": 35, "hazard": 45, "quiet": 20},
+        "safe_tiers": {"hazard": 60, "quiet": 40},
+        "density": 76,
+        "layers": {"chance": 35, "arcs": ["elder_aliens", "elder_colony"]}
     },
-    "base_scenario": "alien_world"
+    "base_scenario": "alien_wilds"
 }

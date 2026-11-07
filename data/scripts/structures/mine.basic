@@ -1,0 +1,138 @@
+# mine — a people's works: a pithead over a shaft (stairs down to a gallery
+# dug below), ore carts of what they dug, spoil heaps, and an office (its
+# datapad and ledgers). Purpose forced_labour adds the pens where the
+# workers were kept, and their graves.
+#
+# Params: tech, purpose (forced_labour), damage, occupants, holds, event,
+# clue, room_hall, room_pens. Footprint 17x13 to 29x21.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    if tech = "" then
+        tech = "medieval"
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = wall_of(tech, "stone_wall")
+    floor = floor_of(tech, "stone_floor")
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    # The pithead: a hall over the shaft, its door on the south.
+    px = cx - 3
+    py = cy - 3
+    carve_room(px, py, sz, 7, 6, wall, floor)
+    clear_middle(cx, py + 5, sz)
+    name_room(px, py, sz, 7, 6, "Pithead")
+    set_tile(cx, py + 2, sz, "stairs_down")
+    # The gallery below the shaft, inside the footprint.
+    if sz > 1 then
+        gz = sz - 1
+        carve_room(x + 2, py + 1, gz, w - 4, 4, "rock", "rock_floor")
+        set_tile(cx, py + 2, gz, "stairs_up")
+        name_room(x + 2, py + 1, gz, w - 4, 4, "Gallery")
+    endif
+    # Ore carts by the pithead, filled with what was dug.
+    spawn_entity("mineral_bin", px - 2, cy, sz)
+    fill_container(px - 2, cy, sz, "mine_ore")
+    spawn_entity("mineral_bin", px + 8, cy, sz)
+    fill_container(px + 8, cy, sz, "mine_ore")
+    # Spoil heaps: two to five.
+    for k = 1 to 2 + rnd_int(4)
+        sx = x + 1 + rnd_int(w - 3)
+        sy = y + h - 2 - rnd_int(2)
+        set_tile(sx, sy, sz, "rubble_pile")
+    next k
+    # The office in the north-west corner.
+    ox = x + 1
+    oy = y + 1
+    carve_room(ox, oy, sz, 5, 4, wall, floor)
+    clear_middle(ox + 2, oy + 3, sz)
+    name_room(ox, oy, sz, 5, 4, room("room_hall", "Mine Office"))
+    locker(ox + 1, oy + 1, sz, holds_or("mine_ore"))
+    spawn_lore_datapad(ox + 3, oy + 1, sz)
+    if get_param("purpose") = "forced_labour" and w >= 19 then
+        # The pens in the north-east corner, and the graves beside them.
+        nx = x + w - 7
+        carve_room(nx, oy, sz, 6, 4, wall, floor)
+        clear_middle(nx + 2, oy + 3, sz)
+        name_room(nx, oy, sz, 6, 4, room("room_pens", "Pens"))
+        for k = 0 to 2
+            set_tile(nx + 1 + k * 2, oy + 6, sz, "rubble_pile")
+        next k
+    endif
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

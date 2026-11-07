@@ -25,7 +25,9 @@ func loreLevelFacts(lvl *world.Level, events []string) (map[string][3]int, map[s
 		if e == nil || !e.HasComponent(components.Datapad) {
 			continue
 		}
-		if dp := e.GetComponent(components.Datapad).(*components.DatapadComponent); dp.QuestID == "" && dp.EventID != "" {
+		// The site's fixture datapads; a structure's clue datapad (its own
+		// text) is the structure's, not a fixture.
+		if dp := e.GetComponent(components.Datapad).(*components.DatapadComponent); dp.QuestID == "" && dp.EventID != "" && dp.Text == "" {
 			pads[dp.EventID]++
 		}
 	}

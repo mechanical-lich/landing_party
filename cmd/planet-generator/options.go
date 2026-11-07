@@ -223,10 +223,16 @@ func (o *options) selectMap(i int) {
 	o.rerollSize()
 }
 
-// defaultScenario picks the map's namesake scenario (earth_like, alien_world...).
-// Incursion scenarios layered onto many maps are opt-in, so a map with no namesake
-// starts on "none".
+// defaultScenario picks the map's base_scenario (what a quiet site plays),
+// else its namesake scenario (earth_like, asteroid_field...). Incursion
+// scenarios layered onto many maps are opt-in, so a map with neither starts on
+// "none".
 func (o *options) defaultScenario() int {
+	for j := range o.scenarios {
+		if o.md.BaseScenario != "" && o.scenarios[j].ID == o.md.BaseScenario {
+			return j + 1
+		}
+	}
 	for j := range o.scenarios {
 		if strings.HasPrefix(o.scenarios[j].ID, o.md.ID) {
 			return j + 1

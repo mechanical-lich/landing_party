@@ -16,6 +16,7 @@
 {"op":"assert","path":"selected_location.id","eq":"start"}
 # The summary line is the start system's history, not the archetype sentence.
 {"op":"assert","path":"selected_location.history_summary","eq":true}
+{"op":"assert","path":"selected_location.tier","eq":"quiet"}
 {"op":"screenshot","name":"starmap_summary"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}

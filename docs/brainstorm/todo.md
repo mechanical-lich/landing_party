@@ -23,6 +23,16 @@ alone and need a play-test or a judgment call.
   modals; it could collapse to its title row while a HUD modal is open, as it
   does for the storage inspector.
 
+- `find_nearest_worker(r)` in the scripted-AI API searches a box exclusive on
+  its far side, so `r = 1` misses a colonist one tile east (and every radius
+  is one short that way). The step-7 hazard scripts search one wider and check
+  distance; fixing the helper (`GetClosestEntityMatching` bounds) would let
+  them drop that.
+- City blocks and missile silos (industrial / atomic dwellings and works) are
+  in the structure library and `tech.json` but never stamped: peoples build
+  their dwellings when they rise, always primitive or medieval. Needs a
+  dwelling stamped after tech advances, or a people rising at a higher level.
+
 ## Verify
 
 - Fix the resource tracker. No tracker-named code found; confirm which HUD
@@ -38,6 +48,15 @@ alone and need a play-test or a judgment call.
   the tutorial's food budget.
 
 ## Done
+
+- Lore content plan, steps 1–8, implemented 2026-11-07 on
+  `claude/lore-content-649632` (not yet merged): hazard tiers and calm
+  bases, Star Map danger tags, landing reserve and lore budget, denser
+  histories with layers, tech levels, the two-peoples war arc and variants,
+  the five new-mechanic hazards, the 35-script structure library (with castle towns), and the
+  previews (structure viewer presets and damage control; planet generator
+  tier, budget readout, origin labels, landing reserve and keep-outs). Plan
+  and implementation notes: [lore_content_plan.md](lore_content_plan.md).
 
 - Lore and history, steps 1–5, implemented 2026-11-07 on
   `claude/lore-history-4d1fe2` (not yet merged): star date, generated

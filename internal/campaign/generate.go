@@ -554,9 +554,30 @@ func (c *Campaign) bindHistory(loc *Location, wantEvent string) {
 		loc.AddFixture(f)
 	}
 	loc.ScenarioID = site.Scenario
+	loc.Tier = site.Tier
 	if s := c.History.Summary(lib, site); s != "" {
 		loc.Summary = s
 	}
+}
+
+// LocationTier is loc's danger class for the Star Map: its Tier, else (a save
+// from before tiers) derived from its site history; "" without a history.
+func (c *Campaign) LocationTier(loc *Location) string {
+	if loc == nil {
+		return ""
+	}
+	if loc.Tier != "" {
+		return loc.Tier
+	}
+	site := c.SiteHistory(loc)
+	if site == nil {
+		return ""
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return ""
+	}
+	return c.History.TierOf(lib, site)
 }
 
 // firstJump reports whether loc is within a first jump of the Wreck Site
@@ -605,6 +626,16 @@ func (c *Campaign) storyEvent(loc *Location) string {
 // RevealEvent marks a history event known (a datapad was read) and returns its
 // chronicle text, or "" if it is unknown. newly reports whether it was news.
 func (c *Campaign) RevealEvent(id string) (text string, newly bool) {
+	return c.reveal(id, false)
+}
+
+// RevealDatapad is RevealEvent for a datapad picked up on the site: a
+// per-side event reads as its own people's account (text_side).
+func (c *Campaign) RevealDatapad(id string) (text string, newly bool) {
+	return c.reveal(id, true)
+}
+
+func (c *Campaign) reveal(id string, side bool) (text string, newly bool) {
 	if c == nil || c.History == nil || id == "" {
 		return "", false
 	}
@@ -626,6 +657,9 @@ func (c *Campaign) RevealEvent(id string) (text string, newly bool) {
 		if loc := c.Locations[s.Location]; loc != nil {
 			site = loc.Name
 		}
+	}
+	if side {
+		return c.History.RenderSide(lib, ev, site), newly
 	}
 	return c.History.Render(lib, ev, site), newly
 }

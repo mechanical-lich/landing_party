@@ -98,7 +98,7 @@ func vmState(cur state.StateInterface) map[string]any {
 			}
 			if loc := p.selectedLocation(); loc != nil {
 				out["selected_location"] = map[string]any{"id": loc.ID, "name": loc.Name, "fuel_cost": s.campaign.FuelCost(loc.ID),
-					"summary": loc.Summary, "history_summary": vmHistorySummary(s.campaign, loc)}
+					"summary": loc.Summary, "history_summary": vmHistorySummary(s.campaign, loc), "tier": s.campaign.LocationTier(loc)}
 			}
 		}
 		out["paused"] = s.wm.ClockStopped()
@@ -182,6 +182,7 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 			}
 		}
 		camp["chapter"] = chapter
+		camp["tier"] = c.LocationTier(loc)
 	}
 	camp["known_events"] = c.KnownEventCount()
 	techs := append([]string(nil), c.KnownTechs...)
@@ -778,6 +779,15 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		pts := s.level.Regions[LoreOriginRegion]
 		mode, evType, _ := strings.Cut(rest, " ")
 		rest = mode
+		// "origin walk <event type> <n>": the nth such event's origin
+		// (1-based), for the two sides of a per-side event.
+		nth := 1
+		if t, n, ok := strings.Cut(evType, " "); ok {
+			evType = t
+			if v, err := strconv.Atoi(n); err == nil && v > 0 {
+				nth = v
+			}
+		}
 		if evType != "" {
 			// "origin walk <event type>": that event's origin on this site
 			// (a quiet site has no chapter origin).
@@ -792,10 +802,10 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 				}
 			}
 		}
-		if len(pts) == 0 {
+		if len(pts) < nth {
 			return "", fmt.Errorf("this site has no such history origin")
 		}
-		p := pts[0]
+		p := pts[nth-1]
 		s.camera.CenterOn(p[0], p[1], p[2])
 		if rest == "walk" {
 			// Put the first colonist on the nearest free tile there, so the

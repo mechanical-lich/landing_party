@@ -10,16 +10,7 @@
     "supported_maps": [
         "abandoned_station"
     ],
-    "spawn_rules": {
-        "mutant_grunt": {
-            "spawn_rate": 30,
-            "light_min": 0,
-            "tiles": [
-                "hull_floor"
-            ],
-            "max_z_delta": -1
-        }
-    },
+    "spawn_rules": {},
     "lighting": {
         "mode": "fixed",
         "ambient_level": 20

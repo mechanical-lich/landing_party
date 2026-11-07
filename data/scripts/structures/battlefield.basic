@@ -1,0 +1,174 @@
+# battlefield — where two peoples fought, by tech: craters, the weapons
+# the dead dropped, and the dead in hasty rows; stakes and broken shields for
+# primitive and medieval armies, trenches for industrial ones, wreckage for
+# starfaring ones. No walls: nothing here was built to last.
+#
+# Params: tech, damage, occupants, holds, event, clue. Footprint 15x11 to
+# 41x31.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    if tech = "" then
+        tech = "medieval"
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    area = w * h
+    # Craters: shell holes for industrial and later, trampled ground before.
+    nc = int(area / 60)
+    for k = 1 to nc
+        ccx = x + 2 + rnd_int(w - 4)
+        ccy = y + 2 + rnd_int(h - 4)
+        rr = 1
+        if tech = "industrial" or tech = "atomic" then
+            rr = 1 + rnd_int(2)
+        endif
+        for j = -rr to rr
+            for i = -rr to rr
+                if i * i + j * j <= rr * rr then
+                    set_tile(ccx + i, ccy + j, sz, "crater_ground")
+                endif
+            next i
+        next j
+    next k
+    if tech = "industrial" or tech = "atomic" then
+        # A trench across the field.
+        ty = y + 2 + rnd_int(h - 4)
+        for i = 1 to w - 2
+            set_tile(x + i, ty, sz, "crater_ground")
+        next i
+    endif
+    # The dead, in hasty rows near the middle.
+    gy = y + int(h / 2) + 2
+    if gy < y + h - 1 then
+        for i = 2 to w - 3
+            if i - int(i / 2) * 2 = 0 then
+                set_tile(x + i, gy, sz, "rubble_pile")
+            endif
+        next i
+    endif
+    if tech = "spacefaring" then
+        # Wreckage: torn hull plates, in pairs.
+        for k = 1 to int(area / 120) + 1
+            wx = x + 1 + rnd_int(w - 3)
+            wy = y + 1 + rnd_int(h - 2)
+            if clear2(wx, wy, wx + 1, wy, sz) = 1 then
+                set_tile(wx, wy, sz, "hull_wall")
+                set_tile(wx + 1, wy, sz, "hull_wall")
+            endif
+        next k
+    endif
+    if tech = "primitive" or tech = "medieval" then
+        # Stakes driven against a charge, in pairs.
+        for k = 1 to int(area / 120) + 1
+            wx = x + 1 + rnd_int(w - 2)
+            wy = y + 1 + rnd_int(h - 3)
+            if clear2(wx, wy, wx, wy + 1, sz) = 1 then
+                set_tile(wx, wy, sz, "rubble_wall_vl")
+                set_tile(wx, wy + 1, sz, "rubble_wall_vl")
+            endif
+        next k
+    endif
+    # What the dead dropped.
+    weapon = "old_steel_blade"
+    if tech = "primitive" then
+        weapon = "carved_idol"
+    elseif tech = "industrial" or tech = "atomic" then
+        weapon = "rifle"
+    elseif tech = "spacefaring" then
+        weapon = "laser_pistol"
+    endif
+    for k = 1 to 2 + rnd_int(2)
+        spawn_entity(weapon, x + 1 + rnd_int(w - 2), y + 1 + rnd_int(int(h / 2)), sz)
+    next k
+    name_room(x, y, sz, w, h, room("room_hall", "Battlefield"))
+    spawn_lore_datapad(x + int(w / 2), y + int(h / 2), sz)
+endfunction
+
+# clear2: 1 when both tiles of a pair are open ground (no pair lands on a
+# grave or another pair, so none is left half-standing).
+function clear2(ax, ay, bx, by, sz)
+    ta = get_tile_type(ax, ay, sz)
+    tb = get_tile_type(bx, by, sz)
+    if ta = "rubble_pile" or tb = "rubble_pile" or ta = "hull_wall" or tb = "hull_wall" or ta = "rubble_wall_vl" or tb = "rubble_wall_vl" then
+        return 0
+    endif
+    if get_tile_type(ax - 1, ay, sz) = "hull_wall" or get_tile_type(bx + 1, by, sz) = "hull_wall" then
+        return 0
+    endif
+    return 1
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

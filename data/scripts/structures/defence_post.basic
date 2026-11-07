@@ -1,0 +1,114 @@
+# defence_post — a hazard prop: an old emplacement, a low wall in broken
+# runs around sentry turrets (dormant until something walks into range).
+# Occupants "none" leaves the turrets' empty mounts; otherwise param turrets
+# (default 2) stand inside.
+#
+# Params: tech, turrets, occupants, damage, event, clue, room_hall.
+# Footprint 9x9 to 15x15.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = wall_of(tech, "bunker_wall")
+    floor = floor_of(tech, "bunker_floor")
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    carve_room(x + 1, y + 1, sz, w - 2, h - 2, wall, floor)
+    # Firing gaps at the middle of each side.
+    clear_middle(cx, y + 1, sz)
+    clear_middle(cx, y + h - 2, sz)
+    clear_middle(x + 1, cy, sz)
+    clear_middle(x + w - 2, cy, sz)
+    name_room(x + 1, y + 1, sz, w - 2, h - 2, room("room_hall", "Defence Post"))
+    n = get_param("turrets")
+    if n = "" then
+        n = 2
+    endif
+    if empty() = 0 then
+        spawn_entity("sentry_turret", x + 3, y + 3, sz)
+        if n >= 2 then
+            spawn_entity("sentry_turret", x + w - 4, y + h - 4, sz)
+        endif
+        if n >= 3 then
+            spawn_entity("sentry_turret", x + w - 4, y + 3, sz)
+        endif
+    endif
+    locker(x + 3, y + h - 4, sz, holds_or("ship_armoury"))
+    spawn_lore_datapad(cx, cy, sz)
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

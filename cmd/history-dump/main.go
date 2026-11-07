@@ -13,6 +13,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -32,6 +33,9 @@ func main() {
 	freq := flag.Int("freq", 500, "seeds for the scenario-frequency table (0 skips it)")
 	charted := flag.Bool("charted", false, "chart a real campaign (GenerateCampaign, expansions, travel rolls) and print its sites' histories under their real names")
 	campaigns := flag.Int("campaigns", 0, "campaigns to chart for a scenario-frequency table measured through real charting (newLocation)")
+	find := flag.String("find", "", "list New Expedition seeds (1..-findmax) whose opening Star Map has a site matching every comma-separated term: a tier (threat, hazard, quiet), a map, a location ID, or an event type on the site; for vmtest scripts")
+	findMax := flag.Int("findmax", 200, "highest seed -find scans")
+	stats := flag.Int("stats", 0, "seeds for the density table (events, origins, stamps, civs, span, tiers per map and per population) and pool-civ recurrence over a tenth as many charted campaigns; 0 skips it")
 	flag.Parse()
 
 	if err := mapdef.Load("data/maps"); err != nil {
@@ -46,6 +50,15 @@ func main() {
 		if md := lib.Maps[*mapID]; md == nil || md.Present == nil {
 			log.Fatalf("map %q has no history (maps with one: %s)", *mapID, strings.Join(maps, ", "))
 		}
+	}
+
+	if *find != "" {
+		printFind(os.Stdout, lib, *find, *findMax)
+		return
+	}
+	if *stats > 0 {
+		printStats(os.Stdout, lib, maps, *stats, max(*stats/10, 1))
+		return
 	}
 
 	if *charted || *campaigns > 0 {
@@ -164,7 +177,7 @@ func printPool(w *os.File, lib *history.Library, h *history.History, names map[s
 		if c.Ancestor != "" {
 			extra += ", descended from the " + h.Civs[c.Ancestor].Name
 		}
-		fmt.Fprintf(w, "  %-12s %-6s %-8s on %d site(s)%s\n", c.Name, kind, c.Fate, len(c.Sites), extra)
+		fmt.Fprintf(w, "  %-12s %-6s %-11s %-8s on %d site(s)%s\n", c.Name, kind, c.Tech, c.Fate, len(c.Sites), extra)
 	}
 	var offWorld []history.Event
 	for _, e := range h.Events {
@@ -233,9 +246,11 @@ func printByCiv(w *os.File, lib *history.Library, h *history.History, names map[
 // share of each scenario on each map.
 func printFrequency(w *os.File, lib *history.Library, maps []string, seeds int) {
 	counts := map[string]map[string]int{}
+	tiers := map[string]map[string]int{}
 	scenarios := map[string]bool{}
 	for _, m := range maps {
 		counts[m] = map[string]int{}
+		tiers[m] = map[string]int{}
 	}
 	for s := 1; s <= seeds; s++ {
 		h := history.New(int64(s) * 7919)
@@ -245,9 +260,11 @@ func printFrequency(w *os.File, lib *history.Library, maps []string, seeds int) 
 				log.Fatal(err)
 			}
 			counts[m][site.Scenario]++
+			tiers[m][site.Tier]++
 			scenarios[site.Scenario] = true
 		}
 	}
+	printTiers(w, lib, maps, tiers, seeds)
 	var cols []string
 	for sc := range scenarios {
 		cols = append(cols, sc)
@@ -274,6 +291,32 @@ func printFrequency(w *os.File, lib *history.Library, maps []string, seeds int) 
 	for _, c := range cols {
 		fmt.Fprintf(w, "  %-8s %s\n", abbrev(c), c)
 	}
+}
+
+// printTiers tabulates the tier share per map against the map's tiers target.
+func printTiers(w *os.File, lib *history.Library, maps []string, tiers map[string]map[string]int, seeds int) {
+	fmt.Fprintf(w, "== Tier share per map, %d seeds (%% of sites; target in brackets) ==\n", seeds)
+	fmt.Fprintf(w, "%-18s", "map")
+	for _, t := range history.Tiers {
+		fmt.Fprintf(w, " %14s", t)
+	}
+	fmt.Fprintln(w)
+	for _, m := range maps {
+		fmt.Fprintf(w, "%-18s", m)
+		target, total := lib.Maps[m].Present.Tiers, 0
+		for _, v := range target {
+			total += v
+		}
+		for _, t := range history.Tiers {
+			want := 0.0
+			if total > 0 {
+				want = 100 * float64(target[t]) / float64(total)
+			}
+			fmt.Fprintf(w, " %6.1f%% (%3.0f)", 100*float64(tiers[m][t])/float64(seeds), want)
+		}
+		fmt.Fprintln(w)
+	}
+	fmt.Fprintln(w)
 }
 
 func abbrev(s string) string {
@@ -359,5 +402,104 @@ func printChartedFrequency(w *os.File, n int) {
 	fmt.Fprintln(w, "\ncolumns:")
 	for _, c := range cols {
 		fmt.Fprintf(w, "  %-8s %s\n", abbrev(c), c)
+	}
+}
+
+// findMatches reports whether every comma-separated term of want names the
+// site's tier, map or location, or an event type in its history; a term
+// "stamped:<type>" needs every event of that type to keep a structure, and
+// "<var>=<value>" an event that rolled that var (purpose=warship).
+func findMatches(h *history.History, site *history.SiteHistory, loc *campaign.Location, want string) bool {
+	for _, term := range strings.Split(want, ",") {
+		if k, v, ok := strings.Cut(term, "="); ok {
+			// <var>=<value>: an event on the site rolled that var.
+			hit := false
+			for _, id := range site.Events {
+				if e := h.Event(id); e != nil && e.Vars[k] == v {
+					hit = true
+				}
+			}
+			if !hit {
+				return false
+			}
+			continue
+		}
+		if typ, ok := strings.CutPrefix(term, "stamped:"); ok {
+			if !allStamped(h, site, typ) {
+				return false
+			}
+			continue
+		}
+		ok := term == site.Tier || term == loc.MapID || term == loc.ID
+		for _, id := range site.Events {
+			if ev := h.Event(id); ev != nil && ev.Type == term {
+				ok = true
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// allStamped reports whether the site has events of type typ and each keeps
+// a stamp in its evidence (not dropped by its tech level or the budget).
+func allStamped(h *history.History, site *history.SiteHistory, typ string) bool {
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return false
+	}
+	log.SetOutput(io.Discard)
+	ev := h.Evidence(lib, site)
+	log.SetOutput(os.Stderr)
+	stamped := map[string]bool{}
+	for _, f := range ev.Features {
+		if f.Kind == "stamp" {
+			stamped[strings.TrimPrefix(f.At, "origin:")] = true
+		}
+	}
+	n := 0
+	for _, id := range site.Events {
+		if e := h.Event(id); e != nil && e.Type == typ {
+			if !stamped[id] {
+				return false
+			}
+			n++
+		}
+	}
+	return n > 0
+}
+
+// printFind lists, per seed, the sites of a fresh campaign (as New Expedition
+// generates it, ship at the Wreck Site) whose chapter event type or tier is
+// want, with the fuel the jump costs.
+func printFind(w *os.File, lib *history.Library, want string, maxSeed int) {
+	fmt.Fprintf(w, "== Seeds 1..%d with a %s site (fuel from the Wreck Site) ==\n", maxSeed, want)
+	for seed := int64(1); seed <= int64(maxSeed); seed++ {
+		c, err := campaign.GenerateCampaign("Find", seed)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var ids []string
+		for id := range c.Locations {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			loc := c.Locations[id]
+			site := c.SiteHistory(loc)
+			if site == nil || !loc.Discovered {
+				continue
+			}
+			chapter := ""
+			if ev := c.History.Event(site.Chapter); ev != nil {
+				chapter = ev.Type
+			}
+			if !findMatches(c.History, site, loc, want) {
+				continue
+			}
+			fmt.Fprintf(w, "seed %-5d %-8s %-18s %-7s %-20s %-18s fuel %d\n", seed, id, loc.MapID, site.Tier, chapter, loc.ScenarioID, c.FuelCost(id))
+		}
 	}
 }

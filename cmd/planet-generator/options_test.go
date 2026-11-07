@@ -39,17 +39,16 @@ func testOptions(t *testing.T, mapID string) *options {
 	return o
 }
 
-func TestSelectMapPicksNamesakeScenario(t *testing.T) {
+// A map starts on its base scenario, what a quiet site plays.
+func TestSelectMapPicksBaseScenario(t *testing.T) {
 	for mapID, want := range map[string]string{
-		"earth_like": "earth_like", "alien": "alien_world", "asteroid": "asteroid_field",
+		"earth_like": "earth_like", "alien": "alien_wilds", "asteroid": "asteroid_field",
+		"desert_planet": "desert_calm",
 	} {
 		o := testOptions(t, mapID)
 		if o.sc == nil || o.sc.ID != want {
 			t.Errorf("map %s: scenario = %v, want %s", mapID, o.sc, want)
 		}
-	}
-	if o := testOptions(t, "desert_planet"); o.sc != nil {
-		t.Errorf("desert_planet: scenario = %s, want none", o.sc.ID)
 	}
 }
 

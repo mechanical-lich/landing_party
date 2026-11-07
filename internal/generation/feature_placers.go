@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
+
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/world"
 )
@@ -23,6 +25,7 @@ func init() {
 	RegisterFeature("stamp", placeStamp)
 	RegisterFeature("cave_spawner", placeCaveSpawner)
 	RegisterFeature("buried_spawner", placeBuriedSpawner)
+	RegisterFeature("rubble_field", placeRubbleField)
 }
 
 // standableTile reports whether something can stand on this tile: it exists and
@@ -103,8 +106,9 @@ func spawnInTiles(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string, 
 				reach = 12
 			}
 			var near [][3]int
+			keep := Budget().KeepOut
 			for _, t := range targets {
-				if dx, dy := t[0]-ox, t[1]-oy; dx*dx+dy*dy <= reach*reach {
+				if dx, dy := t[0]-ox, t[1]-oy; dx*dx+dy*dy <= reach*reach && landingDistance(level, t[0], t[1]) >= keep {
 					near = append(near, t)
 				}
 			}
@@ -296,7 +300,7 @@ func placeOreVein(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 
 // radiation_pocket — circular blob of radiation + 1-3 radioactive_ore seeds.
 //
-//	params: peak (default 180), radius (default 4), ore_tile (default "radioactive_ore")
+//	params: peak (default 180), radius (default 4), ore_tile (default "radioactive_ore"; "none" seeds no ore)
 func placeRadiationPocket(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	peak := featureParamInt(s, "peak", 180)
 	if peak > 255 {
@@ -304,7 +308,9 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec, rng *rand.Rand) err
 	}
 	radius := featureParamInt(s, "radius", 4)
 	oreTile := featureParamString(s, "ore_tile", "radioactive_ore")
-	oreOK := requireTile(oreTile)
+	// "none": radiation only, no ore seeds (a pocket on a structure, whose
+	// rooms a seed would block).
+	oreOK := oreTile != "none" && requireTile(oreTile)
 	placeAnchors(level, s, rng, 5, func(cx, cy int) bool {
 		surfZ := level.GetSurfaceZ(cx, cy)
 		if surfZ < 0 {
@@ -460,6 +466,9 @@ func placeDerelictPod(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 		return errFeature("derelict_pod", "params.blueprint required")
 	}
 	count := rollCount(s, rng, 1)
+	if spawnAtOrigin(level, s, rng, bp, count) {
+		return nil
+	}
 	w, h := level.GetWidth(), level.GetHeight()
 	for placed := 0; placed < count; placed++ {
 		for attempt := 0; attempt < 200; attempt++ {
@@ -491,6 +500,47 @@ func placeDerelictPod(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	return nil
 }
 
+// spawnAtOrigin places count of bp on free standable tiles within reach
+// (Jitter, default 8) of an anchored feature's origin, on the origin's level,
+// never scaled by area. It reports false, placing nothing, for a feature that
+// is not anchored or whose origin this level lacks (it then places as an
+// ordinary feature).
+func spawnAtOrigin(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string, count int) bool {
+	if s.At == "" {
+		return false
+	}
+	ox, oy, oz, ok := Origin(level, s.At)
+	if !ok {
+		return false
+	}
+	reach := s.Jitter
+	if reach <= 0 {
+		reach = 8
+	}
+	placed := 0
+	for tries := 0; placed < count && tries < count*40; tries++ {
+		x := ox + randIntn(rng, 2*reach+1) - reach
+		y := oy + randIntn(rng, 2*reach+1) - reach
+		t := level.GetTilePtr(x, y, oz)
+		if t == nil || world.IsSpaceTile(t) || !standableTile(level, x, y, oz) || level.GetEntityAt(x, y, oz) != nil {
+			continue
+		}
+		if landingDistance(level, x, y) < Budget().KeepOut {
+			continue // never spawn into the landing's keep-out
+		}
+		e, err := factory.Create(bp, x, y, oz)
+		if err != nil {
+			break
+		}
+		level.AddEntity(e)
+		placed++
+	}
+	if placed < count {
+		log.Printf("feature %q: placed %d/%d %s at %s (no free tiles within %d)", s.Kind, placed, count, bp, s.At, reach)
+	}
+	return true
+}
+
 // fauna_spawner — repeated entity creation at random open tiles.
 //
 //	params: blueprint (required), z (optional, default surface+1)
@@ -500,6 +550,9 @@ func placeFaunaSpawner(level *world.Level, s FeatureSpec, rng *rand.Rand) error 
 		return errFeature("fauna_spawner", "params.blueprint required")
 	}
 	count := rollCount(s, rng, 10)
+	if spawnAtOrigin(level, s, rng, bp, count) {
+		return nil
+	}
 	w, h := level.GetWidth(), level.GetHeight()
 	for placed := 0; placed < count; placed++ {
 		for attempt := 0; attempt < 100; attempt++ {
@@ -615,7 +668,13 @@ func openGroundShare(level *world.Level, x, y, w, h int) float64 {
 // stamp — runs a structure script at a surface location found during generation.
 // Each stamp samples candidate spots and takes the first that is mostly open
 // ground, else the best seen, so a scenario's structure is never silently dropped
-// on a map with little open land.
+// on a map with little open land. Ore columns count as not open. A candidate
+// is unusable when its footprint overlaps the landing reserve or lies within
+// the budget's spacing of an earlier stamp (stamps anchored on the same
+// origin may share ground: a meltdown restamps its reactor). An anchored
+// (history) stamp with no usable candidate by its origin searches outward in
+// rings and is dropped, with a log line, if nothing is usable; an unanchored
+// (scenario) stamp falls back to its best spot regardless of spacing.
 //
 //	params: script (string, required — name of script in data/scripts/structures/),
 //	        w (int, default 9), h (int, default 7)
@@ -631,6 +690,17 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	if !ok {
 		return nil // region/biome not present on this map
 	}
+	ax, ay := -1, -1
+	if s.At != "" {
+		if ox, oy, _, found := Origin(level, s.At); found {
+			ax, ay = ox, oy
+		}
+	}
+	ore := oreColumns(level)
+	spacing := Budget().For(level.GetWidth()).Spacing
+	usable := func(x, y int) bool {
+		return !rectInLanding(level, x, y, w, h, 0) && !stampCrowded(level, x, y, w, h, ax, ay, spacing)
+	}
 	for placed := 0; placed < count; placed++ {
 		bestX, bestY, bestShare := 0, 0, -1.0
 		for attempt := 0; attempt < stampAttempts && bestShare < stampGoodFit; attempt++ {
@@ -643,13 +713,30 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			}
 			x := clampFootprint(cx-w/2, w, level.GetWidth())
 			y := clampFootprint(cy-h/2, h, level.GetHeight())
-			if share := openGroundShare(level, x, y, w, h); share > bestShare {
+			if !usable(x, y) {
+				continue
+			}
+			if share := stampGroundShare(level, ore, x, y, w, h); share > bestShare {
 				bestX, bestY, bestShare = x, y, share
 			}
 		}
-		if bestShare < 0 {
-			continue // every candidate was off the terrain
+		if bestShare < 0 && ax >= 0 {
+			bestX, bestY, bestShare = stampNear(level, ore, ax, ay, w, h, spacing, usable)
 		}
+		if bestShare < 0 && ax < 0 {
+			// A scenario's own structure is never dropped: with no spaced
+			// spot it takes the best clear of the landing, else any.
+			bestX, bestY, bestShare = stampFallback(level, s, w, h, rng)
+		}
+		if bestShare < 0 {
+			where := sampleSource(s)
+			if s.At != "" {
+				where = s.At
+			}
+			log.Printf("stamp %s: dropped, no room clear of the landing and other stamps (%s)", script, where)
+			continue
+		}
+		level.StampFootprints = append(level.StampFootprints, [6]int{bestX, bestY, w, h, ax, ay})
 		// Derive the script's seed from the build stream so it stays
 		// reproducible while remaining distinct per stamp. Params other than
 		// the footprint pass through to the script.
@@ -658,6 +745,118 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 		}
 	}
 	return nil
+}
+
+// stampFallback samples a fresh set of candidates for an unanchored stamp
+// that found no spaced spot, ignoring the spacing: the best clear of the
+// landing reserve, else the best seen.
+func stampFallback(level *world.Level, s FeatureSpec, w, h int, rng *rand.Rand) (int, int, float64) {
+	next, ok := featureSampler(level, s, rng)
+	if !ok {
+		return 0, 0, -1
+	}
+	bx, by, best := 0, 0, -1.0
+	ix, iy, inBest := 0, 0, -1.0
+	for attempt := 0; attempt < stampAttempts; attempt++ {
+		cx, cy := next()
+		if level.GetSurfaceZ(cx, cy) < 0 {
+			continue
+		}
+		x := clampFootprint(cx-w/2, w, level.GetWidth())
+		y := clampFootprint(cy-h/2, h, level.GetHeight())
+		share := openGroundShare(level, x, y, w, h)
+		if rectInLanding(level, x, y, w, h, 0) {
+			if share > inBest {
+				ix, iy, inBest = x, y, share
+			}
+			continue
+		}
+		if share > best {
+			bx, by, best = x, y, share
+		}
+	}
+	if best >= 0 {
+		return bx, by, best
+	}
+	return ix, iy, inBest
+}
+
+// stampNear searches rings around an anchor for the nearest usable footprint
+// (the most open on the nearest ring), out to the spacing plus the
+// footprint's size.
+func stampNear(level *world.Level, ore map[[2]int]bool, ax, ay, w, h, spacing int, usable func(x, y int) bool) (int, int, float64) {
+	reach := spacing + max(w, h)
+	for r := 1; r <= reach; r++ {
+		bestX, bestY, best := 0, 0, -1.0
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if max(abs(dx), abs(dy)) != r {
+					continue
+				}
+				x := clampFootprint(ax+dx-w/2, w, level.GetWidth())
+				y := clampFootprint(ay+dy-h/2, h, level.GetHeight())
+				if !usable(x, y) {
+					continue
+				}
+				if share := stampGroundShare(level, ore, x, y, w, h); share > best {
+					bestX, bestY, best = x, y, share
+				}
+			}
+		}
+		if best >= 0 {
+			return bestX, bestY, best
+		}
+	}
+	return 0, 0, -1
+}
+
+// stampCrowded reports whether a footprint lies within spacing tiles of an
+// earlier stamp's, other than one anchored on the same point.
+func stampCrowded(level *world.Level, x, y, w, h, ax, ay, spacing int) bool {
+	for _, f := range level.StampFootprints {
+		if ax >= 0 && f[4] == ax && f[5] == ay {
+			continue
+		}
+		if rectGap(x, y, w, h, f[0], f[1], f[2], f[3]) < spacing {
+			return true
+		}
+	}
+	return false
+}
+
+// rectGap is the Chebyshev gap in tiles between two footprints; negative when
+// they overlap.
+func rectGap(x1, y1, w1, h1, x2, y2, w2, h2 int) int {
+	gx := max(x2-(x1+w1), x1-(x2+w2))
+	gy := max(y2-(y1+h1), y1-(y2+h2))
+	return max(gx, gy)
+}
+
+// oreColumns lists the columns holding a mineable deposit at any depth.
+func oreColumns(level *world.Level) map[[2]int]bool {
+	out := map[[2]int]bool{}
+	for c := range level.ResourceAmount {
+		x, y, _ := c.Unpack()
+		out[[2]int{x, y}] = true
+	}
+	return out
+}
+
+// stampGroundShare is openGroundShare with ore columns counted as not open.
+func stampGroundShare(level *world.Level, ore map[[2]int]bool, x, y, w, h int) float64 {
+	open, total := 0, 0
+	for fy := y; fy < y+h && fy < level.GetHeight(); fy++ {
+		for fx := x; fx < x+w && fx < level.GetWidth(); fx++ {
+			total++
+			if standableSurface(level, fx, fy) && !ore[[2]int{fx, fy}] {
+				open++
+			}
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return float64(open) / float64(total)
 }
 
 // stampParams is a stamp's params minus the ones the placer itself reads.
@@ -717,5 +916,79 @@ func placeStructure(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 		}
 		level.AddEntity(e)
 	}
+	return nil
+}
+
+// rubble_field — unstable ground: a cave section that has come down. Around
+// a cavern tile near the anchor (jitter, default 12), the open cave within
+// radius (default 2) fills with rubble, burying a cache: a storage locker of
+// relics (param relic, default carved_idol; count param cache, default 3)
+// that has to be dug out. With no cavern in reach it collapses at the
+// surface instead, a mound of rubble over the cache.
+//
+//	params: radius, relic, cache
+func placeRubbleField(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
+	radius := featureParamInt(s, "radius", 2)
+	relic := featureParamString(s, "relic", "carved_idol")
+	cache := featureParamInt(s, "cache", 3)
+	if !requireTile("rubble_pile") {
+		return nil
+	}
+	ox, oy, oz, ok := Origin(level, s.At)
+	if !ok {
+		ox, oy = rng.Intn(level.GetWidth()), rng.Intn(level.GetHeight())
+		oz = level.GetSurfaceZ(ox, oy)
+	}
+	reach := s.Jitter
+	if reach <= 0 {
+		reach = 12
+	}
+	// The nearest cavern tile below the anchor, else the anchor itself.
+	cx, cy, cz, found := 0, 0, 0, false
+	best := 1 << 30
+	for z := oz - 1; z >= 0 && z >= oz-6; z-- {
+		for dy := -reach; dy <= reach; dy++ {
+			for dx := -reach; dx <= reach; dx++ {
+				x, y := ox+dx, oy+dy
+				if level.GetTerrainKind(x, y, z) != world.TKCavern || !standableTile(level, x, y, z) {
+					continue
+				}
+				if d := dx*dx + dy*dy; d < best {
+					best, cx, cy, cz, found = d, x, y, z, true
+				}
+			}
+		}
+		if found {
+			break
+		}
+	}
+	surface := !found
+	if surface {
+		cx, cy, cz = ox, oy, oz
+	}
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			x, y := cx+dx, cy+dy
+			if dx*dx+dy*dy > radius*radius || (dx == 0 && dy == 0) {
+				continue
+			}
+			if surface || level.GetTerrainKind(x, y, cz) == world.TKCavern {
+				level.SetMiddle(x, y, cz, "rubble_pile", world.TileVariantAt("rubble_pile", x, y, cz))
+				clearBlockedEntities(level, x, y, cz)
+			}
+		}
+	}
+	locker, err := factory.Create("storage_locker", cx, cy, cz)
+	if err != nil {
+		return nil
+	}
+	if st, ok := locker.GetComponent(components.Storage).(*components.StorageComponent); ok {
+		for i := 0; i < cache; i++ {
+			if item, err := factory.Create(relic, cx, cy, cz); err == nil {
+				st.AddItem(item)
+			}
+		}
+	}
+	level.AddEntity(locker)
 	return nil
 }

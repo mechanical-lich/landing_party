@@ -1,0 +1,28 @@
+{
+    "id": "frozen_calm",
+    "name": "Frozen Landing",
+    "description": "DRAFT. Ice fields and frosted pines. Small creatures pick through the snow; nothing larger has been seen.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/frozen_calm_setup.basic"
+    ],
+    "hostile_max": 30,
+    "supported_maps": [
+        "frozen_planet"
+    ],
+    "spawn_rules": {
+        "critter": {
+            "spawn_rate": 50,
+            "light_min": 0,
+            "tiles": [
+                "ice_floor",
+                "rock_floor"
+            ],
+            "min_z_delta": -1,
+            "max_z_delta": 1
+        }
+    },
+    "lighting": {
+        "mode": "day_night"
+    }
+}

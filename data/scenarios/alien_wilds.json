@@ -1,0 +1,30 @@
+{
+    "id": "alien_wilds",
+    "name": "Alien Wilds",
+    "description": "DRAFT. A vivid alien planet of strange flora and crystal fields. The wildlife keeps its distance.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/alien_wilds_setup.basic"
+    ],
+    "hostile_max": 60,
+    "supported_maps": [
+        "alien",
+        "ocean_planet"
+    ],
+    "spawn_rules": {
+        "critter": {
+            "spawn_rate": 60,
+            "light_min": 0,
+            "tiles": [
+                "grass",
+                "alien_ground",
+                "regolith"
+            ],
+            "min_z_delta": -1,
+            "max_z_delta": 1
+        }
+    },
+    "lighting": {
+        "mode": "day_night"
+    }
+}

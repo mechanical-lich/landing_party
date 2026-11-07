@@ -56,6 +56,13 @@ type Library struct {
 	Arcs   map[string]*ArcDef
 	Events map[string]*EventDef
 	Civs   CivTable
+	// TierTags are the Star Map's tag per tier (tiers.json).
+	TierTags map[string]TierTag
+	// TechDefs are the tech levels in order (tech.json).
+	TechDefs []TechDef
+	// Purposes and ShipClasses are purposes.json.
+	Purposes    map[string]PurposeDef
+	ShipClasses map[string]ShipClass
 	// Maps are the map definitions whose present blocks the arcs end in, keyed
 	// by map ID.
 	Maps map[string]*mapdef.MapDef
@@ -88,6 +95,10 @@ type ArcDef struct {
 	// Uninhabited arcs never have anyone live on the site: no resident civ, no
 	// figures, no population. A quarter of sites draw one (see BindSite).
 	Uninhabited bool `json:"uninhabited,omitempty"`
+	// Layer arcs are an older people's story run before a site's main arc
+	// (Present.Layers): short, ending with its resident gone, leaving ruins
+	// the main arc's people may build over.
+	Layer bool `json:"layer,omitempty"`
 	// Summary is the site's one-line description on the Star Map; {civ} is
 	// the site's civ (its last resident, else its first visitor).
 	Summary string     `json:"summary,omitempty"`
@@ -102,6 +113,15 @@ type ArcDef struct {
 type StageDef struct {
 	Pick     []string `json:"pick"`
 	Optional bool     `json:"optional,omitempty"`
+	// Chance is the percent chance an optional stage happens (default 50).
+	Chance int `json:"chance,omitempty"`
+	// Repeat [min, max] picks that many events, each re-checked for
+	// eligibility; a type already picked in the stage repeats only if it is
+	// repeatable. Default one.
+	Repeat []int `json:"repeat,omitempty"`
+	// Epoch marks a stage that sets the world up (a biosphere): skipped when
+	// an older layer already did.
+	Epoch bool `json:"epoch,omitempty"`
 }
 
 // Match tests a planet state. Life, Population and Status are any-of; Remains
@@ -148,6 +168,12 @@ type Requires struct {
 	// Resident, when set, requires a civ to live on the site (true) or nobody
 	// (false).
 	Resident *bool `json:"resident,omitempty"`
+	// TechMin and TechMax bound the acting civ's tech level on the site (a
+	// pool civ is spacefaring; a new native civ is not checked).
+	TechMin string `json:"tech_min,omitempty"`
+	TechMax string `json:"tech_max,omitempty"`
+	// Rival, when set, requires a rival people on the site (true) or none.
+	Rival *bool `json:"rival,omitempty"`
 }
 
 // Effects is what an event does to the planet and its resident civ.
@@ -165,6 +191,12 @@ type Effects struct {
 	// or "dwindled" (still here, diminished). The civ's Fate is derived from
 	// these outcomes across every site.
 	ResidentFate string `json:"resident_fate,omitempty"`
+	// Tech changes the acting native civ's level: "+1", "-1", "-2" or a
+	// level name. Pool civs stay spacefaring.
+	Tech string `json:"tech,omitempty"`
+	// RivalFate ends the rival's story on this site, as ResidentFate does
+	// the resident's.
+	RivalFate string `json:"rival_fate,omitempty"`
 }
 
 // FigureDef asks for a named figure in an event, by role.
@@ -181,6 +213,12 @@ const (
 	CivNative   = "native"   // a new civ arises here: invented, becomes the resident
 	CivVisitor  = "visitor"  // a pool civ passes through
 	CivWar      = "war"      // two pool civs at war: {civ} and {enemy}
+	// Two peoples on one site (the rival slot beside the resident):
+	CivTwins        = "twins"         // two native peoples arise at once: resident and rival
+	CivRivalNative  = "rival_native"  // a native people splits off as the rival: {civ} new, {enemy} the resident
+	CivRivalVisitor = "rival_visitor" // a pool civ occupies the site as the rival (an overlord): {civ} it, {enemy} the resident
+	CivRivals       = "rivals"        // {civ} the resident (or the side leading a per-side event), {enemy} the rival
+	CivRival        = "rival"         // {civ} the rival, {enemy} the resident
 )
 
 // Evidence is one generation input an event leaves on the map: an ordinary
@@ -202,15 +240,37 @@ type EventDef struct {
 	Figures []FigureDef `json:"figures,omitempty"`
 	// Origin gives the event a SitePoint, rolled from the site's stream.
 	Origin bool `json:"origin,omitempty"`
+	// OriginAt rolls the origin where two peoples live: "side" in the
+	// leading civ's half of the map, "border" in the band between them.
+	OriginAt string `json:"origin_at,omitempty"`
+	// PerSide emits the event once led by each of the two peoples (resident
+	// and rival), each with its own figures, origin and level; the second
+	// follows from the first. Its planet effects apply once.
+	PerSide bool `json:"per_side,omitempty"`
+	// TextSide, on a per-side event, is the leading people's own account,
+	// read on its datapad ({civ} is "us"); the chronicle keeps Text.
+	TextSide string `json:"text_side,omitempty"`
+	// TextMeanwhile, on a per-side event, is the chronicle line for the second
+	// people's half, which follows the first ("meanwhile, across the
+	// border..."), so the chronicle does not tell one happening twice.
+	TextMeanwhile string `json:"text_meanwhile,omitempty"`
 	// OriginFrom reuses, and claims, the origin of an earlier event of one of
 	// these types on the site, the first type found winning (the wreck_*
-	// threats grow from the ancient wreck).
+	// threats grow from the ancient wreck). With Origin also set it is a
+	// preference: without such an event the event rolls its own origin.
 	OriginFrom OneOrMany `json:"origin_from,omitempty"`
 	// Scenario makes this a chapter: the gameplay package the site plays as
 	// when its history ends here.
 	Scenario string `json:"scenario,omitempty"`
-	// Weight is per map: how often this chapter ends a history there. No
-	// weight for a map means it can't end a history there.
+	// Tier is the chapter's weight class: "threat" (a full scenario; the
+	// default for an event with a Scenario) or "hazard" (a local, finite danger
+	// that plays the map's base_scenario, or a gentle Scenario of its own, with
+	// the event's evidence on top). An event with a hazard tier is a chapter
+	// even without a Scenario.
+	Tier string `json:"tier,omitempty"`
+	// Weight is per map: how often this chapter ends a history there, relative
+	// to the other chapters of its tier. No weight for a map means it can't end
+	// a history there.
 	Weight map[string]int `json:"weight,omitempty"`
 	// Prelude are event types that happen just before this chapter (the
 	// trigger that opens an old wreck).
@@ -223,12 +283,23 @@ type EventDef struct {
 	// Vars are template fills picked at random: {"how": ["...", "..."]}.
 	Vars     map[string][]string `json:"vars,omitempty"`
 	Evidence []Evidence          `json:"evidence,omitempty"`
-	// SafeStart marks a chapter calm enough for a first landing: a site within
-	// one jump of the Wreck Site only ends in these (or a quiet_safe quiet).
+	// SafeStart marks a hazard calm enough for a first landing: a site within
+	// one jump of the Wreck Site rolls its tier by the map's safe_tiers (never
+	// threat), and a hazard there must be safe_start.
 	SafeStart bool `json:"safe_start,omitempty"`
+	// KeepOut is how far (tiles from the landing reserve box) this event's
+	// origin stays; 0 takes the budget's default (hazard_keep_out for hazards,
+	// threats and anything that spawns hostiles, else keep_out).
+	KeepOut int `json:"keep_out,omitempty"`
 	// Place names where the event left its trace, for quest lines ("the
 	// vault", "the reactor").
 	Place string `json:"place,omitempty"`
+	// Interlude marks a small happening (a figure born, a festival, a comet)
+	// that walk may add after any stage (Present.Density); it never stamps.
+	Interlude bool `json:"interlude,omitempty"`
+	// Repeatable lets an event type follow itself on a site and be picked
+	// more than once in a repeating stage (battles, interludes).
+	Repeatable bool `json:"repeatable,omitempty"`
 	// Live marks an event type the recorder writes during play (a colonist's
 	// death, a quest completed), never part of an arc or a chapter. Fills are
 	// the template fills it sets in the event's Vars when recorded.
@@ -245,8 +316,32 @@ type EventDef struct {
 	Text string `json:"text"`
 }
 
-// IsChapter reports whether the event can end a history as its threat chapter.
-func (e *EventDef) IsChapter() bool { return e.Scenario != "" }
+// Chapter tiers: how dangerous the site's present is. Quiet is the outcome
+// with no chapter.
+const (
+	TierThreat = "threat"
+	TierHazard = "hazard"
+	TierQuiet  = "quiet"
+)
+
+// Tiers lists the tiers in roll order.
+var Tiers = []string{TierThreat, TierHazard, TierQuiet}
+
+// IsChapter reports whether the event can end a history: it carries a
+// scenario or is a hazard.
+func (e *EventDef) IsChapter() bool { return e.Scenario != "" || e.Tier == TierHazard }
+
+// ChapterTier is the chapter's tier: its Tier, else threat for an event with a
+// scenario; "" for an event that is not a chapter.
+func (e *EventDef) ChapterTier() string {
+	switch {
+	case e.Tier != "":
+		return e.Tier
+	case e.Scenario != "":
+		return TierThreat
+	}
+	return ""
+}
 
 // CivTable is civs.json: what the civ pool is rolled from.
 type CivTable struct {
@@ -273,6 +368,20 @@ type CivTable struct {
 	// Reuse weighs a pool civ already in the chronicle against a fresh one:
 	// weight = 1 + Reuse * (sites it already appears on).
 	Reuse int `json:"reuse"`
+	// NativeTech weighs a native civ's starting level.
+	NativeTech map[string]int `json:"native_tech"`
+	// SpeciesTechMax caps a native species' level ("yeti": "medieval").
+	SpeciesTechMax map[string]string `json:"species_tech_max"`
+}
+
+// TierTag is how the Star Map shows a tier: a word and its colour.
+type TierTag struct {
+	Label string   `json:"label"`
+	Color [3]uint8 `json:"color"`
+}
+
+type tiersFile struct {
+	Tiers map[string]TierTag `json:"tiers"`
 }
 
 type arcsFile struct {
@@ -316,6 +425,21 @@ func LoadLibrary(dir string, maps []mapdef.MapDef) (*Library, error) {
 	if err := readJSON(filepath.Join(dir, "civs.json"), &lib.Civs); err != nil {
 		return nil, err
 	}
+	var tf tiersFile
+	if err := readJSON(filepath.Join(dir, "tiers.json"), &tf); err != nil {
+		return nil, err
+	}
+	lib.TierTags = tf.Tiers
+	var tech techFile
+	if err := readJSON(filepath.Join(dir, "tech.json"), &tech); err != nil {
+		return nil, err
+	}
+	lib.TechDefs = tech.Levels
+	var pf purposesFile
+	if err := readJSON(filepath.Join(dir, "purposes.json"), &pf); err != nil {
+		return nil, err
+	}
+	lib.Purposes, lib.ShipClasses = pf.Purposes, pf.ShipClasses
 	for i := range maps {
 		m := maps[i]
 		lib.Maps[m.ID] = &m
@@ -337,6 +461,17 @@ func readJSON(path string, v any) error {
 // ArcIDs and EventIDs list the library in file order (stable for iteration).
 func (l *Library) ArcIDs() []string   { return l.arcOrder }
 func (l *Library) EventIDs() []string { return l.eventOrder }
+
+// Interludes lists the interlude event types in file order.
+func (l *Library) Interludes() []*EventDef {
+	var out []*EventDef
+	for _, id := range l.eventOrder {
+		if e := l.Events[id]; e.Interlude {
+			out = append(out, e)
+		}
+	}
+	return out
+}
 
 // ChapterEvents lists the chapter event types in file order.
 func (l *Library) ChapterEvents() []*EventDef {

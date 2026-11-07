@@ -270,6 +270,7 @@ func TestStampPrefersOpenGround(t *testing.T) {
 	onLand := 0
 	for seed := int64(0); seed < 50; seed++ {
 		*stamps = nil
+		level.StampFootprints = nil // each seed is its own build
 		if err := placeStamp(level, spec, rand.New(rand.NewSource(seed))); err != nil {
 			t.Fatal(err)
 		}
@@ -303,6 +304,7 @@ func TestStampAlwaysLandsInsideMap(t *testing.T) {
 	spec := FeatureSpec{Kind: "stamp", Count: 2, Params: map[string]any{"script": "x", "w": 17, "h": 17}}
 	for seed := int64(0); seed < 50; seed++ {
 		*stamps = nil
+		level.StampFootprints = nil // each seed is its own build
 		if err := placeStamp(level, spec, rand.New(rand.NewSource(seed))); err != nil {
 			t.Fatal(err)
 		}

@@ -163,7 +163,9 @@ and filters.
 5. **Travel Here** to the next world, or back to a paused one.
 6. **Save Expedition** any time from the Star Map.
 
-Each world's summary on the Star Map comes from its history; the
+Each world's summary on the Star Map comes from its history, after a
+**Calm**, **Hazard** or **Threat** tag that says how dangerous it is (see
+[Dangers, Ruins and Relics](dangers_and_ruins.md)); the
 [Legends](legends.md) tab of the dashboard collects everything you have learned
 about it.
 

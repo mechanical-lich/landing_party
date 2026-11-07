@@ -70,12 +70,12 @@ release builds returns the game unchanged. The current screen is
 `state` (`title`, `dashboard`, `site`, `ship`, `settings`, `end`),
 `title_screen`, `title_fields`, `dash_tab`, `status`, `selected_location`
 (`id`, `name`, `fuel_cost`, `summary`, `history_summary`: the summary is the
-site history's line), `legends` and `legends_text` (the Legends tab's
+site history's line; `tier`: the Star Map tag, `threat`, `hazard` or `quiet`), `legends` and `legends_text` (the Legends tab's
 chronicle, when it is open), `legends_visible` (the chronicle lines on
 screen), `legends_at_top`, `legends_at_bottom`,
 `tick`, `hour`, `day`, `campaign` (`name`, `seed`, `location_id`,
 `location_name`, `scenario`, `chapter` (the site history's chapter event, `""`
-when quiet), `known_events`, `adrift`, `in_orbit`, `won`, `lost`,
+when quiet), `tier`, `known_events`, `adrift`, `in_orbit`, `won`, `lost`,
 `known_techs`), `fuel`,
 `hold`, `site_storage`, `site_structures`, `crew` (name, where, x, y, z, task),
 `crew_at`, `crew_on_site`, `loaded`, `owed`, `tutorial` (`step`, `index`,
@@ -128,7 +128,7 @@ tutorial off.
 | `incident <location id or ship>` | Raises the away-damage popup for that loaded level |
 | `reveal all` | Marks every history event known (a long Legends chronicle) |
 | `datapad` | Puts the first colonist on the nearest lore datapad (the next update picks it up) |
-| `origin [walk [event type]]` | Frames the camera on the site history's resolved chapter origin (the `region:lore_origin` tag), or on the origin of the site's event of that type; `walk` also puts the first colonist on the nearest free tile there, so its field of view reveals it |
+| `origin [walk [event type [n]]]` | Frames the camera on the site history's resolved chapter origin (the `region:lore_origin` tag), or on the origin of the site's event of that type; `walk` also puts the first colonist on the nearest free tile there, so its field of view reveals it; `n` picks the nth event of that type (the two sides of a per-side event) |
 
 ### Determinism
 
@@ -147,13 +147,21 @@ runs; assert counts rather than specific enemies there.
 | `save_load` | Land, save, relaunch, load: day, location, fuel, hold, storage and crew match; back to title via the Esc menu; Q exits with status 0 |
 | `storage_beam` | Ship hold inspector beams metal down, site locker inspector beams some back; totals conserved |
 | `esc_menu` | Land on the start site, open the Esc menu (title, button labels), close it with Esc |
-| `lore_site` | Start system's Star Map summary is its history's line, travel, beam one down, land on the site |
-| `lore_xenos` | Seed 746: jump to a `wreck_eggs_hatch` moon, land, walk to the origin: the old wreck's hull with the hive's eggs |
-| `lore_ufo` | Seed 753: jump to a `ship_shot_down` asteroid, land, walk to the origin: the hull and its crew |
-| `lore_autonz` | Seed 807: jump to a `wreck_nanites_wake` asteroid, land, walk to the origin: the wreck with wires spreading from it |
-| `lore_legends` | Seed 746: land on the wreck site, pick up a lore datapad, open Legends: the datapad's event is in the chronicle |
+| `lore_site` | Start system's Star Map summary is its history's line and its tier tag matches, travel, beam one down, land on the site |
+| `lore_xenos` | Seed 1512: jump to a `wreck_eggs_hatch` site, land, walk to the origin: the old wreck's hull with the hive's eggs |
+| `lore_ufo` | Seed 1372: jump to a `ship_shot_down` site, land, walk to the origin: the hull and its crew |
+| `lore_autonz` | Seed 23: jump to a `wreck_nanites_wake` site, land, walk to the origin: the wreck with wires spreading from it |
+| `lore_legends` | Seed 1512: land on the wreck site, pick up a lore datapad, open Legends: the datapad's event is in the chronicle |
 | `lore_legends_long` | Seed 746: every event known (`debug reveal all`), Legends opens on the newest events, the wheel scrolls back to the oldest |
-| `lore_quiet` | Seed 700: the quiet start system's collapsed-civilization castle stands empty (`debug origin walk civ_collapses`) |
+| `lore_quiet` | Seed 66: the quiet start system's collapsed-civilization castle stands empty (`debug origin walk civ_collapses`); then the native people's dwelling |
+| `lore_hazard` | Seed 407: the Star Map's amber Hazard tag on a `dormant_nest` earth_like site, then the eggs by the wreck at its origin |
+| `lore_war` | Seed 125: the start system is a `sundered_world` earth site; walk to each side's fort (`debug origin walk fortify 1` and `2`), the battlefield and a side's dwelling |
+| `lore_ship` | Seed 11: the start system's old warship wreck (`crashed_ship`, purpose warship), lighting off, walked to: hull, sections, rooms |
+
+Seeds for the lore scripts come from `make history-dump HFIND=<terms>`
+(comma-separated, all required: tier, map, location ID, event type, `stamped:<type>` for an event that keeps its structure, `<var>=<value>` for an event var such as `purpose=warship`), which
+lists New Expedition seeds with a matching site on the opening Star Map and
+the jump's fuel; pick one with low fuel so its row is on screen.
 
 ## Release builds
 

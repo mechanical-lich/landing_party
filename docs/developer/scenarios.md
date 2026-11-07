@@ -110,7 +110,8 @@ Each `kind` places something specific; `params` are per-kind (defaults in parent
 | Kind | Places | Where | Key params | Area-scaled |
 |------|--------|-------|------------|:-----------:|
 | `ore_vein` | deposit tiles | underground rock | `tile` (`ore_deposit`), `radius` (3), `radius_max` (opt; rolls each vein's radius in `[radius, radius_max]`), `density` (1.0), `min_z`/`max_z` | ✓ |
-| `radiation_pocket` | radiation field + ore seeds | surface (or `min_z`/`max_z`) | `peak` (180), `radius` (4), `ore_tile` (`radioactive_ore`) | ✓ |
+| `radiation_pocket` | radiation field + ore seeds | surface (or `min_z`/`max_z`) | `peak` (180), `radius` (4), `ore_tile` (`radioactive_ore`; `"none"` for radiation only, e.g. on a structure) | ✓ |
+| `rubble_field` | a cave section collapsed over a buried cache | the nearest cavern below the anchor (`jitter`, 12), else the surface | `radius` (2), `relic` (`carved_idol`), `cache` (3) | ✓ |
 | `crystal_grove` | crystal entities | surface | `blueprint` (`alien_crystal`), `radius` (4) | ✓ |
 | `lava_lake` | lava tiles; removes entities on tiles it makes unstandable | surface | `tile` (`lava`), `radius` (5) | ✓ |
 | `scatter_tile` | single tiles | surface of a `kind` | `tile` (req), `kind` (`surface`) | ✓ |
@@ -217,9 +218,16 @@ Ground (`data/maps/tutorial.json`):
   Keep such maps out of every `location_templates.json` pool too.
 - `"center_start": true` in a planet map's `terrain_params` makes the planet
   primer tag the map centre as a `starting_floor` anchor on the surface, so
-  `findStartingPlaza` lands there on every seed instead of rolling a random
-  spot. Make sure nothing (a biome's tree scatter, a feature) can occupy the
-  centre row, or the plaza falls back to a random spot.
+  `findStartingPlaza` lands there on every seed, and the landing reserve
+  (below) is placed there. Make sure nothing (a biome's tree scatter, a
+  feature) can occupy the centre row, or the plaza falls back to the nearest
+  fit in the reserve.
+- Every build picks a landing reserve before any feature runs: the primers'
+  anchor (`starting_floor`, `starting_asteroid`, `station_hub`), else a plaza
+  search seeded from the location seed, tagged `landing_zone`. Stamps,
+  anchored features and history origins keep out of it (see
+  [lore.md](lore.md)); `findStartingPlaza` lands in it after the primer
+  anchors.
 
 ## Adding a New Scenario
 

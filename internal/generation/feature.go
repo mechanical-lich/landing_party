@@ -172,8 +172,15 @@ func featureSampler(level *world.Level, s FeatureSpec, rng *rand.Rand) (next fun
 		if jitter <= 0 {
 			jitter = 3
 		}
+		// Candidates inside the landing reserve's keep-out are pulled back
+		// to the origin, which ResolveOriginsKeepOut already put outside it.
+		keep := Budget().KeepOut
 		return func() (int, int) {
-			return ox + randIntn(rng, jitter*2+1) - jitter, oy + randIntn(rng, jitter*2+1) - jitter
+			x, y := ox+randIntn(rng, jitter*2+1)-jitter, oy+randIntn(rng, jitter*2+1)-jitter
+			if landingDistance(level, x, y) < keep && landingDistance(level, ox, oy) >= keep {
+				return ox, oy
+			}
+			return x, y
 		}, true
 	}
 	switch {

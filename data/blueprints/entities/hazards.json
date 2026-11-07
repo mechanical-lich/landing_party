@@ -1,0 +1,114 @@
+{
+    "spore_pod": {
+        "Appearance": {
+            "R": 200,
+            "G": 255,
+            "B": 120,
+            "Resource": "fantasy_world",
+            "SpriteX": 1104,
+            "SpriteY": 72
+        },
+        "Description": {
+            "Name": "Spore Pod",
+            "Faction": "blight",
+            "Species": "spore_pod",
+            "Classification": "flora",
+            "LongDescription": "DRAFT. A swollen pod that bursts its spores into anything that comes too close. It can be cut down."
+        },
+        "Health": {
+            "MaxHealth": 6
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/spore_pod.basic"
+        },
+        "Stats": {
+            "Str": 6,
+            "Int": 1,
+            "Dex": 14,
+            "AC": 4,
+            "BasicAttackDice": "1d3"
+        },
+        "Solid": {}
+    },
+    "sentry_turret": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 190,
+            "B": 130,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "Sentry Turret",
+            "Faction": "sentry",
+            "Species": "sentry_turret",
+            "Classification": "machine",
+            "LongDescription": "DRAFT. An old defence turret, dormant until something walks into its sights."
+        },
+        "Health": {
+            "MaxHealth": 14
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "laser_pistol"
+            ]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/sentry_turret.basic"
+        },
+        "Stats": {
+            "Str": 6,
+            "Int": 2,
+            "Dex": 12,
+            "AC": 10,
+            "BasicAttackDice": "1d4"
+        },
+        "Solid": {}
+    },
+    "old_munition": {
+        "Appearance": {
+            "R": 255,
+            "G": 150,
+            "B": 90,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Old Munition",
+            "Faction": "ordnance",
+            "Species": "old_munition",
+            "Classification": "ordnance",
+            "LongDescription": "DRAFT. A shell that never went off. Do not stand on it; do not dig it up."
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/old_munition.basic"
+        },
+        "Stats": {
+            "Str": 14,
+            "Int": 1,
+            "Dex": 20,
+            "AC": 2,
+            "BasicAttackDice": "2d6"
+        },
+        "AIMemory": {}
+    }
+}

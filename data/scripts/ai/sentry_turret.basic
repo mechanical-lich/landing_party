@@ -1,0 +1,27 @@
+# sentry_turret — dormant until a colonist comes within 7 tiles in its line
+# of sight; then it wakes for good and fires its weapon at the nearest one
+# in sight (striking at one beside it). It never moves.
+function on_turn()
+    # The search box runs one short on its far side: look 8 out, wake at 7.
+    if find_nearest_worker(8) = 0 then
+        return
+    endif
+    if dist(get_self_x(), get_self_y(), get_nearest_x(), get_nearest_y()) > 7 then
+        return
+    endif
+    if get_var("awake") + 0 = 0 then
+        set_var("awake", 1)
+        add_message("An old sentry turret whirs awake.")
+    endif
+    tx = get_nearest_x()
+    ty = get_nearest_y()
+    tz = get_nearest_z()
+    if has_ranged_weapon() = 1 then
+        if ranged_attack_at(tx, ty, tz) = 1 then
+            return
+        endif
+    endif
+    if dist(get_self_x(), get_self_y(), tx, ty) <= 1 then
+        attack_at(tx, ty, tz)
+    endif
+endfunction

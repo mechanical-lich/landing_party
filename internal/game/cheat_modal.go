@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/generation"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -53,7 +55,7 @@ func (cm *CheatModal) rebuildModal() {
 	cm.modal.SetPosition(mx, my)
 	cm.modal.Closeable = false
 
-	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>  |  research <tech_id>")
+	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>  |  research <tech_id>  |  stamp <script> [w h] [k=v ...]")
 	cm.input.SetPosition(10, 20)
 	cm.input.SetSize(cheatModalW-20, 30)
 	cm.modal.AddChild(cm.input)
@@ -291,6 +293,48 @@ func (cm *CheatModal) runCommand(raw string) {
 		}
 		cm.ms.level.AddEntity(item)
 		message.PostMessage("cheat", fmt.Sprintf("dropped %d %s at camera (no storage found)", amount, blueprint))
+
+	case "stamp":
+		// Build a structure script around the camera centre, empty
+		// (occupants none), as history evidence does: for looking at one.
+		if len(parts) < 2 {
+			message.PostMessage("cheat", "usage: stamp <script> [w h] [key=value ...]")
+			return
+		}
+		w, h := 21, 19
+		params := map[string]any{"occupants": "none"}
+		rest := parts[2:]
+		if len(rest) >= 2 {
+			if pw, errW := strconv.Atoi(rest[0]); errW == nil {
+				ph, errH := strconv.Atoi(rest[1])
+				if errH != nil || pw < 3 || ph < 3 {
+					message.PostMessage("cheat", "stamp: w and h must be integers of at least 3")
+					return
+				}
+				w, h = pw, ph
+				rest = rest[2:]
+			}
+		}
+		// key=value params pass to the script (numbers as numbers).
+		for _, kv := range rest {
+			k, v, ok := strings.Cut(kv, "=")
+			if !ok {
+				continue
+			}
+			if n, err := strconv.ParseFloat(v, 64); err == nil {
+				params[k] = n
+			} else {
+				params[k] = v
+			}
+		}
+		cx, cy, _ := cm.cameraCenter()
+		x, y := cx-w/2, cy-h/2
+		generation.ClearFootprint(cm.ms.level, x, y, w, h)
+		if err := RunStructureScriptWithParams(cm.ms.level, parts[1], x, y, w, h, params, rand.Int63()); err != nil {
+			message.PostMessage("cheat", fmt.Sprintf("stamp: %v", err))
+			return
+		}
+		message.PostMessage("cheat", fmt.Sprintf("stamped %s %dx%d at %d,%d", parts[1], w, h, x, y))
 
 	case "research":
 		if len(parts) < 2 {

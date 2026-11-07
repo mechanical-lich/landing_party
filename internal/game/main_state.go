@@ -73,6 +73,9 @@ type SettlementConfig struct {
 	SiteFeatures []mapdef.FeatureBlock
 	SiteOrigins  map[string][2]int
 	SiteChapter  string
+	// SiteKeepOut is each origin's keep-out from the landing reserve by event
+	// ID (see generation.ResolveOriginsKeepOut).
+	SiteKeepOut map[string]int
 	// SiteFlags are the history's lore flags (origin_event, origin_civ,
 	// has_wreck, has_reactor, population), set on the level before setup
 	// scripts run, alongside the resolved origin_x/y/z.
@@ -629,6 +632,7 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 		})
 	}
 	opts.Origins = s.settlementCfg.SiteOrigins
+	opts.OriginKeepOut = s.settlementCfg.SiteKeepOut
 	opts.ChapterEvent = s.settlementCfg.SiteChapter
 	opts.Flags = s.settlementCfg.SiteFlags
 	level, err := generation.BuildWorld(opts)
@@ -2126,6 +2130,7 @@ func (s *MainState) updateHovered() {
 			Air:            def.Air,
 			Space:          def.Space,
 			Smells:         smells,
+			Room:           s.level.RoomAt(tX, tY, s.camera.Z),
 		})
 	}
 
@@ -2475,7 +2480,13 @@ func (s *MainState) collectDatapads() {
 		}
 		dp := e.GetComponent(components.Datapad).(*components.DatapadComponent)
 		s.level.RemoveEntity(e)
-		if text, _ := s.campaign.RevealEvent(dp.EventID); text != "" {
+		text, _ := s.campaign.RevealDatapad(dp.EventID)
+		if dp.Text != "" {
+			// A clue left in a structure: its own words; the event it
+			// belongs to becomes known all the same.
+			text = dp.Text
+		}
+		if text != "" {
 			message.PostMessage("Datapad", "Recovered a datapad: "+text)
 		}
 		if q := s.campaign.UnlockQuest(dp.QuestID); q != nil {
@@ -2778,14 +2789,31 @@ var plazaIntn = rand.Intn
 
 // findStartingPlaza picks a spawn anchor with `slots` adjacent standable
 // tiles in a horizontal row, preferring region anchors emitted by terrain
-// primers ("starting_floor", "starting_asteroid", "station_hub"). Falls back
-// to a random scan at preferZ. Returns (centerX, centerY, z); x = -1 if no
-// valid plaza was found.
+// primers ("starting_floor", "starting_asteroid", "station_hub"), then the
+// landing reserve generation picked before any feature (the nearest fit
+// inside its box: a later tree or lava lake may have taken its centre). Falls
+// back to a random scan at preferZ. Returns (centerX, centerY, z); x = -1 if
+// no valid plaza was found.
 func findStartingPlaza(level *world.Level, preferZ, slots int) (int, int, int) {
 	for _, tag := range []string{"starting_floor", "starting_asteroid", "station_hub"} {
 		for _, p := range level.Regions[tag] {
 			if cx, cy, ok := tryPlaza(level, p[0], p[1], p[2], slots); ok {
 				return cx, cy, p[2]
+			}
+		}
+	}
+	if lx, ly, lz, ok := generation.Landing(level); ok {
+		half := generation.Budget().LandingHalf
+		for r := 0; r <= half; r++ {
+			for dy := -r; dy <= r; dy++ {
+				for dx := -r; dx <= r; dx++ {
+					if max(abs(dx), abs(dy)) != r {
+						continue
+					}
+					if cx, cy, ok := tryPlaza(level, lx+dx, ly+dy, lz, slots); ok {
+						return cx, cy, lz
+					}
+				}
 			}
 		}
 	}

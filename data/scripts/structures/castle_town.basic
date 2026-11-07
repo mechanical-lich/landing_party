@@ -1,0 +1,184 @@
+# castle_town — a people's seat with its town: the castle (the castle script,
+# unchanged, with its keep, the history's datapad and stores) in the middle,
+# cottages in a ring outside its walls with their doors facing it, and a road
+# from the castle gate out to the edge, where no cottage stands.
+#
+# Below 36x28 there is no room for the ring, and it builds the castle alone.
+# Each cottage is its own room six or more tiles from the curtain wall's
+# neighbours (walls never shared or doubled); one holds the town's goods.
+#
+# Params: tech (primitive | medieval; others as medieval), damage, occupants,
+# holds, event, clue, room_hall, room_yard (the castle's). Footprint 36x28 to
+# 48x40.
+function generate(x, y, w, h)
+    if w < 36 or h < 28 then
+        gen_structure("castle", x, y, w, h)
+        return
+    endif
+    # Seeded orientation (the castle inside reflects with it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    if tech = "" then
+        tech = "medieval"
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = wall_of(tech, "stone_wall")
+    floor = floor_of(tech, "stone_floor")
+    name_room(x, y, sz, w, h, "Town")
+    # The castle, six tiles in from each edge; its curtain wall stands one
+    # tile inside its own footprint.
+    kx = x + 6
+    ky = y + 6
+    kw = w - 12
+    kh = h - 12
+    # Built intact and worn afterwards, so a wall the wear knocks out of the
+    # curtain is not taken for its gate.
+    damage = get_param("damage")
+    set_param("damage", 0)
+    gen_structure("castle", kx, ky, kw, kh)
+    set_param("damage", damage)
+    # Find its gate (the castle picks a side): the curtain's midpoints.
+    mx = kx + int(kw / 2)
+    my = ky + int(kh / 2)
+    gn = gate_at(mx, ky + 1, mx - 1, ky + 1, sz)
+    gs = gate_at(mx, ky + kh - 2, mx - 1, ky + kh - 2, sz)
+    gw = gate_at(kx + 1, my, kx + 1, my - 1, sz)
+    ge = gate_at(kx + kw - 2, my, kx + kw - 2, my - 1, sz)
+    ruin(kx, ky, kw, kh, "stone_wall", "stone_floor")
+    # The road from the gate to the edge, two tiles wide.
+    road = "dirt_floor"
+    if gn = 1 then
+        for j = y to ky + 1
+            set_tile(mx - 1, j, sz, road)
+            set_tile(mx, j, sz, road)
+        next j
+    endif
+    if gs = 1 then
+        for j = ky + kh - 2 to y + h - 1
+            set_tile(mx - 1, j, sz, road)
+            set_tile(mx, j, sz, road)
+        next j
+    endif
+    if gw = 1 then
+        for i = x to kx + 1
+            set_tile(i, my - 1, sz, road)
+            set_tile(i, my, sz, road)
+        next i
+    endif
+    if ge = 1 then
+        for i = kx + kw - 2 to x + w - 1
+            set_tile(i, my - 1, sz, road)
+            set_tile(i, my, sz, road)
+        next i
+    endif
+    # Cottages along the north and south edges (4-5 wide, 4 tall, 7 apart),
+    # leaving the road clear.
+    stores = 0
+    for k = 0 to int((w - 2) / 7) - 1
+        hw = 4 + rnd_int(2)
+        hx = x + 1 + k * 7
+        clear = 1
+        if hx <= mx + 2 and hx + hw - 1 >= mx - 3 then
+            clear = 0
+        endif
+        if rnd_int(4) > 0 and (gn = 0 or clear = 1) then
+            stores = cottage(hx, y + 1, hw, 4, sz, wall, floor, 0, 1, stores)
+        endif
+        if rnd_int(4) > 0 and (gs = 0 or clear = 1) then
+            stores = cottage(hx, y + h - 5, hw, 4, sz, wall, floor, 0, -1, stores)
+        endif
+    next k
+    # And along the west and east edges, between the corner rows.
+    for k = 0 to int((h - 12) / 6) - 1
+        hh = 4
+        hy = y + 7 + k * 6
+        clear = 1
+        if hy <= my + 2 and hy + hh - 1 >= my - 3 then
+            clear = 0
+        endif
+        if rnd_int(4) > 0 and (gw = 0 or clear = 1) then
+            stores = cottage(x + 1, hy, 4, hh, sz, wall, floor, 1, 0, stores)
+        endif
+        if rnd_int(4) > 0 and (ge = 0 or clear = 1) then
+            stores = cottage(x + w - 5, hy, 4, hh, sz, wall, floor, -1, 0, stores)
+        endif
+    next k
+endfunction
+
+# gate_at is 1 when either of two curtain tiles has no wall standing.
+function gate_at(ax, ay, bx, by, sz)
+    if get_tile_type(ax, ay, sz) <> "stone_wall" or get_tile_type(bx, by, sz) <> "stone_wall" then
+        return 1
+    endif
+    return 0
+endfunction
+
+# cottage carves one cottage, its door on the side facing the castle (dx, dy
+# point inward), the first with the town's goods; worn by the param damage.
+# Returns the count of cottages holding goods so far.
+function cottage(cx, cy, cw, ch, sz, wall, floor, dx, dy, stores)
+    carve_room(cx, cy, sz, cw, ch, wall, floor)
+    if dy > 0 then
+        clear_middle(cx + 1, cy + ch - 1, sz)
+    elseif dy < 0 then
+        clear_middle(cx + 1, cy, sz)
+    elseif dx > 0 then
+        clear_middle(cx + cw - 1, cy + 1, sz)
+    else
+        clear_middle(cx, cy + 1, sz)
+    endif
+    name_room(cx, cy, sz, cw, ch, "Cottage")
+    if stores = 0 then
+        locker(cx + 1, cy + 1, sz, "trade_goods")
+        stores = 1
+    endif
+    ruin(cx, cy, cw, ch, wall, floor)
+    return stores
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear a rect by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction

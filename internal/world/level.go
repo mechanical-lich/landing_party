@@ -87,6 +87,12 @@ type Level struct {
 	// persisted.
 	FeatureAreaScale float64
 
+	// StampFootprints are the stamps placed so far in this build, as
+	// (x, y, w, h, anchorX, anchorY) with anchor -1 for an unanchored stamp,
+	// so later stamps keep their distance (generation.placeStamp).
+	// Generation-only; not persisted.
+	StampFootprints [][6]int
+
 	// Terrain skeleton produced by a TerrainPrimer. Indexed by (z*H + y)*W + x.
 	// Empty until a primer fills it.
 	Terrain []TerrainKind
@@ -100,6 +106,10 @@ type Level struct {
 	// Region tags emitted by primers / scripts (e.g. "starting_asteroid").
 	// Maps tag → list of (x,y,z) anchor points.
 	Regions map[string][][3]int
+
+	// Rooms are named areas structure scripts mark (name_room): the hover
+	// panel shows the name of the room a tile is in ("Specimen Tanks").
+	Rooms []Room
 
 	// Background is true while this level ticks as a background level. Anything
 	// that presents to the player (effects, music) must skip it: those are global
@@ -348,6 +358,29 @@ func (l *Level) SetSurfaceZ(x, y, z int) {
 		return
 	}
 	l.SurfaceMap[y*l.GetWidth()+x] = int16(z)
+}
+
+// Room is a named rectangle on one level of the map.
+type Room struct {
+	X, Y, Z, W, H int
+	Name          string
+}
+
+// AddRoom names a rectangle (x, y, w, h) at z.
+func (l *Level) AddRoom(x, y, z, w, h int, name string) {
+	l.Rooms = append(l.Rooms, Room{X: x, Y: y, Z: z, W: w, H: h, Name: name})
+}
+
+// RoomAt is the name of the innermost (last named) room holding (x, y, z),
+// "" for none.
+func (l *Level) RoomAt(x, y, z int) string {
+	for i := len(l.Rooms) - 1; i >= 0; i-- {
+		r := l.Rooms[i]
+		if z == r.Z && x >= r.X && x < r.X+r.W && y >= r.Y && y < r.Y+r.H {
+			return r.Name
+		}
+	}
+	return ""
 }
 
 // TagRegion records a named anchor point. Multiple anchors per tag are allowed.

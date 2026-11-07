@@ -18,6 +18,9 @@
 #
 # Recommended footprint: 25×25 or larger.
 function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
     # occupants: "none" builds the structure empty (a history ruin on a quiet
     # site); anything else, or absent, keeps its mutant guards and boss as
     # quest fixtures and scenario stamps always had.
@@ -25,8 +28,8 @@ function generate(x, y, w, h)
     if get_param("occupants") = "none" then
         guards = 0
     endif
-    cx = x + w / 2
-    cy = y + h / 2
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
     sz = get_surface_z(cx, cy)
     if sz < 0 then
         return
@@ -40,9 +43,9 @@ function generate(x, y, w, h)
     # Tower radius — largest disc that fits the footprint with 1-tile pad.
     # Min 7 so sub-rooms have room to sit on a ring without colliding with
     # either the outer wall or the central stair strip.
-    r = w / 2 - 1
-    if h / 2 - 1 < r then
-        r = h / 2 - 1
+    r = int(w / 2) - 1
+    if int(h / 2) - 1 < r then
+        r = int(h / 2) - 1
     endif
     if r < 7 then
         r = 7
@@ -58,14 +61,14 @@ function generate(x, y, w, h)
     if ring_d < 5 then
         ring_d = 5
     endif
-    diag_d = ring_d * 7 / 10
+    diag_d = ring_d * 6 / 10
     if diag_d < 4 then
         diag_d = 4
     endif
 
     # Eight ring offsets (N, NE, E, SE, S, SW, W, NW). Cardinals at ring_d,
-    # diagonals at diag_d so all eight points sit roughly the same distance
-    # from centre after the √2 factor cancels.
+    # diagonals at diag_d (0.6 of it: the outline steps in on the diagonals,
+    # so a diagonal room further out would lay its corner on the wall).
     DIM ang_x(8)
     DIM ang_y(8)
     DIM used(8)
@@ -137,13 +140,34 @@ function generate(x, y, w, h)
                 rx_room = room_cx - room_w / 2
                 ry_room = room_cy - room_h / 2
 
-                placed_rx[n_placed] = rx_room
-                placed_ry[n_placed] = ry_room
-                placed_rw[n_placed] = room_w
-                placed_rh[n_placed] = room_h
-                n_placed = n_placed + 1
+                # A chamber whose corner would come within two tiles of
+                # the tower's outline (where it steps in on the diagonals)
+                # is not built: its wall would lie against the outline.
+                fits = 1
+                for ci = 0 to 3
+                    kx = rx_room
+                    if ci = 1 or ci = 3 then
+                        kx = rx_room + room_w - 1
+                    endif
+                    ky = ry_room
+                    if ci >= 2 then
+                        ky = ry_room + room_h - 1
+                    endif
+                    ex = abs(kx - cx) + 2
+                    ey = abs(ky - cy) + 2
+                    if ex * ex + ey * ey > r * r + r then
+                        fits = 0
+                    endif
+                next ci
+                if fits = 1 then
+                    placed_rx[n_placed] = rx_room
+                    placed_ry[n_placed] = ry_room
+                    placed_rw[n_placed] = room_w
+                    placed_rh[n_placed] = room_h
+                    n_placed = n_placed + 1
 
-                carve_room(rx_room, ry_room, fz, room_w, room_h, "temple_wall", "temple_floor")
+                    carve_room(rx_room, ry_room, fz, room_w, room_h, "temple_wall", "temple_floor")
+                endif
             endif
         next attempt
 
@@ -259,4 +283,44 @@ function generate(x, y, w, h)
         mark_quest_target(cx, cy + 3, top_z)
     endif
     spawn_entity("storage_locker", cx, cy - 3, top_z)
+
+    # ── History: names, goods, the clue, wear (only when history asks) ──
+    name_room(cx - r, cy - r, top_z, r * 2 + 1, r * 2 + 1, lore_room("room_hall", "Tower Top"))
+    lore_fill(cx, cy - 3, top_z)
+    lore_pad(cx, cy - 2, top_z)
+    if get_param("purpose") = "observatory" then
+        spawn_entity("research_lab", cx + 2, cy - 3, top_z)
+    endif
+    lore_ruin(x, y, w, h, "temple_wall", "temple_floor")
+endfunction
+
+# ── History helpers: act only on params a history stamp passes ──────────────
+
+function lore_room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# lore_fill fills the locker at (lx, ly, lz) from the param holds, if set.
+function lore_fill(lx, ly, lz)
+    if get_param("holds") <> "" then
+        fill_container(lx, ly, lz, get_param("holds"))
+    endif
+endfunction
+
+# lore_pad places the history's clue datapad, if the stamp has an event.
+function lore_pad(px, py, pz)
+    spawn_lore_datapad(px, py, pz)
+endfunction
+
+# lore_ruin wears the footprint by the param damage (ruin_pass), if set.
+function lore_ruin(rx, ry, rw, rh, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", rx, ry, rw, rh)
+    endif
 endfunction

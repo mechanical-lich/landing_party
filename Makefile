@@ -21,14 +21,18 @@ run-planet-generator:
 # make history-dump HSEED=42 HSITES=8 HMAP=moon HFREQ=500
 # make history-dump HSEED=42 HCHARTED=1      (a real charted campaign)
 # make history-dump HCAMPAIGNS=300 HFREQ=0   (scenario share through charting)
+# make history-dump HFIND=hazard,dormant_nest (seeds for vmtest scripts)
+# make history-dump HSTATS=500               (density: events, origins, stamps per site)
 HSEED ?= 1
 HSITES ?= 8
 HMAP ?=
 HFREQ ?= 500
 HCHARTED ?=
 HCAMPAIGNS ?= 0
+HFIND ?=
+HSTATS ?=
 history-dump:
-	go run ./cmd/history-dump -seed $(HSEED) -sites $(HSITES) -freq $(HFREQ) $(if $(HMAP),-map $(HMAP)) $(if $(HCHARTED),-charted) -campaigns $(HCAMPAIGNS)
+	go run ./cmd/history-dump -seed $(HSEED) -sites $(HSITES) -freq $(HFREQ) $(if $(HMAP),-map $(HMAP)) $(if $(HCHARTED),-charted) -campaigns $(HCAMPAIGNS) $(if $(HFIND),-find $(HFIND)) $(if $(HSTATS),-stats $(HSTATS))
 
 run-debug:
 	GODEBUG=gctrace=1 go run $(LDFLAGS) ./cmd/game/*.go

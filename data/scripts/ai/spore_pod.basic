@@ -1,0 +1,15 @@
+# spore_pod — bursts its spores at any colonist standing next to it (a melee
+# hit every few turns); never moves. Colonists can cut it down.
+function on_turn()
+    cool = get_var("cool") + 0
+    if cool > 0 then
+        set_var("cool", cool - 1)
+        return
+    endif
+    # The search box runs one short on its far side: look 2 out, act at 1.
+    if find_nearest_worker(2) = 1 and dist(get_self_x(), get_self_y(), get_nearest_x(), get_nearest_y()) < 1.5 then
+        if attack_at(get_nearest_x(), get_nearest_y(), get_nearest_z()) = 1 then
+            set_var("cool", 3)
+        endif
+    endif
+endfunction

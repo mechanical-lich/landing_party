@@ -33,6 +33,17 @@ Scripts are source-cached; the file is read once per process lifetime and the pa
 
 ---
 
+## History stamps and the structure library
+
+History evidence builds through these scripts with a fixed param contract
+(`event`, `civ`, `species`, `tech`, `purpose`, `holds`, `clue`,
+`room_<key>`, `size`, `damage`, `occupants`, and `class` for ships); every
+script builds what it always did when a quest fixture or scenario passes none
+of them. The full list of scripts with their params and footprint bounds is
+in [lore.md](lore.md#the-structure-library). To see a script as history
+stamps it, use the structure viewer's Presets… list
+(`data/history/structure_presets.json`) and its Damage control.
+
 ## Builtins Available in Structure Scripts
 
 Structure scripts share the same builtin set as scenario setup scripts, plus the following additions.
@@ -79,11 +90,39 @@ Finds the entity at `(x, y, z)`, attaches a `QuestTargetComponent` linking it to
 - If `quest_id` is empty (flavor fixture, no quest), this is a no-op — the NPC is still spawned, it just isn't a bounty target.
 - Must be called *after* the NPC is spawned, since it reads the entity at the given tile.
 
+### `carve_round_room(cx, cy, z, r, wall_tile, floor_tile)`
+
+A bordered disc: the cells within `r + 0.5` of the centre, its outline every disc cell with a neighbour outside, thinned where it would lay a 2×2 block. The outline is 4-connected and single, so the autotiler draws a smooth round wall with no posts at the tips or the diagonal steps.
+
+### `name_room(x, y, z, w, h, name)`
+
+Names a rectangle; the hover panel shows `Room: <name>` over its tiles (saved with the level). Later names win where rooms nest.
+
+### `fill_container(x, y, z, table)`
+
+Fills the storage container standing at `(x, y, z)` from a loot table in `data/history/loot.json` (each entry rolls its percent `chance` and a quantity in `[min, max]` on the script's seeded stream). Returns how many stacks went in. Put relics and cargo in lockers with it rather than on the ground.
+
+### `spawn_lore_datapad(x, y, z)`
+
+Places a datapad bound to the structure's history event (param `event`); when the history passes a `clue` param the datapad reads that line (its purpose: "…the specimens are not to be fed after the third bell…") and still reveals the event. Returns 1 if placed.
+
+### `mirror(x, y, w, h, flip_x, flip_y)`
+
+From this call to the end of the structure, every coordinate the script passes to a builtin is reflected within the rect: left-right when `flip_x` is non-zero, top-bottom when `flip_y` is. Rects (`carve_room`, `name_room`) map to their reflection, a multi-tile entity (a bed) is re-anchored to cover the reflected tiles, and coordinates a builtin returns (`get_open_x`, regions, caves) come back in script space. A structure built with `gen_structure` inherits it. Write the layout once and call `mirror(x, y, w, h, rnd_int(2), rnd_int(2))` first, so the seed picks one of four orientations; the ground scripts, hazard props and history ships (those with a `purpose`) do. Scripts whose no-params output is frozen for quests and scenarios (castle, bunker, crashed_ufo, abandoned_reactor, underground_*) do not.
+
+### `ruin_pass` (helper script)
+
+`set_param("wall", "<wall tile>")` (and `"floor"`) then `gen_structure("ruin_pass", x, y, w, h)` degrades the footprint by the `damage` param (1 worn, 2 broken, 3 ruin): short runs of that wall fall (half as rubble piles), damage 3 cracks that floor to dirt, and any wall left standing alone becomes a rubble pile. Only walls change, so doorways stay open.
+
 ### `set_param(name, value)` / `get_param(name)`
 
 Read and write named parameters in the current param frame. Parameters are the primary mechanism for passing configuration into a script without embedding magic constants.
 
 The caller (quest fixture dispatch) pre-populates `quest_id` before invoking `generate`. Child scripts invoked via `gen_structure` receive a copy of the parent's frame and cannot write back to it. A `stamp` feature passes every param except `script`, `w` and `h` through.
+
+### Ships: `crashed_ship`
+
+`crashed_ship` lays a hull along its footprint: a crash furrow at the aft end, then its class's sections aft to fore (each its own script, sharing its end walls with the next, doorways cut along the keel), the bridge narrower at the nose. Params: `class` (`scout` 13×9 engine/quarters/bridge; `freighter` 25×13 engine/reactor/2–3 cargo/bridge; `colony` 31×17 engine/reactor/cargo/2 cryo bays/bridge; `warship` 29×15 engine/reactor/hangar/2 armouries/quarters/bridge; `mothership` a field of 3–5 wrecked sections ~60×60; `saucer` the round greyish hull `crashed_ufo` always built), `damage` (0 landed, 1 breaches, 2 broken in two with the aft half out of line, 3 broken and ruined), `crew` (`alive`: crew and a Commander quest target on the bridge; `dead`; `occupants: cryo` leaves sleepers in the cryo berths), `holds` (the cargo loot table), `clue`/`event` (the bridge datapad: why it came), `room_<section>` (room names). Sections: `ship_bridge`, `ship_quarters`, `ship_cargo`, `ship_reactor`, `ship_engine`, `ship_cryo_bay`, `ship_armoury`, `ship_hangar`; each names its room and fills its lockers. `crashed_ufo` is a wrapper for `class: saucer` and builds tile for tile what it did before (`TestContentCrashedUfoUnchanged`). Every class builds in about 1–5 ms.
 
 ### The `occupants` param
 
@@ -218,3 +257,6 @@ endfunction
 3. Use `carve_room` + `clear_middle` to carve the layout, then `spawn_entity` / `spawn_entity_named` to populate it.
 4. If the structure can host a quest target, call `mark_quest_target(x, y, z)` immediately after spawning the target NPC. Use `add_epithet(x, y, z)` first (before `mark_quest_target`) if you want a boss name; pairs naturally with blueprints that already use a `<type>` name placeholder.
 5. Reference the script name in a quest template (`fixture_structure`) or add a `QuestFixture{Structure: "<name>"}` directly to a `Location`.
+6. Look at it in the game: on a site, open the cheat console and run `stamp <name> [w h] [key=value ...]` (default 21x19), e.g. `stamp crashed_ship 29 15 class=warship damage=2`. It builds the script around the camera centre with `occupants: none` (unless a param says otherwise), as history evidence does. With `debugDisableLighting` on, the whole footprint shows without a colonist nearby.
+
+Carving notes: carve overlapping rooms in the order you want their walls to win (the last `carve_room` owns a shared wall), open doorways with `clear_middle` (`set_tile` with a floor type sets the floor slot and leaves the wall standing), and keep sizes whole with `int(w / 3)`: a fractional third rounds differently in different places.

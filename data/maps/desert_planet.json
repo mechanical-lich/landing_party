@@ -24,8 +24,11 @@
     "present": {
         "life": ["none"],
         "status": ["untouched", "fallen", "dead"],
-        "arcs": ["lifeless", "stellar_flare_burned", "extinct_radiation", "failed_colony"],
-        "quiet_weight": 17
+        "arcs": ["lifeless", "stellar_flare_burned", "extinct_radiation", "failed_colony", "sundered_world"],
+        "tiers": {"threat": 35, "hazard": 45, "quiet": 20},
+        "safe_tiers": {"hazard": 60, "quiet": 40},
+        "density": 52,
+        "layers": {"chance": 25, "arcs": ["elder_colony"]}
     },
-    "base_scenario": "worms"
+    "base_scenario": "desert_calm"
 }

@@ -1,11 +1,12 @@
 # Lore Content Expansion — Implementation Plan
 
-Status (2026-11-07): **planned, not started.** Builds on the generated-lore
-base (steps 1–5 of [lore_plan.md](lore_plan.md)), which is on branch
-`claude/lore-history-4d1fe2` at `b33a8dc` and **not yet on `dev`**. Every file,
-function and number below was read or measured on that branch. All draft text
-in this plan and in the data it proposes is placeholder; the owner rewrites it
-(see "Where the owner rewrites text").
+Status (2026-11-07): **steps 1–8 implemented** (8d's previews last) on branch
+`claude/lore-content-649632` (not yet merged to `dev`); see "Implementation
+notes" at the end for what was built and where it departs from this plan. The
+generated-lore base (steps 1–5 of [lore_plan.md](lore_plan.md)) is on `dev`.
+The plan below is kept as written; numbers in "Where the code is today" were
+measured before this work. All draft text in this plan and in the data is
+placeholder; the owner rewrites it (see "Where the owner rewrites text").
 
 ## Decision
 
@@ -784,3 +785,145 @@ The only exception worth considering is step 1 (occupants). It corrects what
 sites) and touches only scripts and evidence params, so it could go onto the
 lore branch before merge if the owner wants the base play-test to see honest
 quiet sites.
+
+## Implementation notes
+
+Built on `claude/lore-content-649632`, 2026-11-07. Developer reference:
+[lore.md](../developer/lore.md); the structure library's params:
+[structure_scripts.md](../developer/structure_scripts.md). Measure with
+`make history-dump HSTATS=500` and `make history-dump HSEED=42 HSITES=0`.
+
+### What was built
+
+- **Step 2, tiers.** `tier` on chapters, `tiers`/`safe_tiers` on every map
+  (35/45/20; first jumps hazard 60 / quiet 40, never threat), the two-roll
+  `chooseChapter` with fallback threat → hazard → quiet. Calm bases
+  `desert_calm`, `frozen_calm`, `alien_wilds`; the station base lost its
+  mutants (now `station_mutants`, played by `station_experiment`); later the
+  earth base's cave yetis and the asteroid base's eggs went too (a quiet base
+  spawns nothing hostile, tested). The Star Map's Calm / Hazard / Threat tag
+  (`data/history/tiers.json`).
+- **Step 3, landing and budget.** The landing reserve picked before
+  features from the site's own stream, keep-outs on origins, anchored
+  features and stamps, stamp spacing, `lore_budget` in
+  `data/generation.json` spent in `History.Evidence` (a chapter's structures
+  always stay; its radiation and creatures clamp to the budget).
+- **Step 4, density.** Stage `repeat`/`chance`/`epoch`, interludes by map
+  `density`, older-people layers, succession, `{former}` and 30% descent,
+  `history-dump -stats`.
+- **Step 5, tech.** Levels on civs and events, `tech_min`/`tech_max`,
+  `tech_advances`, `@role` stamps through `tech.json`, relics.
+- **Step 6, two peoples.** The rival slot, per-side events with
+  `text_side` datapads and `text_meanwhile` chronicle lines,
+  `sundered_world`, `uplifted_people`, `enslaved_world`, `remnant_band`.
+- **Step 7, new-mechanic hazards.** `toxic_bloom` (spore pods),
+  `unstable_ground` (`rubble_field`), `ancient_defences` (`defence_post`,
+  sentry turrets), `unexploded_ordnance` (old munitions), `hull_breach`.
+- **Step 8, structure library.** 34 scripts (the plan's 33 plus
+  `hull_breach`): `crashed_ship` and eight sections, eleven ground scripts,
+  three hazard props, `ruin_pass`, the existing nine parameterised or
+  wrapped. Builtins `fill_container`, `spawn_lore_datapad`, `name_room`;
+  `carve_round_room` outline fixed. Every script builds in 0.3–5 ms.
+- **Step 8d, previews.** Built after the rest of step 8 (the first pass
+  reported step 8 done without it). The structure viewer's Presets… list
+  (`data/history/structure_presets.json`, 88 presets: every ship purpose,
+  every tech level's roles at both footprints, each fixed event stamp) and
+  a Damage control; hovering a named room shows it. The planet generator's
+  History section: tier, budget readout (`SiteEvidence.Budget`), origin
+  labels with "not placed" and dropped blocks, the landing reserve and
+  keep-outs, placed stamps' footprints. vmtest `lore_ship` came with 8a.
+
+### Hazards as built (17)
+
+Step 2 (existing kinds): `old_reactor_leak`, `fallout_hotspots`,
+`wreck_leak`, `blight_patch`, `worm_sign`, `scout_accident` (safe start);
+`dormant_nest`, `troid_clutch`, `hostile_fauna`, `mutant_band`,
+`restless_graves`, `autonz_sleeper`. Step 6 added `remnant_band` and
+`remnant_band_alien`. Step 7: `toxic_bloom`, `unstable_ground` (safe
+start); `ancient_defences`, `unexploded_ordnance`, `hull_breach`. The plan's
+12/5 split held: twelve from existing kinds in step 2, five with new
+mechanics in step 7.
+
+### Deviations from the plan
+
+- `old_reactor_leak` leaves no second reactor stamp (its source already
+  stamped one); `blight_patch` adds a weak radiation pocket (the crystals are
+  inert); `troid_clutch` puts eggs on the surface (caves near an impact are
+  rare); `dormant_nest` grows from wrecks only (there is no `meteor` event).
+- `quiet_weight` and `quiet_safe` were removed outright, every map at once,
+  with no one-release fallback.
+- Moving quiet and `scout_accident` out of the chapter pool recalibrated the
+  threat weights per map; `exterminate_xenos` stays at weight 1 on earth and
+  alien as the data had it.
+- The landing is now seeded per site, so it moved on every planet site (it
+  used the global rand before). The golden test records names and positions
+  only and is unchanged.
+- Tier shares are tested over 2,000 seeds; a 500-seed sample swings about 2
+  points as the data changes.
+- Density counts a per-side pair as one happening (`History.Happenings`);
+  counting both halves, civilisations' p90 is 20. The p90 bound is the band's
+  top plus 3, not plus 2.
+- Relics: step 5 left them on the ground at a structure's origin; step 8's
+  `fill_container` puts cargo and grave goods in lockers. The relic Evidence
+  adds per structure still lies at the origin, and battlefields leave their
+  weapons on the ground.
+- `circle_tower` changed output: whole-tile centre and radius, chambers only
+  where they clear the outline; its smallest size is 21×21.
+  `circle_ruined_tower` is a wrapper (circle_tower at damage 2).
+- `crashed_ship` at damage 3 on small hulls breaks in two and ruins; only
+  motherships scatter into a debris field. Motherships land on large maps
+  only (else a warship) and count three stamps.
+- Tower purposes (temple / observatory / watchtower) change room names, plus
+  a research desk for an observatory, not the layout.
+- City blocks and missile silos are wired but not reachable yet: peoples
+  build their dwellings when they rise, always primitive or medieval.
+- One sentry-turret sprite (tinted), not one per tech level.
+- `find_nearest_worker(r)` searches a box exclusive on its far side, so r=1
+  misses a colonist one tile east; the touch-range AI scripts search 2 and
+  check distance.
+- Station vacuum does not damage colonists; it blocks anyone without a full
+  enviro outfit. `hull_breach` therefore gates its stores (space tiles over
+  the deck) rather than hurting; it draws as deck, only the hover panel says
+  space.
+- Native tech advances have no inventor figure (one name would repeat for
+  centuries).
+- Rooms are named rectangles (`name_room`), not purpose-specific props.
+- The presets file is generated from `tech.json`, `purposes.json` and
+  `events.json`, not hand-written; a test fails when it drifts. Presets
+  carry the purpose's params but no `event`, `civ` or `clue`, so the clue
+  datapad is not placed in the viewer.
+- The industrial and atomic `fort` is a redoubt, not the plan's bare trench
+  line (owner feedback: it read as a lone wall beside the stone forts): the
+  parapet and trench in front, a walled compound with corner pillboxes and a
+  command post, barracks and a magazine from 21×14.
+- Variety (owner feedback: two stamps of one preset looked identical): the
+  builtin `mirror` gives every ground script, hazard prop and history ship
+  a seeded orientation (one of four); the mine's spoil, the graveyard's plots
+  and the landing platform's fuel tanks vary too. The six frozen
+  quest/scenario scripts keep one layout. `TestContentPresetsBuild` builds
+  each preset at six seeds and fails if they all come out the same.
+- Ship sections no longer stack a bunk on their locker; every structure test
+  now fails on two solid entities on one tile.
+- `castle_town` (owner request, after step 8d): the medieval seat is the
+  castle ringed by cottages with a road from its gate, 40×32 (the small
+  footprint stays 18×16, where it builds the castle alone). A role may list
+  weighted alternatives (`TechRole`), and the medieval seat is a castle town
+  or a castle, half each, rolled per stamp by site seed and event: in 16,000
+  sites, 614 towns and 548 castles; 337 sites hold two or more castles of
+  either kind (234 castle pairs, 58 town pairs, 38 one of each). The castle inside is built intact
+  and worn afterwards, so the wear is not taken for its gate.
+- Keep-outs draw as squares, not the plan's circles: the keep-out is
+  Chebyshev distance from the reserve box.
+- The planet generator's budget readout is for the map's rolled size (what
+  the game builds); with "Roll size" off the preview map can be smaller, and
+  stamps the budget kept may find no room ("not placed").
+
+### Budget caveats on small maps
+
+On maps up to 180 wide (asteroids, stations) the 3% footprint share fits
+about one 25×21 structure, below the three-stamp count, so older events'
+stamps drop (logged) and `tech.json`'s `small` footprints apply. The 40-tile
+hazard keep-out cannot always be met there; origins go as far as the map
+allows. A chapter's own structure always stays and can run a small map over
+its footprint share; its radiation pockets and creatures clamp to the
+budget.

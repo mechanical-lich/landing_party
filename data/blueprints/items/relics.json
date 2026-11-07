@@ -1,0 +1,154 @@
+{
+    "carved_idol": {
+        "Appearance": {
+            "R": 180,
+            "G": 170,
+            "B": 160,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Carved Idol",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. A small figure cut from stone by a people who never left their world."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    },
+    "old_steel_blade": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Old Steel Blade",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. A hand-forged blade, pitted but still keen."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    },
+    "machine_parts": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 16,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Old Machine Parts",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. Gears and housings from an industrial age, salvageable for metal."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    },
+    "fission_core": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Fission Core",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. The spent heart of an atomic people's reactor. Handle with care."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    },
+    "tech_fragment": {
+        "Appearance": {
+            "R": 100,
+            "G": 200,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 224,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Tech Fragment",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. A shard of starfaring technology. Researchers would pay for this."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    },
+    "alien_alloy": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 16,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Alien Alloy",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. A plate of metal no human foundry could pour."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "trade_good"
+            ],
+            "MaxStack": 20
+        }
+    }
+}

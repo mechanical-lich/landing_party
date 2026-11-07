@@ -38,6 +38,10 @@ type BuildWorldOptions struct {
 	// placed (see ResolveOrigins). ChapterEvent's is also the "origin" anchor.
 	Origins      map[string][2]int
 	ChapterEvent string
+	// OriginKeepOut is each origin's keep-out from the landing reserve, by
+	// event ID (tiles from the reserve box); missing ones keep the budget's
+	// inert keep_out.
+	OriginKeepOut map[string]int
 	// Flags are set on the level before anything is placed, so structure
 	// scripts run by features can read them (the site's lore flags).
 	Flags map[string]any
@@ -94,7 +98,8 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		}, opts.Seed)
 		ApplyBiomes(level)
 		ExposeMountainTops(level)
-		ResolveOrigins(level, opts.Origins, opts.ChapterEvent)
+		ReserveLanding(level, opts.Seed)
+		ResolveOriginsKeepOut(level, opts.Origins, opts.ChapterEvent, opts.OriginKeepOut)
 		originsDone = true
 
 		// Collect and run features declared in each active biome.
@@ -113,7 +118,8 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 	}
 
 	if !originsDone {
-		ResolveOrigins(level, opts.Origins, opts.ChapterEvent)
+		ReserveLanding(level, opts.Seed)
+		ResolveOriginsKeepOut(level, opts.Origins, opts.ChapterEvent, opts.OriginKeepOut)
 	}
 	if len(opts.Features) > 0 {
 		PlaceFeatures(level, opts.Features, rng)

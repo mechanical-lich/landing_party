@@ -1,0 +1,33 @@
+# ship_reactor — the drive reactor: a cracked core of radioactive ore, still warm.
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_reactor, else
+# "Reactor") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_reactor", "Reactor"))
+    cx = x + int(w / 2)
+    # The core sits off the keel row, against the upper wall.
+    set_tile(cx, y + 1, sz, "radioactive_ore")
+    if w >= 6 then
+        set_tile(cx - 1, y + 1, sz, "radioactive_ore")
+    endif
+    place_radiation_blob(cx, y + 1, sz, 3, 90)
+    if h >= 6 then
+        spawn_entity("fuel_tank", x + 1, y + h - 2, sz)
+        spawn_entity("storage_locker", x + w - 2, y + h - 2, sz)
+        fill_container(x + w - 2, y + h - 2, sz, "fission")
+    endif
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

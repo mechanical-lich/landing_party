@@ -1,0 +1,28 @@
+# ship_armoury — weapon lockers behind a blast door.
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_armoury, else
+# "Armoury") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_armoury", "Armoury"))
+    for i = 1 to w - 2
+        spawn_entity("storage_locker", x + i, y + 1, sz)
+        fill_container(x + i, y + 1, sz, "ship_armoury")
+    next i
+    if h >= 7 then
+        spawn_entity("hazmat_vault", x + 1, y + h - 2, sz)
+    endif
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

@@ -8,6 +8,9 @@ import "github.com/mechanical-lich/mlge/ecs"
 type DatapadComponent struct {
 	QuestID string
 	EventID string `json:",omitempty"`
+	// Text, when set, is what the datapad says (a clue a structure left);
+	// otherwise it reads as its event's chronicle line.
+	Text string `json:",omitempty"`
 }
 
 func (c *DatapadComponent) GetType() ecs.ComponentType { return Datapad }

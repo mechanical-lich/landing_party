@@ -1,17 +1,17 @@
-{"name":"lore_legends","seed":746}
-# Land on the wreck site of seed 746, pick up a lore datapad, open the
+{"name":"lore_legends","seed":1512}
+# Land on the xeno wreck site of seed 1512, pick up a lore datapad, open the
 # dashboard's Legends tab: the datapad's event is in the chronicle.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore Legends"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"746"}
+{"op":"type","text":"1512"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.known_events","eq":0}
-{"op":"click","target":"row:locList:sys_58"}
+{"op":"click","target":"row:locList:sys_10"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
 {"op":"click","target":"row:shipList:0"}
@@ -26,5 +26,5 @@
 {"op":"click","target":"tab:legends"}
 {"op":"assert","path":"dash_tab","eq":"legends"}
 {"op":"assert","path":"legends.#","gte":2}
-{"op":"assert","path":"legends_text","contains":"a Gorunth ship came down hard on Drift Tract"}
+{"op":"assert","path":"legends_text","contains":"an Ixix ship came down hard on Scorch Expanse"}
 {"op":"screenshot","name":"legends"}

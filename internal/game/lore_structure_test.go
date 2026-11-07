@@ -74,18 +74,17 @@ func TestLoreCastleHasNoPosts(t *testing.T) {
 
 // The structures history stamps, at the sizes it stamps them, lay no two walls
 // side by side and leave no wall standing alone: the faults the autotiler
-// draws as rows of posts. Round towers are checked inside their outline (a
-// circle's outline steps diagonally by design); the reactor's solid core and
-// the crashed ship's round hull are left out.
+// draws as rows of posts, round towers' outlines included. The reactor's solid
+// core and the crashed ship are checked by their own tests.
 func TestLoreHistoryStructuresHaveNoPosts(t *testing.T) {
 	loreLoadData(t)
 	for _, c := range []struct {
 		script string
 		w, h   int
-		round  bool
-	}{{"castle", 28, 22, false}, {"underground_hideout", 21, 17, false}, {"underground_bunker", 15, 13, false},
-		{"bunker", 11, 9, false}, {"underground_dungeon", 25, 21, false},
-		{"circle_tower", 25, 25, true}, {"circle_ruined_tower", 25, 25, true}} {
+		wall   string // "" any solid; a ruin leaves rubble piles, so names its wall
+	}{{"castle", 28, 22, ""}, {"underground_hideout", 21, 17, ""}, {"underground_bunker", 15, 13, ""},
+		{"bunker", 11, 9, ""}, {"underground_dungeon", 25, 21, ""},
+		{"circle_tower", 25, 25, ""}, {"circle_ruined_tower", 25, 25, "temple_wall"}} {
 		for seed := int64(1); seed <= 20; seed++ {
 			level := loreFlatLevel(t, 40, 40)
 			x0, y0 := 5, 5
@@ -93,15 +92,9 @@ func TestLoreHistoryStructuresHaveNoPosts(t *testing.T) {
 			if err := RunStructureScriptWithParams(level, c.script, x0, y0, c.w, c.h, map[string]any{"occupants": "none"}, seed); err != nil {
 				t.Fatal(err)
 			}
-			var keep func(dx, dy int) bool
-			if c.round {
-				r := c.w/2 - 1
-				keep = func(dx, dy int) bool {
-					ex, ey := dx-c.w/2, dy-c.h/2
-					return ex*ex+ey*ey < (r-1)*(r-1)
-				}
-			}
-			if n, where := lorePostsWhere(level, "", x0, y0, c.w, c.h, sz, keep); n > 0 {
+			// Round towers too, outline and all: carve_round_room lays a
+			// 4-connected outline with no doubled cells.
+			if n, where := lorePostsWhere(level, c.wall, x0, y0, c.w, c.h, sz, nil); n > 0 {
 				t.Errorf("%s %dx%d seed %d: %d doubled or lone wall tiles at %v", c.script, c.w, c.h, seed, n, where)
 			}
 		}

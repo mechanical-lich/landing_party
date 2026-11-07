@@ -162,18 +162,14 @@ func TestLoreArchetypeSpawnEventHolds(t *testing.T) {
 	}
 }
 
-// The first jump is safe: across 300 seeds the start system never plays a
-// scenario with hostiles unless its chapter is flagged safe_start or it is a
-// quiet_safe map's quiet outcome.
+// The first jump is safe: across 300 seeds the start system is never a
+// threat, a hazard there is safe_start, and a quiet start is allowed by the
+// map's safe_tiers.
 func TestLoreStartSystemIsSafe(t *testing.T) {
 	useRepoData(t)
 	lib, err := history.DefaultLibrary()
 	if err != nil {
 		t.Fatal(err)
-	}
-	hostile := map[string]int{}
-	for _, sc := range loreScenarioHostiles(t) {
-		hostile[sc.id] = sc.max
 	}
 	for seed := int64(1); seed <= 300; seed++ {
 		c := genCampaign(t, seed)
@@ -182,17 +178,19 @@ func TestLoreStartSystemIsSafe(t *testing.T) {
 		if site == nil {
 			t.Fatalf("seed %d: start has no history", seed)
 		}
-		if hostile[loc.ScenarioID] == 0 {
-			continue
-		}
-		if site.Chapter == "" {
-			if !lib.Maps[loc.MapID].Present.QuietSafe {
-				t.Errorf("seed %d: start is a quiet %s, not quiet_safe", seed, loc.MapID)
+		switch site.Tier {
+		case history.TierThreat:
+			t.Errorf("seed %d: start is a threat (%s)", seed, loc.ScenarioID)
+		case history.TierQuiet:
+			if lib.Maps[loc.MapID].Present.SafeTiers[history.TierQuiet] <= 0 {
+				t.Errorf("seed %d: start is a quiet %s, which safe_tiers forbids", seed, loc.MapID)
 			}
-			continue
-		}
-		if def := lib.Events[c.History.Event(site.Chapter).Type]; !def.SafeStart {
-			t.Errorf("seed %d: start plays %s (chapter %s), not safe_start", seed, loc.ScenarioID, def.ID)
+		case history.TierHazard:
+			if def := lib.Events[c.History.Event(site.Chapter).Type]; !def.SafeStart {
+				t.Errorf("seed %d: start plays hazard %s, not safe_start", seed, def.ID)
+			}
+		default:
+			t.Errorf("seed %d: start has tier %q", seed, site.Tier)
 		}
 	}
 }

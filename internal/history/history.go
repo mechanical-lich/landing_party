@@ -53,6 +53,9 @@ type Civ struct {
 	Species string `json:"species,omitempty"`
 	// Ancestor is the Civ this one descends from, if any.
 	Ancestor string `json:"ancestor,omitempty"`
+	// Tech is the highest level the civ reached (TechLevels): spacefaring for
+	// the pool, primitive to atomic for a native people.
+	Tech string `json:"tech,omitempty"`
 	// Sites lists the site histories this civ appears in, in order.
 	Sites []string `json:"sites,omitempty"`
 }
@@ -97,7 +100,9 @@ type SiteHistory struct {
 	// evidence are rolled from.
 	Seed int64 `json:"seed"`
 	// Arc is the story shape the site was built from.
-	Arc   string      `json:"arc"`
+	Arc string `json:"arc"`
+	// Layer is the older people's arc run before Arc, "" for none.
+	Layer string      `json:"layer,omitempty"`
 	State PlanetState `json:"state"`
 	// Events are this site's event IDs, oldest first. The last is the chapter
 	// when Chapter is set.
@@ -108,12 +113,54 @@ type SiteHistory struct {
 	// Scenario is what the site plays as: the chapter's scenario, or the map's
 	// base_scenario.
 	Scenario string `json:"scenario,omitempty"`
+	// Tier is how dangerous the present is: "threat", "hazard" or "quiet"
+	// (see TierOf for saves from before tiers).
+	Tier string `json:"tier,omitempty"`
 	// Civ is the site's civ for summaries: its last resident, else the first
 	// civ seen there; "" if none.
 	Civ string `json:"civ,omitempty"`
 	// Outcomes is how each civ that lived here left the story: "remained",
 	// "died" or "fled". Civ fates are derived from these across all sites.
 	Outcomes map[string]string `json:"outcomes,omitempty"`
+}
+
+// TierOf is a site's tier: its saved Tier, else (a save from before tiers)
+// derived from its chapter's type, quiet without one. "" for a nil site.
+func (h *History) TierOf(lib *Library, site *SiteHistory) string {
+	if site == nil {
+		return ""
+	}
+	if site.Tier != "" {
+		return site.Tier
+	}
+	if site.Chapter != "" && lib != nil {
+		if ev := h.Event(site.Chapter); ev != nil {
+			if def := lib.Events[ev.Type]; def != nil && def.ChapterTier() != "" {
+				return def.ChapterTier()
+			}
+		}
+	}
+	return TierQuiet
+}
+
+// Happenings counts a site's events as the chronicle tells them: the two
+// sides of a per-side event are one happening.
+func (h *History) Happenings(lib *Library, site *SiteHistory) int {
+	n := 0
+	prev := ""
+	for _, id := range site.Events {
+		ev := h.Event(id)
+		if ev == nil {
+			continue
+		}
+		if def := lib.Events[ev.Type]; def != nil && def.PerSide && ev.Type == prev {
+			prev = ""
+			continue
+		}
+		prev = ev.Type
+		n++
+	}
+	return n
 }
 
 // SitePoint is a tile on the surface, as rolled; generation resolves it to the

@@ -1,0 +1,118 @@
+# missile_silo — an atomic people's works: a round silo hatch over a launch
+# well (stairs down to the well below, its fission core in a locker) and a
+# control bunker beside it (its datapad and the launch codes).
+#
+# Params: tech (any; built in bunker concrete), damage, occupants, holds,
+# event, clue, room_hall. Footprint 19x13 to 29x19.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = "bunker_wall"
+    floor = "bunker_floor"
+    cy = y + int(h / 2)
+    # The silo: a round hatch in the west half.
+    r = int(h / 2) - 1
+    if r > 6 then
+        r = 6
+    endif
+    scx = x + r + 1
+    carve_round_room(scx, cy, sz, r, wall, floor)
+    clear_middle(scx + r, cy, sz)
+    set_tile(scx, cy, sz, "stairs_down")
+    name_room(scx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, "Silo Hatch")
+    if sz > 1 then
+        carve_round_room(scx, cy, sz - 1, r - 1, wall, floor)
+        set_tile(scx, cy, sz - 1, "stairs_up")
+        name_room(scx - r, cy - r, sz - 1, r * 2 + 1, r * 2 + 1, "Launch Well")
+        locker(scx + 1, cy - 1, sz - 1, "fission")
+    endif
+    # The control bunker in the east half, a corridor's width away.
+    bx = scx + r + 2
+    bw = x + w - bx
+    if bw >= 6 then
+        carve_room(bx, cy - 3, sz, bw, 7, wall, floor)
+        clear_middle(bx, cy, sz)
+        # A corridor from the hatch's door to the bunker's.
+        set_tile(scx + r + 1, cy, sz, floor)
+        name_room(bx, cy - 3, sz, bw, 7, room("room_hall", "Launch Control"))
+        spawn_entity("research_lab", bx + bw - 2, cy - 2, sz)
+        locker(bx + bw - 2, cy + 2, sz, holds_or("fission"))
+        spawn_lore_datapad(bx + 1, cy - 2, sz)
+    endif
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

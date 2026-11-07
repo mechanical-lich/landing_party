@@ -15,6 +15,7 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 - [Research](research.md) — the tech tree and how to unlock new structures
 - [Encyclopedia](encyclopedia.md) — the campaign-wide bestiary and the Field Manual
 - [Legends](legends.md) — the chronicle of each world's history and your expedition's
+- [Dangers, Ruins and Relics](dangers_and_ruins.md) — Calm / Hazard / Threat tags, hazards, old structures, relics
 - [Scenarios](scenarios.md) — the world types a location can use
 - [Quests](star_map.md#quests) — objectives, rewards, and unlocking new locations
 

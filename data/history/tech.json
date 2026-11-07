@@ -1,0 +1,66 @@
+{
+  "_draft": "DRAFT tech levels, lowest first. structures maps an evidence role (\"script\": \"@seat\") to the structure a people builds at that level, with its footprint (small: the footprint on small maps, so the lore budget's 3% holds); a role may list alternatives (each with an optional weight, default 1), one of which each stamp picks by the site and event; a role a level lacks drops the stamp (its datapad stays). weapons fill {weapon}; relics are item blueprints left at the origins of a people's structures. The owner rewrites labels and weapons.",
+  "levels": [
+    {"id": "primitive", "label": "stone age",
+     "structures": {
+       "dwelling": {"script": "village", "w": 21, "h": 17, "small": [17, 13]},
+       "seat": {"script": "standing_stones", "w": 17, "h": 17, "small": [11, 11]},
+       "fort": {"script": "fort", "w": 21, "h": 17, "small": [17, 13]},
+       "shrine": {"script": "standing_stones", "w": 15, "h": 15, "small": [11, 11]},
+       "works": {"script": "mine", "w": 19, "h": 15, "small": [17, 13]},
+       "grave": {"script": "burial_mound", "w": 15, "h": 15, "small": [11, 11]},
+       "battlefield": {"script": "battlefield", "w": 31, "h": 21, "small": [19, 13]}
+     },
+     "weapons": ["spears", "slings", "fire-hardened clubs"],
+     "relics": ["carved_idol"]},
+    {"id": "medieval", "label": "iron age",
+     "structures": {
+       "dwelling": {"script": "village", "w": 25, "h": 19, "small": [17, 13]},
+       "seat": [{"script": "castle_town", "w": 40, "h": 32, "small": [18, 16]},
+                {"script": "castle", "w": 28, "h": 22, "small": [18, 16]}],
+       "fort": {"script": "fort", "w": 27, "h": 21, "small": [17, 13]},
+       "shrine": {"script": "circle_tower", "w": 25, "h": 25, "small": [21, 21]},
+       "works": {"script": "mine", "w": 23, "h": 17, "small": [17, 13]},
+       "grave": {"script": "graveyard", "w": 21, "h": 15, "small": [15, 11]},
+       "battlefield": {"script": "battlefield", "w": 31, "h": 21, "small": [19, 13]}
+     },
+     "weapons": ["pikes", "crossbows", "siege engines"],
+     "relics": ["old_steel_blade", "carved_idol"]},
+    {"id": "industrial", "label": "industrial age",
+     "structures": {
+       "dwelling": {"script": "city_block", "w": 31, "h": 25, "small": [21, 17]},
+       "seat": {"script": "castle", "w": 28, "h": 22, "small": [18, 16]},
+       "fort": {"script": "fort", "w": 27, "h": 17, "small": [17, 13]},
+       "shrine": {"script": "circle_tower", "w": 25, "h": 25, "small": [21, 21]},
+       "works": {"script": "mine", "w": 23, "h": 17, "small": [17, 13]},
+       "grave": {"script": "graveyard", "w": 21, "h": 15, "small": [15, 11]},
+       "battlefield": {"script": "battlefield", "w": 31, "h": 21, "small": [19, 13]}
+     },
+     "weapons": ["rifles", "artillery", "gas shells"],
+     "relics": ["machine_parts"]},
+    {"id": "atomic", "label": "atomic age",
+     "structures": {
+       "dwelling": {"script": "city_block", "w": 31, "h": 25, "small": [21, 17]},
+       "seat": {"script": "bunker", "w": 15, "h": 11, "small": [11, 9]},
+       "fort": {"script": "fort", "w": 27, "h": 17, "small": [17, 13]},
+       "shrine": {"script": "circle_tower", "w": 25, "h": 25, "small": [21, 21]},
+       "works": {"script": "missile_silo", "w": 23, "h": 15, "small": [19, 13]},
+       "grave": {"script": "graveyard", "w": 21, "h": 15, "small": [15, 11]},
+       "battlefield": {"script": "battlefield", "w": 31, "h": 21, "small": [19, 13]}
+     },
+     "weapons": ["missiles", "atomic shells", "bombers"],
+     "relics": ["fission_core", "machine_parts"]},
+    {"id": "spacefaring", "label": "star age",
+     "structures": {
+       "dwelling": {"script": "outpost", "w": 25, "h": 11, "small": [17, 9]},
+       "seat": {"script": "outpost", "w": 25, "h": 11, "small": [17, 9]},
+       "shrine": {"script": "circle_tower", "w": 25, "h": 25, "small": [21, 21]},
+       "works": {"script": "mine", "w": 23, "h": 17, "small": [17, 13]},
+       "grave": {"script": "graveyard", "w": 21, "h": 15, "small": [15, 11]},
+       "battlefield": {"script": "battlefield", "w": 31, "h": 21, "small": [19, 13]},
+       "landing": {"script": "landing_platform", "w": 19, "h": 17, "small": [13, 13]}
+     },
+     "weapons": ["beam weapons", "orbital lances", "drone swarms"],
+     "relics": ["tech_fragment", "alien_alloy"]}
+  ]
+}

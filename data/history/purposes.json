@@ -1,0 +1,39 @@
+{
+  "_draft": "DRAFT purposes: why a place was built or a ship came. class: a ship purpose's hull class. rooms: names its structure gives its rooms (room_<key> params). holds: the loot table its lockers take. clue: the datapad left inside, rendered with the event's fills ({civ}, {site}, figures, vars). The owner rewrites names and clues.",
+  "ship_classes": {
+    "scout": {"w": 13, "h": 9},
+    "freighter": {"w": 25, "h": 13},
+    "colony": {"w": 31, "h": 17},
+    "warship": {"w": 29, "h": 15},
+    "mothership": {"w": 60, "h": 60, "stamps": 3, "large_only": true}
+  },
+  "purposes": {
+    "survey":       {"class": "scout", "holds": "survey_data", "rooms": {"room_bridge": "Survey Deck"}, "clue": "Survey log of the {civ}: charted {site}; nothing here worth the fuel to come back for."},
+    "courier":      {"class": "scout", "holds": "provisions", "rooms": {"room_bridge": "Courier Cockpit"}, "clue": "Courier pouch, seal broken: orders for a {civ} fleet that never got them."},
+    "cargo":        {"class": "freighter", "holds": "ship_cargo", "rooms": {"room_cargo": "Cargo Hold"}, "clue": "Manifest of the {civ}: ore and alloy, bound for a market that is gone now."},
+    "smuggling":    {"class": "freighter", "holds": "smuggled", "rooms": {"room_cargo": "False Hold"}, "clue": "Two manifests aboard: the one for inspectors, and the true one, in a {civ} cipher."},
+    "colony_hold":  {"class": "colony", "holds": "colony_stores", "rooms": {"room_cryo": "Colonist Berths", "room_cargo": "Seed Stores"}, "clue": "Colony roster of the {civ}: four hundred names, a world chosen for them, and {site} was not it."},
+    "refugees":     {"class": "colony", "holds": "provisions", "rooms": {"room_cryo": "Refugee Berths"}, "clue": "We took everyone who could still walk. The {civ} behind us did not stop."},
+    "warship":      {"class": "warship", "holds": "ship_armoury", "rooms": {"room_hangar": "Fighter Bay"}, "clue": "Battle log of the {civ}: engaged, hull breached, going down over {site}."},
+    "prison_hulk":  {"class": "warship", "holds": "provisions", "rooms": {"room_quarters": "Cells", "room_armoury": "Warden's Store"}, "clue": "Prisoner transfer, {civ} authority: twelve held, none to be released."},
+    "flagship":     {"class": "mothership", "holds": "starfaring", "rooms": {"room_bridge": "Flag Bridge"}, "clue": "Flag log of the {civ} fleet: the line broke above {site}; we went down with it."},
+
+    "seat":         {"holds": "trade_goods", "rooms": {"room_hall": "Throne Hall", "room_yard": "Courtyard"}, "clue": "The {civ} kept their law here. The last page of it is torn out."},
+    "prison":       {"holds": "provisions", "rooms": {"room_hall": "Cells", "room_yard": "Exercise Yard"}, "clue": "Ledger of the {civ}: those held here, and what for. Most of the reasons are the same."},
+    "fort":         {"holds": "old_weapons", "rooms": {"room_hall": "Garrison"}, "clue": "Watch log of the {civ}: the enemy's fires on the far ridge, every night, a little nearer."},
+    "dwelling":     {"holds": "trade_goods", "rooms": {"room_hall": "Elder's House"}, "clue": "A family record of the {civ}: births, deaths, a harvest that failed."},
+    "temple":       {"holds": "trade_goods", "rooms": {"room_hall": "Sanctum"}, "clue": "A prayer of the {civ}, worn smooth by hands, for rain that would not come."},
+    "observatory":  {"holds": "archive", "rooms": {"room_hall": "Star Chamber"}, "clue": "Sky charts of the {civ}, with one light marked again and again: the ship that came."},
+    "archive":      {"holds": "archive", "rooms": {"room_hall": "Archive Vault"}, "clue": "Index of the {civ} archive: everything they knew, filed under a name we cannot read."},
+    "plague_study": {"holds": "medical", "rooms": {"room_hall": "Isolation Ward"}, "clue": "Ward notes, {civ} hand: the sick are not to be fed after the third bell, and not to be let out."},
+    "xenobiology":  {"holds": "medical", "rooms": {"room_hall": "Specimen Tanks"}, "clue": "Specimen log of the {civ}: it does not die. It waits."},
+    "weapons_research": {"holds": "machine_parts", "rooms": {"room_hall": "Proving Ground"}, "clue": "Test report of the {civ}: yield exceeded estimates. Recommend the next test be held elsewhere."},
+    "command":      {"holds": "machine_parts", "rooms": {"room_hall": "Command Bunker"}, "clue": "Orders of the {civ}, unsigned: launch on confirmation. Confirmation received."},
+    "mine_office":  {"holds": "mine_ore", "rooms": {"room_hall": "Claim Office"}, "clue": "Claim ledger of the {civ}: tonnage out, crews in, and a column for the dead."},
+    "forced_labour": {"holds": "mine_ore", "rooms": {"room_hall": "Overseer's Office", "room_pens": "Pens"}, "clue": "Work roll of the {civ}: quotas, and the names of the {enemy} who did not meet them."},
+    "hideout":      {"holds": "provisions", "rooms": {"room_hall": "Hideout"}, "clue": "Scratched on the wall, in {civ} script: they are still out there. Do not light a fire."},
+    "grave":        {"holds": "trade_goods", "rooms": {"room_hall": "Chapel"}, "clue": "Names of the {civ} dead, and one line under them all: we will not be the last."},
+    "battlefield":  {"holds": "old_weapons", "rooms": {"room_hall": "Battlefield"}, "clue": "A soldier's letter of the {civ}, never sent: the {enemy} came at dawn with {weapon}."},
+    "landing":      {"holds": "starfaring", "rooms": {"room_hall": "Control Booth"}, "clue": "Landing schedule of the {civ}: one ship a season, until the seasons stopped."}
+  }
+}

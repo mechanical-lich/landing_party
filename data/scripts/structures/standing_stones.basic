@@ -1,0 +1,156 @@
+# standing_stones — a primitive people's seat or shrine: a ring of paired
+# stones around a worn floor, an offering-stone in the middle (its datapad
+# and a locker of offerings). Stones stand in pairs along the ring, so none
+# stands alone, and pairs keep a gap between them.
+#
+# Params: tech (any; stones are overgrown), damage (stones fall), occupants,
+# holds, event, clue, room_hall. Footprint 11x11 to 21x21.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = "overgrown_stone_wall"
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    r = int(w / 2) - 2
+    if int(h / 2) - 2 < r then
+        r = int(h / 2) - 2
+    endif
+    # The worn floor inside the ring.
+    for j = -r to r
+        for i = -r to r
+            if i * i + j * j <= r * r then
+                set_tile(cx + i, cy + j, sz, "ancient_temple_floor")
+            endif
+        next i
+    next j
+    # Eight pairs on the ring: cardinal pairs lie across the ring's line,
+    # diagonal pairs stand upright.
+    stones(cx, cy - r, sz, 1, 0)
+    stones(cx, cy + r, sz, 1, 0)
+    stones(cx - r, cy, sz, 0, 1)
+    stones(cx + r, cy, sz, 0, 1)
+    d = int(r * 7 / 10)
+    if d >= 2 then
+        stones(cx - d, cy - d, sz, 0, 1)
+        stones(cx + d, cy - d, sz, 0, 1)
+        stones(cx - d, cy + d - 1, sz, 0, 1)
+        stones(cx + d, cy + d - 1, sz, 0, 1)
+    endif
+    name_room(cx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, room("room_hall", "Stone Ring"))
+    locker(cx, cy, sz, holds_or("trade_goods"))
+    spawn_lore_datapad(cx + 1, cy, sz)
+    # A worn ring loses whole stones, never half a pair.
+    dmg = get_param("damage") + 0
+    if dmg > 0 then
+        for k = 1 to dmg * 2
+            fall(cx, cy, r, sz)
+        next k
+    endif
+endfunction
+
+function stones(sx, sy, sz, ddx, ddy)
+    set_tile(sx, sy, sz, "overgrown_stone_wall")
+    set_tile(sx + ddx, sy + ddy, sz, "overgrown_stone_wall")
+endfunction
+
+# fall topples one pair (both stones become rubble) at a random ring spot.
+function fall(cx, cy, r, sz)
+    pick = rnd_int(4)
+    px = cx
+    py = cy - r
+    ddx = 1
+    ddy = 0
+    if pick = 1 then
+        py = cy + r
+    elseif pick = 2 then
+        px = cx - r
+        py = cy
+        ddx = 0
+        ddy = 1
+    elseif pick = 3 then
+        px = cx + r
+        py = cy
+        ddx = 0
+        ddy = 1
+    endif
+    if get_tile_type(px, py, sz) = "overgrown_stone_wall" then
+        clear_middle(px, py, sz)
+        clear_middle(px + ddx, py + ddy, sz)
+        set_tile(px, py, sz, "rubble_pile")
+    endif
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

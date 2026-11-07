@@ -1,0 +1,152 @@
+# village — a people's dwellings: huts on a loose grid around a fire, each
+# with its doorway facing the middle. Medieval villages stand inside a
+# palisade with a gate; primitive ones are open. Each hut is its own room
+# (walls never shared, so no doubled walls). The largest hut is the elder's,
+# holding the village's goods and its datapad.
+#
+# Params: tech (primitive | medieval; others build as medieval), damage,
+# occupants, holds, event, clue, room_hall. Footprint 17x13 to 31x25.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    if tech = "" then
+        tech = "primitive"
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = wall_of(tech, "stone_wall")
+    floor = floor_of(tech, "stone_floor")
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    ix = x
+    iy = y
+    iw = w
+    ih = h
+    if tech <> "primitive" then
+        # The palisade, with a 2-tile gate on the south side.
+        carve_room(x, y, sz, w, h, wall, floor)
+        clear_middle(cx, y + h - 1, sz)
+        clear_middle(cx - 1, y + h - 1, sz)
+        ix = x + 2
+        iy = y + 2
+        iw = w - 4
+        ih = h - 4
+    endif
+    # Huts in a grid of 7x6 cells; a hut is 4-5 wide, 4 tall, set inside
+    # its cell with a free row and column, so no two touch.
+    cols = int(iw / 7)
+    rows = int(ih / 6)
+    # Centre the grid in the footprint.
+    ix = ix + int((iw - cols * 7) / 2)
+    iy = iy + int((ih - rows * 6) / 2)
+    bigx = -1
+    bigy = -1
+    for r = 0 to rows - 1
+        for c = 0 to cols - 1
+            mid = 0
+            # The middle cell is the village green, when there are others.
+            if c = int(cols / 2) and r = int(rows / 2) and cols * rows >= 3 then
+                mid = 1
+            endif
+            if mid = 0 and (rnd_int(10) < 8 or cols * rows < 3) then
+                hw = 4 + rnd_int(2)
+                hx = ix + c * 7 + 1
+                hy = iy + r * 6 + 1
+                carve_room(hx, hy, sz, hw, 4, wall, floor)
+                # The doorway faces the fire.
+                if hy + 2 < cy then
+                    clear_middle(hx + 1, hy + 3, sz)
+                else
+                    clear_middle(hx + 1, hy, sz)
+                endif
+                name_room(hx, hy, sz, hw, 4, "Hut")
+                if bigx < 0 or hw = 5 then
+                    bigx = hx
+                    bigy = hy
+                endif
+            endif
+        next c
+    next r
+    # The fire in the middle of the village.
+    spawn_entity("work_light", cx, cy, sz)
+    if bigx >= 0 then
+        name_room(bigx, bigy, sz, 4, 4, room("room_hall", "Elder's Hut"))
+        locker(bigx + 2, bigy + 1, sz, holds_or("trade_goods"))
+        spawn_lore_datapad(bigx + 1, bigy + 1, sz)
+    endif
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

@@ -1,0 +1,105 @@
+# hull_breach — a hazard prop for stations: a section blown open to space.
+# Its floor is vacuum (space tiles), which a colonist can only cross in a
+# full enviro outfit (vacuum_resist); its stores sit on the one tile of deck
+# left at its heart, behind a breach in its wall.
+#
+# Params: holds, occupants, damage, event, clue, room_hall. Footprint 9x7
+# to 15x11.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        sz = get_flag_or("origin_z", 0)
+    endif
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_hall", "Breached Section"))
+    # Vacuum everywhere inside but the deck plate at the heart.
+    for j = 1 to h - 2
+        for i = 1 to w - 2
+            if x + i <> cx or y + j <> cy then
+                set_tile(x + i, y + j, sz, "space")
+            endif
+        next i
+    next j
+    # The breach that let the air out, mid-way along the north wall.
+    clear_middle(cx, y, sz)
+    clear_middle(cx + 1, y, sz)
+    set_tile(cx, y, sz, "space")
+    set_tile(cx + 1, y, sz, "space")
+    locker(cx, cy, sz, holds_or("starfaring"))
+    spawn_lore_datapad(cx, cy + 1, sz)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

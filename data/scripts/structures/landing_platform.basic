@@ -1,0 +1,111 @@
+# landing_platform — where a starfaring people set down: a paved pad with a
+# light at each corner, a control booth in one corner (its datapad and
+# stores) and fuel tanks along the edge.
+#
+# Params: tech (any), damage, occupants, holds, event, clue, room_hall.
+# Footprint 13x13 to 25x25.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = "advanced_wall"
+    floor = "advanced_floor"
+    for j = 1 to h - 2
+        for i = 1 to w - 2
+            set_tile(x + i, y + j, sz, floor)
+        next i
+    next j
+    spawn_entity("work_light", x + 1, y + 1, sz)
+    spawn_entity("work_light", x + w - 2, y + 1, sz)
+    spawn_entity("work_light", x + 1, y + h - 2, sz)
+    spawn_entity("work_light", x + w - 2, y + h - 2, sz)
+    # The control booth, inside the pad's south-east corner.
+    bx = x + w - 7
+    by = y + h - 6
+    carve_room(bx, by, sz, 5, 4, wall, floor)
+    clear_middle(bx, by + 1, sz)
+    name_room(bx, by, sz, 5, 4, room("room_hall", "Control Booth"))
+    locker(bx + 3, by + 1, sz, holds_or("starfaring"))
+    spawn_lore_datapad(bx + 3, by + 2, sz)
+    # One to three fuel tanks along the west edge, two tiles apart.
+    for k = 0 to rnd_int(3)
+        spawn_entity("fuel_tank", x + 2, y + int(h / 2) - 2 + k * 2, sz)
+    next k
+    name_room(x + 1, y + 1, sz, w - 2, h - 2, "Landing Pad")
+    name_room(bx, by, sz, 5, 4, room("room_hall", "Control Booth"))
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

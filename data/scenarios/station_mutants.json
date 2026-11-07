@@ -1,0 +1,27 @@
+{
+    "id": "station_mutants",
+    "name": "Mutant Station",
+    "description": "DRAFT. A derelict station where an experiment went wrong. Mutants stalk the dark decks.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/station_setup.basic"
+    ],
+    "hostile_max": 40,
+    "supported_maps": [
+        "abandoned_station"
+    ],
+    "spawn_rules": {
+        "mutant_grunt": {
+            "spawn_rate": 30,
+            "light_min": 0,
+            "tiles": [
+                "hull_floor"
+            ],
+            "max_z_delta": -1
+        }
+    },
+    "lighting": {
+        "mode": "fixed",
+        "ambient_level": 20
+    }
+}

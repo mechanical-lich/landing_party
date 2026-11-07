@@ -1,0 +1,17 @@
+{
+    "id": "desert_calm",
+    "name": "Desert Landing",
+    "description": "DRAFT. Dunes and bare rock under a hard sun. Nothing here wants you dead but the heat.",
+    "enabled": true,
+    "setup_scripts": [
+        "data/scripts/scenarios/desert_calm_setup.basic"
+    ],
+    "hostile_max": 30,
+    "supported_maps": [
+        "desert_planet"
+    ],
+    "spawn_rules": {},
+    "lighting": {
+        "mode": "day_night"
+    }
+}

@@ -1,5 +1,5 @@
-# abandoned_reactor — a derelict reactor complex: central core room with four
-# wing rooms branching off in a cross layout. Recommended footprint: 21x19.
+# abandoned_reactor — a derelict reactor complex: a square central hall around
+# the core with four wing rooms branching off in a cross layout. Recommended footprint: 21x19.
 # Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
 # corner of the footprint the dispatcher allocated.
 function generate(x, y, w, h)
@@ -10,17 +10,18 @@ function generate(x, y, w, h)
     if get_param("occupants") = "none" then
         guards = 0
     endif
-    cx = x + w / 2
-    cy = y + h / 2
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
     sz = get_surface_z(cx, cy)
     if sz < 0 then
         return
     endif
 
     # Divide the footprint into thirds for the cross layout.
-    # rw/rh = wing thickness; cw/ch = central room dimensions.
-    rw = w / 3
-    rh = h / 3
+    # rw/rh = wing thickness; cw/ch = central room dimensions. Whole tiles
+    # (int): a fractional third made the hall a row short on odd sizes.
+    rw = int(w / 3)
+    rh = int(h / 3)
     cw = w - rw * 2
     ch = h - rh * 2
 
@@ -28,35 +29,26 @@ function generate(x, y, w, h)
     crx = x + rw
     cry = y + rh
 
-    # Carve central reactor room as a round chamber inscribed in the cw×ch
-    # rect. With the recommended 21×19 footprint cw=ch=7, so radius=3 puts the
-    # perimeter exactly on the columns/rows the wing doorways punch through.
-    cr = cw / 2
-    if ch / 2 < cr then
-        cr = ch / 2
-    endif
-    carve_round_room(cx, cy, sz, cr, "hull_wall", "hull_floor")
-
-    # Carve four wing rooms. Each overlaps the central room by 1 tile so the
-    # shared wall column/row is carved by both sides — punch it open below.
+    # Carve the four wing rooms first. Each overlaps the central room by one
+    # tile, so the central room, carved last, owns the shared walls.
     carve_room(x,             cry, sz, rw + 1, ch,     "hull_wall", "hull_floor")  # west
     carve_room(crx + cw - 1, cry, sz, rw + 1, ch,     "hull_wall", "hull_floor")  # east
     carve_room(crx,           y,   sz, cw,     rh + 1, "hull_wall", "hull_floor")  # north
     carve_room(crx, cry + ch - 1, sz, cw,     rh + 1, "hull_wall", "hull_floor")  # south
 
-    # Open 2-wide doorways through each shared wall.
-    # West doorway (shared column crx)
-    set_tile(crx, cy,     sz, "hull_floor")
-    set_tile(crx, cy - 1, sz, "hull_floor")
-    # East doorway (shared column crx + cw - 1)
-    set_tile(crx + cw - 1, cy,     sz, "hull_floor")
-    set_tile(crx + cw - 1, cy - 1, sz, "hull_floor")
-    # North doorway (shared row cry)
-    set_tile(cx,     cry, sz, "hull_floor")
-    set_tile(cx - 1, cry, sz, "hull_floor")
-    # South doorway (shared row cry + ch - 1)
-    set_tile(cx,     cry + ch - 1, sz, "hull_floor")
-    set_tile(cx - 1, cry + ch - 1, sz, "hull_floor")
+    # The central reactor hall: a square room over the wings' inner ends,
+    # so its walls are whole and its floor clear around the core.
+    carve_room(crx, cry, sz, cw, ch, "hull_wall", "hull_floor")
+
+    # Open 3-wide doorways through each shared wall, centred on the core
+    # (clear_middle: the wall is in the middle slot; the floor stays).
+    for i = 0 to 2
+        d = i - 1
+        clear_middle(crx,          cy + d, sz)  # west
+        clear_middle(crx + cw - 1, cy + d, sz)  # east
+        clear_middle(cx + d, cry,          sz)  # north
+        clear_middle(cx + d, cry + ch - 1, sz)  # south
+    next i
 
     # Blast a 2-wide breach in the outer wall of a random wing.
     side = rnd_int(4)
@@ -85,14 +77,15 @@ function generate(x, y, w, h)
         clear_middle(x + w - 1, by + 1, sz)
     endif
 
-    # Reactor core — ring of radioactive ore surrounding the center floor tile.
+    # Reactor core: a ring of radioactive ore around the centre tile, its
+    # shielding breached on the south so the core (and what lies on it) can
+    # be reached without mining.
     set_tile(cx - 1, cy - 1, sz, "radioactive_ore")
     set_tile(cx,     cy - 1, sz, "radioactive_ore")
     set_tile(cx + 1, cy - 1, sz, "radioactive_ore")
     set_tile(cx - 1, cy,     sz, "radioactive_ore")
     set_tile(cx + 1, cy,     sz, "radioactive_ore")
     set_tile(cx - 1, cy + 1, sz, "radioactive_ore")
-    set_tile(cx,     cy + 1, sz, "radioactive_ore")
     set_tile(cx + 1, cy + 1, sz, "radioactive_ore")
 
     # Storage lockers in the wing rooms for flavor.
@@ -124,5 +117,46 @@ function generate(x, y, w, h)
     endif
     if guards = 1 then
         spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2), cry + ch + rnd_int(rh - 1),          sz, "Reactor Guard")  # south
+    endif
+
+    # ── History: names, goods, the clue, wear (only when history asks) ──
+    name_room(crx, cry, sz, cw, ch, lore_room("room_hall", "Reactor Hall"))
+    lore_fill(x + 1, cry + 1, sz)
+    lore_pad(cx - 2, cy, sz)
+    # A meltdown (damage 2+) leaves the hall hot.
+    if get_param("damage") + 0 >= 2 then
+        place_radiation_blob(cx, cy, sz, 4, 140)
+    endif
+    lore_ruin(x, y, w, h, "hull_wall", "hull_floor")
+endfunction
+
+# ── History helpers: act only on params a history stamp passes ──────────────
+
+function lore_room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# lore_fill fills the locker at (lx, ly, lz) from the param holds, if set.
+function lore_fill(lx, ly, lz)
+    if get_param("holds") <> "" then
+        fill_container(lx, ly, lz, get_param("holds"))
+    endif
+endfunction
+
+# lore_pad places the history's clue datapad, if the stamp has an event.
+function lore_pad(px, py, pz)
+    spawn_lore_datapad(px, py, pz)
+endfunction
+
+# lore_ruin wears the footprint by the param damage (ruin_pass), if set.
+function lore_ruin(rx, ry, rw, rh, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", rx, ry, rw, rh)
     endif
 endfunction

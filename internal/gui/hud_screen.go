@@ -1446,6 +1446,8 @@ type HoveredTileInfo struct {
 	TaskPaid bool
 	// LooseStacks lists the loose materials on this tile, one entry per material.
 	LooseStacks []LooseStack
+	// Room is the named room the tile is in ("Specimen Tanks"), "" if none.
+	Room string
 }
 
 // SetHoveredTile stores tile info to be rendered in the detail panel
@@ -1523,6 +1525,9 @@ func (h *HUDScreen) appendTileDetails(info *HoveredTileInfo) {
 	displayName := info.Name
 	if (info.Air || info.Name == "" || info.Name == "air") && info.FloorName != "" {
 		displayName = info.FloorName
+	}
+	if info.Room != "" {
+		add("Room: " + info.Room)
 	}
 	add("Tile: " + displayName)
 	add(fmt.Sprintf("Pos: %d, %d, %d", info.X, info.Y, info.Z))

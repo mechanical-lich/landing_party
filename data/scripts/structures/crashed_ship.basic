@@ -1,0 +1,430 @@
+# crashed_ship — the hull generator for a ship that came down. A keel of
+# sections laid aft to fore (each its own script: ship_bridge, ship_quarters,
+# ship_cargo, ship_reactor, ship_engine, ship_cryo_bay, ship_armoury,
+# ship_hangar), a crash furrow behind it, a damage pass, and a crew.
+#
+# Params (all optional):
+#   class    scout (13x9) | freighter (25x13) | colony (31x17) | warship
+#            (29x15) | mothership (a debris field, ~60x60) | saucer (the old
+#            crashed_ufo: a round greyish hull with a cockpit). Default scout.
+#   damage   0 landed, 1 hard landing (breaches), 2 broken in two (the aft
+#            half knocked out of line), 3 broken and ruined (a mothership is
+#            always a debris field of sections). Default 1.
+#   crew     "alive" spawns the crew (and a Commander on the bridge, a quest
+#            target when quest-backed); "dead" none. "" reads the lore flag
+#            chapter_crew. occupants "none" means dead; "cryo" leaves sleepers
+#            in a cryo bay.
+#   purpose, holds, clue, event, room_<section>: passed to the sections (what
+#            the ship carried, its datapad, its room names).
+#
+# The footprint is the ship's: nothing is drawn outside x..x+w-1, y..y+h-1.
+
+# The keel's sections (shared by the helpers below): code, share, and where
+# each was laid.
+DIM sec(8)
+DIM secw(8)
+DIM secx(8)
+DIM secy(8)
+DIM secl(8)
+DIM sech(8)
+n = 0
+
+function generate(x, y, w, h)
+    # A history ship (one with a purpose) comes down facing either way, on
+    # either side of its keel; a scenario's or quest's ship (crashed_ufo) keeps
+    # the orientation it always had.
+    if get_param("purpose") <> "" then
+        mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    endif
+    class = get_param("class")
+    if class = "" then
+        class = "scout"
+    endif
+    if class = "saucer" then
+        saucer(x, y, w, h)
+        return
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    damage = get_param("damage")
+    if damage = "" then
+        damage = 1
+    endif
+    damage = damage + 0
+    alive = crew_alive()
+    set_param("crew_state", "dead")
+    if alive = 1 then
+        set_param("crew_state", "alive")
+    endif
+    if class = "mothership" then
+        debris_field(x, y, w, h, sz, class)
+    elseif damage >= 3 then
+        # A hull this size has no room to scatter: broken in two, then
+        # ruined by the pass below.
+        keel(x, y, w, h, sz, class, 2)
+    else
+        keel(x, y, w, h, sz, class, damage)
+    endif
+    set_param("wall", "hull_wall")
+    set_param("floor", "hull_floor")
+    if damage >= 3 then
+        set_param("damage", 3)
+    else
+        set_param("damage", damage)
+    endif
+    gen_structure("ruin_pass", x, y, w, h)
+endfunction
+
+# crew_alive: 1 when the crew walked away from it.
+function crew_alive()
+    crew = get_param("crew")
+    occ = get_param("occupants")
+    if occ = "none" or occ = "cryo" then
+        crew = "dead"
+    endif
+    if crew = "" then
+        crew = get_flag_or("chapter_crew", "")
+    endif
+    if crew = "dead" then
+        return 0
+    endif
+    return 1
+endfunction
+
+# The class's sections, aft to fore, with their share of the keel. Codes:
+# 1 engine, 2 reactor, 3 cargo, 4 quarters, 5 cryo bay, 6 armoury,
+# 7 hangar, 8 bridge.
+function sections(class)
+    n = 0
+    if class = "scout" then
+        add_sec(1, 3)
+        add_sec(4, 4)
+        add_sec(8, 4)
+    elseif class = "freighter" then
+        add_sec(1, 3)
+        add_sec(2, 3)
+        add_sec(3, 5)
+        add_sec(3, 5)
+        if rnd_int(2) = 0 then
+            add_sec(3, 4)
+        endif
+        add_sec(8, 4)
+    elseif class = "colony" then
+        add_sec(1, 3)
+        add_sec(2, 3)
+        add_sec(3, 4)
+        add_sec(5, 5)
+        add_sec(5, 5)
+        add_sec(8, 4)
+    elseif class = "warship" then
+        add_sec(1, 3)
+        add_sec(2, 3)
+        add_sec(7, 5)
+        add_sec(6, 3)
+        add_sec(4, 3)
+        add_sec(6, 3)
+        add_sec(8, 4)
+    else
+        add_sec(1, 3)
+        add_sec(4, 4)
+        add_sec(8, 4)
+    endif
+    return n
+endfunction
+
+function add_sec(code, weight)
+    sec[n] = code
+    secw[n] = weight
+    n = n + 1
+endfunction
+
+function sec_script(code)
+    if code = 1 then
+        return "ship_engine"
+    elseif code = 2 then
+        return "ship_reactor"
+    elseif code = 3 then
+        return "ship_cargo"
+    elseif code = 4 then
+        return "ship_quarters"
+    elseif code = 5 then
+        return "ship_cryo_bay"
+    elseif code = 6 then
+        return "ship_armoury"
+    elseif code = 7 then
+        return "ship_hangar"
+    endif
+    return "ship_bridge"
+endfunction
+
+# keel lays the hull along the footprint's length: a crash furrow at the aft
+# end, the sections (sharing their walls), doorways along the keel, and the
+# bridge narrower at the nose. damage 1 breaches the outer hull; damage 2
+# breaks the keel in two with a gap and the aft half a tile out of line.
+function keel(x, y, w, h, sz, class, damage)
+    count = sections(class)
+    furrow = 1
+    if w >= 17 then
+        furrow = 2
+    endif
+    gap = 0
+    brk = -1
+    if damage = 2 and count >= 3 then
+        gap = 2
+        brk = int(count / 2)
+    endif
+    # The hull height: the full footprint, or one row in from each edge when
+    # broken, so the aft half has room to sit out of line.
+    hh = h
+    hy = y
+    off = 0
+    if gap > 0 then
+        hh = h - 2
+        hy = y + 1
+        off = 1
+        if rnd_int(2) = 0 then
+            off = -1
+        endif
+    endif
+    total = 0
+    for i = 0 to count - 1
+        total = total + secw[i]
+    next i
+    # Sections share a wall: n sections span (sum of widths) - (n - 1) tiles.
+    length = w - furrow - gap + count - 1
+    px = x + furrow
+    used = 0
+    for i = 0 to count - 1
+        sw = int(length * secw[i] / total)
+        if i = count - 1 then
+            sw = length - used
+        endif
+        if sw < 4 then
+            sw = 4
+        endif
+        if i = brk then
+            px = px + gap
+        endif
+        secx[i] = px
+        secl[i] = sw
+        secy[i] = hy
+        sech[i] = hh
+        if i < brk then
+            secy[i] = hy + off
+        endif
+        if sec[i] = 8 and hh >= 9 then
+            # The bridge: narrower, at the nose.
+            secy[i] = secy[i] + 2
+            sech[i] = sech[i] - 4
+        endif
+        used = used + sw
+        px = px + sw - 1
+    next i
+    # The furrow the hull ploughed before it stopped.
+    for k = 0 to furrow - 1
+        for j = 2 to h - 3
+            set_tile(x + k, y + j, sz, "crater_ground")
+        next j
+    next k
+    for i = 0 to count - 1
+        gen_structure(sec_script(sec[i]), secx[i], secy[i], secl[i], sech[i])
+    next i
+    # Doorways along the keel, where two sections meet.
+    cy = hy + int(hh / 2)
+    for i = 1 to count - 1
+        if i <> brk then
+            jx = secx[i]
+            cyd = cy
+            if i < brk then
+                cyd = cy + off
+            endif
+            clear_middle(jx, cyd, sz)
+            if hh >= 11 then
+                clear_middle(jx, cyd - 1, sz)
+            endif
+        endif
+    next i
+    # The broken ends stand open across the gap.
+    if brk > 0 then
+        ex = secx[brk - 1] + secl[brk - 1] - 1
+        clear_middle(ex, cy + off, sz)
+        clear_middle(ex, cy + off - 1, sz)
+        clear_middle(secx[brk], cy, sz)
+        clear_middle(secx[brk], cy - 1, sz)
+    endif
+    # A hard landing tears the outer hull: two or three 2-tile breaches on
+    # the long sides.
+    if damage >= 1 then
+        nb = 2 + rnd_int(2)
+        for b = 1 to nb
+            i = rnd_int(count)
+            if secl[i] >= 5 then
+                bx = secx[i] + 1 + rnd_int(secl[i] - 3)
+                by = secy[i]
+                if rnd_int(2) = 0 then
+                    by = secy[i] + sech[i] - 1
+                endif
+                clear_middle(bx, by, sz)
+                clear_middle(bx + 1, by, sz)
+            endif
+        next b
+    endif
+endfunction
+
+# debris_field scatters a mothership's sections across the footprint as
+# separate wrecks.
+function debris_field(x, y, w, h, sz, class)
+    count = sections(class)
+    if class = "mothership" then
+        count = 0
+        n = 0
+        add_sec(8, 4)
+        add_sec(7, 4)
+        add_sec(2, 3)
+        if rnd_int(2) = 0 then
+            add_sec(6, 3)
+        endif
+        if rnd_int(2) = 0 then
+            add_sec(4, 3)
+        endif
+        count = n
+    endif
+    # Lay the pieces in a grid of cells, one per cell, each set at a random
+    # spot inside its cell so no two pieces touch.
+    cols = 2
+    if count > 4 then
+        cols = 3
+    endif
+    rows = int((count + cols - 1) / cols)
+    cw = int(w / cols)
+    ch = int(h / rows)
+    for i = 0 to count - 1
+        col = i - int(i / cols) * cols
+        row = int(i / cols)
+        pw = cw - 3
+        ph = ch - 3
+        if pw > 13 then
+            pw = 9 + rnd_int(5)
+        endif
+        if ph > 11 then
+            ph = 7 + rnd_int(5)
+        endif
+        if pw >= 5 and ph >= 5 then
+            qx = x + col * cw + 1 + rnd_int(cw - pw - 1)
+            qy = y + row * ch + 1 + rnd_int(ch - ph - 1)
+            gen_structure(sec_script(sec[i]), qx, qy, pw, ph)
+            # Each piece lies open where it tore away.
+            clear_middle(qx, qy + int(ph / 2), sz)
+            clear_middle(qx + pw - 1, qy + int(ph / 2), sz)
+        endif
+    next i
+endfunction
+
+# saucer: the original crashed_ufo — a greyish vessel that came down hard. The
+# hull is breached in 2-3 places; a smaller inner cockpit sits at the centre.
+# Crew are scattered across the interior; the commander is in the cockpit and
+# acts as the quest target when the fixture is quest-backed.
+function saucer(x, y, w, h)
+    cx = x + w / 2
+    cy = y + h / 2
+    sz = get_surface_z(cx, cy)
+    if sz < 0 then
+        return
+    endif
+
+    # Outer hull radius — fits the footprint with 1-tile clearance.
+    r = w / 2 - 1
+    if h / 2 - 1 < r then
+        r = h / 2 - 1
+    endif
+    if r < 6 then
+        r = 6
+    endif
+
+    carve_round_room(cx, cy, sz, r, "hull_wall", "hull_floor")
+
+    # Crash breaches — 2 guaranteed, 1 random third. Opposite walls get hit
+    # so the ship looks like it skidded.
+    breach_side = rnd_int(4)
+    if breach_side = 0 then
+        clear_middle(cx,     cy - r, sz)
+        clear_middle(cx + 1, cy - r, sz)
+        clear_middle(cx,     cy + r, sz)
+        clear_middle(cx - 1, cy + r, sz)
+    endif
+    if breach_side = 1 then
+        clear_middle(cx - r, cy,     sz)
+        clear_middle(cx - r, cy + 1, sz)
+        clear_middle(cx + r, cy,     sz)
+        clear_middle(cx + r, cy - 1, sz)
+    endif
+    if breach_side = 2 then
+        clear_middle(cx,     cy - r, sz)
+        clear_middle(cx - 1, cy - r, sz)
+        clear_middle(cx + r, cy,     sz)
+        clear_middle(cx + r, cy + 1, sz)
+    endif
+    if breach_side = 3 then
+        clear_middle(cx - r, cy,     sz)
+        clear_middle(cx - r, cy - 1, sz)
+        clear_middle(cx,     cy + r, sz)
+        clear_middle(cx + 1, cy + r, sz)
+    endif
+    extra = rnd_int(3)
+    if extra = 0 then
+        clear_middle(cx - 1, cy - r, sz)
+    endif
+    if extra = 1 then
+        clear_middle(cx + r, cy + 1, sz)
+    endif
+    if extra = 2 then
+        clear_middle(cx - r, cy - 1, sz)
+    endif
+
+    # Inner cockpit with a single doorway on a random side.
+    cockpit_w = 5
+    cockpit_h = 5
+    cpx = cx - cockpit_w / 2
+    cpy = cy - cockpit_h / 2
+    carve_room(cpx, cpy, sz, cockpit_w, cockpit_h, "hull_wall", "hull_floor")
+    door_side = rnd_int(4)
+    if door_side = 0 then
+        clear_middle(cx, cpy, sz)
+    endif
+    if door_side = 1 then
+        clear_middle(cx, cpy + cockpit_h - 1, sz)
+    endif
+    if door_side = 2 then
+        clear_middle(cpx, cy, sz)
+    endif
+    if door_side = 3 then
+        clear_middle(cpx + cockpit_w - 1, cy, sz)
+    endif
+
+    spawn_entity("storage_locker", cpx + 1, cpy + 1, sz)
+    holds = get_param("holds")
+    if holds <> "" then
+        fill_container(cpx + 1, cpy + 1, sz, holds)
+    endif
+    name_room(cpx, cpy, sz, cockpit_w, cockpit_h, room_name("room_bridge", "Cockpit"))
+
+    if crew_alive() = 1 then
+        spawn_entity("greyish",  cx - 3, cy + 2, sz)
+        spawn_entity("greyish",  cx + 3, cy - 2, sz)
+        spawn_entity("whitish",  cx + 2, cy + 3, sz)
+        spawn_entity("greenish", cx - 2, cy - 3, sz)
+        spawn_entity_named("whitish", cx, cy, sz, "Commander")
+        add_epithet(cx, cy, sz)
+        mark_quest_target(cx, cy, sz)
+    endif
+endfunction
+
+function room_name(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

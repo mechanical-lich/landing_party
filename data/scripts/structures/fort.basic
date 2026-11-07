@@ -1,0 +1,238 @@
+# fort — a people's stronghold facing its enemy, by tech:
+#   primitive   a palisade with a gate and a watch hut inside;
+#   medieval    a star fort: a curtain wall with a square tower at each
+#               corner, a gate, and a barracks along the far wall;
+#   industrial / atomic  a redoubt: a parapet and trench along the front,
+#               behind them a walled compound with a pillbox in each front
+#               corner, a command post, and on larger footprints barracks
+#               and a magazine.
+# The command room holds the fort's datapad and its weapons.
+#
+# Params: tech, damage, occupants, holds, event, clue, room_hall.
+# Footprint 17x13 to 33x25.
+function generate(x, y, w, h)
+    # Seeded orientation: the same layout reflected left-right and/or
+    # top-bottom (the builtin mirror reflects every coordinate after it).
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    tech = get_param("tech")
+    if tech = "" then
+        tech = "medieval"
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    wall = wall_of(tech, "stone_wall")
+    floor = floor_of(tech, "stone_floor")
+    if tech = "primitive" then
+        palisade(x, y, w, h, sz, wall, floor)
+    elseif tech = "industrial" or tech = "atomic" or tech = "spacefaring" then
+        trenches(x, y, w, h, sz, wall, floor)
+    else
+        star_fort(x, y, w, h, sz, wall, floor)
+    endif
+    ruin(x, y, w, h, wall, floor)
+endfunction
+
+function palisade(x, y, w, h, sz, wall, floor)
+    cx = x + int(w / 2)
+    carve_room(x, y, sz, w, h, wall, floor)
+    clear_middle(cx, y + h - 1, sz)
+    clear_middle(cx - 1, y + h - 1, sz)
+    # The watch hut, two tiles in from the wall.
+    hx = cx - 2
+    hy = y + 2
+    carve_room(hx, hy, sz, 5, 4, wall, floor)
+    clear_middle(hx + 2, hy + 3, sz)
+    name_room(hx, hy, sz, 5, 4, room("room_hall", "Watch Hut"))
+    locker(hx + 1, hy + 1, sz, holds_or("old_weapons"))
+    spawn_lore_datapad(hx + 3, hy + 1, sz)
+endfunction
+
+function star_fort(x, y, w, h, sz, wall, floor)
+    cx = x + int(w / 2)
+    # The curtain wall sits two tiles in, so the corner towers (5x5 at the
+    # footprint's corners) straddle it; towers are carved last, so the
+    # curtain stops at their walls.
+    carve_room(x + 2, y + 2, sz, w - 4, h - 4, wall, floor)
+    tower(x, y, sz, wall, floor, 1, 1)
+    tower(x + w - 5, y, sz, wall, floor, -1, 1)
+    tower(x, y + h - 5, sz, wall, floor, 1, -1)
+    tower(x + w - 5, y + h - 5, sz, wall, floor, -1, -1)
+    # The gate, in the south curtain.
+    clear_middle(cx, y + h - 3, sz)
+    clear_middle(cx - 1, y + h - 3, sz)
+    # The barracks along the north wall, two tiles inside the curtain.
+    bw = w - 12
+    if bw >= 5 then
+        bx = x + 6
+        by = y + 4
+        carve_room(bx, by, sz, bw, 5, wall, floor)
+        clear_middle(bx + int(bw / 2), by + 4, sz)
+        name_room(bx, by, sz, bw, 5, room("room_hall", "Barracks"))
+        locker(bx + 1, by + 1, sz, holds_or("old_weapons"))
+        spawn_lore_datapad(bx + bw - 2, by + 1, sz)
+        for i = 2 to bw - 3
+            if i - int(i / 2) * 2 = 0 then
+                spawn_entity("bed", bx + i, by + 2, sz)
+            endif
+        next i
+    endif
+endfunction
+
+# tower: a 5x5 corner tower with a door into the courtyard (ddx, ddy point
+# inward).
+function tower(tx, ty, sz, wall, floor, ddx, ddy)
+    carve_room(tx, ty, sz, 5, 5, wall, floor)
+    if ddx > 0 then
+        clear_middle(tx + 4, ty + 2 + ddy, sz)
+    else
+        clear_middle(tx, ty + 2 + ddy, sz)
+    endif
+    name_room(tx, ty, sz, 5, 5, "Tower")
+endfunction
+
+function trenches(x, y, w, h, sz, wall, floor)
+    cx = x + int(w / 2)
+    # The parapet along the front edge: runs of four with a firing gap after
+    # each, never a run of one at the end.
+    for i = 1 to w - 2
+        gap = 0
+        if i - int(i / 5) * 5 = 0 then
+            gap = 1
+        endif
+        if i = w - 2 and i - int(i / 5) * 5 = 1 then
+            gap = 1
+        endif
+        if gap = 0 then
+            set_tile(x + i, y, sz, wall)
+        endif
+    next i
+    # The trench behind it, the length of the footprint.
+    for i = 0 to w - 1
+        for j = 1 to 2
+            set_tile(x + i, y + j, sz, "crater_ground")
+        next j
+    next i
+    # The redoubt behind the trench: a walled compound (row y + 3 is open
+    # ground between them), entered by a gate in each side wall.
+    ry = y + 4
+    carve_room(x, ry, sz, w, h - 4, wall, floor)
+    clear_middle(x, ry + 4, sz)
+    clear_middle(x + w - 1, ry + 4, sz)
+    # A pillbox in each front corner, sharing the compound's walls: a firing
+    # slit onto the trench, a door into the yard.
+    pillbox(x, ry, sz, wall, floor, 1)
+    pillbox(x + w - 5, ry, sz, wall, floor, -1)
+    # The command post against the back wall, its door facing the front.
+    dx = cx - 3
+    dy = y + h - 5
+    carve_room(dx, dy, sz, 7, 5, wall, floor)
+    clear_middle(cx, dy, sz)
+    name_room(dx, dy, sz, 7, 5, room("room_hall", "Command Post"))
+    locker(dx + 1, dy + 3, sz, holds_or("machine_parts"))
+    spawn_lore_datapad(dx + 5, dy + 3, sz)
+    # With room for them (a free row under the pillboxes, three tiles each
+    # side of the command post): barracks to the west, a magazine to the
+    # east, sharing its walls.
+    if h >= 14 and w >= 21 then
+        bw = dx - x + 1
+        carve_room(x, dy, sz, bw, 5, wall, floor)
+        clear_middle(x + int(bw / 2), dy, sz)
+        name_room(x, dy, sz, bw, 5, "Barracks")
+        for i = 1 to bw - 2
+            if i - int(i / 2) * 2 = 1 then
+                spawn_entity("bed", x + i, dy + 3, sz)
+            endif
+        next i
+        mx = dx + 6
+        mw = x + w - mx
+        carve_room(mx, dy, sz, mw, 5, wall, floor)
+        clear_middle(mx + int(mw / 2), dy, sz)
+        name_room(mx, dy, sz, mw, 5, "Magazine")
+        locker(mx + mw - 2, dy + 3, sz, holds_or("old_weapons"))
+    endif
+endfunction
+
+# pillbox: a 5x4 bunker at a front corner of the redoubt (dir 1 west, -1
+# east): a slit in the front wall, a door on its inner side.
+function pillbox(px, py, sz, wall, floor, dir)
+    carve_room(px, py, sz, 5, 4, wall, floor)
+    clear_middle(px + 2, py, sz)
+    if dir > 0 then
+        clear_middle(px + 4, py + 1, sz)
+    else
+        clear_middle(px, py + 1, sz)
+    endif
+    name_room(px, py, sz, 5, 4, "Pillbox")
+endfunction
+
+# ── Shared helpers (each ground script carries its own copy) ────────────────
+
+# The wall and floor a people builds with at its tech level (param tech).
+function wall_of(tech, def)
+    if tech = "primitive" then
+        return "overgrown_stone_wall"
+    elseif tech = "medieval" then
+        return "stone_wall"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_wall"
+    elseif tech = "spacefaring" then
+        return "advanced_wall"
+    endif
+    return def
+endfunction
+
+function floor_of(tech, def)
+    if tech = "primitive" then
+        return "dirt_floor"
+    elseif tech = "medieval" then
+        return "stone_floor"
+    elseif tech = "industrial" or tech = "atomic" then
+        return "bunker_floor"
+    elseif tech = "spacefaring" then
+        return "advanced_floor"
+    endif
+    return def
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this structure's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table.
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    fill_container(lx, ly, lz, table)
+endfunction
+
+# Wear the whole footprint by the param damage (ruin_pass).
+function ruin(x, y, w, h, wall, floor)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", wall)
+        set_param("floor", floor)
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction
+
+# 1 when the param occupants asks for none.
+function empty()
+    if get_param("occupants") = "none" then
+        return 1
+    endif
+    return 0
+endfunction

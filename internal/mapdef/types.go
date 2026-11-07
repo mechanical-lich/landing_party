@@ -42,12 +42,26 @@ type Present struct {
 	Status []string `json:"status"`
 	// Arcs are the story shapes (data/history/arcs.json) that can lead here.
 	Arcs []string `json:"arcs"`
-	// QuietWeight weighs the quiet outcome (BaseScenario) against the threat
-	// chapters' per-map weights.
-	QuietWeight int `json:"quiet_weight"`
-	// QuietSafe marks the quiet outcome (BaseScenario) as calm enough for a
-	// first landing (see history.BindSiteSafe).
-	QuietSafe bool `json:"quiet_safe,omitempty"`
+	// Tiers weighs how a site's history ends: "threat" (a scenario chapter),
+	// "hazard" (a hazard chapter on the base scenario) and "quiet" (no chapter,
+	// BaseScenario). The tier is rolled first, then a chapter of that tier by
+	// the chapters' per-map weights.
+	Tiers map[string]int `json:"tiers"`
+	// SafeTiers replaces Tiers on a first jump (see history.BindSiteSafe):
+	// "hazard" and "quiet" only; threat is never rolled there.
+	SafeTiers map[string]int `json:"safe_tiers"`
+	// Density is the percent chance, after each arc stage, that one
+	// interlude (a small happening) is added.
+	Density int `json:"density,omitempty"`
+	// Layers is the chance a site first runs an older people's layer arc.
+	Layers *PresentLayers `json:"layers,omitempty"`
+}
+
+// PresentLayers lists the layer arcs a site of the map may run first, and how
+// often (percent).
+type PresentLayers struct {
+	Chance int      `json:"chance"`
+	Arcs   []string `json:"arcs"`
 }
 
 // Clone returns a copy whose terrain params, biome list and feature list can be

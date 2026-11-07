@@ -2,6 +2,7 @@ package history
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -19,6 +20,9 @@ func loreBindMany(t testing.TB, lib *Library, h *History, from, n int) []*SiteHi
 		if err != nil {
 			t.Fatalf("seed %d site %d: %v", h.Seed, i, err)
 		}
+		// Placed, as charting places it: an unplaced site on the same map
+		// would be handed back by the next bind.
+		h.Place(site.ID, fmt.Sprintf("loc%d", i))
 		out = append(out, site)
 	}
 	return out
@@ -195,6 +199,9 @@ func TestLoreChapterEndsTheHistory(t *testing.T) {
 	for _, h := range hs {
 		for _, s := range h.Sites {
 			if s.Chapter == "" {
+				if s.Tier != TierQuiet {
+					t.Errorf("%s: no chapter but tier %q", s.ID, s.Tier)
+				}
 				if s.Scenario != lib.Maps[s.Map].BaseScenario {
 					t.Errorf("%s: quiet site plays %s", s.ID, s.Scenario)
 				}
@@ -205,10 +212,19 @@ func TestLoreChapterEndsTheHistory(t *testing.T) {
 			}
 			ch := h.Event(s.Chapter)
 			def := lib.Events[ch.Type]
-			if def.Scenario != s.Scenario {
-				t.Errorf("%s: chapter %s plays %s, site says %s", s.ID, ch.Type, def.Scenario, s.Scenario)
+			want := def.Scenario
+			if want == "" {
+				want = lib.Maps[s.Map].BaseScenario // a hazard on the calm base
 			}
-			if len(def.OriginFrom) > 0 {
+			if want != s.Scenario {
+				t.Errorf("%s: chapter %s plays %s, site says %s", s.ID, ch.Type, want, s.Scenario)
+			}
+			if s.Tier != def.ChapterTier() {
+				t.Errorf("%s: chapter %s is tier %s, site says %s", s.ID, ch.Type, def.ChapterTier(), s.Tier)
+			}
+			// origin_from with origin is a preference: the event may have
+			// rolled its own.
+			if len(def.OriginFrom) > 0 && (!def.Origin || len(ch.Causes) > 0 && Has(def.OriginFrom, h.Event(ch.Causes[0]).Type)) {
 				src := h.Event(ch.Causes[0])
 				if !Has(def.OriginFrom, src.Type) || src.Origin == nil || ch.Origin == nil || *src.Origin != *ch.Origin {
 					t.Errorf("%s: %s does not grow from its source's origin (%s)", s.ID, ch.Type, src.Type)

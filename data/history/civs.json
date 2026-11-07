@@ -80,5 +80,12 @@
   "ancestor_chance": 15,
   "war_chance": 12,
   "lifeless_percent": 25,
-  "reuse": 3
+  "reuse": 3,
+  "native_tech": {
+    "primitive": 60,
+    "medieval": 40
+  },
+  "species_tech_max": {
+    "yeti": "medieval"
+  }
 }
