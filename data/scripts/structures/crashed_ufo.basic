@@ -89,13 +89,30 @@ function generate(x, y, w, h)
     # ── Loot ──────────────────────────────────────────────────────────────
     spawn_entity("storage_locker", cpx + 1, cpy + 1, sz)
 
-    # ── Crew — scattered across the outer hull interior ───────────────────
+    # ── Crew ─────────────────────────────────────────────────────────────
+    # A history wreck (stamp param crew = "dead", or occupants = "none") is an old hull: nobody
+    # walked away, so no crew and no Commander. So is a crash whose history
+    # chapter left no survivors (lore flag chapter_crew = "dead"). A live
+    # crash keeps them.
+    crew = get_param("crew")
+    if get_param("occupants") = "none" then
+        crew = "dead"
+    endif
+    if crew = "" then
+        crew = get_flag_or("chapter_crew", "")
+    endif
+    if crew <> "dead" then
+        spawn_crew(cx, cy, sz)
+    endif
+endfunction
+
+# The survivors, scattered across the outer hull interior, and the Commander
+# in the cockpit as a quest target.
+function spawn_crew(cx, cy, sz)
     spawn_entity("greyish",  cx - 3, cy + 2, sz)
     spawn_entity("greyish",  cx + 3, cy - 2, sz)
     spawn_entity("whitish",  cx + 2, cy + 3, sz)
     spawn_entity("greenish", cx - 2, cy - 3, sz)
-
-    # ── Commander in the cockpit — quest target ────────────────────────────
     spawn_entity_named("whitish", cx, cy, sz, "Commander")
     add_epithet(cx, cy, sz)
     mark_quest_target(cx, cy, sz)

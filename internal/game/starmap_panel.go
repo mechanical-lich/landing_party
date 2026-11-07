@@ -423,7 +423,7 @@ func (p *starMapPanel) travel() {
 		return
 	}
 	if p.campaign.Won {
-		p.pending = NewCampaignEndState(true, fmt.Sprintf("The colonists are home at last. (Day %d)", p.campaign.Day))
+		p.pending = NewCampaignEndState(true, fmt.Sprintf("The colonists are home at last. (Star Date %d)", p.campaign.Day()))
 		return
 	}
 	p.status = fmt.Sprintf("In orbit over %s. Beam crew down, then use To Site.", loc.Name)

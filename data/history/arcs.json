@@ -1,0 +1,720 @@
+{
+  "_draft": "DRAFT library for lore step 1: placeholder text written to exercise the generator. The owner rewrites every text field.",
+  "arcs": [
+    {
+      "id": "lifeless",
+      "uninhabited": true,
+      "note": "Never alive, never settled: only visitors.",
+      "stages": [
+        {
+          "pick": [
+            "survey_mission",
+            "claim_beacon"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "ancient_wreck"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "impact"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "survey_mission",
+            "claim_beacon"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "population": "never"
+      },
+      "summary": "A barren world. Nothing has ever lived here; only passing ships have touched it."
+    },
+    {
+      "id": "pristine",
+      "uninhabited": true,
+      "note": "Native life only; nobody ever lived here.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "survey_mission",
+            "claim_beacon"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "ancient_wreck"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "native",
+        "population": "never",
+        "status": "untouched"
+      },
+      "summary": "A living world no people ever settled."
+    },
+    {
+      "id": "pristine_alien",
+      "uninhabited": true,
+      "note": "An untouched alien biosphere.",
+      "stages": [
+        {
+          "pick": [
+            "alien_biosphere_blooms"
+          ]
+        },
+        {
+          "pick": [
+            "survey_mission",
+            "claim_beacon"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "ancient_wreck"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "alien",
+        "population": "never",
+        "status": "untouched"
+      },
+      "summary": "An untouched alien biosphere. No one has ever settled here."
+    },
+    {
+      "id": "drone_station",
+      "uninhabited": true,
+      "note": "An uncrewed relay, abandoned by its makers.",
+      "stages": [
+        {
+          "pick": [
+            "drone_station_built"
+          ]
+        },
+        {
+          "pick": [
+            "ancient_wreck",
+            "survey_mission"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "drone_station_fails"
+          ]
+        }
+      ],
+      "ends": {
+        "population": "never",
+        "status": "fallen"
+      },
+      "summary": "A {civ} relay, built by drones and never crewed. It still hums."
+    },
+    {
+      "id": "extinct_radiation",
+      "note": "Alive until a reactor or a war poisoned it.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises",
+            "civ_settles"
+          ]
+        },
+        {
+          "pick": [
+            "civ_thrives",
+            "civ_rises"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "reactor_built"
+          ]
+        },
+        {
+          "pick": [
+            "lab_founded",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "reactor_meltdown",
+            "nuclear_war"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "status": "dead"
+      },
+      "summary": "Once a living world; the {civ} poisoned it. Their ruins lie under a radioactive sky."
+    },
+    {
+      "id": "failed_colony",
+      "note": "Settled on bare rock, then given up.",
+      "stages": [
+        {
+          "pick": [
+            "survey_mission"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "civ_settles",
+            "outpost_founded",
+            "refugees_arrive"
+          ]
+        },
+        {
+          "pick": [
+            "reactor_built",
+            "lab_founded",
+            "hab_domes_raised",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "colony_abandoned",
+            "colony_starves",
+            "colony_withdrawn"
+          ]
+        },
+        {
+          "pick": [
+            "crew_crash",
+            "expedition_lost",
+            "impact"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "status": [
+          "fallen",
+          "dead"
+        ]
+      },
+      "summary": "The {civ} tried to settle here and gave up. Their camps stand empty."
+    },
+    {
+      "id": "mining_claim",
+      "note": "A dig that ran out, or ran out of luck.",
+      "stages": [
+        {
+          "pick": [
+            "survey_mission",
+            "claim_beacon"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "mining_claim_staked"
+          ]
+        },
+        {
+          "pick": [
+            "colony_abandoned",
+            "colony_starves",
+            "colony_withdrawn",
+            "impact_cataclysm"
+          ]
+        },
+        {
+          "pick": [
+            "crew_crash",
+            "expedition_lost",
+            "ancient_wreck"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "status": "fallen"
+      },
+      "summary": "An abandoned {civ} mining claim. The diggings run deep."
+    },
+    {
+      "id": "battle_debris",
+      "note": "A battlefield between two pool civs.",
+      "stages": [
+        {
+          "pick": [
+            "survey_mission"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "war_battle",
+            "border_skirmish"
+          ]
+        },
+        {
+          "pick": [
+            "ancient_wreck",
+            "claim_beacon"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "population": "never"
+      },
+      "summary": "A battlefield. Wreckage of the {civ} war still litters it."
+    },
+    {
+      "id": "stellar_flare_burned",
+      "note": "A living world burned by its sun.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises",
+            "civ_settles"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "civ_rises",
+            "reactor_built"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "stellar_flare"
+          ]
+        },
+        {
+          "pick": [
+            "survey_mission",
+            "ancient_wreck",
+            "impact"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "none",
+        "status": "dead"
+      },
+      "summary": "A world its own sun burned clean. Little survived the flare."
+    },
+    {
+      "id": "ice_age_buried",
+      "note": "A civilization buried by the ice.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises",
+            "civ_settles",
+            "refugees_arrive"
+          ]
+        },
+        {
+          "pick": [
+            "civ_thrives",
+            "civ_rises"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "lab_founded",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "ice_age",
+            "impact_cataclysm"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "native",
+        "status": "fallen"
+      },
+      "summary": "The ice buried a {civ} civilization here. Its halls lie under the glaciers."
+    },
+    {
+      "id": "ancient_natives",
+      "note": "The yeti's ancestors, and how they fell.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "ancient_natives_rise"
+          ]
+        },
+        {
+          "pick": [
+            "civ_rises"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "natives_dwindle",
+            "ice_age"
+          ]
+        },
+        {
+          "pick": [
+            "survey_mission"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "native",
+        "status": "fallen"
+      },
+      "summary": "Home of the {civ}, an ancient native people, long since diminished."
+    },
+    {
+      "id": "collapsed_civilization",
+      "note": "A native civilization under regrown forest.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises"
+          ]
+        },
+        {
+          "pick": [
+            "civ_rises",
+            "civ_thrives"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "reactor_built",
+            "lab_founded",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "civ_collapses",
+            "impact_cataclysm",
+            "natives_dwindle"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "native",
+        "status": "fallen"
+      },
+      "summary": "The {civ} built cities here and lost them. Forest has grown over the ruins."
+    },
+    {
+      "id": "fallen_colony",
+      "note": "Settlers on a living world who did not last.",
+      "stages": [
+        {
+          "pick": [
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "civ_settles",
+            "outpost_founded",
+            "refugees_arrive"
+          ]
+        },
+        {
+          "pick": [
+            "civ_thrives"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "lab_founded",
+            "reactor_built",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "colony_abandoned",
+            "colony_starves",
+            "colony_withdrawn",
+            "civ_collapses",
+            "impact_cataclysm"
+          ]
+        },
+        {
+          "pick": [
+            "crew_crash",
+            "expedition_lost"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "life": "native",
+        "status": "fallen"
+      },
+      "summary": "A living world where a {civ} colony failed. Its ruins are overgrown."
+    },
+    {
+      "id": "alien_ruins",
+      "note": "Ruins in an alien biosphere.",
+      "stages": [
+        {
+          "pick": [
+            "alien_biosphere_blooms"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises",
+            "civ_settles",
+            "refugees_arrive"
+          ]
+        },
+        {
+          "pick": [
+            "civ_rises",
+            "civ_thrives"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "reactor_built",
+            "lab_founded",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "civ_collapses",
+            "nanite_conversion",
+            "colony_abandoned",
+            "colony_starves",
+            "colony_withdrawn"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "alien",
+        "status": "fallen"
+      },
+      "summary": "Ruins of the {civ} stand among strange alien growth."
+    },
+    {
+      "id": "hive_world",
+      "note": "Consumed by a hive.",
+      "stages": [
+        {
+          "pick": [
+            "alien_biosphere_blooms",
+            "native_life_emerges"
+          ]
+        },
+        {
+          "pick": [
+            "civ_settles",
+            "outpost_founded",
+            "native_civ_rises",
+            "refugees_arrive"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "hive_consumption"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "alien",
+        "status": "fallen"
+      },
+      "summary": "A hive consumed this world. Whatever lived here is gone."
+    },
+    {
+      "id": "drowned_civilization",
+      "note": "Cities under the sea.",
+      "stages": [
+        {
+          "pick": [
+            "alien_biosphere_blooms"
+          ]
+        },
+        {
+          "pick": [
+            "native_civ_rises",
+            "civ_settles",
+            "refugees_arrive"
+          ]
+        },
+        {
+          "pick": [
+            "civ_rises",
+            "reactor_built",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "sea_rise"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "alien",
+        "status": "fallen"
+      },
+      "summary": "The seas rose over the {civ} cities. Their towers break the surface at low tide."
+    },
+    {
+      "id": "abandoned_islands",
+      "note": "Volcanic islands settled and given up.",
+      "stages": [
+        {
+          "pick": [
+            "alien_biosphere_blooms"
+          ]
+        },
+        {
+          "pick": [
+            "islands_settled"
+          ]
+        },
+        {
+          "pick": [
+            "reactor_built",
+            "lab_founded",
+            "hab_domes_raised",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "islands_abandoned",
+            "colony_starves",
+            "colony_withdrawn"
+          ]
+        }
+      ],
+      "ends": {
+        "life": "alien",
+        "status": "fallen"
+      },
+      "summary": "Volcanic islands the {civ} settled and abandoned."
+    },
+    {
+      "id": "lost_station",
+      "note": "A crewed station that went dark.",
+      "stages": [
+        {
+          "pick": [
+            "station_built"
+          ]
+        },
+        {
+          "pick": [
+            "lab_founded",
+            "reactor_built",
+            "observatory_built",
+            "archive_sealed"
+          ],
+          "optional": true
+        },
+        {
+          "pick": [
+            "station_lost",
+            "nanite_conversion",
+            "colony_abandoned",
+            "colony_withdrawn"
+          ]
+        },
+        {
+          "pick": [
+            "ancient_wreck"
+          ],
+          "optional": true
+        }
+      ],
+      "ends": {
+        "status": [
+          "fallen",
+          "dead"
+        ]
+      },
+      "summary": "A {civ} station that went dark. Its last call was a distress signal."
+    }
+  ]
+}

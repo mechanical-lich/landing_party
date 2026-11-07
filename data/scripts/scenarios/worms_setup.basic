@@ -25,5 +25,11 @@ function on_setup()
         endif
     next attempt
 
-    add_message("Seismic sensors are active. Stay alert.")
+    # Worms are natives: they live where the caves are. A history origin
+    # only says where the sensors first picked them up.
+    if get_flag_or("origin_x", -1) >= 0 then
+        add_message("Seismic sensors are active. The strongest movement is at " + num_to_str(get_flag("origin_x")) + ", " + num_to_str(get_flag("origin_y")) + ". Stay alert.")
+    else
+        add_message("Seismic sensors are active. Stay alert.")
+    endif
 endfunction

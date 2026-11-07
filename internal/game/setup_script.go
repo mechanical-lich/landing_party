@@ -350,7 +350,7 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return float64(1), nil
 	})
 
-	var lastOpenX, lastOpenY int
+	var lastOpenX, lastOpenY, lastOpenZ int
 	interp.RegisterFunc("find_open_tile", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return float64(0), nil
@@ -374,6 +374,57 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		}
 		return float64(0), nil
 	})
+	// find_open_tile_near(x, y, z, radius) is find_open_tile within radius tiles
+	// of (x, y): how a threat grows from a history origin.
+	interp.RegisterFunc("find_open_tile_near", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return float64(0), nil
+		}
+		cx, cy := int(toSetupFloat(args[0])), int(toSetupFloat(args[1]))
+		z, r := int(toSetupFloat(args[2])), int(toSetupFloat(args[3]))
+		if r < 1 {
+			r = 1
+		}
+		for attempt := 0; attempt < 200; attempt++ {
+			x := cx + ctx.rng.Intn(2*r+1) - r
+			y := cy + ctx.rng.Intn(2*r+1) - r
+			if (x-cx)*(x-cx)+(y-cy)*(y-cy) > r*r {
+				continue
+			}
+			tI := level.GetTileAt(x, y, z)
+			if tI == nil {
+				continue
+			}
+			t := tI.(*world.Tile)
+			if !t.IsSolid() && !t.IsWater() && level.GetEntityAt(x, y, z) == nil {
+				lastOpenX = x
+				lastOpenY = y
+				return float64(1), nil
+			}
+		}
+		return float64(0), nil
+	})
+	// find_open_tile_any_z() is find_open_tile on a random level of the map
+	// (every deck of a station); get_open_z reads the level it found.
+	interp.RegisterFunc("find_open_tile_any_z", func(args ...any) (any, error) {
+		w, h, depth := level.GetWidth(), level.GetHeight(), level.GetDepth()
+		for attempt := 0; attempt < 400; attempt++ {
+			x, y, z := ctx.rng.Intn(w), ctx.rng.Intn(h), ctx.rng.Intn(depth)
+			tI := level.GetTileAt(x, y, z)
+			if tI == nil {
+				continue
+			}
+			t := tI.(*world.Tile)
+			if !t.IsSolid() && !t.IsWater() && !world.IsSpaceTile(t) && level.GetEntityAt(x, y, z) == nil {
+				lastOpenX, lastOpenY, lastOpenZ = x, y, z
+				return float64(1), nil
+			}
+		}
+		return float64(0), nil
+	})
+	interp.RegisterFunc("get_open_z", func(args ...any) (any, error) {
+		return float64(lastOpenZ), nil
+	})
 	interp.RegisterFunc("get_open_x", func(args ...any) (any, error) {
 		return float64(lastOpenX), nil
 	})
@@ -388,6 +439,18 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		level.Flags[fmt.Sprint(args[0])] = args[1]
 		return nil, nil
 	})
+	// get_flag_or(key, default) is get_flag with a value for a flag the level
+	// does not have (a lore flag on a site with no history).
+	interp.RegisterFunc("get_flag_or", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return nil, nil
+		}
+		if v, ok := level.Flags[fmt.Sprint(args[0])]; ok && v != nil {
+			return v, nil
+		}
+		return args[1], nil
+	})
+
 	interp.RegisterFunc("get_flag", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil
@@ -395,6 +458,13 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return level.Flags[fmt.Sprint(args[0])], nil
 	})
 
+	// debug_log(text) writes to the developer log, not the player's.
+	interp.RegisterFunc("debug_log", func(args ...any) (any, error) {
+		if len(args) > 0 {
+			log.Printf("[script] %v", args[0])
+		}
+		return nil, nil
+	})
 	interp.RegisterFunc("add_message", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil
@@ -600,6 +670,37 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			lastCaveX = x
 			lastCaveY = y
 			lastCaveZ = z
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
+	// find_cave_tile_near(x, y, radius) is find_cave_tile within radius tiles
+	// of (x, y) at any depth: eggs festering under an impact site.
+	interp.RegisterFunc("find_cave_tile_near", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		cx, cy, r := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		if r < 1 {
+			r = 1
+		}
+		depth := level.GetDepth()
+		for attempt := 0; attempt < 800; attempt++ {
+			x := cx + ctx.rng.Intn(2*r+1) - r
+			y := cy + ctx.rng.Intn(2*r+1) - r
+			z := ctx.rng.Intn(depth)
+			if (x-cx)*(x-cx)+(y-cy)*(y-cy) > r*r || level.GetTerrainKind(x, y, z) != world.TKCavern {
+				continue
+			}
+			tI := level.GetTileAt(x, y, z)
+			if tI == nil {
+				continue
+			}
+			t := tI.(*world.Tile)
+			if t.IsSolid() || t.IsWater() || level.GetEntityAt(x, y, z) != nil {
+				continue
+			}
+			lastCaveX, lastCaveY, lastCaveZ = x, y, z
 			return float64(1), nil
 		}
 		return float64(0), nil

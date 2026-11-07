@@ -1,6 +1,8 @@
+# Zombie Plague. When the site's history gives the plague an origin (the lore
+# flags: origin_x/y/z, origin_event, origin_civ), the first dead rise there and
+# the opening message names who they were. Without one (a level built outside
+# a campaign) the dead rise at medium range from the landing, as before.
 function on_setup()
-    add_message("Day 1. The dead are walking. Something here reanimates corpses - frozen, raging, and headless things are already moving toward your position.")
-
     sx = get_flag("start_x")
     sy = get_flag("start_y")
     sz = get_flag("start_z")
@@ -12,7 +14,44 @@ function on_setup()
     spawn_entity_owned("storage_locker", sx - 3, sy - 3, sz, sname)
     spawn_entity_owned("basic_workbench", sx + 3, sy - 3, sz, sname)
 
-    # Spawn a small wave of zombies at medium range as an immediate threat
+    ox = get_flag("origin_x")
+    if ox >= 0 then
+        rise_from_origin()
+    else
+        rise_near_landing(sx, sy, sz)
+    endif
+
+    set_flag("zombie_plague_started", 1)
+endfunction
+
+# The plague's origin is where the history says it began; the first wave
+# shambles out from within 12 tiles of it.
+function rise_from_origin()
+    ox = get_flag("origin_x")
+    oy = get_flag("origin_y")
+    oz = get_flag("origin_z")
+    civ = get_flag("origin_civ")
+    if civ = "" then
+        add_message("Day 1. The dead are walking. Whatever raised them started out there, and they are coming from it.")
+    else
+        add_message("Day 1. The " + civ + " dead are walking. Whatever raised them started where they fell, and they are coming from it.")
+    endif
+    spawned = 0
+    for attempt = 1 to 300
+        if spawned < 5 then
+            found = find_open_tile_near(ox, oy, oz, 12)
+            if found = 1 then
+                spawn_entity("zombie", get_open_x(), get_open_y(), oz)
+                spawned = spawned + 1
+            endif
+        endif
+    next attempt
+    set_flag("zombie_origin_spawned", spawned)
+endfunction
+
+# No history: a small wave at medium range from the landing.
+function rise_near_landing(sx, sy, sz)
+    add_message("Day 1. The dead are walking. Something here reanimates corpses - frozen, raging, and headless things are already moving toward your position.")
     spawned = 0
     for attempt = 1 to 300
         if spawned < 5 then
@@ -30,6 +69,4 @@ function on_setup()
             endif
         endif
     next attempt
-
-    set_flag("zombie_plague_started", 1)
 endfunction

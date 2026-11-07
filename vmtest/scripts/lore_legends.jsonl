@@ -1,0 +1,30 @@
+{"name":"lore_legends","seed":746}
+# Land on the wreck site of seed 746, pick up a lore datapad, open the
+# dashboard's Legends tab: the datapad's event is in the chronicle.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore Legends"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"746"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"campaign.known_events","eq":0}
+{"op":"click","target":"row:locList:sys_58"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"datapad"}
+{"op":"wait_until","path":"campaign.known_events","gte":2,"max_ticks":120}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:legends"}
+{"op":"assert","path":"dash_tab","eq":"legends"}
+{"op":"assert","path":"legends.#","gte":2}
+{"op":"assert","path":"legends_text","contains":"a Gorunth ship came down hard on Drift Tract"}
+{"op":"screenshot","name":"legends"}

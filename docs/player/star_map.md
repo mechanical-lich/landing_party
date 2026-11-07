@@ -163,6 +163,10 @@ and filters.
 5. **Travel Here** to the next world, or back to a paused one.
 6. **Save Expedition** any time from the Star Map.
 
+Each world's summary on the Star Map comes from its history; the
+[Legends](legends.md) tab of the dashboard collects everything you have learned
+about it.
+
 ## Quests
 
 Quests are your objectives — there is no per-planet win or loss any more.

@@ -23,7 +23,7 @@ function on_setup()
                 cz = get_cave_z()
                 spawn_entity("yeti", cx, cy, cz)
                 yetis_spawned = yetis_spawned + 1
-                add_message("Yeti spawned at " + num_to_str(cx) + ", " + num_to_str(cy) + ", " + num_to_str(cz))
+                debug_log("Yeti spawned at " + num_to_str(cx) + ", " + num_to_str(cy) + ", " + num_to_str(cz))
             endif
         endif
     next attempt

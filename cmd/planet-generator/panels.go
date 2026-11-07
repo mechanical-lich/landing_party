@@ -51,6 +51,10 @@ func (a *app) buildOptionsPanel() {
 	}
 	if u.cycle("Scenario", o.scenNames, &o.scenarioIdx) {
 		o.applyScenario()
+		o.fromHistory = false // a hand-picked scenario wins
+		changed = true
+	}
+	if u.toggle("Scenario from history (as charting will)", &o.fromHistory) {
 		changed = true
 	}
 	x, w := u.panel.x+panelPad, u.contentWidth()
@@ -264,6 +268,8 @@ func (a *app) buildInfoPanel() {
 		}
 	}
 
+	a.buildHistory()
+
 	u.header("Results")
 	u.label(fmt.Sprintf("%dx%dx%d  generated in %dms", lvl.GetWidth(), lvl.GetHeight(), lvl.GetDepth(), a.genTime.Milliseconds()), colText)
 	u.label(fmt.Sprintf("Hostiles/fauna %d   Entities %d", a.stats.hostiles, a.stats.entities), colText)
@@ -331,6 +337,7 @@ func (a *app) drawOverview(dst *ebiten.Image, r rect) {
 		}
 		vector.DrawFilledRect(dst, float32(r.x)+float32(pc.GetX())*sx-1, float32(r.y)+float32(pc.GetY())*sy-1, 3, 3, col, false)
 	}
+	a.drawOriginsOverview(dst, r, sx, sy)
 	// Camera rectangle, clipped to the map since the camera can overhang the edges.
 	x0 := max(float32(c.X)*sx, 0)
 	y0 := max(float32(c.Y)*sy, 0)

@@ -20,5 +20,12 @@
         { "kind": "lava_lake", "count": 14, "count_max": 26, "params": { "tile": "ice", "radius": 4 } },
         { "kind": "lava_lake", "count": 4, "count_max": 9, "params": { "tile": "ice", "radius": 8 } },
         { "kind": "radiation_pocket", "count": 2, "count_max": 5, "params": { "peak": 100, "radius": 3 } }
-    ]
+    ],
+    "present": {
+        "life": ["native"],
+        "status": ["untouched", "fallen"],
+        "arcs": ["pristine", "ice_age_buried", "ancient_natives", "fallen_colony"],
+        "quiet_weight": 18
+    },
+    "base_scenario": "yeti_territory"
 }

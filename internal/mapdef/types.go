@@ -26,6 +26,28 @@ type MapDef struct {
 	// Internal marks a map that only hand-placed locations use (the tutorial's
 	// Training Ground). Random() never returns it.
 	Internal bool `json:"internal,omitempty"`
+
+	// Present is the state a site's generated history must end in on this map
+	// (see internal/history). nil means history skips the map (the tutorial).
+	Present *Present `json:"present,omitempty"`
+	// BaseScenario is what a site on this map plays as when its history ends
+	// on the quiet outcome rather than a threat chapter.
+	BaseScenario string `json:"base_scenario,omitempty"`
+}
+
+// Present is a map's present-day planet state: what its history has to explain.
+type Present struct {
+	// Life and Status list the allowed final values (any of).
+	Life   []string `json:"life"`
+	Status []string `json:"status"`
+	// Arcs are the story shapes (data/history/arcs.json) that can lead here.
+	Arcs []string `json:"arcs"`
+	// QuietWeight weighs the quiet outcome (BaseScenario) against the threat
+	// chapters' per-map weights.
+	QuietWeight int `json:"quiet_weight"`
+	// QuietSafe marks the quiet outcome (BaseScenario) as calm enough for a
+	// first landing (see history.BindSiteSafe).
+	QuietSafe bool `json:"quiet_safe,omitempty"`
 }
 
 // Clone returns a copy whose terrain params, biome list and feature list can be
@@ -127,4 +149,7 @@ type FeatureBlock struct {
 	MinZ     int            `json:"min_z,omitempty"`
 	MaxZ     int            `json:"max_z,omitempty"`
 	Params   map[string]any `json:"params,omitempty"`
+	// At anchors the feature at a resolved site origin: "origin" is the site
+	// chapter's (history evidence uses its own event's). See generation.Origin.
+	At string `json:"at,omitempty"`
 }

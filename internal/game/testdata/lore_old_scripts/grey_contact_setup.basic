@@ -1,0 +1,56 @@
+function on_setup()
+    add_message("Day 1. The vessel is dark and still. Something is moving inside.")
+
+    n = get_region_count("starting_floor")
+    if n > 0 then
+        sx = get_region_x("starting_floor", 0)
+        sy = get_region_y("starting_floor", 0)
+        sz = get_region_z("starting_floor", 0)
+    else
+        sx = get_flag("start_x")
+        sy = get_flag("start_y")
+        sz = get_flag("start_z")
+    endif
+
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    spawn_entity_owned("storage_locker", sx, sy, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 1, sy, sz, sname)
+
+    # Scatter greyish across all floors of the station
+    greyish_spawned = 0
+    for attempt = 1 to 400
+        if greyish_spawned < 8 then
+            found = find_open_tile_any_z()
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                oz = get_open_z()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 100 then
+                    pick = rnd_int(4)
+                    if pick = 0 then
+                        spawn_entity("greenish", ox, oy, oz)
+                    else
+                        if pick = 1 then
+                            spawn_entity("pinkish", ox, oy, oz)
+                        else
+                            if pick = 2 then
+                                spawn_entity("whitish", ox, oy, oz)
+                            else
+                                spawn_entity("greyish", ox, oy, oz)
+                            endif
+                        endif
+                    endif
+                    greyish_spawned = greyish_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    add_message(num_to_str(greyish_spawned) + " alien contacts detected aboard the vessel.")
+    set_flag("grey_contact_started", 1)
+endfunction

@@ -18,6 +18,13 @@
 # Recommended footprint: 21x17 or larger.
 # Entrypoint contract: generate(x, y, w, h)
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -100,24 +107,44 @@ function generate(x, y, w, h)
             boss_room = rnd_int(2)
             if boss_room = 0 then
                 # NE room
-                spawn_entity("mutant_brute",   se_cx, nw_cy, sz - level)
-                add_epithet(se_cx, nw_cy, sz - level)
-                mark_quest_target(se_cx, nw_cy, sz - level)
+                if guards = 1 then
+                    spawn_entity("mutant_brute",   se_cx, nw_cy, sz - level)
+                endif
+                if guards = 1 then
+                    add_epithet(se_cx, nw_cy, sz - level)
+                endif
+                if guards = 1 then
+                    mark_quest_target(se_cx, nw_cy, sz - level)
+                endif
                 spawn_entity("storage_locker", nw_cx, se_cy, sz - level)
             endif
             if boss_room = 1 then
                 # SW room
-                spawn_entity("mutant_brute",   nw_cx, se_cy, sz - level)
-                add_epithet(nw_cx, se_cy, sz - level)
-                mark_quest_target(nw_cx, se_cy, sz - level)
+                if guards = 1 then
+                    spawn_entity("mutant_brute",   nw_cx, se_cy, sz - level)
+                endif
+                if guards = 1 then
+                    add_epithet(nw_cx, se_cy, sz - level)
+                endif
+                if guards = 1 then
+                    mark_quest_target(nw_cx, se_cy, sz - level)
+                endif
                 spawn_entity("storage_locker", se_cx, nw_cy, sz - level)
             endif
 
             # Guards scattered across all four rooms
-            spawn_entity_named("mutant_grunt", ax - 2, ay,     sz - level, "Hideout Guard")
-            spawn_entity_named("mutant_grunt", bx + 2, by,     sz - level, "Hideout Guard")
-            spawn_entity_named("mutant_grunt", se_cx,  nw_cy + 2, sz - level, "Hideout Guard")
-            spawn_entity_named("mutant_grunt", nw_cx,  se_cy - 2, sz - level, "Hideout Guard")
+            if guards = 1 then
+                spawn_entity_named("mutant_grunt", ax - 2, ay,     sz - level, "Hideout Guard")
+            endif
+            if guards = 1 then
+                spawn_entity_named("mutant_grunt", bx + 2, by,     sz - level, "Hideout Guard")
+            endif
+            if guards = 1 then
+                spawn_entity_named("mutant_grunt", se_cx,  nw_cy + 2, sz - level, "Hideout Guard")
+            endif
+            if guards = 1 then
+                spawn_entity_named("mutant_grunt", nw_cx,  se_cy - 2, sz - level, "Hideout Guard")
+            endif
         endif
 
         flip = 1 - flip

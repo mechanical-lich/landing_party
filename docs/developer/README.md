@@ -16,6 +16,7 @@ Architecture notes, system references, and guides for extending the game.
 - [Structure Scripts](structure_scripts.md) — procedural structure generation via mechanical-basic scripts; quest-target binding
 - [Tile Definitions](tile_definitions.md) — the `data/tiledefinitions/` catalog, load order, the `empty` sentinel invariant, and save portability
 - [Names](names.md) — `data/names.json`, the `<type>` placeholder pattern for blueprints, seeded vs unseeded generation, and epithets
+- [Lore & History](lore.md) — the generated history, its data files, the star date, lore flags for scripts, live history, Legends and history quests
 - [Campaign & Overworld](campaign.md) — the ship hub, Star Map, fuel travel, beaming, quests, and multi-location persistence
 - [Tutorial](tutorial.md) — the guided first landing: step data, the director, ui.* flags, highlights, the Training Ground
 - [VM Play-Testing](vmtest.md) — run the real game headless from a script, read its frames and state, diff two runs

@@ -6,7 +6,9 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/mlge/ecs"
 )
 
 // FeatureSpec is the JSON shape for a feature placement directive.
@@ -23,6 +25,11 @@ type FeatureSpec struct {
 	MinZ     int            `json:"min_z,omitempty"`
 	MaxZ     int            `json:"max_z,omitempty"`
 	Params   map[string]any `json:"params,omitempty"`
+	// At anchors the feature at a resolved origin (see ResolveOrigins): "origin"
+	// is the site's chapter origin, "origin:<event>" a given event's. Anchored
+	// candidates are drawn around it (Jitter, default 3). With no such origin
+	// on the level, or "", the feature places as an ordinary one.
+	At string `json:"at,omitempty"`
 }
 
 // FeaturePlacer places a single instance of a feature at a chosen anchor.
@@ -92,8 +99,10 @@ func rollRange(rng *rand.Rand, min, max int) int {
 func placeAnchors(level *world.Level, s FeatureSpec, rng *rand.Rand, defCount int, place func(cx, cy int) bool) {
 	count := rollCount(s, rng, defCount)
 	// Scale by the map's size roll so areal density is constant. Round to
-	// nearest, but never drop an authored feature to zero.
-	if m := level.FeatureAreaMultiplier(); m != 1 {
+	// nearest, but never drop an authored feature to zero. A feature anchored
+	// at an origin is a count of things in one place, not a density: it is
+	// never scaled.
+	if m := level.FeatureAreaMultiplier(); m != 1 && s.At == "" {
 		count = int(math.Round(float64(count) * m))
 		if count < 1 {
 			count = 1
@@ -151,6 +160,22 @@ func sampleSource(s FeatureSpec) string {
 // sampler even though it has ample tiles. Returns ok=false when the feature can
 // never place (empty region, or the biome is absent from this map).
 func featureSampler(level *world.Level, s FeatureSpec, rng *rand.Rand) (next func() (int, int), ok bool) {
+	if s.At != "" {
+		ox, oy, _, found := Origin(level, s.At)
+		if !found {
+			// No such origin on this level (a scenario's anchored feature on a
+			// site with no history): place it as an ordinary feature.
+			s.At = ""
+			return featureSampler(level, s, rng)
+		}
+		jitter := s.Jitter
+		if jitter <= 0 {
+			jitter = 3
+		}
+		return func() (int, int) {
+			return ox + randIntn(rng, jitter*2+1) - jitter, oy + randIntn(rng, jitter*2+1) - jitter
+		}, true
+	}
 	switch {
 	case s.InRegion != "":
 		anchors := level.Regions[s.InRegion]
@@ -211,7 +236,9 @@ func errFeature(kind, msg string) error {
 // Registered by the game package at startup to avoid a circular import. seed
 // makes the invoked script's randomness reproducible; the stamp placer derives
 // it from the build's RNG so the whole level reproduces from one location seed.
-type StructureRunnerFunc func(level *world.Level, name string, x, y, w, h int, seed int64) error
+// params are passed through to the script's get_param (a stamp's extra params,
+// so a structure can name what it marks).
+type StructureRunnerFunc func(level *world.Level, name string, x, y, w, h int, params map[string]any, seed int64) error
 
 var structureRunner StructureRunnerFunc
 
@@ -221,11 +248,50 @@ func SetStructureRunner(fn StructureRunnerFunc) {
 	structureRunner = fn
 }
 
-func runStructure(level *world.Level, name string, x, y, w, h int, seed int64) error {
+func runStructure(level *world.Level, name string, x, y, w, h int, params map[string]any, seed int64) error {
 	if structureRunner == nil {
 		return fmt.Errorf("stamp: structure runner not registered")
 	}
-	return structureRunner(level, name, x, y, w, h, seed)
+	ClearFootprint(level, x, y, w, h)
+	return structureRunner(level, name, x, y, w, h, params, seed)
+}
+
+// ClearFootprint removes every entity standing on the surface inside a
+// structure's footprint (flora, fauna, loose items, scatter spawns), sparing
+// colonists, datapads and quest targets, before the structure paints. A paint only clears a tile it makes
+// solid, so without this a bush or a critter stays inside a room. It runs
+// once, before the script, so occupants a script spawns after painting are
+// untouched. Returns how many it removed.
+func ClearFootprint(level *world.Level, x, y, w, h int) int {
+	sz := level.GetSurfaceZ(x+w/2, y+h/2)
+	var buf []*ecs.Entity
+	removed := 0
+	for cy := y; cy < y+h; cy++ {
+		for cx := x; cx < x+w; cx++ {
+			if cx < 0 || cy < 0 || cx >= level.GetWidth() || cy >= level.GetHeight() {
+				continue
+			}
+			zs := []int{sz}
+			if cz := level.GetSurfaceZ(cx, cy); cz >= 0 && cz != sz {
+				zs = append(zs, cz)
+			}
+			for _, z := range zs {
+				if z < 0 || z >= level.GetDepth() {
+					continue
+				}
+				buf = buf[:0]
+				level.GetEntitiesAt(cx, cy, z, &buf)
+				for _, e := range buf {
+					if e == nil || e.HasComponents(components.Worker, components.Settlement) || e.HasComponent(components.Datapad) || e.HasComponent(components.QuestTarget) {
+						continue
+					}
+					level.RemoveEntity(e)
+					removed++
+				}
+			}
+		}
+	}
+	return removed
 }
 
 var warnedUnknownTile = map[string]bool{}

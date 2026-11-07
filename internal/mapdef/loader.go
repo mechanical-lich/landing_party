@@ -13,29 +13,41 @@ var loaded []MapDef
 // Load reads every *.json file in dir as a MapDef. Replaces any previously
 // loaded set.
 func Load(dir string) error {
+	maps, err := ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	loaded = append(loaded[:0], maps...)
+	return nil
+}
+
+// ReadDir reads every map definition in dir without touching the loaded set,
+// for callers (the history library) that need the maps before or apart from
+// the game's own load.
+func ReadDir(dir string) ([]MapDef, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("mapdef.Load: %w", err)
+		return nil, fmt.Errorf("mapdef.Load: %w", err)
 	}
-	loaded = loaded[:0]
+	var out []MapDef
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
-			return fmt.Errorf("mapdef.Load %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf("mapdef.Load %s: %w", entry.Name(), err)
 		}
 		var m MapDef
 		if err := json.Unmarshal(data, &m); err != nil {
-			return fmt.Errorf("mapdef.Load %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf("mapdef.Load %s: %w", entry.Name(), err)
 		}
 		if err := m.Size.Validate(); err != nil {
-			return fmt.Errorf("mapdef.Load %s: size: %w", entry.Name(), err)
+			return nil, fmt.Errorf("mapdef.Load %s: size: %w", entry.Name(), err)
 		}
-		loaded = append(loaded, m)
+		out = append(out, m)
 	}
-	return nil
+	return out, nil
 }
 
 // All returns every loaded map definition.

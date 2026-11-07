@@ -245,7 +245,7 @@ func captureStamps(t *testing.T) *[][2]int {
 	got := &[][2]int{}
 	prev := structureRunner
 	t.Cleanup(func() { structureRunner = prev })
-	SetStructureRunner(func(_ *world.Level, _ string, x, y, _, _ int, _ int64) error {
+	SetStructureRunner(func(_ *world.Level, _ string, x, y, _, _ int, _ map[string]any, _ int64) error {
 		*got = append(*got, [2]int{x, y})
 		return nil
 	})

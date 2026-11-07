@@ -74,6 +74,7 @@ func NewDashboardState(c *campaign.Campaign, wm *WorldManager) *DashboardState {
 		{"inventory", "Global Inventory", newGlobalInvPanel(c, wm, d.storageInspector)},
 		{"quests", "Quests", newQuestsPanel(c, wm)},
 		{"encyclopedia", "Encyclopedia", newEncyclopediaPanel(c, wm)},
+		{"legends", "Legends", newLegendsPanel(c)},
 	}
 
 	cfg := config.Global()
@@ -237,7 +238,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	} else if d.campaign.IsAdrift() {
 		site = "ADRIFT: " + loc.Name + " — choose a destination"
 	}
-	info := fmt.Sprintf("Fuel: %d      Day: %d      %s", d.fuelAvailable(), d.campaign.Day, site)
+	info := fmt.Sprintf("Fuel: %d      Star Date: %d      %s", d.fuelAvailable(), d.campaign.Day(), site)
 	mlge_text.Draw(screen, info, 14, 20, 56, color.RGBA{160, 185, 215, 255})
 
 	if d.active >= 0 && d.active < len(d.tabs) {

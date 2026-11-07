@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
@@ -17,6 +18,8 @@ func useRepoData(t *testing.T) {
 	QuestTemplatePath = "../../data/quest_templates.json"
 	GenerationConfigPath = "../../data/generation.json"
 	lore.NamesPath = "../../data/names.json"
+	history.DataDir = "../../data/history"
+	history.MapsDir = "../../data/maps"
 }
 
 func genCampaign(t *testing.T, seed int64) *Campaign {

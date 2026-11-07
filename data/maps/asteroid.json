@@ -17,5 +17,13 @@
         { "kind": "ore_vein", "count": 7, "count_max": 14, "in_region": "asteroid", "jitter": 8, "params": { "tile": "ore_deposit", "radius": 2, "radius_max": 3 } },
         { "kind": "ore_vein", "count": 2, "count_max": 6, "in_region": "asteroid", "jitter": 8, "params": { "tile": "crystal_vein", "radius": 2, "radius_max": 3 } },
         { "kind": "radiation_pocket", "count": 4, "count_max": 9, "in_region": "asteroid", "jitter": 10, "params": { "peak": 220, "radius": 4 } }
-    ]
+    ],
+    "present": {
+        "life": ["none"],
+        "status": ["untouched", "fallen", "dead"],
+        "arcs": ["lifeless", "mining_claim", "battle_debris", "failed_colony"],
+        "quiet_weight": 32,
+        "quiet_safe": true
+    },
+    "base_scenario": "asteroid_field"
 }

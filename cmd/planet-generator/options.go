@@ -10,6 +10,7 @@ import (
 
 	"github.com/mechanical-lich/landing_party/internal/game"
 	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/mapdef"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -125,6 +126,12 @@ type options struct {
 	spawns        bool
 	ambient       int
 	features      []*featureRow
+
+	// lib is the history library (nil if it failed to load); fromHistory picks
+	// the scenario from the site's history; lore is the bound history.
+	lib         *history.Library
+	fromHistory bool
+	lore        siteLore
 }
 
 func newOptions() (*options, error) {
@@ -144,6 +151,9 @@ func newOptions() (*options, error) {
 	sort.Slice(o.mapDefs, func(i, j int) bool { return o.mapDefs[i].ID < o.mapDefs[j].ID })
 	for _, m := range o.mapDefs {
 		o.mapNames = append(o.mapNames, m.ID)
+	}
+	if lib, err := history.LoadLibrary(history.DataDir, mapdef.All()); err == nil {
+		o.lib = lib
 	}
 	o.scenarios = append(o.scenarios, scenario.AllEnabled()...)
 	sort.Slice(o.scenarios, func(i, j int) bool { return o.scenarios[i].ID < o.scenarios[j].ID })
@@ -319,6 +329,11 @@ func (o *options) spec() game.PlanetLabSpec {
 	if o.lightIdx > 0 {
 		spec.LightingMode = lightModes[o.lightIdx]
 		spec.LightingAmbient = o.ambient
+	}
+	// With the scenario from history the level is built as the game builds a
+	// charted site: evidence at resolved origins, lore flags, lore datapads.
+	if o.fromHistory && o.lore.site != nil && o.lore.site.Map == md.ID {
+		spec.History, spec.Site = o.lore.h, o.lore.site
 	}
 	return spec
 }

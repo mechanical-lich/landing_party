@@ -23,5 +23,13 @@
         { "kind": "scatter_tile", "count": 50, "count_max": 120, "biome": "tundra", "params": { "tile": "ice", "kind": "surface" } },
         { "kind": "lava_lake", "count": 8, "count_max": 16, "biome": "tundra", "params": { "tile": "ice", "radius": 3 } },
         { "kind": "lava_lake", "count": 2, "count_max": 6, "biome": "tundra", "params": { "tile": "ice", "radius": 5 } }
-    ]
+    ],
+    "present": {
+        "life": ["native"],
+        "status": ["untouched", "fallen"],
+        "arcs": ["pristine", "collapsed_civilization", "fallen_colony", "ancient_natives"],
+        "quiet_weight": 35,
+        "quiet_safe": true
+    },
+    "base_scenario": "earth_like"
 }

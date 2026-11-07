@@ -1,8 +1,12 @@
 # Lore and History — Plan
 
-Status (2026-11-03): **plan only, nothing built.** Line references are to `dev`
-at `68b0b9a`. Open questions were answered by the owner the same day; the
-answers are folded in below.
+Status (2026-11-07): **steps 1–5 implemented** on branch
+`claude/lore-history-4d1fe2`, not yet merged; step 6 is deferred to the enemy
+factions work. How it was built differs from this plan in places: see
+[Implementation notes](#implementation-notes) at the end, and
+[docs/developer/lore.md](../developer/lore.md) for the system as built.
+The plan below is the original (2026-11-03, line references to `dev` at
+`68b0b9a`), with the owner's answers folded in.
 
 ## Decision
 
@@ -409,7 +413,7 @@ Live events are dated in the star date, which this plan introduces in step 1.
 4. **Live history and Legends.** The recorder, known events and the Legends
    screen.
 5. **Quests from history.**
-6. **A living world**, shared with the enemy factions plan: plagues and hives
+6. **Deferred to the enemy factions work.** **A living world**, shared with the enemy factions plan: plagues and hives
    spreading between sites, civs acting between jumps.
 
 ## Tests
@@ -476,3 +480,55 @@ Live events are dated in the star date, which this plan introduces in step 1.
   wipes as ordinary events so the Legends screen can tell them. History
   `Civs` and faction doctrines stay separate too; a history civ that maps to
   a playable species (`Civ.Species`) is flavour, not a presence.
+
+## Implementation notes
+
+Built 2026-11-06/07 on `claude/lore-history-4d1fe2`. Where the code differs
+from the plan above:
+
+- **Package.** The model, generator and renderer live in `internal/history`,
+  below `campaign` (campaign imports history, never the reverse).
+- **Uninhabited, not lifeless.** Maps whose present needs life (earth_like,
+  frozen, alien, ocean) can't be "truly lifeless", so the 25% roll picks an
+  *uninhabited* arc: `lifeless` on maps that allow no life, `pristine`,
+  `pristine_alien` or `drone_station` elsewhere. Uninhabited arcs name pool
+  civs only as visitors; no resident, figure or population.
+- **reactor_meltdown split.** The plan's example both killed all life and
+  carried `crystalline_blight` (alien maps only). `reactor_meltdown` is a
+  whole-planet arc event; a new chapter, `reactor_mutation`, carries
+  `alien_world`.
+- **Desert and frozen quiet scenarios.** No empty scenario exists for them,
+  so their `base_scenario` is `worms` and `yeti_territory`.
+- **Home keeps its scenario list.** Removing it would drop a random draw and
+  shift every later site; archetypes lost theirs, with a discard draw in
+  place of the old scenario roll so a seed's maps, positions and names are
+  unchanged (golden test).
+- **Names never change.** No event names a planet, so charting keeps the
+  rolled name; the Star Map summary is the arc's summary plus the chapter's
+  omen.
+- **Archetype spawn_event.** Retiring the archetype lists would have stopped
+  hive worlds having xenos; archetypes (and contracts) can name a
+  `spawn_event`, and `hive` ends in `infested_colonists`.
+- **Safe first jump.** Sites within `safe_start_radius` of the Wreck Site end
+  only in a `quiet_safe` quiet or a `safe_start` chapter (only
+  `scout_accident` so far).
+- **Origins.** Resolved after terrain and biome painting, before any feature
+  (trees included); on a station, to the nearest walkable floor. Stored in
+  the level's saved flags and tagged as region `lore_origin`.
+- **Wrecks are old hulls.** History wreck stamps pass `crew: "dead"`; before
+  that every ancient wreck had live greys. `grey_contact`'s script called a
+  function that did not exist and never spawned anything on `dev`; fixed.
+- **Death events via EntityDamagedEvent.** `EntityKilledEvent` only fires for
+  kills by colonists and carries names only; the recorder remembers each
+  victim's last attacker from `EntityDamagedEvent` and records from the
+  cleanup death hook. No event was extended.
+- **Threat cleared** is recorded only for finite threats (scenario
+  `threat_blueprints`: xenos, troids); spawners like zombies never clear.
+- **Place nouns.** Events carry a `place` ("the vault", "the reactor") for
+  quest lines.
+- **Quest datapads** carry the site's story event (its chapter, else its
+  latest event): quests are tag-rolled and have no event of their own.
+- **History quests must be accepted first.** They are offered like any quest;
+  if their event is already known when accepted, they complete on the next
+  quest check.
+

@@ -142,6 +142,7 @@ func TestLoadRefusesCampaignWithoutLocationSettlements(t *testing.T) {
 	b0Campaign(t, "a")
 	root := campaignRoot("Old")
 	writeOldCampaign(t, root, &campaign.Campaign{
+		Version:   campaign.CampaignVersion,
 		Name:      "Old",
 		Locations: map[string]*campaign.Location{"a": {ID: "a", SaveFile: "loc_a.json.gz"}},
 	})
@@ -150,6 +151,7 @@ func TestLoadRefusesCampaignWithoutLocationSettlements(t *testing.T) {
 	}
 	// A location never visited has no save to be out of date.
 	writeOldCampaign(t, root, &campaign.Campaign{
+		Version:   campaign.CampaignVersion,
 		Name:      "Old",
 		Locations: map[string]*campaign.Location{"a": {ID: "a"}},
 	})

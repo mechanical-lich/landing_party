@@ -14,6 +14,7 @@
         {
             "kind": "stamp",
             "count": 1,
+            "at": "origin",
             "params": {
                 "script": "underground_dungeon",
                 "w": 25,

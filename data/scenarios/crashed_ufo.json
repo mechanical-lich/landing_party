@@ -20,6 +20,7 @@
         {
             "kind": "stamp",
             "count": 1,
+            "at": "origin",
             "params": {
                 "script": "crashed_ufo",
                 "w": 17,

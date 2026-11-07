@@ -12,6 +12,13 @@
 # Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
 # corner of the footprint the dispatcher allocated.
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -99,11 +106,21 @@ function generate(x, y, w, h)
     spawn_entity("storage_locker", x + 1, y + 1, sz - depth)
 
     # The warden — quest target with a boss epithet.
-    spawn_entity("mutant_brute", cx, cy + 2, sz - depth)
-    add_epithet(cx, cy + 2, sz - depth)
-    mark_quest_target(cx, cy + 2, sz - depth)
+    if guards = 1 then
+        spawn_entity("mutant_brute", cx, cy + 2, sz - depth)
+    endif
+    if guards = 1 then
+        add_epithet(cx, cy + 2, sz - depth)
+    endif
+    if guards = 1 then
+        mark_quest_target(cx, cy + 2, sz - depth)
+    endif
 
     # A pair of guards flanking the warden.
-    spawn_entity_named("mutant_grunt", cx - 2, cy + 2, sz - depth, "Bunker Sentry")
-    spawn_entity_named("mutant_grunt", cx + 2, cy + 2, sz - depth, "Bunker Sentry")
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", cx - 2, cy + 2, sz - depth, "Bunker Sentry")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", cx + 2, cy + 2, sz - depth, "Bunker Sentry")
+    endif
 endfunction

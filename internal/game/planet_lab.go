@@ -5,9 +5,11 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/effect"
 	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/mapdef"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
@@ -27,8 +29,8 @@ const labSettleTicks = 2
 
 // LoadPlanetLabData loads the generation data the title screen loads in the game.
 func LoadPlanetLabData() error {
-	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int, seed int64) error {
-		return RunStructureScript(level, name, x, y, w, h, seed)
+	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int, params map[string]any, seed int64) error {
+		return RunStructureScriptWithParams(level, name, x, y, w, h, params, seed)
 	})
 	if err := scenario.Load("data/scenarios"); err != nil {
 		return err
@@ -49,6 +51,11 @@ type PlanetLabSpec struct {
 	LightingMode    string
 	LightingAmbient int
 	SuppressSpawns  bool
+	// History and Site, when set, build the level as the game builds a
+	// charted site: the history's evidence anchored at resolved origins, lore
+	// flags for the setup scripts, and lore datapads at the origins.
+	History *history.History
+	Site    *history.SiteHistory
 }
 
 // PlanetLab is a generated location running the game's real simulation, without
@@ -66,7 +73,7 @@ func NewPlanetLab(spec PlanetLabSpec) (*PlanetLab, error) {
 	for name := range settlement.Settlements {
 		delete(settlement.Settlements, name)
 	}
-	s, err := newMainStateBase(SettlementConfig{
+	cfg := SettlementConfig{
 		Name:            planetLabColony,
 		ColonyName:      planetLabColony,
 		MapID:           spec.Map.ID,
@@ -74,7 +81,12 @@ func NewPlanetLab(spec PlanetLabSpec) (*PlanetLab, error) {
 		LightingMode:    spec.LightingMode,
 		LightingAmbient: spec.LightingAmbient,
 		CampaignMode:    true,
-	})
+	}
+	lore, hasLore := siteLoreFor(spec.History, spec.Site)
+	if hasLore {
+		lore.apply(&cfg)
+	}
+	s, err := newMainStateBase(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +98,11 @@ func NewPlanetLab(spec PlanetLabSpec) (*PlanetLab, error) {
 	md := spec.Map
 	s.generate(&md, spec.Scenario, spec.Width, spec.Height, spec.Depth, spec.Seed)
 	s.applyScenarioLighting(s.level) // generate only does this when there's a scenario
+	if hasLore {
+		// The game spawns these as location fixtures on arrival; same code here.
+		loc := &campaign.Location{Name: "Planet Lab", Seed: spec.Seed, Fixtures: campaign.LoreDatapadFixtures(lore.evidence.Datapads)}
+		spawnLocationFixtures(nil, loc, s.level)
+	}
 	s.gm.suppressSpawns = spec.SuppressSpawns
 	s.level.RevealAll = true
 

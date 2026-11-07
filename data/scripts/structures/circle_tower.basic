@@ -18,6 +18,13 @@
 #
 # Recommended footprint: 25×25 or larger.
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -108,7 +115,19 @@ function generate(x, y, w, h)
                 break
             endif
             ang = rnd_int(8)
-            if used[ang] = 0 then
+            # Neighbouring ring slots sit 2-3 tiles apart and rooms are 4-5
+            # wide, so rooms in neighbouring slots would lay their walls side
+            # by side (drawn as a row of posts): a slot next to a used one is
+            # skipped, so a floor holds at most four rooms.
+            ang_l = ang - 1
+            if ang_l < 0 then
+                ang_l = 7
+            endif
+            ang_r = ang + 1
+            if ang_r > 7 then
+                ang_r = 0
+            endif
+            if used[ang] = 0 and used[ang_l] = 0 and used[ang_r] = 0 then
                 used[ang] = 1
 
                 room_w = 4 + rnd_int(2)
@@ -202,9 +221,13 @@ function generate(x, y, w, h)
         # Guards on the upper floors — placed along the perimeter so they
         # generally don't spawn inside a sub-room.
         if floor > 0 then
-            spawn_entity_named("mutant_grunt", cx, cy + r - 2, fz, "Tower Guard")
+            if guards = 1 then
+                spawn_entity_named("mutant_grunt", cx, cy + r - 2, fz, "Tower Guard")
+            endif
             if floor > 1 then
-                spawn_entity_named("mutant_grunt", cx, cy - r + 2, fz, "Tower Guard")
+                if guards = 1 then
+                    spawn_entity_named("mutant_grunt", cx, cy - r + 2, fz, "Tower Guard")
+                endif
             endif
         endif
     next floor
@@ -226,8 +249,14 @@ function generate(x, y, w, h)
 
     # ── Top floor: boss + loot ────────────────────────────────────────────
     top_z = sz + height - 1
-    spawn_entity("mutant_brute", cx, cy + 3, top_z)
-    add_epithet(cx, cy + 3, top_z)
-    mark_quest_target(cx, cy + 3, top_z)
+    if guards = 1 then
+        spawn_entity("mutant_brute", cx, cy + 3, top_z)
+    endif
+    if guards = 1 then
+        add_epithet(cx, cy + 3, top_z)
+    endif
+    if guards = 1 then
+        mark_quest_target(cx, cy + 3, top_z)
+    endif
     spawn_entity("storage_locker", cx, cy - 3, top_z)
 endfunction

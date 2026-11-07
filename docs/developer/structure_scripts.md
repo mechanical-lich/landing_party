@@ -83,7 +83,22 @@ Finds the entity at `(x, y, z)`, attaches a `QuestTargetComponent` linking it to
 
 Read and write named parameters in the current param frame. Parameters are the primary mechanism for passing configuration into a script without embedding magic constants.
 
-The caller (quest fixture dispatch) pre-populates `quest_id` before invoking `generate`. Child scripts invoked via `gen_structure` receive a copy of the parent's frame and cannot write back to it.
+The caller (quest fixture dispatch) pre-populates `quest_id` before invoking `generate`. Child scripts invoked via `gen_structure` receive a copy of the parent's frame and cannot write back to it. A `stamp` feature passes every param except `script`, `w` and `h` through.
+
+### The `occupants` param
+
+Every structure script reads `occupants`. `"none"` builds the structure empty: no mutant brute (and so no quest target), no named guards; lockers and loot stay. Anything else, or the param absent, keeps the structure's guards, so quest fixtures and scenario stamps (which pass nothing) are unchanged. History evidence passes `"none"` for every stamp (a ruin on a site is not a lair); `crashed_ufo` treats `"none"` like `crew: "dead"`.
+
+| Script | Default occupants |
+|---|---|
+| `abandoned_reactor` | mutant brute (quest target) + 4 "Reactor Guard" grunts |
+| `bunker` | mutant brute + 2 "Bunker Sentry" grunts |
+| `castle` | mutant brute + 4 "Castle Guard" grunts |
+| `circle_tower`, `circle_ruined_tower` | "Tower Guard" grunts on the floors + mutant brute on top |
+| `underground_bunker` | mutant brute + 2 "Bunker Sentry" grunts at the bottom |
+| `underground_dungeon` | mutant brute + 3 "Dungeon Guard" grunts |
+| `underground_hideout` | mutant brute + 4 "Hideout Guard" grunts |
+| `crashed_ufo` | four greys and a named Commander (quest target) |
 
 ---
 

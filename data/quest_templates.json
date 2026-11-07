@@ -34,18 +34,28 @@
       "min": 15,
       "max": 35,
       "reward_fuel_per": 0,
-      "reward_resources": { "biomass": 8 }
+      "reward_resources": {
+        "biomass": 8
+      }
     },
     {
       "id": "purge",
       "weight": 1,
       "spawn_archetype": "hive",
+      "spawn_event": "infested_colonists",
       "name": "Distress Call",
       "desc": "A colony is overrun. Make planetfall and destroy every xeno — eggs and all life stages.",
       "trigger": "entity_killed",
-      "blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3"],
+      "blueprints": [
+        "xeno_egg",
+        "xeno_hatchling",
+        "xeno_stage2",
+        "xeno_stage3"
+      ],
       "reward_fuel_flat": 35,
-      "reward_resources": { "crystal": 5 },
+      "reward_resources": {
+        "crystal": 5
+      },
       "spawn_systems": 1
     },
     {
@@ -59,7 +69,9 @@
       "fixture_struct_w": 11,
       "fixture_struct_h": 9,
       "reward_fuel_flat": 45,
-      "reward_resources": { "crystal": 4 }
+      "reward_resources": {
+        "crystal": 4
+      }
     },
     {
       "id": "reactor_clear",
@@ -72,7 +84,9 @@
       "fixture_struct_w": 21,
       "fixture_struct_h": 19,
       "reward_fuel_flat": 50,
-      "reward_resources": { "crystal": 5 }
+      "reward_resources": {
+        "crystal": 5
+      }
     },
     {
       "id": "underground_bounty",
@@ -85,7 +99,9 @@
       "fixture_struct_w": 15,
       "fixture_struct_h": 13,
       "reward_fuel_flat": 40,
-      "reward_resources": { "crystal": 3 }
+      "reward_resources": {
+        "crystal": 3
+      }
     },
     {
       "id": "hideout_raid",
@@ -98,7 +114,9 @@
       "fixture_struct_w": 21,
       "fixture_struct_h": 17,
       "reward_fuel_flat": 55,
-      "reward_resources": { "crystal": 6 }
+      "reward_resources": {
+        "crystal": 6
+      }
     },
     {
       "id": "research",
@@ -106,7 +124,12 @@
       "name": "Field Research",
       "desc": "Research %tech at a research lab.",
       "trigger": "tech_researched",
-      "tech_pool": ["basic_metallurgy", "advanced_metallurgy", "combat_armor", "reinforced_plating"],
+      "tech_pool": [
+        "basic_metallurgy",
+        "advanced_metallurgy",
+        "combat_armor",
+        "reinforced_plating"
+      ],
       "reward_fuel_flat": 20,
       "spawn_systems": 1
     },
@@ -121,7 +144,9 @@
       "fixture_struct_w": 25,
       "fixture_struct_h": 21,
       "reward_fuel_flat": 60,
-      "reward_resources": { "crystal": 7 }
+      "reward_resources": {
+        "crystal": 7
+      }
     },
     {
       "id": "tower_ascent",
@@ -134,7 +159,9 @@
       "fixture_struct_w": 25,
       "fixture_struct_h": 25,
       "reward_fuel_flat": 55,
-      "reward_resources": { "crystal": 6 }
+      "reward_resources": {
+        "crystal": 6
+      }
     },
     {
       "id": "ruined_tower",
@@ -147,7 +174,9 @@
       "fixture_struct_w": 25,
       "fixture_struct_h": 25,
       "reward_fuel_flat": 45,
-      "reward_resources": { "crystal": 4 }
+      "reward_resources": {
+        "crystal": 4
+      }
     },
     {
       "id": "castle_siege",
@@ -160,7 +189,9 @@
       "fixture_struct_w": 28,
       "fixture_struct_h": 22,
       "reward_fuel_flat": 65,
-      "reward_resources": { "crystal": 8 }
+      "reward_resources": {
+        "crystal": 8
+      }
     },
     {
       "id": "outpost",
@@ -171,6 +202,42 @@
       "structure": "research_lab",
       "reward_fuel_flat": 15,
       "spawn_systems": 2
+    },
+    {
+      "id": "figure_log",
+      "weight": 2,
+      "history": "figure_log",
+      "trigger": "history",
+      "name": "The {Role}'s Log",
+      "desc": "Recover the log of {figure}, the {civ} {role}, from {place} on {site}.",
+      "reward_fuel_flat": 20,
+      "reward_resources": {
+        "crystal": 2
+      }
+    },
+    {
+      "id": "civ_relic",
+      "weight": 2,
+      "history": "civ_relic",
+      "trigger": "history",
+      "name": "Relics of the {civ}",
+      "desc": "Recover the {civ} records from {place} on {site}.",
+      "reward_fuel_flat": 20,
+      "reward_resources": {
+        "crystal": 3
+      }
+    },
+    {
+      "id": "threat_source",
+      "weight": 2,
+      "history": "chapter_origin",
+      "trigger": "history",
+      "name": "Source of the Threat",
+      "desc": "Find where it began on {site}. {omen}",
+      "reward_fuel_flat": 25,
+      "reward_resources": {
+        "crystal": 2
+      }
     }
   ]
 }

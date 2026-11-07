@@ -17,5 +17,13 @@
     "features": [
         { "kind": "ore_vein", "count": 4, "count_max": 8, "params": { "tile": "ore_deposit", "radius": 2, "radius_max": 4 } },
         { "kind": "radiation_pocket", "count": 5, "count_max": 11, "params": { "peak": 200, "radius": 5 } }
-    ]
+    ],
+    "present": {
+        "life": ["none"],
+        "status": ["untouched", "fallen", "dead"],
+        "arcs": ["lifeless", "extinct_radiation", "failed_colony", "mining_claim", "battle_debris"],
+        "quiet_weight": 25,
+        "quiet_safe": true
+    },
+    "base_scenario": "moon"
 }

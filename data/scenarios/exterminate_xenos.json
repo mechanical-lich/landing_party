@@ -7,6 +7,8 @@
     "data/scripts/scenarios/xeno_purge_setup.basic"
   ],
   "hostile_max": 200,
+  "threat_blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3"],
+  "threat_name": "xeno",
   "supported_maps": [
     "earth_like",
     "alien",

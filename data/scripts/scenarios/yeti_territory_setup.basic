@@ -1,5 +1,12 @@
 function on_setup()
-    add_message("Day 1. The tundra is quiet. Too quiet. Something large is watching from the ice.")
+    # Yeti are natives: their places come from the map, not the history. The
+    # history only names them: the ancient people they descend from.
+    civ = get_flag_or("origin_civ", "")
+    if civ = "" then
+        add_message("Day 1. The tundra is quiet. Too quiet. Something large is watching from the ice.")
+    else
+        add_message("Day 1. The tundra is quiet. Too quiet. The descendants of the " + civ + " are watching from the high country.")
+    endif
 
     sx = get_flag("start_x")
     sy = get_flag("start_y")

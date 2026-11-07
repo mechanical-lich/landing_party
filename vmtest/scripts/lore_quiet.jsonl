@@ -1,0 +1,25 @@
+{"name":"lore_quiet","seed":700}
+# A quiet site with a history structure on it: seed 700's start system is an
+# earth_like world whose civilization collapsed, leaving a castle. The castle
+# stands at the event's origin, empty (occupants none): no brute, no guards.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore Quiet"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"700"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:start"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.chapter","eq":""}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"origin walk civ_collapses"}
+{"op":"wait","ticks":20}
+{"op":"screenshot","name":"castle"}

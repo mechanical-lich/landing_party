@@ -19,6 +19,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/generation"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
@@ -320,6 +321,8 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 	if wm.ClockStopped() {
 		return
 	}
+	// One world frame is one tick of the campaign clock, wherever the player is.
+	wm.Campaign.TickStarDate()
 	if wm.shipLevel != nil && wm.shipLevel != live {
 		// The live level's Update reset the per-frame pathfinding budget for
 		// itself; each background tick needs its own.
@@ -955,6 +958,9 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 		ColonyName:   colony,
 		CampaignMode: true,
 	}
+	if lore, ok := siteLoreFor(c.History, c.SiteHistory(loc)); ok {
+		lore.apply(&cfg)
+	}
 
 	var ms *MainState
 	if loc.SaveFile != "" {
@@ -1070,9 +1076,18 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 		// Scatter fixtures around the plaza (datapads widely, so finding them
 		// means exploring); freeLandingTile spirals to the nearest standable,
 		// unoccupied tile from there.
-		h := fixtureHash(f.QuestID, i)
+		h := fixtureHash(f.QuestID+f.EventID, i)
 		var ox, oy int
-		if f.Kind == "datapad" {
+		if f.Kind == campaign.LoreDatapadKind {
+			// A history datapad lies where its event happened.
+			if gx, gy, gz, ok := generation.Origin(level, f.EventID); ok {
+				x, y, z := freeLandingTile(level, gx, gy, gz)
+				spawnFixtureDatapad(level, loc, f, x, y, z)
+				continue
+			}
+			ox = (h%81 - 40) * 3
+			oy = ((h/81)%81 - 40) * 3
+		} else if f.Kind == "datapad" {
 			ox = (h%81 - 40) * 3 // roughly ±120 tiles
 			oy = ((h/81)%81 - 40) * 3
 		} else {
@@ -1100,6 +1115,7 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 			}
 			p := ctx.topParams()
 			p["quest_id"] = f.QuestID
+			generation.ClearFootprint(level, x-sw/2, y-sh/2, sw, sh)
 			if err := runGenStructure(ctx, f.Structure, x-sw/2, y-sh/2, sw, sh); err != nil {
 				log.Printf("[fixture] structure %q for quest %s: %v", f.Structure, f.QuestID, err)
 			}
@@ -1120,8 +1136,8 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 				e.AddComponent(&rlcomponents.DescriptionComponent{Name: f.Name})
 			}
 		}
-		if f.Kind == "datapad" {
-			e.AddComponent(&components.DatapadComponent{QuestID: f.QuestID})
+		if f.Kind == "datapad" || f.Kind == campaign.LoreDatapadKind {
+			e.AddComponent(&components.DatapadComponent{QuestID: f.QuestID, EventID: f.EventID})
 		} else {
 			e.AddComponent(&components.QuestTargetComponent{QuestID: f.QuestID})
 		}
@@ -1130,6 +1146,18 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 		log.Printf("[fixture] spawned %s %q (%s) for quest %s at %s [%d,%d,%d]",
 			f.Kind, f.Name, f.Blueprint, f.QuestID, loc.Name, x, y, z)
 	}
+}
+
+// spawnFixtureDatapad places a datapad fixture at (x,y,z) and marks it spawned.
+func spawnFixtureDatapad(level *world.Level, loc *campaign.Location, f *campaign.QuestFixture, x, y, z int) {
+	e, err := factory.Create(f.Blueprint, x, y, z)
+	if err != nil {
+		log.Printf("[fixture] datapad for %s at %s: %v", f.EventID, loc.Name, err)
+		return
+	}
+	e.AddComponent(&components.DatapadComponent{QuestID: f.QuestID, EventID: f.EventID})
+	level.AddEntity(e)
+	f.Spawned = true
 }
 
 func fixtureHash(id string, i int) int {
@@ -1153,6 +1181,7 @@ func (wm *WorldManager) Travel(locID string) error {
 		return fmt.Errorf("travel: unknown location %q", locID)
 	}
 	from := c.CurrentLocationID // origin of this jump, for the travel-route log
+	jumpDays := campaign.JumpDays(c.FuelCost(locID))
 	if cur := wm.Current(); cur != nil {
 		if c.CurrentLocationID == locID {
 			return nil // already loaded
@@ -1166,6 +1195,8 @@ func (wm *WorldManager) Travel(locID string) error {
 	// Log the traversed route (both real, distinct locations) so the Star Map
 	// can draw trade lines that darken with repeated use.
 	c.RecordTravel(from, locID)
+	// The jump takes time on the campaign clock; levels left behind don't see it.
+	c.AdvanceDays(jumpDays)
 	// Reaching Home ends the run in victory — no level to generate or land.
 	if dest.Kind == campaign.HomeKind {
 		c.CurrentLocationID = locID
@@ -1373,6 +1404,9 @@ func (wm *WorldManager) BeamDown(colonist *ecs.Entity) error {
 	}
 	tagColonistSettlement(colonist, wm.currentColonyName())
 	level.AddEntity(colonist)
+	if countLevelColonists(level, wm.currentColonyName()) == 1 {
+		wm.Campaign.RecordLive("colony_founded", wm.Campaign.CurrentLocation(), map[string]string{"colony": wm.Campaign.ColonyDisplayName()})
+	}
 	return nil
 }
 
@@ -1414,6 +1448,9 @@ func (wm *WorldManager) BeamUp(e *ecs.Entity) error {
 	}
 	tagColonistSettlement(e, wm.shipSettlementName()) // now a ship-settlement member
 	shipLvl.AddEntity(e)
+	if countLevelColonists(wm.Current().level, wm.currentColonyName()) == 0 {
+		wm.Campaign.RecordLive("colony_left", wm.Campaign.CurrentLocation(), map[string]string{"colony": wm.Campaign.ColonyDisplayName()})
+	}
 	return nil
 }
 
@@ -1445,14 +1482,11 @@ func (wm *WorldManager) currentColonyName() string {
 
 // SaveCampaign writes every loaded location's level, the ship, and the campaign root
 // file. Everything stays live. s is the level the player saved from (nil from the
-// dashboard with nothing in orbit), which supplies the day.
+// dashboard with nothing in orbit); the star date lives on the campaign itself.
 func (wm *WorldManager) SaveCampaign(s *MainState) error {
 	c := wm.Campaign
 	if c == nil {
 		return fmt.Errorf("save: no campaign")
-	}
-	if s != nil {
-		c.Day = s.day
 	}
 	for id, loc := range c.Locations {
 		ms := wm.loaded[id]
@@ -1479,6 +1513,11 @@ func LoadCampaign(name string) (*campaign.Campaign, error) {
 	var c campaign.Campaign
 	if err := readGz(filepath.Join(campaignRoot(name), "campaign.json.gz"), &c); err != nil {
 		return nil, err
+	}
+	// Campaigns from before the generated history (version 2) are not migrated:
+	// their sites were charted with rolled scenarios and no past to explain them.
+	if c.Version < campaign.CampaignVersion {
+		return nil, fmt.Errorf("campaign %q is from an older version of the game (save version %d, need %d) and can't be loaded; start a new expedition", name, c.Version, campaign.CampaignVersion)
 	}
 	// Saves from before per-location settlements tag everything on a planet with
 	// the old shared colony name, so its workers would find no settlement and sit

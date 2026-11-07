@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
 
@@ -11,8 +12,9 @@ import (
 // space overworld (Locations), and campaign-wide progress. Only one location's
 // level is live at a time; every other location is frozen on disk.
 // CampaignVersion is the current campaign-save schema version, stamped at
-// generation. Legacy saves have Version 0; branch on it to migrate.
-const CampaignVersion = 1
+// generation. Version 2 added the generated history and the star date; older
+// campaigns are refused on load rather than migrated (see game.LoadCampaign).
+const CampaignVersion = 2
 
 type Campaign struct {
 	// Version is the save-schema version (see CampaignVersion).
@@ -22,7 +24,14 @@ type Campaign struct {
 	CurrentLocationID string               `json:"current_location_id"`
 	Locations         map[string]*Location `json:"locations"`
 	Ship              *ShipState           `json:"ship"`
-	Day               int                  `json:"day"`
+	// StarDate is the single campaign clock, in days since the campaign began.
+	// It counts world ticks (TickStarDate, TicksPerDay a day) wherever the
+	// player is, stops when the world clock stops, and jumps forward by each
+	// jump's day cost (AdvanceDays). Levels keep their own Day/Hour only for
+	// the day-night cycle.
+	StarDate history.StarDate `json:"star_date"`
+	// StarTick counts world ticks into the current star-date day.
+	StarTick int `json:"star_tick,omitempty"`
 	// Quests holds per-quest progress (status).
 	Quests map[string]*QuestProgress `json:"quests,omitempty"`
 	// QuestDefs are the campaign's generated quest definitions, persisted here
@@ -61,12 +70,51 @@ type Campaign struct {
 	// draws these as trade-route lines that darken with use.
 	TravelEdges map[string]int `json:"travel_edges,omitempty"`
 
+	// History is the campaign's generated past (civs, figures, site histories)
+	// and, later, the record of play. See internal/history.
+	History *history.History `json:"history,omitempty"`
+
 	// Tutorial is the guided first landing's progress; nil when the expedition
 	// started without it (and on every older save).
 	Tutorial *TutorialProgress `json:"tutorial,omitempty"`
 
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
+}
+
+// Day is the star date as a plain day count, for displays and end screens.
+func (c *Campaign) Day() int { return int(c.StarDate) }
+
+// TickStarDate advances the campaign clock by one world tick. The world manager
+// calls it once per frame of simulation, whether a level is live or the player
+// is on the dashboard with only background planets ticking, and never while the
+// world clock is stopped.
+func (c *Campaign) TickStarDate() {
+	c.StarTick++
+	if c.StarTick >= history.TicksPerDay {
+		c.StarTick = 0
+		c.StarDate++
+	}
+}
+
+// AdvanceDays moves the star date on by whole days (a jump's travel time).
+func (c *Campaign) AdvanceDays(days int) {
+	if days > 0 {
+		c.StarDate += history.StarDate(days)
+	}
+}
+
+// JumpDays is the travel time of a jump costing fuel: ceil(fuel / N) days, N
+// being generation.json's jump_fuel_per_day. A free jump takes no time.
+func JumpDays(fuel int) int {
+	if fuel <= 0 {
+		return 0
+	}
+	per := genConfig().JumpFuelPerDay
+	if per < 1 {
+		per = 1
+	}
+	return (fuel + per - 1) / per
 }
 
 // travelEdgeKey builds the canonical (order-independent) key for a location pair.

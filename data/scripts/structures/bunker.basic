@@ -2,6 +2,13 @@
 # Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
 # corner of the footprint the dispatcher allocated.
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -47,14 +54,24 @@ function generate(x, y, w, h)
     # The brute rolls its own mutant name from the blueprint; add a boss
     # epithet before it's marked so the quest title adopts the full name
     # (e.g. "Grosk the Destroyer, mauler of cities").
-    spawn_entity("mutant_brute", cx, cy, sz)
-    add_epithet(cx, cy, sz)
+    if guards = 1 then
+        spawn_entity("mutant_brute", cx, cy, sz)
+    endif
+    if guards = 1 then
+        add_epithet(cx, cy, sz)
+    endif
     # Flag that NPC as the quest target — the quest is told who the target
     # is from here. No-ops harmlessly when there's no associated quest; the
     # warden still exists, it just isn't a bounty.
-    mark_quest_target(cx, cy, sz)
+    if guards = 1 then
+        mark_quest_target(cx, cy, sz)
+    endif
 
     # A couple of guards flanking it (not quest-relevant).
-    spawn_entity_named("mutant_grunt", cx - 2, cy, sz, "Bunker Sentry")
-    spawn_entity_named("mutant_grunt", cx + 2, cy, sz, "Bunker Sentry")
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", cx - 2, cy, sz, "Bunker Sentry")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", cx + 2, cy, sz, "Bunker Sentry")
+    endif
 endfunction

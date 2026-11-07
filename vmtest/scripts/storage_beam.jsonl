@@ -1,7 +1,8 @@
 {"name":"storage_beam","seed":777}
 # Ship hold inspector: beam 30 metal ore down. Site storage locker inspector:
 # beam 10 back up. Hold and site storage move by the beamed amounts and the
-# total (100 at the start) is conserved.
+# total (100 at the start) is conserved. The start system is a first jump,
+# so it ends safe: here a quiet earth_like world whose setup builds the locker.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}

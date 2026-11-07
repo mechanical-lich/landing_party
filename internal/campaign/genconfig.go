@@ -57,6 +57,15 @@ type GenConfig struct {
 	// ScanFuelCosts is the fuel one scan burns by efficiency level (index 0 =
 	// base, each scan_efficiency_N tech advances one — cheaper).
 	ScanFuelCosts []int `json:"scan_fuel_costs"`
+
+	// JumpFuelPerDay converts a jump's fuel cost to the star-date days it
+	// takes: ceil(fuel / JumpFuelPerDay).
+	JumpFuelPerDay int `json:"jump_fuel_per_day"`
+
+	// SafeStartRadius is how far from the Wreck Site a site counts as a first
+	// jump, whose history only ends in a safe chapter (see
+	// history.BindSiteSafe). 0 means start_radius: the start system only.
+	SafeStartRadius float64 `json:"safe_start_radius"`
 }
 
 // ScannerTier is one ship-scanner power level: the chance a scan reveals a new
@@ -93,7 +102,8 @@ func defaultGenConfig() GenConfig {
 			{Chance: 0.20, Range: 50},
 			{Chance: 0.30, Range: 100},
 		},
-		ScanFuelCosts: []int{200, 100, 50},
+		ScanFuelCosts:  []int{200, 100, 50},
+		JumpFuelPerDay: 3,
 	}
 }
 

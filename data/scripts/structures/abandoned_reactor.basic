@@ -3,6 +3,13 @@
 # Entrypoint contract: generate(x, y, w, h) where (x,y) is the top-left
 # corner of the footprint the dispatcher allocated.
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -95,13 +102,27 @@ function generate(x, y, w, h)
     spawn_entity("storage_locker", crx + 1,       y + h - 2,   sz)  # south wing
 
     # The overseer lairs at the reactor core.
-    spawn_entity("mutant_brute", cx, cy, sz)
-    add_epithet(cx, cy, sz)
-    mark_quest_target(cx, cy, sz)
+    if guards = 1 then
+        spawn_entity("mutant_brute", cx, cy, sz)
+    endif
+    if guards = 1 then
+        add_epithet(cx, cy, sz)
+    endif
+    if guards = 1 then
+        mark_quest_target(cx, cy, sz)
+    endif
 
     # One grunt per wing room.
-    spawn_entity_named("mutant_grunt", x + 1 + rnd_int(rw - 2),             cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # west
-    spawn_entity_named("mutant_grunt", crx + cw + rnd_int(rw - 1),          cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # east
-    spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2),           y + 1 + rnd_int(rh - 1),   sz, "Reactor Guard")  # north
-    spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2), cry + ch + rnd_int(rh - 1),          sz, "Reactor Guard")  # south
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", x + 1 + rnd_int(rw - 2),             cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # west
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", crx + cw + rnd_int(rw - 1),          cry + 1 + rnd_int(ch - 2), sz, "Reactor Guard")  # east
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2),           y + 1 + rnd_int(rh - 1),   sz, "Reactor Guard")  # north
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", crx + 1 + rnd_int(cw - 2), cry + ch + rnd_int(rh - 1),          sz, "Reactor Guard")  # south
+    endif
 endfunction

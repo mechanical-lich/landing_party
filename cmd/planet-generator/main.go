@@ -4,6 +4,11 @@
 // with no fog of war. The simulation can then be run to watch fauna and other
 // entities, and dummy colonists can be dropped in to test AI behaviour.
 //
+// The info panel also shows the site's generated history for the map and seed
+// (docs/brainstorm/lore_plan.md), with event origins marked in magenta; the
+// "Scenario from history" toggle (or -history) plays the scenario that history
+// ends in, as charting will.
+//
 // Run from the project root (so data/ is accessible):
 //
 //	go run ./cmd/planet-generator
@@ -101,6 +106,7 @@ type app struct {
 func main() {
 	mapID := flag.String("map", "", "map definition to start with (default: first by name)")
 	scenarioID := flag.String("scenario", "", "scenario to start with (default: one for the map)")
+	fromHistory := flag.Bool("history", false, "take the scenario from the site's generated history")
 	seed := flag.String("seed", "", "generation seed (default: random)")
 	flag.Parse()
 
@@ -130,6 +136,7 @@ func main() {
 	if *scenarioID != "" && !opts.selectScenarioByID(*scenarioID) {
 		log.Fatalf("unknown scenario %q", *scenarioID)
 	}
+	opts.fromHistory = *fromHistory && *scenarioID == ""
 	if *seed != "" {
 		opts.seedText = *seed
 		opts.rerollSize()
@@ -204,6 +211,7 @@ func (a *app) requestGenerate() {
 // camera stays put when regenerating the same-shaped map, so tweaks to one spot
 // can be compared; otherwise it frames the new spawn.
 func (a *app) generate() {
+	a.opts.rollHistory()
 	spec := a.opts.spec()
 	var prevCam struct {
 		ok              bool
@@ -371,6 +379,7 @@ func (a *app) Draw(screen *ebiten.Image) {
 	if a.lab != nil {
 		a.lab.Draw(screen)
 		a.drawWorldOverlays(screen)
+		a.drawOriginsWorld(screen)
 	}
 	a.ui.render(screen)
 	a.drawStatusLine(screen)

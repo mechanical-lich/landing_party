@@ -1,5 +1,13 @@
 function on_setup()
-    add_message("Day 1. Something came down hard out there. Bioscanners show life signs at the crash site.")
+    # The hull is the scenario's own stamp, anchored at the history's origin
+    # when there is one (data/scenarios/crashed_ufo.json, at: origin); a
+    # chapter with no survivors sets chapter_crew = "dead" and the hull comes
+    # down empty. Without a history the message is the old one.
+    if get_flag("origin_x") >= 0 then
+        announce_crash()
+    else
+        add_message("Day 1. Something came down hard out there. Bioscanners show life signs at the crash site.")
+    endif
 
     n = get_region_count("starting_asteroid")
     if n > 0 then
@@ -21,4 +29,13 @@ function on_setup()
     spawn_entity_owned("basic_workbench", sx + 2, sy - 2, sz, sname)
 
     set_flag("crashed_ufo_started", 1)
+endfunction
+
+function announce_crash()
+    civ = get_flag("origin_civ")
+    if get_flag_or("chapter_crew", "") = "dead" then
+        add_message("Day 1. A " + civ + " ship came down hard out there. No life signs at the crash site.")
+    else
+        add_message("Day 1. A " + civ + " ship came down hard out there. Bioscanners show survivors at the crash site.")
+    endif
 endfunction

@@ -7,6 +7,8 @@
         "data/scripts/scenarios/troid_outbreak_setup.basic"
     ],
     "hostile_max": 120,
+    "threat_blueprints": ["troid_egg", "troid_hatchling", "troid_stage2", "troid_stage3"],
+    "threat_name": "troid",
     "supported_maps": [
         "asteroid",
         "moon",

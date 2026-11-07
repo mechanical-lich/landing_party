@@ -1,0 +1,69 @@
+function on_setup()
+    add_message("Day 1. The tundra is quiet. Too quiet. Something large is watching from the ice.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+    sname = get_flag("settlement_name")
+    faction = get_flag("colonist_faction")
+
+    carve_room(sx - 4, sy - 5, sz, 9, 7, "bunker_wall", "bunker_floor")
+    spawn_entity_owned("airlock", sx, sy + 1, sz, faction)
+    spawn_entity_owned("storage_locker", sx - 3, sy - 3, sz, sname)
+    spawn_entity_owned("basic_workbench", sx + 3, sy - 3, sz, sname)
+
+    # Place an elder yeti close enough to be a visible threat on day 1
+    elder_spawned = 0
+    for attempt = 1 to 200
+        if elder_spawned < 1 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 900 and d2 < 2500 then
+                    spawn_entity("elder_yeti", ox, oy, sz)
+                    elder_spawned = elder_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    # Scatter additional yetis far out across the ice
+    yetis_spawned = 0
+    for attempt = 1 to 300
+        if yetis_spawned < 4 then
+            found = find_open_tile(sz)
+            if found = 1 then
+                ox = get_open_x()
+                oy = get_open_y()
+                ddx = ox - sx
+                ddy = oy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 1600 then
+                    spawn_entity("yeti", ox, oy, sz)
+                    yetis_spawned = yetis_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    # One ancient yeti sleeps deep in a cave below
+    ancient_spawned = 0
+    for attempt = 1 to 200
+        if ancient_spawned < 1 then
+            found = find_cave_tile()
+            if found = 1 then
+                cx = get_cave_x()
+                cy = get_cave_y()
+                cz = get_cave_z()
+                spawn_entity("ancient_yeti", cx, cy, cz)
+                ancient_spawned = ancient_spawned + 1
+            endif
+        endif
+    next attempt
+
+    set_flag("yeti_territory_started", 1)
+endfunction

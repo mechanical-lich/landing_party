@@ -12,5 +12,13 @@
     "features": [
         { "kind": "botany_bay", "count": 2, "count_max": 4, "params": { "tile": "dirt_floor", "radius": 3 } },
         { "kind": "radiation_pocket", "count": 1, "count_max": 3, "in_region": "station_room_large", "jitter": 4, "params": { "peak": 180, "radius": 3 } }
-    ]
+    ],
+    "present": {
+        "life": ["none"],
+        "status": ["fallen", "dead"],
+        "arcs": ["drone_station", "lost_station"],
+        "quiet_weight": 12,
+        "quiet_safe": true
+    },
+    "base_scenario": "abandoned_station"
 }

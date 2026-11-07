@@ -132,6 +132,13 @@ func registerEntityScriptFuncs(interp *basic.MechBasic, entity *ecs.Entity, leve
 		return level.Flags[fmt.Sprint(args[0])], nil
 	})
 
+	// debug_log(text) writes to the developer log, not the player's.
+	interp.RegisterFunc("debug_log", func(args ...any) (any, error) {
+		if len(args) > 0 {
+			log.Printf("[script] %v", args[0])
+		}
+		return nil, nil
+	})
 	interp.RegisterFunc("add_message", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil

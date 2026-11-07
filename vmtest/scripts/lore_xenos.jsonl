@@ -1,0 +1,30 @@
+{"name":"lore_xenos","seed":746}
+# A xeno hive growing out of an old wreck's hull.
+# New expedition (seed 746, tutorial off) -> jump straight to sys_58, whose
+# history ends in wreck_eggs_hatch -> beam one colonist down -> land -> frame the camera on
+# the history's origin and look at what stands there.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore lore_xenos"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"746"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:sys_58"}
+{"op":"assert","path":"selected_location.id","eq":"sys_58"}
+{"op":"assert","path":"selected_location.history_summary","eq":true}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_58"}
+{"op":"assert","path":"campaign.chapter","eq":"wreck_eggs_hatch"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"origin walk"}
+{"op":"wait","ticks":20}
+{"op":"move","target":"region:lore_origin"}
+{"op":"screenshot","name":"origin"}

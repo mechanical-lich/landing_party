@@ -1,0 +1,29 @@
+function on_setup()
+    add_message("Day 1. Touchdown. Ground-penetrating radar shows movement in the rock below.")
+
+    sx = get_flag("start_x")
+    sy = get_flag("start_y")
+    sz = get_flag("start_z")
+
+    # Seed worms in underground cave pockets far from the colony.
+    spawned = 0
+    for attempt = 1 to 500
+        if spawned < 6 then
+            found = find_cave_tile()
+            if found = 1 then
+                cx = get_cave_x()
+                cy = get_cave_y()
+                cz = get_cave_z()
+                ddx = cx - sx
+                ddy = cy - sy
+                d2 = ddx * ddx + ddy * ddy
+                if d2 > 900 then
+                    spawn_entity("worm", cx, cy, cz)
+                    spawned = spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+
+    add_message("Seismic sensors are active. Stay alert.")
+endfunction

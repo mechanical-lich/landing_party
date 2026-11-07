@@ -65,10 +65,24 @@ type SettlementConfig struct {
 	// CampaignMode suppresses the legacy 5-colonist auto-spawn; colonists
 	// arrive only via the landing-party beam-down.
 	CampaignMode bool
+
+	// SiteFeatures are the site history's evidence, appended after the map's
+	// and the scenario's features; SiteOrigins are its rolled origin tiles by
+	// event ID, resolved once during the build; SiteChapter is the chapter
+	// event, whose origin is the "origin" anchor. Filled by buildParked.
+	SiteFeatures []mapdef.FeatureBlock
+	SiteOrigins  map[string][2]int
+	SiteChapter  string
+	// SiteFlags are the history's lore flags (origin_event, origin_civ,
+	// has_wreck, has_reactor, population), set on the level before setup
+	// scripts run, alongside the resolved origin_x/y/z.
+	SiteFlags map[string]any
 }
 
 type MainState struct {
 	level *world.Level
+	// lore records live history for this level (see loreRecorder).
+	lore *loreRecorder
 	// camera is the single source of truth for the on-screen world view: the
 	// visible tile rect, displayed z, and (zoomable) tile/sprite pixel sizes.
 	// All world→screen / screen→world math and framing goes through it.
@@ -227,6 +241,8 @@ func (s *MainState) registerLevelListeners() {
 	ev.RegisterListener(&listeners.StructureListener{Post: s.present}, eventsystem.StructureBuilt)
 	ev.RegisterListener(&listeners.ResearchListener{Post: s.present}, eventsystem.ResearchDone)
 	ev.RegisterListener(s, eventsystem.EntityDamaged) // away-planet alerts
+	s.lore = newLoreRecorder(s)
+	ev.RegisterListener(s.lore, eventsystem.EntityDamaged) // death causes
 }
 
 // present shows a line from this level's simulation: in the message log if the level
@@ -288,6 +304,9 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 				dpc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 				deathClip := components.ResolveSound(entity, components.SoundDeath)
 				level.EmitSoundClip(dpc.GetX(), dpc.GetY(), dpc.GetZ(), 8, world.SoundTagScream, deathClip, entity)
+			}
+			if s.lore != nil {
+				s.lore.recordDeath(entity)
 			}
 			if s.campaign != nil && entity.HasComponent(components.QuestTarget) {
 				qt := entity.GetComponent(components.QuestTarget).(*components.QuestTargetComponent)
@@ -594,22 +613,24 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 		ReferenceArea:       md.Size.MidArea(),
 		SkipBiomeFeatures:   md.SkipBiomeFeatures,
 	}
-	for _, fb := range md.Features {
+	// Three lists, in order: the map's, the scenario's, then the site
+	// history's evidence. Generation knows nothing about history beyond the
+	// origins it resolves for "at".
+	blocks := append([]mapdef.FeatureBlock(nil), md.Features...)
+	if activeScenario != nil {
+		blocks = append(blocks, activeScenario.Features...)
+	}
+	blocks = append(blocks, s.settlementCfg.SiteFeatures...)
+	for _, fb := range blocks {
 		opts.Features = append(opts.Features, generation.FeatureSpec{
 			Kind: fb.Kind, Count: fb.Count, CountMax: fb.CountMax, Biome: fb.Biome,
 			InRegion: fb.InRegion, Jitter: fb.Jitter,
-			MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
+			MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params, At: fb.At,
 		})
 	}
-	if activeScenario != nil {
-		for _, fb := range activeScenario.Features {
-			opts.Features = append(opts.Features, generation.FeatureSpec{
-				Kind: fb.Kind, Count: fb.Count, CountMax: fb.CountMax, Biome: fb.Biome,
-				InRegion: fb.InRegion, Jitter: fb.Jitter,
-				MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params,
-			})
-		}
-	}
+	opts.Origins = s.settlementCfg.SiteOrigins
+	opts.ChapterEvent = s.settlementCfg.SiteChapter
+	opts.Flags = s.settlementCfg.SiteFlags
 	level, err := generation.BuildWorld(opts)
 	if err != nil {
 		log.Printf("BuildWorld %s: %v (using degraded level)", mapID, err)
@@ -621,6 +642,7 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 		level = world.NewLevel(mapW, mapH, mapZ)
 	}
 	s.level = level
+	s.setLoreFlags()
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
 	s.mapModal = newMapModal(s.level, s.colonyName)
@@ -817,6 +839,7 @@ func (s *MainState) Update() state.StateInterface {
 
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
+		s.loreUpkeep()
 		s.refreshHUD()
 		if !s.clockStopped() {
 			s.evaluateQuests() // periodic catch-all; target kills resolve in stepWorld
@@ -872,6 +895,15 @@ func pauseText(reason string) string {
 		return "PAUSED"
 	}
 	return "PAUSED - " + reason
+}
+
+// dateLine is the HUD's date: the campaign's star date in a campaign (the same on
+// every planet, however long one sat frozen), else this level's own day.
+func (s *MainState) dateLine() string {
+	if s.campaign != nil {
+		return fmt.Sprintf("Star Date: %d", s.campaign.Day())
+	}
+	return fmt.Sprintf("Day: %d", s.day)
 }
 
 // advanceClock moves this level's hour and day on, every 750 ticks.
@@ -2265,7 +2297,7 @@ func (s *MainState) refreshHUD() {
 	}
 
 	var goalLines []string
-	goalLines = append(goalLines, fmt.Sprintf("Day: %d", s.day))
+	goalLines = append(goalLines, s.dateLine())
 	if s.campaign != nil {
 		active := s.campaign.ActiveQuests()
 		if len(active) > 0 {
@@ -2443,6 +2475,9 @@ func (s *MainState) collectDatapads() {
 		}
 		dp := e.GetComponent(components.Datapad).(*components.DatapadComponent)
 		s.level.RemoveEntity(e)
+		if text, _ := s.campaign.RevealEvent(dp.EventID); text != "" {
+			message.PostMessage("Datapad", "Recovered a datapad: "+text)
+		}
 		if q := s.campaign.UnlockQuest(dp.QuestID); q != nil {
 			message.PostMessage("Datapad", fmt.Sprintf("Recovered a datapad — new lead: %s. %s", q.Name, q.Description))
 		}
@@ -2737,6 +2772,10 @@ func (s *MainState) drawStorePickHighlight(screen *ebiten.Image) {
 	vector.StrokeRect(screen, sx+2, sy+2, tw-4, th-4, 1, stroke, false)
 }
 
+// plazaIntn is the plaza search's random source: the global one in the game;
+// tests swap in a seeded one so two builds of a site land in the same place.
+var plazaIntn = rand.Intn
+
 // findStartingPlaza picks a spawn anchor with `slots` adjacent standable
 // tiles in a horizontal row, preferring region anchors emitted by terrain
 // primers ("starting_floor", "starting_asteroid", "station_hub"). Falls back
@@ -2752,8 +2791,8 @@ func findStartingPlaza(level *world.Level, preferZ, slots int) (int, int, int) {
 	}
 	w, h := level.GetWidth(), level.GetHeight()
 	for i := 0; i < 1000; i++ {
-		x := rand.Intn(w)
-		y := rand.Intn(h)
+		x := plazaIntn(w)
+		y := plazaIntn(h)
 		if cx, cy, ok := tryPlaza(level, x, y, preferZ, slots); ok {
 			return cx, cy, preferZ
 		}

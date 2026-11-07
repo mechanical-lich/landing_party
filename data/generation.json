@@ -29,5 +29,9 @@
     { "chance": 0.20, "range": 50 },
     { "chance": 0.30, "range": 100 }
   ],
-  "scan_fuel_costs": [200, 100, 50]
+  "scan_fuel_costs": [200, 100, 50],
+
+  "jump_fuel_per_day": 3,
+
+  "safe_start_radius": 8
 }

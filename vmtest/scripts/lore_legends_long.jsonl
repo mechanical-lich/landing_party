@@ -1,0 +1,41 @@
+{"name":"lore_legends_long","seed":746}
+# A long chronicle in the Legends tab: every history event of seed 746 made
+# known (debug reveal all), the tab opens on the newest events, the mouse
+# wheel scrolls back to the oldest.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore Long"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"746"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:sys_58"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"debug","cmd":"reveal all"}
+{"op":"assert","path":"campaign.known_events","gte":40}
+{"op":"click","target":"tab:legends"}
+{"op":"assert","path":"dash_tab","eq":"legends"}
+{"op":"assert","path":"legends.#","gte":40}
+# Opens on the newest events: the bottom, with the last one in view.
+{"op":"assert","path":"legends_at_bottom","eq":true}
+{"op":"assert","path":"legends_at_top","eq":false}
+{"op":"screenshot","name":"newest"}
+{"op":"move","target":"legends:chronicle"}
+{"op":"scroll","dy":40}
+{"op":"wait","ticks":2}
+{"op":"scroll","dy":40}
+{"op":"wait","ticks":2}
+{"op":"scroll","dy":40}
+{"op":"wait","ticks":2}
+{"op":"scroll","dy":40}
+{"op":"wait","ticks":2}
+# The wheel goes back in time: the oldest event is in view at the top.
+{"op":"assert","path":"legends_at_top","eq":true}
+{"op":"assert","path":"legends_at_bottom","eq":false}
+{"op":"screenshot","name":"oldest"}

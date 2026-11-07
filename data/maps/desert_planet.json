@@ -20,5 +20,12 @@
         { "kind": "lava_lake", "count": 8, "count_max": 16, "params": { "tile": "lava", "radius": 3 } },
         { "kind": "lava_lake", "count": 2, "count_max": 6, "params": { "tile": "lava", "radius": 6 } },
         { "kind": "radiation_pocket", "count": 4, "count_max": 9, "params": { "peak": 160, "radius": 4 } }
-    ]
+    ],
+    "present": {
+        "life": ["none"],
+        "status": ["untouched", "fallen", "dead"],
+        "arcs": ["lifeless", "stellar_flare_burned", "extinct_radiation", "failed_colony"],
+        "quiet_weight": 17
+    },
+    "base_scenario": "worms"
 }

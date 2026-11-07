@@ -12,7 +12,78 @@ function on_setup()
     spawn_entity_owned("storage_locker", sx - 3, sy - 3, sz, sname)
     spawn_entity_owned("basic_workbench", sx + 3, sy - 3, sz, sname)
 
-    # Seed extra crystal clusters well away from the base to mark blight epicenters
+    # With a history origin (where the blight broke out of the deep places)
+    # the crystal epicenters and the mutated critters radiate from it;
+    # without one they scatter well away from the base as before.
+    if get_flag("origin_x") >= 0 then
+        crystals_spawned = blight_at_origin(sx, sy)
+    else
+        crystals_spawned = blight_scattered(sx, sy, sz)
+    endif
+
+    # One mutant_scout already closing in on the landing zone
+    for attempt = 1 to 200
+        found = find_open_tile(sz)
+        if found = 1 then
+            ox = get_open_x()
+            oy = get_open_y()
+            ddx = ox - sx
+            ddy = oy - sy
+            d2 = ddx * ddx + ddy * ddy
+            if d2 > 400 and d2 < 1200 then
+                spawn_entity("mutant_scout", ox, oy, sz)
+                attempt = 200
+            endif
+        endif
+    next attempt
+
+    add_message(num_to_str(crystals_spawned) + " blight epicenters identified.")
+    set_flag("crystalline_blight_started", 1)
+endfunction
+
+# Six crystal clusters within 18 tiles of the origin and five mutated critters
+# within 20, outside the landing.
+function blight_at_origin(sx, sy)
+    ox = get_flag("origin_x")
+    oy = get_flag("origin_y")
+    oz = get_flag("origin_z")
+    add_message("The blight is spreading from one place. The crystals are thickest there.")
+    crystals_spawned = 0
+    for attempt = 1 to 400
+        if crystals_spawned < 6 then
+            if find_open_tile_near(ox, oy, oz, 18) = 1 then
+                cx = get_open_x()
+                cy = get_open_y()
+                if (cx - sx) * (cx - sx) + (cy - sy) * (cy - sy) > 100 then
+                    spawn_entity("alien_crystal", cx, cy, oz)
+                    spawn_entity("alien_crystal", cx + 1, cy, oz)
+                    spawn_entity("alien_crystal", cx, cy + 1, oz)
+                    crystals_spawned = crystals_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+    critters_spawned = 0
+    for attempt = 1 to 300
+        if critters_spawned < 5 then
+            if find_open_tile_near(ox, oy, oz, 20) = 1 then
+                cx = get_open_x()
+                cy = get_open_y()
+                if (cx - sx) * (cx - sx) + (cy - sy) * (cy - sy) > 100 then
+                    spawn_entity("critter", cx, cy, oz)
+                    critters_spawned = critters_spawned + 1
+                endif
+            endif
+        endif
+    next attempt
+    set_flag("blight_origin_crystals", crystals_spawned)
+    set_flag("blight_origin_critters", critters_spawned)
+    return crystals_spawned
+endfunction
+
+# No history: crystal epicenters well away from the base, and a small pack of
+# mutated critters near the blight zones.
+function blight_scattered(sx, sy, sz)
     crystals_spawned = 0
     for attempt = 1 to 400
         if crystals_spawned < 6 then
@@ -52,22 +123,5 @@ function on_setup()
         endif
     next attempt
 
-    # One mutant_scout already closing in on the landing zone
-    for attempt = 1 to 200
-        found = find_open_tile(sz)
-        if found = 1 then
-            ox = get_open_x()
-            oy = get_open_y()
-            ddx = ox - sx
-            ddy = oy - sy
-            d2 = ddx * ddx + ddy * ddy
-            if d2 > 400 and d2 < 1200 then
-                spawn_entity("mutant_scout", ox, oy, sz)
-                attempt = 200
-            endif
-        endif
-    next attempt
-
-    add_message(num_to_str(crystals_spawned) + " blight epicenters identified.")
-    set_flag("crystalline_blight_started", 1)
+    return crystals_spawned
 endfunction

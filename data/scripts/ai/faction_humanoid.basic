@@ -16,7 +16,7 @@ function on_turn()
     if has_ears() = 1 then
         n = new_sounds()
         if n > 0 then
-            add_message("debug: heard " + num_to_str(n) + " sound(s), loudest tag=" + get_sound_tag() + " loud=" + num_to_str(get_sound_loudness()))
+            debug_log("debug: heard " + num_to_str(n) + " sound(s), loudest tag=" + get_sound_tag() + " loud=" + num_to_str(get_sound_loudness()))
             set_var("investigate_x", get_sound_x())
             set_var("investigate_y", get_sound_y())
             set_var("investigate_z", get_sound_z())

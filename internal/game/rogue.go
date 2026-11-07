@@ -87,6 +87,7 @@ func (s *MainState) stepBackground() {
 	s.advanceClock()
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
+		s.loreUpkeep()
 	}
 }
 

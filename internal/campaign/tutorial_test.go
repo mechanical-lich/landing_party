@@ -174,7 +174,6 @@ func TestTemplatesNeverRollTutorial(t *testing.T) {
 	}
 	for _, a := range lt.Archetypes {
 		check("archetype "+a.ID+" maps", a.Maps)
-		check("archetype "+a.ID+" scenarios", a.Scenarios)
 	}
 	check("home maps", lt.Home.Maps)
 	check("home scenarios", lt.Home.Scenarios)

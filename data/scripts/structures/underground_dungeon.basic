@@ -13,6 +13,13 @@
 #
 # Recommended footprint: 25×21 or larger.
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
 
@@ -368,13 +375,25 @@ function generate(x, y, w, h)
     # ── Phase 8: spawns at the bottom ──────────────────────────────────────
     boss_cx = rx[3] + rw[3] / 2
     boss_cy = ry[3] + rh[3] / 2
-    spawn_entity("mutant_brute", boss_cx, boss_cy, dz)
-    add_epithet(boss_cx, boss_cy, dz)
-    mark_quest_target(boss_cx, boss_cy, dz)
+    if guards = 1 then
+        spawn_entity("mutant_brute", boss_cx, boss_cy, dz)
+    endif
+    if guards = 1 then
+        add_epithet(boss_cx, boss_cy, dz)
+    endif
+    if guards = 1 then
+        mark_quest_target(boss_cx, boss_cy, dz)
+    endif
 
     spawn_entity("storage_locker", rx[2] + 1, ry[2] + 1, dz)
 
-    spawn_entity_named("mutant_grunt", rx[1] + rw[1] / 2, ry[1] + rh[1] / 2, dz, "Dungeon Guard")
-    spawn_entity_named("mutant_grunt", rx[2] + rw[2] - 2, ry[2] + rh[2] / 2, dz, "Dungeon Guard")
-    spawn_entity_named("mutant_grunt", rx[3] + 1, ry[3] + rh[3] - 2, dz, "Dungeon Guard")
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", rx[1] + rw[1] / 2, ry[1] + rh[1] / 2, dz, "Dungeon Guard")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", rx[2] + rw[2] - 2, ry[2] + rh[2] / 2, dz, "Dungeon Guard")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", rx[3] + 1, ry[3] + rh[3] - 2, dz, "Dungeon Guard")
+    endif
 endfunction

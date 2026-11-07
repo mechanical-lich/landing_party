@@ -1,6 +1,8 @@
 {"name":"new_expedition","seed":777}
 # Title -> New Expedition with seed 777 and the tutorial off -> Star Map (adrift)
 # -> travel to the start system -> beam two colonists down -> To Site -> 600 ticks.
+# The start system is a first jump, so its history ends safe (here a quiet
+# earth_like world) and the crew is still standing after 600 ticks.
 {"op":"wait","ticks":10}
 {"op":"assert","path":"state","eq":"title"}
 {"op":"screenshot","name":"title"}

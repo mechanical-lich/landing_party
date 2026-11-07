@@ -39,6 +39,14 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Lore and history, steps 1–5, implemented 2026-11-07 on
+  `claude/lore-history-4d1fe2` (not yet merged): star date, generated
+  prehistory, histories bound at charting (scenario from the chapter, Star Map
+  summary, evidence and lore datapads at resolved origins), every scenario's
+  threat grown from its origin, live history and the Legends tab, quests from
+  history. Step 6 deferred to the enemy factions work. Plan:
+  [lore_plan.md](lore_plan.md); system: `docs/developer/lore.md`.
+
 - Tutorial planet, merged 2026-11-01 (`80d3132`): guided first landing,
   Travel lock, pack-up and jump-start on a second planet, every expedition
   now starts adrift at the Wreck Site. Plan: [tutorial_plan.md](tutorial_plan.md).

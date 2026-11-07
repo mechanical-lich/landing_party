@@ -20,5 +20,13 @@
         { "kind": "crystal_grove", "count": 6, "count_max": 14, "biome": "crystal_field", "params": { "blueprint": "alien_crystal", "radius": 5 } },
         { "kind": "scatter_entity", "count": 700, "count_max": 1300, "biome": "alien_forest", "params": { "blueprint": "alien_flora", "kind": "surface" } },
         { "kind": "radiation_pocket", "count": 2, "count_max": 6, "params": { "peak": 180, "radius": 4 } }
-    ]
+    ],
+    "present": {
+        "life": ["alien"],
+        "status": ["untouched", "fallen"],
+        "arcs": ["pristine_alien", "alien_ruins", "hive_world"],
+        "quiet_weight": 52,
+        "quiet_safe": true
+    },
+    "base_scenario": "alien_world"
 }

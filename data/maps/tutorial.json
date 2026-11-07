@@ -11,5 +11,6 @@
     "terrain": "planet",
     "terrain_params": { "mountain_frequency": 0, "center_start": true },
     "biome_map": { "type": "uniform", "single": "tutorial_plain" },
-    "features": []
+    "features": [],
+    "base_scenario": "tutorial"
 }

@@ -70,8 +70,8 @@ type TitleState struct {
 
 func NewTitleState() *TitleState {
 	ts := &TitleState{screen: screenMain}
-	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int, seed int64) error {
-		return RunStructureScript(level, name, x, y, w, h, seed)
+	generation.SetStructureRunner(func(level *world.Level, name string, x, y, w, h int, params map[string]any, seed int64) error {
+		return RunStructureScriptWithParams(level, name, x, y, w, h, params, seed)
 	})
 	_ = scenario.Load("data/scenarios")
 	_ = mapdef.Load("data/maps")

@@ -1201,6 +1201,14 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	})
 
 	// --- messages ---
+	// debug_log(text) writes to the developer log, never the player's message
+	// log: AI scripts print their debugging through it.
+	interp.RegisterFunc("debug_log", func(args ...any) (any, error) {
+		if len(args) > 0 {
+			log.Printf("[ai] %v", args[0])
+		}
+		return nil, nil
+	})
 	interp.RegisterFunc("add_message", func(args ...any) (any, error) {
 		if len(args) < 1 {
 			return nil, nil

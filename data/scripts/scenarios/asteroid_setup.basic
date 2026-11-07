@@ -46,10 +46,10 @@ function on_setup()
             if d2 > 64 and ttype <> "space" and ttype <> "" then
                 if use_troid = 1 then
                     spawn_entity("troid_egg", ex, ey, sz)
-                    add_message("Troid egg spawned at " + num_to_str(ex) + ", " + num_to_str(ey) + ", " + num_to_str(sz))
+                    debug_log("Troid egg spawned at " + num_to_str(ex) + ", " + num_to_str(ey) + ", " + num_to_str(sz))
                 else
                     spawn_entity("xeno_egg", ex, ey, sz)
-                    add_message("Xeno egg spawned at " + num_to_str(ex) + ", " + num_to_str(ey) + ", " + num_to_str(sz))
+                    debug_log("Xeno egg spawned at " + num_to_str(ex) + ", " + num_to_str(ey) + ", " + num_to_str(sz))
                 endif
                 eggs_spawned = eggs_spawned + 1
             endif

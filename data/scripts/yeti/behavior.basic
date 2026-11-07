@@ -46,7 +46,7 @@ function on_turn()
         hy = get_var("home_y") + 0
         hz = get_var("home_z") + 0
         if dist(sx, sy, hx, hy) > 1.5 then
-            add_message("Pathing home")
+            debug_log("Pathing home")
             pathfind_step(hx, hy, hz)
         endif
     endif

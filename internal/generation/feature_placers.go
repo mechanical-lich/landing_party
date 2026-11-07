@@ -94,7 +94,23 @@ func spawnTargets(level *world.Level, solid bool, zone string) [][3]int {
 // tiles from targets. Shared by the cave and buried spawners.
 func spawnInTiles(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string, targets [][3]int, defCount int) {
 	count := rollCount(s, rng, defCount)
-	if m := level.FeatureAreaMultiplier(); m != 1 {
+	// Anchored at an origin: only targets within reach of it (Jitter, default
+	// 12), and the count is absolute rather than scaled by map area.
+	if s.At != "" {
+		if ox, oy, _, ok := Origin(level, s.At); ok {
+			reach := s.Jitter
+			if reach <= 0 {
+				reach = 12
+			}
+			var near [][3]int
+			for _, t := range targets {
+				if dx, dy := t[0]-ox, t[1]-oy; dx*dx+dy*dy <= reach*reach {
+					near = append(near, t)
+				}
+			}
+			targets = near
+		}
+	} else if m := level.FeatureAreaMultiplier(); m != 1 {
 		count = int(math.Round(float64(count) * m))
 		if count < 1 {
 			count = 1
@@ -635,12 +651,28 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			continue // every candidate was off the terrain
 		}
 		// Derive the script's seed from the build stream so it stays
-		// reproducible while remaining distinct per stamp.
-		if err := runStructure(level, script, bestX, bestY, w, h, rng.Int63()); err != nil {
+		// reproducible while remaining distinct per stamp. Params other than
+		// the footprint pass through to the script.
+		if err := runStructure(level, script, bestX, bestY, w, h, stampParams(s.Params), rng.Int63()); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// stampParams is a stamp's params minus the ones the placer itself reads.
+func stampParams(p map[string]any) map[string]any {
+	var out map[string]any
+	for k, v := range p {
+		if k == "script" || k == "w" || k == "h" {
+			continue
+		}
+		if out == nil {
+			out = map[string]any{}
+		}
+		out[k] = v
+	}
+	return out
 }
 
 // structure — generic entity placer at a region tag or random open tile.

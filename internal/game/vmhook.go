@@ -15,8 +15,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
+	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/tutorial"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -77,6 +80,15 @@ func vmState(cur state.StateInterface) map[string]any {
 			out["dash_tab"] = s.tabs[s.active].id
 		}
 		out["status"] = s.status
+		if s.active >= 0 && s.active < len(s.tabs) {
+			if lp, ok := s.tabs[s.active].panel.(*legendsPanel); ok {
+				out["legends"] = vmList(lp.lines)
+				out["legends_text"] = strings.Join(lp.lines, "\n")
+				vis, top, bottom := lp.visible()
+				out["legends_visible"] = strings.Join(vis, "\n")
+				out["legends_at_top"], out["legends_at_bottom"] = top, bottom
+			}
+		}
 		if s.storageInspector != nil && s.storageInspector.Visible {
 			modals = append(modals, "inspector")
 		}
@@ -85,7 +97,8 @@ func vmState(cur state.StateInterface) map[string]any {
 				modals = append(modals, "scan")
 			}
 			if loc := p.selectedLocation(); loc != nil {
-				out["selected_location"] = map[string]any{"id": loc.ID, "name": loc.Name, "fuel_cost": s.campaign.FuelCost(loc.ID)}
+				out["selected_location"] = map[string]any{"id": loc.ID, "name": loc.Name, "fuel_cost": s.campaign.FuelCost(loc.ID),
+					"summary": loc.Summary, "history_summary": vmHistorySummary(s.campaign, loc)}
 			}
 		}
 		out["paused"] = s.wm.ClockStopped()
@@ -157,16 +170,25 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 	camp := map[string]any{
 		"name": c.Name, "seed": c.Seed, "location_id": c.CurrentLocationID,
 		"adrift": c.IsAdrift(), "in_orbit": wm.Current() != nil, "won": c.Won, "lost": c.Lost,
-		"day": c.Day,
+		"day": c.Day(),
 	}
 	if loc != nil {
 		camp["location_name"] = loc.Name
+		camp["scenario"] = loc.ScenarioID
+		chapter := ""
+		if site := c.SiteHistory(loc); site != nil && site.Chapter != "" {
+			if ev := c.History.Event(site.Chapter); ev != nil {
+				chapter = ev.Type
+			}
+		}
+		camp["chapter"] = chapter
 	}
+	camp["known_events"] = c.KnownEventCount()
 	techs := append([]string(nil), c.KnownTechs...)
 	sort.Strings(techs)
 	camp["known_techs"] = vmList(techs)
 	out["campaign"] = camp
-	out["day"] = c.Day
+	out["day"] = c.Day()
 
 	shipOwners := []string{wm.shipSettlementName()}
 	ship := storage.ShipProvider{Level: wm.ShipLevel()}
@@ -330,6 +352,17 @@ func vmTarget(cur state.StateInterface, name string) (guest.Rect, bool) {
 		r.Handle("tab", func(rest string) (guest.Rect, bool) { return minuitarget.Tab(s.tabBar, rest) })
 		r.Handle("row", func(rest string) (guest.Rect, bool) { return vmDashRow(s, rest) })
 		r.Handle("gi", func(rest string) (guest.Rect, bool) { return vmGITarget(s, rest) })
+		r.Handle("legends", func(rest string) (guest.Rect, bool) {
+			if s.active < 0 || s.active >= len(s.tabs) || rest != "chronicle" {
+				return guest.Rect{}, false
+			}
+			lp, ok := s.tabs[s.active].panel.(*legendsPanel)
+			if !ok {
+				return guest.Rect{}, false
+			}
+			b := lp.text.GetBounds()
+			return guest.Rect{X: float64(b.X), Y: float64(b.Y), W: float64(b.Width), H: float64(b.Height)}, true
+		})
 	case *MainState:
 		r.Handle("hud", func(rest string) (guest.Rect, bool) {
 			if s.guiManager == nil {
@@ -683,6 +716,102 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 	verb, rest, _ := strings.Cut(strings.TrimSpace(cmd), " ")
 	rest = strings.TrimSpace(rest)
 	switch verb {
+	case "reveal":
+		// "reveal all" marks every history event known, as if every datapad
+		// had been read: a long chronicle for the Legends tab.
+		wm := vmWorld(cur)
+		if wm == nil || wm.Campaign.History == nil || rest != "all" {
+			return "", fmt.Errorf("usage: reveal all (needs a campaign)")
+		}
+		h := wm.Campaign.History
+		for _, e := range h.Events {
+			h.MarkKnown(e.ID)
+		}
+		return fmt.Sprintf("%d events known", len(h.Known)), nil
+	case "datapad":
+		// Put the first colonist on the nearest lore datapad, as if it had
+		// walked there; the next update picks it up.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil {
+			return "", fmt.Errorf("datapad needs a site on screen")
+		}
+		var who *ecs.Entity
+		for _, e := range s.level.Entities {
+			if components.IsColonyWorker(e, s.colonyName()) {
+				who = e
+				break
+			}
+		}
+		if who == nil {
+			return "", fmt.Errorf("no colonist on the site")
+		}
+		wpc := who.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		var best *rlcomponents.PositionComponent
+		bestD := -1
+		for _, e := range s.level.Entities {
+			if e == nil || !e.HasComponent(components.Datapad) {
+				continue
+			}
+			if dp := e.GetComponent(components.Datapad).(*components.DatapadComponent); dp.EventID == "" || dp.QuestID != "" {
+				continue
+			}
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			dx, dy := pc.GetX()-wpc.GetX(), pc.GetY()-wpc.GetY()
+			if d := dx*dx + dy*dy; bestD < 0 || d < bestD {
+				best, bestD = pc, d
+			}
+		}
+		if best == nil {
+			return "", fmt.Errorf("no lore datapad on the site")
+		}
+		wpc.SetPosition(best.GetX(), best.GetY(), best.GetZ())
+		s.camera.CenterOn(best.GetX(), best.GetY(), best.GetZ())
+		return fmt.Sprintf("%d,%d,%d", best.GetX(), best.GetY(), best.GetZ()), nil
+	case "origin":
+		// Frame the camera on the site chapter's resolved origin; "origin
+		// walk" also moves the first colonist there to see it; "origin walk
+		// <event type>" uses that event's origin instead.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil {
+			return "", fmt.Errorf("origin needs a site on screen")
+		}
+		pts := s.level.Regions[LoreOriginRegion]
+		mode, evType, _ := strings.Cut(rest, " ")
+		rest = mode
+		if evType != "" {
+			// "origin walk <event type>": that event's origin on this site
+			// (a quiet site has no chapter origin).
+			pts = nil
+			if site := s.campaign.SiteHistory(s.location()); site != nil {
+				for _, id := range site.Events {
+					if ev := s.campaign.History.Event(id); ev != nil && ev.Type == evType {
+						if x, y, z, ok := generation.Origin(s.level, id); ok {
+							pts = append(pts, [3]int{x, y, z})
+						}
+					}
+				}
+			}
+		}
+		if len(pts) == 0 {
+			return "", fmt.Errorf("this site has no such history origin")
+		}
+		p := pts[0]
+		s.camera.CenterOn(p[0], p[1], p[2])
+		if rest == "walk" {
+			// Put the first colonist on the nearest free tile there, so the
+			// game's own field of view reveals the origin.
+			for _, e := range s.level.Entities {
+				if !components.IsColonyWorker(e, s.colonyName()) {
+					continue
+				}
+				x, y, z := freeLandingTile(s.level, p[0], p[1], p[2])
+				if pc, ok := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent); ok {
+					pc.SetPosition(x, y, z)
+				}
+				break
+			}
+		}
+		return fmt.Sprintf("%d,%d,%d", p[0], p[1], p[2]), nil
 	case "cheat":
 		s, ok := cur.(*MainState)
 		if !ok || s.cheatModal == nil {
@@ -727,4 +856,18 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		return fmt.Sprintf("incident: %s on %s", name, where), nil
 	}
 	return "", fmt.Errorf("unknown debug command %q (cheat, incident)", verb)
+}
+
+// vmHistorySummary reports whether a location's Star Map summary is its
+// history's summary line (not the archetype sentence).
+func vmHistorySummary(c *campaign.Campaign, loc *campaign.Location) bool {
+	site := c.SiteHistory(loc)
+	if site == nil {
+		return false
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return false
+	}
+	return loc.Summary != "" && loc.Summary == c.History.Summary(lib, site)
 }

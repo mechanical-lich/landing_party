@@ -41,6 +41,10 @@ type Scenario struct {
 	// on. Empty means "any map". Terrain generation is driven by the chosen
 	// map, not by the scenario.
 	SupportedMaps []string             `json:"supported_maps,omitempty"`
+	// ThreatBlueprints are the finite threat (every xeno, every troid) whose
+	// end the live history records as "threat cleared"; ThreatName names it.
+	ThreatBlueprints []string `json:"threat_blueprints,omitempty"`
+	ThreatName       string   `json:"threat_name,omitempty"`
 	Features      []mapdef.FeatureBlock `json:"features,omitempty"`
 }
 

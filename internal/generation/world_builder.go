@@ -33,6 +33,14 @@ type BuildWorldOptions struct {
 	// SkipBiomeFeatures leaves out the features biomes declare for themselves
 	// (forest trees etc.), keeping only those listed in Features.
 	SkipBiomeFeatures bool
+	// Origins are the site history's rolled origin tiles by event ID, resolved
+	// to open ground once terrain and biomes exist and before any feature is
+	// placed (see ResolveOrigins). ChapterEvent's is also the "origin" anchor.
+	Origins      map[string][2]int
+	ChapterEvent string
+	// Flags are set on the level before anything is placed, so structure
+	// scripts run by features can read them (the site's lore flags).
+	Flags map[string]any
 }
 
 // BuildWorld constructs a level by running primer → biome map → biome apply
@@ -72,6 +80,10 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		return level, fmt.Errorf("primer %s: %w", opts.Terrain, err)
 	}
 
+	for k, v := range opts.Flags {
+		level.Flags[k] = v
+	}
+	originsDone := false
 	if opts.BiomeMapType != "" || len(opts.BiomeIDs) > 0 {
 		BuildBiomeMap(level, BiomeMapConfig{
 			Type:           opts.BiomeMapType,
@@ -82,6 +94,8 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		}, opts.Seed)
 		ApplyBiomes(level)
 		ExposeMountainTops(level)
+		ResolveOrigins(level, opts.Origins, opts.ChapterEvent)
+		originsDone = true
 
 		// Collect and run features declared in each active biome.
 		if !opts.SkipBiomeFeatures {
@@ -98,6 +112,9 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 		}
 	}
 
+	if !originsDone {
+		ResolveOrigins(level, opts.Origins, opts.ChapterEvent)
+	}
 	if len(opts.Features) > 0 {
 		PlaceFeatures(level, opts.Features, rng)
 	}

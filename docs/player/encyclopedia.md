@@ -2,6 +2,8 @@
 
 A campaign-wide bestiary of every entity your colonists have encountered, plus the **Field Manual**. It is the **Encyclopedia** tab of the dashboard (**O** or the Star Map button).
 
+Its neighbour, the [Legends](legends.md) tab, is the chronicle of the region's history.
+
 The tab is always available. Every entity you hover (in default cursor mode) is silently recorded, so the catalogue fills as you play. ([Archive Indexing](research.md#archive-indexing) no longer gates it.)
 
 ---

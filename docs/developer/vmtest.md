@@ -68,9 +68,15 @@ release builds returns the game unchanged. The current screen is
 ### State summary
 
 `state` (`title`, `dashboard`, `site`, `ship`, `settings`, `end`),
-`title_screen`, `title_fields`, `dash_tab`, `status`, `selected_location`,
+`title_screen`, `title_fields`, `dash_tab`, `status`, `selected_location`
+(`id`, `name`, `fuel_cost`, `summary`, `history_summary`: the summary is the
+site history's line), `legends` and `legends_text` (the Legends tab's
+chronicle, when it is open), `legends_visible` (the chronicle lines on
+screen), `legends_at_top`, `legends_at_bottom`,
 `tick`, `hour`, `day`, `campaign` (`name`, `seed`, `location_id`,
-`location_name`, `adrift`, `in_orbit`, `won`, `lost`, `known_techs`), `fuel`,
+`location_name`, `scenario`, `chapter` (the site history's chapter event, `""`
+when quiet), `known_events`, `adrift`, `in_orbit`, `won`, `lost`,
+`known_techs`), `fuel`,
 `hold`, `site_storage`, `site_structures`, `crew` (name, where, x, y, z, task),
 `crew_at`, `crew_on_site`, `loaded`, `owed`, `tutorial` (`step`, `index`,
 `count`, `done`, `skipped`, `ended`), `modal`, `incident`, `notifications`,
@@ -91,10 +97,11 @@ make vmtest-targets SCRIPT=new_expedition
 | Kind | Names |
 |---|---|
 | `title:` | `new`, `load`, `settings`, `quit`, `name`, `seed`, `tutorial`, `launch`, `cancel`, `load_confirm`, `load_cancel`, `save:<campaign dir>` |
-| `tab:` | `starmap`, `crew`, `inventory`, `quests`, `encyclopedia` |
+| `tab:` | `starmap`, `crew`, `inventory`, `quests`, `encyclopedia`, `legends` |
 | `dash:` | the tutorial's names: `travelBtn`, `locateBtn`, `scanBtn`, `shipList`, `planList`, `beamDownBtn`, `beamUpBtn`, `returnSiteBtn`, `returnShipBtn`, `saveBtn`, `locList` |
 | `row:` | `locList:<location id>`, `shipList:<n>`, `planList:<n>` (Star Map lists; a row scrolled out of view does not resolve) |
 | `star:` | `tutorial`, `next` (planet on the Star Map canvas) |
+| `legends:` | `chronicle` (the Legends tab's scrolling chronicle) |
 | `gi:` | `beam_down`, `beam_up` (Global Inventory tab) |
 | `inspector:` | `beam`, `list`, `amount`, `all`, `close`, `item:<blueprint>` |
 | `ship:` | `hold` (the supply pad, aboard the ship) |
@@ -119,6 +126,9 @@ tutorial off.
 |---|---|
 | `cheat <console command>` | Runs a cheat-console command on the live level (site or ship on screen) and returns the new message-log lines |
 | `incident <location id or ship>` | Raises the away-damage popup for that loaded level |
+| `reveal all` | Marks every history event known (a long Legends chronicle) |
+| `datapad` | Puts the first colonist on the nearest lore datapad (the next update picks it up) |
+| `origin [walk [event type]]` | Frames the camera on the site history's resolved chapter origin (the `region:lore_origin` tag), or on the origin of the site's event of that type; `walk` also puts the first colonist on the nearest free tile there, so its field of view reveals it |
 
 ### Determinism
 
@@ -137,6 +147,13 @@ runs; assert counts rather than specific enemies there.
 | `save_load` | Land, save, relaunch, load: day, location, fuel, hold, storage and crew match; back to title via the Esc menu; Q exits with status 0 |
 | `storage_beam` | Ship hold inspector beams metal down, site locker inspector beams some back; totals conserved |
 | `esc_menu` | Land on the start site, open the Esc menu (title, button labels), close it with Esc |
+| `lore_site` | Start system's Star Map summary is its history's line, travel, beam one down, land on the site |
+| `lore_xenos` | Seed 746: jump to a `wreck_eggs_hatch` moon, land, walk to the origin: the old wreck's hull with the hive's eggs |
+| `lore_ufo` | Seed 753: jump to a `ship_shot_down` asteroid, land, walk to the origin: the hull and its crew |
+| `lore_autonz` | Seed 807: jump to a `wreck_nanites_wake` asteroid, land, walk to the origin: the wreck with wires spreading from it |
+| `lore_legends` | Seed 746: land on the wreck site, pick up a lore datapad, open Legends: the datapad's event is in the chronicle |
+| `lore_legends_long` | Seed 746: every event known (`debug reveal all`), Legends opens on the newest events, the wheel scrolls back to the oldest |
+| `lore_quiet` | Seed 700: the quiet start system's collapsed-civilization castle stands empty (`debug origin walk civ_collapses`) |
 
 ## Release builds
 

@@ -50,6 +50,12 @@ type Quest struct {
 	// title reads "<prefix> — <loc>"; once the script marks its NPC it
 	// becomes "<prefix>: <npc> — <loc>".
 	TitlePrefix string `json:"title_prefix,omitempty"`
+	// EventID is the history event behind the quest (its site's story, or the
+	// event a history-backed template names); completing the quest makes it
+	// known.
+	EventID string `json:"event_id,omitempty"`
+	// Contract marks a quest that charted its own location (makeContract).
+	Contract bool `json:"contract,omitempty"`
 }
 
 // QuestProgress is the serialized per-campaign state for one quest.
@@ -193,6 +199,9 @@ func (c *Campaign) AcceptQuest(id string) bool {
 	p.Status = QuestActive
 	if q := c.questByID[id]; q != nil {
 		c.revealQuestLocation(q)
+		if q.Contract {
+			c.RecordLive("contract_taken", c.Locations[q.Location], map[string]string{"quest": c.QuestTitle(q)})
+		}
 	}
 	return true
 }
@@ -215,6 +224,7 @@ func (c *Campaign) UnlockQuest(id string) *Quest {
 // dependent hidden quests are unlocked to their starting status). Reward
 // application is the caller's responsibility (it needs the ship/locations).
 func (c *Campaign) EvaluateQuests(ctx objective.EvalContext) []*Quest {
+	ctx = c.withKnownFlags(ctx)
 	var done []*Quest
 	for _, q := range c.ActiveQuests() {
 		// Defence in depth: never complete a quest whose prerequisite is not
@@ -236,6 +246,7 @@ func (c *Campaign) EvaluateQuests(ctx objective.EvalContext) []*Quest {
 		if _, ok := ev.Evaluate(ctx); ok {
 			c.Quests[q.ID].Status = QuestCompleted
 			done = append(done, q)
+			c.recordQuestDone(q)
 		}
 	}
 	if len(done) == 0 {

@@ -1,17 +1,60 @@
+# Autonz Incursion. With a history origin (where the swarm landed, or the hull
+# of an old wreck whose dormant swarm woke) the wire placers start there and
+# the wires spread out from it. Without one they arrive from more than 30
+# tiles out, as before.
 function on_setup()
-    add_message("Day 1. Autonz signals detected across the surface. They're already spreading.")
-
     sx = get_flag("start_x")
     sy = get_flag("start_y")
     sz = get_flag("start_z")
     sname = get_flag("settlement_name")
     faction = get_flag("colonist_faction")
 
+    if get_flag("origin_x") >= 0 then
+        announce_origin()
+    else
+        add_message("Day 1. Autonz signals detected across the surface. They're already spreading.")
+    endif
+
     spawn_entity_owned("storage_locker", sx - 1, sy, sz, sname)
     spawn_entity_owned("basic_workbench", sx + 1, sy, sz, sname)
 
-    # Seed a handful of wire placers at distance from the colony so they
-    # arrive rather than starting on top of the colonists.
+    if get_flag("origin_x") >= 0 then
+        placers_at_origin()
+    else
+        placers_far_out(sx, sy, sz)
+    endif
+
+    set_flag("autonz_started", 1)
+endfunction
+
+function announce_origin()
+    if get_flag("origin_event") = "wreck_nanites_wake" then
+        add_message("Day 1. The swarm dormant in the old " + get_flag("origin_civ") + " wreck is awake. Wires are spreading from the hull.")
+    else
+        add_message("Day 1. An Autonz swarm made planetfall out there. Wires are already spreading from the landing site.")
+    endif
+endfunction
+
+# Six wire placers within 12 tiles of the origin.
+function placers_at_origin()
+    ox = get_flag("origin_x")
+    oy = get_flag("origin_y")
+    oz = get_flag("origin_z")
+    placers_spawned = 0
+    for attempt = 1 to 400
+        if placers_spawned < 6 then
+            if find_open_tile_near(ox, oy, oz, 12) = 1 then
+                spawn_entity("wire_placer", get_open_x(), get_open_y(), oz)
+                placers_spawned = placers_spawned + 1
+            endif
+        endif
+    next attempt
+    set_flag("autonz_origin_placers", placers_spawned)
+endfunction
+
+# Seed a handful of wire placers at distance from the colony so they arrive
+# rather than starting on top of the colonists.
+function placers_far_out(sx, sy, sz)
     placers_spawned = 0
     for attempt = 1 to 400
         if placers_spawned < 6 then
@@ -27,6 +70,4 @@ function on_setup()
             endif
         endif
     next attempt
-
-    set_flag("autonz_started", 1)
 endfunction

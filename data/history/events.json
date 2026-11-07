@@ -1,0 +1,1982 @@
+{
+  "_draft": "DRAFT library for lore step 1: placeholder text written to exercise the generator. The owner rewrites every text field.",
+  "events": [
+    {
+      "id": "native_life_emerges",
+      "requires": {
+        "life": "none",
+        "population": "never"
+      },
+      "effects": {
+        "life": "native"
+      },
+      "gap_days": [
+        21900,
+        73000
+      ],
+      "text": "{date}: the first native life took hold on {site}."
+    },
+    {
+      "id": "alien_biosphere_blooms",
+      "requires": {
+        "life": "none",
+        "population": "never"
+      },
+      "effects": {
+        "life": "alien"
+      },
+      "gap_days": [
+        21900,
+        73000
+      ],
+      "text": "{date}: a strange biosphere bloomed across {site}, unlike anything native to the region."
+    },
+    {
+      "id": "native_civ_rises",
+      "requires": {
+        "life": [
+          "native",
+          "alien"
+        ],
+        "population": "never",
+        "resident": false
+      },
+      "civ": "native",
+      "effects": {
+        "population": "civilization",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        7300,
+        29200
+      ],
+      "text": "{date}: the {civ} rose on {site}, first among its living things, led by {founder}."
+    },
+    {
+      "id": "ancient_natives_rise",
+      "requires": {
+        "life": "native",
+        "population": "never",
+        "resident": false
+      },
+      "civ": "native",
+      "species": "yeti",
+      "effects": {
+        "population": "civilization",
+        "status": "thriving",
+        "add_remains": [
+          "ruins"
+        ]
+      },
+      "figures": [
+        {
+          "role": "elder"
+        }
+      ],
+      "gap_days": [
+        14600,
+        43800
+      ],
+      "text": "{date}: great shaggy people, the {civ}, built stone halls in the high country of {site} under {elder}."
+    },
+    {
+      "id": "civ_settles",
+      "requires": {
+        "resident": false
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "colony",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}{during_war}: colonists of the {civ} settled {site} under {founder}."
+    },
+    {
+      "id": "outpost_founded",
+      "requires": {
+        "resident": false
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "outpost",
+        "status": "thriving"
+      },
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}: the {civ} raised an outpost on {site}."
+    },
+    {
+      "id": "mining_claim_staked",
+      "requires": {
+        "resident": false
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "outpost",
+        "status": "thriving",
+        "add_remains": [
+          "ruins"
+        ]
+      },
+      "figures": [
+        {
+          "role": "foreman"
+        }
+      ],
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "underground_hideout",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: {civ} prospectors staked a mining claim on {site}; {foreman} ran the dig.",
+      "place": "the dig"
+    },
+    {
+      "id": "station_built",
+      "requires": {
+        "resident": false,
+        "population": "never"
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "outpost",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "commander"
+        }
+      ],
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}: the {civ} built a station here and crewed it under {commander}.",
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the station core"
+    },
+    {
+      "id": "drone_station_built",
+      "requires": {
+        "population": "never"
+      },
+      "civ": "visitor",
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}: {civ} drones assembled an uncrewed relay here. No one ever came aboard.",
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the relay core"
+    },
+    {
+      "id": "islands_settled",
+      "requires": {
+        "resident": false,
+        "life": "alien"
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "colony",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "founder"
+        }
+      ],
+      "gap_days": [
+        3650,
+        14600
+      ],
+      "text": "{date}: the {civ} settled the volcanic islands of {site}."
+    },
+    {
+      "id": "civ_thrives",
+      "requires": {
+        "resident": true,
+        "population": [
+          "colony",
+          "civilization"
+        ]
+      },
+      "effects": {
+        "population": "civilization",
+        "status": "thriving",
+        "add_remains": [
+          "ruins"
+        ]
+      },
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}: the {civ} colony on {site} grew into a nation."
+    },
+    {
+      "id": "civ_rises",
+      "requires": {
+        "resident": true,
+        "population": "civilization"
+      },
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "figures": [
+        {
+          "role": "ruler"
+        }
+      ],
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "circle_tower",
+            "w": 25,
+            "h": 25,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a golden age of the {civ} on {site}, under {ruler}.",
+      "place": "the old tower"
+    },
+    {
+      "id": "reactor_built",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "add_remains": [
+          "reactor"
+        ]
+      },
+      "figures": [
+        {
+          "role": "chief_engineer"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "abandoned_reactor",
+            "w": 21,
+            "h": 19,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: {chief_engineer} of the {civ} lit a great reactor on {site}.",
+      "place": "the reactor"
+    },
+    {
+      "id": "lab_founded",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "figures": [
+        {
+          "role": "researcher"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "underground_bunker",
+            "w": 15,
+            "h": 13,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} opened a sealed laboratory on {site}; {researcher} led it.",
+      "place": "the laboratory"
+    },
+    {
+      "id": "refugees_arrive",
+      "requires": {
+        "resident": false
+      },
+      "civ": "arrive",
+      "effects": {
+        "population": "colony",
+        "status": "thriving"
+      },
+      "figures": [
+        {
+          "role": "elder"
+        }
+      ],
+      "gap_days": [
+        3650,
+        21900
+      ],
+      "text": "{date}{during_war}: refugees of the {civ} landed on {site} with nothing, led by {elder}."
+    },
+    {
+      "id": "observatory_built",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "figures": [
+        {
+          "role": "astronomer"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "circle_tower",
+            "w": 25,
+            "h": 25,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} raised an observatory on {site}; {astronomer} charted the region from it.",
+      "place": "the observatory"
+    },
+    {
+      "id": "archive_sealed",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "figures": [
+        {
+          "role": "archivist"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "underground_hideout",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: {archivist} of the {civ} sealed the records of {site} in a vault below the surface.",
+      "place": "the vault"
+    },
+    {
+      "id": "hab_domes_raised",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "add_remains": [
+          "ruins"
+        ]
+      },
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "text": "{date}: the {civ} sealed their settlement on {site} under pressure domes."
+    },
+    {
+      "id": "survey_mission",
+      "civ": "visitor",
+      "gap_days": [
+        1825,
+        21900
+      ],
+      "text": "{date}{during_war}: a {civ} survey ship mapped {site} and moved on."
+    },
+    {
+      "id": "claim_beacon",
+      "civ": "visitor",
+      "effects": {
+        "add_remains": [
+          "relics"
+        ]
+      },
+      "gap_days": [
+        1825,
+        21900
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} planted a claim beacon on {site}. Nobody came to work the claim.",
+      "place": "the claim beacon"
+    },
+    {
+      "id": "ancient_wreck",
+      "civ": "visitor",
+      "effects": {
+        "add_remains": [
+          "wrecks"
+        ]
+      },
+      "gap_days": [
+        14600,
+        73000
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "crashed_ufo",
+            "w": 17,
+            "h": 17,
+            "crew": "dead",
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} ship came down hard on {site}. No one walked away from it.",
+      "place": "the wreck"
+    },
+    {
+      "id": "crew_crash",
+      "requires": {
+        "resident": false
+      },
+      "civ": "visitor",
+      "effects": {
+        "add_remains": [
+          "wrecks",
+          "graves"
+        ]
+      },
+      "figures": [
+        {
+          "role": "pilot",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        730,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "crashed_ufo",
+            "w": 17,
+            "h": 17,
+            "crew": "dead",
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} lander crashed on {site}; {pilot} and the crew are buried beside it.",
+      "place": "the crash site"
+    },
+    {
+      "id": "expedition_lost",
+      "requires": {
+        "resident": false
+      },
+      "civ": "visitor",
+      "effects": {
+        "add_remains": [
+          "graves"
+        ]
+      },
+      "figures": [
+        {
+          "role": "expedition_leader",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        730,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "underground_hideout",
+            "w": 21,
+            "h": 17,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} expedition under {expedition_leader} set out across {site} and never came back.",
+      "place": "where the expedition was lost"
+    },
+    {
+      "id": "border_skirmish",
+      "civ": "war",
+      "effects": {
+        "add_remains": [
+          "wrecks"
+        ]
+      },
+      "gap_days": [
+        3650,
+        29200
+      ],
+      "text": "{date}: {civ} and {enemy} pickets clashed over {site}; the hulks were left where they fell."
+    },
+    {
+      "id": "war_battle",
+      "civ": "war",
+      "effects": {
+        "add_remains": [
+          "wrecks"
+        ]
+      },
+      "gap_days": [
+        3650,
+        29200
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "crashed_ufo",
+            "w": 17,
+            "h": 17,
+            "crew": "dead",
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: the {civ} and the {enemy} fought over {site}; the wreckage still circles it."
+    },
+    {
+      "id": "impact",
+      "requires": {
+        "population": "never",
+        "life": "none"
+      },
+      "effects": {
+        "status": "dead"
+      },
+      "gap_days": [
+        7300,
+        54750
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "ore_vein",
+          "count": 2,
+          "count_max": 4,
+          "params": {
+            "tile": "ore_deposit",
+            "radius": 3,
+            "radius_max": 5
+          }
+        }
+      ],
+      "text": "{date}: an asteroid struck {site} and left a field of craters."
+    },
+    {
+      "id": "impact_cataclysm",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        1825,
+        21900
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "circle_ruined_tower",
+            "w": 25,
+            "h": 25,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: an impact flattened the {civ} settlements on {site}.",
+      "place": "the impact site"
+    },
+    {
+      "id": "colony_abandoned",
+      "requires": {
+        "resident": true,
+        "population": [
+          "outpost",
+          "colony"
+        ]
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "fled"
+      },
+      "figures": [
+        {
+          "role": "governor",
+          "fate": "fled"
+        }
+      ],
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}{during_war}: the {civ} gave up on {site}; {governor} ordered the last ships out."
+    },
+    {
+      "id": "colony_withdrawn",
+      "requires": {
+        "resident": true,
+        "population": [
+          "outpost",
+          "colony"
+        ]
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}{during_war}: the {civ} withdrew from {site}, one ship at a time, until no one was left."
+    },
+    {
+      "id": "colony_starves",
+      "requires": {
+        "resident": true,
+        "population": [
+          "outpost",
+          "colony"
+        ]
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "figures": [
+        {
+          "role": "governor",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} colony on {site} starved through a hard decade. {governor} kept the last log.",
+      "place": "the last settlement"
+    },
+    {
+      "id": "civ_collapses",
+      "requires": {
+        "resident": true,
+        "population": "civilization"
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "figures": [
+        {
+          "role": "last_ruler",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        3650,
+        29200
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "castle",
+            "w": 28,
+            "h": 22,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} of {site} fell apart under {last_ruler}; their cities emptied.",
+      "place": "the empty city"
+    },
+    {
+      "id": "natives_dwindle",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "dwindled"
+      },
+      "gap_days": [
+        7300,
+        36500
+      ],
+      "text": "{date}: the {civ} of {site} dwindled to scattered bands in the wilds."
+    },
+    {
+      "id": "station_lost",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "status": "dead",
+        "add_remains": [
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "figures": [
+        {
+          "role": "commander",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        730,
+        10950
+      ],
+      "text": "{date}: the {civ} station went silent. {commander}'s last message was a distress call."
+    },
+    {
+      "id": "drone_station_fails",
+      "requires": {
+        "events": [
+          "drone_station_built"
+        ]
+      },
+      "effects": {
+        "status": "fallen"
+      },
+      "gap_days": [
+        3650,
+        29200
+      ],
+      "text": "{date}: the relay's makers stopped answering it. It kept running alone."
+    },
+    {
+      "id": "islands_abandoned",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "fled"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "text": "{date}: eruptions drove the {civ} off the islands of {site}."
+    },
+    {
+      "id": "sea_rise",
+      "requires": {
+        "resident": true
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "fled"
+      },
+      "gap_days": [
+        3650,
+        29200
+      ],
+      "text": "{date}: the seas of {site} rose over the {civ} cities. Some got off-world; most did not."
+    },
+    {
+      "id": "stellar_flare",
+      "effects": {
+        "life": "none",
+        "status": "dead",
+        "ruins_if_populated": true,
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        3650,
+        36500
+      ],
+      "text": "{date}: the sun of {site} flared and burned it clean."
+    },
+    {
+      "id": "nuclear_war",
+      "requires": {
+        "resident": true,
+        "population": "civilization"
+      },
+      "effects": {
+        "life": "none",
+        "status": "dead",
+        "add_contaminants": [
+          "radiation"
+        ],
+        "add_remains": [
+          "ruins",
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        1825,
+        14600
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "bunker",
+            "w": 11,
+            "h": 9,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "radiation_pocket",
+          "count": 3,
+          "count_max": 6,
+          "params": {
+            "peak": 200,
+            "radius": 5
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: the {civ} of {site} turned their weapons on each other. The fallout killed everything.",
+      "place": "the bunker"
+    },
+    {
+      "id": "reactor_meltdown",
+      "requires": {
+        "resident": true,
+        "remains": [
+          "reactor"
+        ]
+      },
+      "effects": {
+        "life": "none",
+        "status": "dead",
+        "add_contaminants": [
+          "radiation"
+        ],
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "died"
+      },
+      "figures": [
+        {
+          "role": "chief_engineer",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        730,
+        10950
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "abandoned_reactor",
+            "w": 21,
+            "h": 19,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "radiation_pocket",
+          "count": 3,
+          "count_max": 6,
+          "params": {
+            "peak": 200,
+            "radius": 5
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} reactor on {site} failed under {chief_engineer}. Nothing survived the fallout.",
+      "origin_from": [
+        "reactor_built"
+      ],
+      "place": "the dead reactor"
+    },
+    {
+      "id": "nanite_conversion",
+      "effects": {
+        "status": "fallen",
+        "add_contaminants": [
+          "nanites"
+        ],
+        "ruins_if_populated": true,
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        1825,
+        21900
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "derelict_pod",
+          "count": 1,
+          "count_max": 3,
+          "params": {
+            "blueprint": "wire_placer"
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a nanite swarm took {site} apart and rebuilt it in wire. The {civ} went with it."
+    },
+    {
+      "id": "hive_consumption",
+      "effects": {
+        "life": "alien",
+        "status": "fallen",
+        "add_contaminants": [
+          "hive"
+        ],
+        "ruins_if_populated": true,
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        1825,
+        21900
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a hive spread across {site} and ate everything that lived there."
+    },
+    {
+      "id": "ice_age",
+      "requires": {
+        "resident": true,
+        "life": "native"
+      },
+      "effects": {
+        "status": "fallen",
+        "add_remains": [
+          "ruins"
+        ],
+        "resident_fate": "fled"
+      },
+      "gap_days": [
+        7300,
+        54750
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "underground_dungeon",
+            "w": 25,
+            "h": 21,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the ice came down over {site}. The {civ} fled south, then off-world.",
+      "place": "the buried halls"
+    },
+    {
+      "id": "war_begins",
+      "civ": "war",
+      "text": "{date}: war broke out between the {civ} and the {enemy}{war_end}."
+    },
+    {
+      "id": "wreck_disturbed",
+      "requires": {
+        "events": [
+          "ancient_wreck"
+        ]
+      },
+      "vars": {
+        "how": [
+          "a survey team cut it open",
+          "a quake cracked its hull",
+          "its reactor finally failed"
+        ]
+      },
+      "gap_days": [
+        10,
+        120
+      ],
+      "text": "{date}: the old wreck on {site} was disturbed: {how}."
+    },
+    {
+      "id": "colony_plague",
+      "requires": {
+        "status": "fallen",
+        "remains": [
+          "graves"
+        ]
+      },
+      "scenario": "zombie_plague",
+      "origin": true,
+      "weight": {
+        "earth_like": 54,
+        "moon": 27,
+        "asteroid": 25,
+        "alien": 421,
+        "desert_planet": 61,
+        "frozen_planet": 61,
+        "ocean_planet": 163
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "circle_ruined_tower",
+            "w": 25,
+            "h": 25,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a plague ran through what was left of the {civ} on {site}, and the dead got up again.",
+      "omen": "The dead do not stay down here."
+    },
+    {
+      "id": "lab_leak",
+      "requires": {
+        "events": [
+          "lab_founded"
+        ]
+      },
+      "scenario": "zombie_plague",
+      "origin_from": "lab_founded",
+      "weight": {
+        "earth_like": 28,
+        "moon": 27,
+        "alien": 421,
+        "desert_planet": 32,
+        "asteroid": 25,
+        "ocean_planet": 163
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: something got out of the sealed {civ} laboratory on {site}.",
+      "omen": "Something got out of the old laboratory."
+    },
+    {
+      "id": "crash_pathogen",
+      "requires": {
+        "events": [
+          "crew_crash"
+        ]
+      },
+      "scenario": "zombie_plague",
+      "origin_from": "crew_crash",
+      "weight": {
+        "earth_like": 28,
+        "alien": 421,
+        "moon": 27,
+        "asteroid": 25,
+        "desert_planet": 32,
+        "frozen_planet": 61,
+        "ocean_planet": 163
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the crew of the crashed {civ} lander did not stay buried.",
+      "omen": "The crash site is not quiet."
+    },
+    {
+      "id": "wreck_pathogen",
+      "requires": {
+        "events": [
+          "ancient_wreck"
+        ]
+      },
+      "prelude": [
+        "wreck_disturbed"
+      ],
+      "scenario": "zombie_plague",
+      "origin_from": "ancient_wreck",
+      "weight": {
+        "earth_like": 28,
+        "alien": 421,
+        "moon": 27,
+        "asteroid": 25,
+        "desert_planet": 32,
+        "frozen_planet": 61,
+        "ocean_planet": 163
+      },
+      "gap_days": [
+        5,
+        90
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the dead crew of the old {civ} wreck on {site} began to rise.",
+      "omen": "The old wreck's crew walks again."
+    },
+    {
+      "id": "blight_spread",
+      "requires": {
+        "life": "alien"
+      },
+      "scenario": "crystalline_blight",
+      "origin": true,
+      "weight": {
+        "alien": 53
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "crystal_grove",
+          "count": 2,
+          "count_max": 4,
+          "params": {
+            "blueprint": "alien_crystal",
+            "radius": 4
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a crystal blight broke out of the deep places of {site} and began twisting the wildlife.",
+      "omen": "A crystal blight is spreading."
+    },
+    {
+      "id": "reactor_mutation",
+      "requires": {
+        "life": "alien",
+        "remains": [
+          "reactor"
+        ]
+      },
+      "scenario": "alien_world",
+      "origin_from": "reactor_built",
+      "weight": {
+        "alien": 27,
+        "ocean_planet": 12
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "count": 2,
+          "count_max": 4,
+          "params": {
+            "peak": 160,
+            "radius": 4
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the dead {civ} reactor on {site} has been leaking for years; the wildlife around it changed.",
+      "omen": "The wildlife near the old reactor has changed."
+    },
+    {
+      "id": "wreck_reactor_leak",
+      "requires": {
+        "events": [
+          "ancient_wreck"
+        ],
+        "life": "alien"
+      },
+      "prelude": [
+        "wreck_disturbed"
+      ],
+      "scenario": "alien_world",
+      "origin_from": "ancient_wreck",
+      "weight": {
+        "alien": 13,
+        "ocean_planet": 7
+      },
+      "gap_days": [
+        5,
+        90
+      ],
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "count": 2,
+          "count_max": 4,
+          "params": {
+            "peak": 180,
+            "radius": 4
+          }
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the drive of the old {civ} wreck on {site} cracked, and the creatures nearby mutated.",
+      "omen": "A wrecked drive is leaking; the creatures around it have changed."
+    },
+    {
+      "id": "station_experiment",
+      "requires": {
+        "any_events": [
+          "station_built",
+          "drone_station_built"
+        ]
+      },
+      "scenario": "abandoned_station",
+      "origin": true,
+      "weight": {
+        "abandoned_station": 7
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: an experiment aboard the station went wrong; things moved in the dark decks.",
+      "omen": "Something moves in the dark decks."
+    },
+    {
+      "id": "ship_shot_down",
+      "civ": "war",
+      "scenario": "crashed_ufo",
+      "origin": true,
+      "weight": {
+        "earth_like": 17,
+        "alien": 38,
+        "moon": 8,
+        "asteroid": 7,
+        "desert_planet": 7,
+        "frozen_planet": 6,
+        "ocean_planet": 10
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} warship, hunted by the {enemy}, was shot down over {site}.",
+      "omen": "A warship came down here recently."
+    },
+    {
+      "id": "fled_battle",
+      "civ": "war",
+      "scenario": "crashed_ufo",
+      "origin": true,
+      "weight": {
+        "earth_like": 17,
+        "alien": 38,
+        "moon": 8,
+        "asteroid": 7,
+        "desert_planet": 7,
+        "frozen_planet": 6,
+        "ocean_planet": 10
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} ship fleeing the {enemy} limped down onto {site}.",
+      "omen": "A damaged ship came down here recently."
+    },
+    {
+      "id": "scout_accident",
+      "civ": "visitor",
+      "scenario": "crashed_ufo",
+      "origin": true,
+      "weight": {
+        "earth_like": 17,
+        "alien": 38,
+        "moon": 8,
+        "asteroid": 7,
+        "desert_planet": 7,
+        "frozen_planet": 6,
+        "ocean_planet": 10
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: a {civ} scout misjudged its landing on {site}.",
+      "omen": "A scout ship crashed here recently.",
+      "flags": {
+        "chapter_crew": "dead"
+      },
+      "safe_start": true
+    },
+    {
+      "id": "salvage_expedition",
+      "requires": {
+        "any_events": [
+          "station_built",
+          "drone_station_built",
+          "ancient_wreck"
+        ]
+      },
+      "civ": "visitor",
+      "species": "greyish",
+      "scenario": "grey_contact",
+      "weight": {
+        "abandoned_station": 9
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a {civ} salvage crew came for what was left aboard.",
+      "omen": "Someone else is already aboard.",
+      "origin_from": [
+        "ancient_wreck",
+        "station_built",
+        "drone_station_built"
+      ]
+    },
+    {
+      "id": "meteor_seeding",
+      "scenario": "exterminate_xenos",
+      "origin": true,
+      "weight": {
+        "earth_like": 1,
+        "alien": 1,
+        "moon": 9,
+        "asteroid": 9,
+        "desert_planet": 6,
+        "ocean_planet": 8
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a meteor fell on {site} carrying xeno spores.",
+      "omen": "A recent impact carried xeno spores."
+    },
+    {
+      "id": "infested_colonists",
+      "requires": {
+        "any_events": [
+          "civ_settles",
+          "outpost_founded",
+          "refugees_arrive",
+          "station_built",
+          "mining_claim_staked",
+          "islands_settled"
+        ]
+      },
+      "scenario": "exterminate_xenos",
+      "origin": true,
+      "weight": {
+        "abandoned_station": 10,
+        "earth_like": 1,
+        "moon": 9,
+        "asteroid": 9,
+        "ocean_planet": 8
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the last {civ} to leave {site} left something in the hold behind them.",
+      "omen": "Something was left behind in a hold."
+    },
+    {
+      "id": "deliberate_drop",
+      "civ": "war",
+      "scenario": "exterminate_xenos",
+      "origin": true,
+      "weight": {
+        "earth_like": 1,
+        "alien": 1,
+        "desert_planet": 6
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}{during_war}: the {civ} seeded {site} with xenos to deny it to the {enemy}.",
+      "omen": "Xenos were seeded here on purpose."
+    },
+    {
+      "id": "wreck_eggs_hatch",
+      "requires": {
+        "events": [
+          "ancient_wreck"
+        ]
+      },
+      "prelude": [
+        "wreck_disturbed"
+      ],
+      "scenario": "exterminate_xenos",
+      "origin_from": "ancient_wreck",
+      "weight": {
+        "earth_like": 1,
+        "alien": 1,
+        "moon": 9,
+        "asteroid": 9,
+        "desert_planet": 6,
+        "ocean_planet": 8,
+        "abandoned_station": 10
+      },
+      "gap_days": [
+        5,
+        90
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the eggs in the hold of the old {civ} wreck on {site} hatched.",
+      "omen": "Eggs in an old wreck have hatched."
+    },
+    {
+      "id": "impact_colony",
+      "requires": {
+        "any_events": [
+          "impact",
+          "impact_cataclysm"
+        ]
+      },
+      "scenario": "troid_outbreak",
+      "origin_from": [
+        "impact",
+        "impact_cataclysm"
+      ],
+      "weight": {
+        "moon": 241,
+        "asteroid": 189,
+        "desert_planet": 966,
+        "frozen_planet": 288
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: troids crawled out of the old impact craters on {site}.",
+      "omen": "Troids crawl from the craters."
+    },
+    {
+      "id": "swarm_landing",
+      "scenario": "autonz_incursion",
+      "origin": true,
+      "weight": {
+        "earth_like": 21,
+        "alien": 48,
+        "moon": 11,
+        "asteroid": 11,
+        "desert_planet": 9,
+        "frozen_planet": 8,
+        "ocean_planet": 13,
+        "abandoned_station": 7
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: an Autonz swarm made planetfall on {site}.",
+      "omen": "An Autonz swarm has landed."
+    },
+    {
+      "id": "wreck_nanites_wake",
+      "requires": {
+        "events": [
+          "ancient_wreck"
+        ]
+      },
+      "prelude": [
+        "wreck_disturbed"
+      ],
+      "scenario": "autonz_incursion",
+      "origin_from": "ancient_wreck",
+      "weight": {
+        "earth_like": 21,
+        "alien": 48,
+        "moon": 11,
+        "asteroid": 11,
+        "desert_planet": 9,
+        "frozen_planet": 8,
+        "ocean_planet": 13,
+        "abandoned_station": 7
+      },
+      "gap_days": [
+        5,
+        90
+      ],
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the dormant swarm aboard the old {civ} wreck on {site} woke up.",
+      "omen": "A dormant swarm in an old wreck has woken."
+    },
+    {
+      "id": "burrowers_stir",
+      "scenario": "worms",
+      "weight": {
+        "earth_like": 25,
+        "alien": 53,
+        "moon": 11,
+        "asteroid": 12,
+        "frozen_planet": 10,
+        "ocean_planet": 14
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "text": "{date}: something huge started moving under the ground of {site}.",
+      "omen": "Something huge moves underground."
+    },
+    {
+      "id": "yeti_return",
+      "requires": {
+        "events": [
+          "ancient_natives_rise"
+        ]
+      },
+      "scenario": "yeti_territory",
+      "weight": {
+        "earth_like": 177,
+        "frozen_planet": 12
+      },
+      "gap_days": [
+        5,
+        120
+      ],
+      "text": "{date}: the descendants of the {civ} came back down from the high country of {site}.",
+      "omen": "The old natives have come back down."
+    },
+    {
+      "id": "colony_founded",
+      "live": true,
+      "fills": [
+        "colony"
+      ],
+      "text": "{date}: the colonists landed on {site} and founded the {colony} colony."
+    },
+    {
+      "id": "colony_left",
+      "live": true,
+      "fills": [
+        "colony"
+      ],
+      "text": "{date}: the last colonists beamed up from {site}. The {colony} colony stands empty."
+    },
+    {
+      "id": "colony_wiped",
+      "live": true,
+      "fills": [
+        "colony"
+      ],
+      "text": "{date}: the {colony} colony on {site} was lost with every colonist on it."
+    },
+    {
+      "id": "colonist_died",
+      "live": true,
+      "fills": [
+        "colonist",
+        "cause"
+      ],
+      "text": "{date}: {colonist} died on {site}{cause}."
+    },
+    {
+      "id": "boss_slain",
+      "live": true,
+      "fills": [
+        "boss",
+        "cause"
+      ],
+      "text": "{date}: {boss} was killed on {site}{cause}."
+    },
+    {
+      "id": "quest_completed",
+      "live": true,
+      "fills": [
+        "quest"
+      ],
+      "text": "{date}: the colonists completed {quest} on {site}."
+    },
+    {
+      "id": "contract_taken",
+      "live": true,
+      "fills": [
+        "quest"
+      ],
+      "text": "{date}: the colonists took the contract {quest}."
+    },
+    {
+      "id": "threat_cleared",
+      "live": true,
+      "fills": [
+        "threat"
+      ],
+      "text": "{date}: the last {threat} on {site} was destroyed."
+    }
+  ]
+}

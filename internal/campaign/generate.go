@@ -3,11 +3,14 @@ package campaign
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"os"
 	"sort"
+	"strings"
 
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/objective"
 )
@@ -28,14 +31,16 @@ const (
 )
 
 type locArchetype struct {
-	ID        string   `json:"id"`
-	Kind      string   `json:"kind"`
-	Weight    int      `json:"weight"`
-	StartOK   bool     `json:"start_ok"`
-	Maps      []string `json:"maps"`
-	Scenarios []string `json:"scenarios"`
-	Tags      []string `json:"tags"`
-	Summary   string   `json:"summary"`
+	ID      string   `json:"id"`
+	Kind    string   `json:"kind"`
+	Weight  int      `json:"weight"`
+	StartOK bool     `json:"start_ok"`
+	Maps    []string `json:"maps"`
+	Tags    []string `json:"tags"`
+	Summary string   `json:"summary"`
+	// SpawnEvent, if set, is the chapter every site of this archetype ends in
+	// (a hive world is overrun by xenos); a contract's own spawn_event wins.
+	SpawnEvent string `json:"spawn_event,omitempty"`
 }
 
 type locTemplates struct {
@@ -80,6 +85,14 @@ type questTemplate struct {
 	// the quest reveals it. Lets quests bring their own destination into being
 	// (e.g. a distress call from a xeno-infested world).
 	SpawnArchetype string `json:"spawn_archetype"`
+	// SpawnEvent, on a contract, names the history chapter the new location
+	// must end in (a distress call wants a colony overrun by xenos), so the
+	// threat the quest asks about is the one the site plays.
+	SpawnEvent string `json:"spawn_event,omitempty"`
+	// History, when set, makes this a history-backed template bound at
+	// charting from the site's history (see addHistoryQuest): "figure_log",
+	// "civ_relic" or "chapter_origin". Never tag-rolled.
+	History string `json:"history,omitempty"`
 }
 
 type questTemplates struct {
@@ -129,6 +142,7 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 		Seed:      seed,
 		Locations: make(map[string]*Location),
 		Ship:      NewShipState(cfg.RosterCap),
+		History:   history.New(seed),
 	}
 	rng := rand.New(rand.NewSource(seed))
 
@@ -251,7 +265,7 @@ func (c *Campaign) MaybeTravelQuests() ([]*Location, int) {
 		var target *Location
 		if len(existing) == 0 || rng.Intn(cfg.NewSystemOneIn) == 0 {
 			x, y := c.placeTowardHome(rng)
-			target = c.newLocation(rng, a, x, y, "")
+			target = c.newLocation(rng, a, x, y, "", "")
 			target.Discovered = true
 			c.addDatapadQuests(rng, qt, a, target)
 			newLocs = append(newLocs, target)
@@ -384,8 +398,10 @@ func (c *Campaign) Scan(level int) (*Location, bool) {
 	}
 	x, y := c.placeNear(rng, cur.X, cur.Y, tier.Range)
 	a := weightedArchetype(rng, lt)
-	loc := c.newLocation(rng, a, x, y, "")
+	loc := c.newLocation(rng, a, x, y, "", "")
 	loc.Discovered = true
+	// The scan reads the new site's story: its summary event becomes known.
+	c.RevealEvent(c.storyEvent(loc))
 	c.addDatapadQuests(rng, qt, a, loc)
 	c.BindQuests()
 	return loc, true
@@ -467,33 +483,216 @@ func (c *Campaign) uniqueName(rng *rand.Rand) string {
 }
 
 // newLocation creates one location from an archetype (no quests) and appends
-// it to the campaign.
-func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idHint string) *Location {
+// it to the campaign. wantEvent, if set, asks its history to end in that
+// chapter (see bindHistory).
+func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idHint, wantEvent string) *Location {
 	c.GenSeq++
 	id := fmt.Sprintf("sys_%d", c.GenSeq)
 	if idHint != "" {
 		id = idHint
 	}
 	loc := &Location{
-		ID:         id,
-		Name:       c.uniqueName(rng),
-		Kind:       a.Kind,
-		MapID:      pick(rng, a.Maps),
-		ScenarioID: pick(rng, a.Scenarios),
-		Seed:       c.Seed + int64(c.GenSeq)*131,
-		X:          x,
-		Y:          y,
-		Summary:    a.Summary,
-		QuestTag:   firstTag(a.Tags),
+		ID:       id,
+		Name:     c.uniqueName(rng),
+		Kind:     a.Kind,
+		MapID:    pick(rng, a.Maps),
+		Seed:     c.Seed + int64(c.GenSeq)*131,
+		X:        x,
+		Y:        y,
+		Summary:  a.Summary,
+		QuestTag: firstTag(a.Tags),
 	}
+	// The scenario used to be rolled here. History picks it now (bindHistory);
+	// this draw stands in for the old roll so every later draw, and with it
+	// every later site's map, position and name, stays where it was.
+	_ = rng.Int31()
 	c.Locations[id] = loc
+	if wantEvent == "" {
+		wantEvent = a.SpawnEvent
+	}
+	c.bindHistory(loc, wantEvent)
+	c.addHistoryQuest(loc)
 	return loc
+}
+
+// bindHistory gives a charted site its history: the scenario is the history's
+// chapter (or the map's quiet base), the summary its one-line story. wantEvent,
+// if set, asks for a history ending in that chapter (a contract's threat). On a
+// failure the site keeps its archetype summary and the map's base scenario.
+func (c *Campaign) bindHistory(loc *Location, wantEvent string) {
+	if !loc.HasSite() || loc.Tutorial {
+		return
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		log.Printf("history: %v", err)
+		return
+	}
+	if c.History == nil {
+		c.History = history.New(c.Seed)
+	}
+	var site *history.SiteHistory
+	switch {
+	case wantEvent != "":
+		site, err = c.History.BindSiteEnding(lib, loc.MapID, loc.Seed, wantEvent)
+	case c.firstJump(loc):
+		site, err = c.History.BindSiteSafe(lib, loc.MapID, loc.Seed)
+	default:
+		site, err = c.History.BindSite(lib, loc.MapID, loc.Seed)
+	}
+	if err != nil {
+		log.Printf("history: %s (%s): %v", loc.ID, loc.MapID, err)
+		if md := lib.Maps[loc.MapID]; md != nil {
+			loc.ScenarioID = md.BaseScenario
+		}
+		return
+	}
+	c.History.Place(site.ID, loc.ID)
+	loc.History = site.ID
+	// Every event with a place on the map leaves a datapad there.
+	for _, f := range LoreDatapadFixtures(c.History.Evidence(lib, site).Datapads) {
+		loc.AddFixture(f)
+	}
+	loc.ScenarioID = site.Scenario
+	if s := c.History.Summary(lib, site); s != "" {
+		loc.Summary = s
+	}
+}
+
+// firstJump reports whether loc is within a first jump of the Wreck Site
+// (safe_start_radius, default start_radius), where a landing must be safe.
+func (c *Campaign) firstJump(loc *Location) bool {
+	cfg := genConfig()
+	r := cfg.SafeStartRadius
+	if r <= 0 {
+		r = cfg.StartRadius
+	}
+	var wx, wy float64
+	if w := c.Locations[AdriftLocationID]; w != nil {
+		wx, wy = w.X, w.Y
+	}
+	return math.Hypot(loc.X-wx, loc.Y-wy) <= r+1e-6
+}
+
+// LoreDatapadKind is the fixture kind of a datapad that records a history event.
+const LoreDatapadKind = "lore_datapad"
+
+// LoreDatapadFixtures are the fixtures for a site's lore datapads, one per
+// event that leaves one (history.SiteEvidence.Datapads).
+func LoreDatapadFixtures(events []string) []QuestFixture {
+	out := make([]QuestFixture, 0, len(events))
+	for _, ev := range events {
+		out = append(out, QuestFixture{Kind: LoreDatapadKind, Blueprint: "datapad", EventID: ev})
+	}
+	return out
+}
+
+// storyEvent is the event a site's quest datapads tell: its chapter, else its
+// latest event; "" for a site with no history.
+func (c *Campaign) storyEvent(loc *Location) string {
+	site := c.SiteHistory(loc)
+	switch {
+	case site == nil:
+		return ""
+	case site.Chapter != "":
+		return site.Chapter
+	case len(site.Events) > 0:
+		return site.Events[len(site.Events)-1]
+	}
+	return ""
+}
+
+// RevealEvent marks a history event known (a datapad was read) and returns its
+// chronicle text, or "" if it is unknown. newly reports whether it was news.
+func (c *Campaign) RevealEvent(id string) (text string, newly bool) {
+	if c == nil || c.History == nil || id == "" {
+		return "", false
+	}
+	ev := c.History.Event(id)
+	if ev == nil {
+		return "", false
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return "", false
+	}
+	if c.History.Known == nil {
+		c.History.Known = map[string]bool{}
+	}
+	newly = !c.History.Known[id]
+	c.History.Known[id] = true
+	site := ""
+	if s := c.History.Sites[ev.Site]; s != nil {
+		if loc := c.Locations[s.Location]; loc != nil {
+			site = loc.Name
+		}
+	}
+	return c.History.Render(lib, ev, site), newly
+}
+
+// RecordLive appends a live history event at loc (dated in the star date,
+// known at once) and returns its ID; "" when the campaign has no history.
+func (c *Campaign) RecordLive(typ string, loc *Location, vars map[string]string, figs ...history.Figure) string {
+	if c == nil || c.History == nil {
+		return ""
+	}
+	v := map[string]string{}
+	for k, val := range vars {
+		v[k] = val
+	}
+	site := ""
+	if loc != nil {
+		site = loc.History
+		v["place"] = loc.Name
+	}
+	return c.History.Record(typ, c.StarDate, site, v, figs...)
+}
+
+// ColonyDisplayName is how lore text names the expedition's colonies: the
+// expedition's own name ("the Lore Legends colony"), never the internal
+// per-location settlement key ("Lore Legends Colony @ Drift Tract").
+func (c *Campaign) ColonyDisplayName() string {
+	if c.Name != "" {
+		return c.Name
+	}
+	return "expedition"
+}
+
+// QuestTitle is a quest's name for lore text: without the " — <site>" suffix
+// quest lists add, since the chronicle names the site itself.
+func (c *Campaign) QuestTitle(q *Quest) string {
+	if loc := c.Locations[q.Location]; loc != nil {
+		return strings.TrimSuffix(q.Name, " — "+loc.Name)
+	}
+	return q.Name
+}
+
+// recordQuestDone logs a completed quest and reveals the event behind it.
+func (c *Campaign) recordQuestDone(q *Quest) {
+	c.RecordLive("quest_completed", c.Locations[q.Location], map[string]string{"quest": c.QuestTitle(q)})
+	c.RevealEvent(q.EventID)
+}
+
+// KnownEventCount is how many history events the player has discovered.
+func (c *Campaign) KnownEventCount() int {
+	if c == nil || c.History == nil {
+		return 0
+	}
+	return len(c.History.Known)
+}
+
+// SiteHistory returns the history bound to a location, or nil.
+func (c *Campaign) SiteHistory(loc *Location) *history.SiteHistory {
+	if c == nil || c.History == nil || loc == nil || loc.History == "" {
+		return nil
+	}
+	return c.History.Sites[loc.History]
 }
 
 // newSystem creates one location from an archetype plus 1–2 quests, appends
 // them to the campaign, and returns the location.
 func (c *Campaign) newSystem(rng *rand.Rand, lt *locTemplates, qt *questTemplates, a locArchetype, x, y float64, idHint string) *Location {
-	loc := c.newLocation(rng, a, x, y, idHint)
+	loc := c.newLocation(rng, a, x, y, idHint, "")
 	nq := 1 + rng.Intn(2)
 	for i := 0; i < nq; i++ {
 		if qd := c.makeQuest(rng, qt, a, loc); qd != nil {
@@ -524,6 +723,7 @@ func (c *Campaign) addDatapadQuests(rng *rand.Rand, qt *questTemplates, a locArc
 			QuestID:   q.ID,
 			Blueprint: "datapad",
 			Kind:      "datapad",
+			EventID:   c.storyEvent(loc),
 		})
 	}
 }
@@ -552,9 +752,12 @@ func (c *Campaign) makeContract(rng *rand.Rand, lt *locTemplates, qt *questTempl
 		return nil
 	}
 	x, y := c.placeTowardHome(rng)
-	loc := c.newLocation(rng, a, x, y, "")
+	loc := c.newLocation(rng, a, x, y, "", t.SpawnEvent)
 	loc.Discovered = false // hidden until the contract is accepted
 	q := c.buildQuestFromTemplate(rng, t, loc)
+	if q != nil {
+		q.Contract = true
+	}
 	c.addDatapadQuests(rng, qt, a, loc)
 	return q
 }
@@ -565,6 +768,7 @@ func (c *Campaign) buildQuestFromTemplate(rng *rand.Rand, t *questTemplate, loc 
 	c.GenSeq++
 	q := &Quest{
 		ID:       fmt.Sprintf("q_%d", c.GenSeq),
+		EventID:  c.storyEvent(loc),
 		Location: loc.ID,
 		Reward:   QuestReward{SpawnSystems: t.SpawnSystems, Resources: t.RewardRes},
 	}
@@ -696,8 +900,8 @@ func pickQuestTemplate(rng *rand.Rand, qt *questTemplates, tags []string) *quest
 	var pool []*questTemplate
 	for i := range qt.Templates {
 		t := &qt.Templates[i]
-		if t.SpawnArchetype != "" {
-			continue // contracts bring their own location; not tag-rolled
+		if t.SpawnArchetype != "" || t.History != "" {
+			continue // contracts bring their own location, history quests bind at charting; not tag-rolled
 		}
 		if t.RequiresTag != "" && !hasTag(tags, t.RequiresTag) {
 			continue

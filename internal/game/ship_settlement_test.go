@@ -9,6 +9,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
@@ -31,6 +32,9 @@ func TestMain(m *testing.M) {
 	// their temp save dirs.
 	config.Global()
 	lore.RandomSettlementName()
+	if _, err := history.DefaultLibrary(); err != nil {
+		panic("load history library: " + err.Error())
+	}
 	os.Exit(m.Run())
 }
 
@@ -45,6 +49,7 @@ func shipTestWorld(t *testing.T) *WorldManager {
 	t.Cleanup(func() { settlement.Settlements = prev })
 
 	c := &campaign.Campaign{
+		Version:           campaign.CampaignVersion,
 		Name:              "Test",
 		CurrentLocationID: "planet",
 		Locations:         map[string]*campaign.Location{"planet": {ID: "planet", Name: "Planet"}},

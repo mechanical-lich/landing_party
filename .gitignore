@@ -12,3 +12,11 @@ cpu.pprof
 mem.pprof
 data/config.local.json
 /vmtest/out/
+/planet-generator
+/history-dump
+cmd/*/planet-generator
+cmd/*/history-dump
+cmd/*/game
+cmd/*/tile-editor
+cmd/*/structure-viewer
+cmd/*/entity-editor

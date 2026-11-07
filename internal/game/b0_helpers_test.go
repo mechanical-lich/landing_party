@@ -52,7 +52,7 @@ func b0Campaign(t *testing.T, locIDs ...string) *campaign.Campaign {
 	prev := settlement.Settlements
 	settlement.Settlements = make(map[string]*settlement.Settlement)
 	t.Cleanup(func() { settlement.Settlements = prev })
-	c := &campaign.Campaign{Name: "B0", CurrentLocationID: locIDs[0], Locations: map[string]*campaign.Location{}}
+	c := &campaign.Campaign{Version: campaign.CampaignVersion, Name: "B0", CurrentLocationID: locIDs[0], Locations: map[string]*campaign.Location{}}
 	for _, id := range locIDs {
 		c.Locations[id] = &campaign.Location{ID: id, Name: id}
 	}

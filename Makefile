@@ -7,7 +7,7 @@ bin:
 	cp -r ./assets ./bin/assets
 	cp -r ./data ./bin/data
 
-.PHONY: clean
+.PHONY: clean history-dump
 clean:
 	rm -rf ./bin
 
@@ -16,6 +16,19 @@ run:
 
 run-planet-generator:
 	go run $(LDFLAGS) ./cmd/planet-generator
+
+# Print a campaign's generated prehistory (docs/brainstorm/lore_plan.md).
+# make history-dump HSEED=42 HSITES=8 HMAP=moon HFREQ=500
+# make history-dump HSEED=42 HCHARTED=1      (a real charted campaign)
+# make history-dump HCAMPAIGNS=300 HFREQ=0   (scenario share through charting)
+HSEED ?= 1
+HSITES ?= 8
+HMAP ?=
+HFREQ ?= 500
+HCHARTED ?=
+HCAMPAIGNS ?= 0
+history-dump:
+	go run ./cmd/history-dump -seed $(HSEED) -sites $(HSITES) -freq $(HFREQ) $(if $(HMAP),-map $(HMAP)) $(if $(HCHARTED),-charted) -campaigns $(HCAMPAIGNS)
 
 run-debug:
 	GODEBUG=gctrace=1 go run $(LDFLAGS) ./cmd/game/*.go

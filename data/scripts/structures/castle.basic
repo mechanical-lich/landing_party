@@ -17,6 +17,13 @@
 #
 # Recommended footprint: 28×22 or larger (minimum 18×16).
 function generate(x, y, w, h)
+    # occupants: "none" builds the structure empty (a history ruin on a quiet
+    # site); anything else, or absent, keeps its mutant guards and boss as
+    # quest fixtures and scenario stamps always had.
+    guards = 1
+    if get_param("occupants") = "none" then
+        guards = 0
+    endif
     cx = x + w / 2
     cy = y + h / 2
     sz = get_surface_z(cx, cy)
@@ -163,14 +170,28 @@ function generate(x, y, w, h)
     endif
 
     # ── Boss + loot in keep centre ─────────────────────────────────────────
-    spawn_entity("mutant_brute", cx, cy, sz)
-    add_epithet(cx, cy, sz)
-    mark_quest_target(cx, cy, sz)
+    if guards = 1 then
+        spawn_entity("mutant_brute", cx, cy, sz)
+    endif
+    if guards = 1 then
+        add_epithet(cx, cy, sz)
+    endif
+    if guards = 1 then
+        mark_quest_target(cx, cy, sz)
+    endif
     spawn_entity("storage_locker", cx - 1, cy, sz)
 
     # ── Courtyard guards at the four inner corners ─────────────────────────
-    spawn_entity_named("mutant_grunt", ox + 3, oy + 3, sz, "Castle Guard")
-    spawn_entity_named("mutant_grunt", ox + ow - 4, oy + 3, sz, "Castle Guard")
-    spawn_entity_named("mutant_grunt", ox + 3, oy + oh - 4, sz, "Castle Guard")
-    spawn_entity_named("mutant_grunt", ox + ow - 4, oy + oh - 4, sz, "Castle Guard")
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", ox + 3, oy + 3, sz, "Castle Guard")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", ox + ow - 4, oy + 3, sz, "Castle Guard")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", ox + 3, oy + oh - 4, sz, "Castle Guard")
+    endif
+    if guards = 1 then
+        spawn_entity_named("mutant_grunt", ox + ow - 4, oy + oh - 4, sz, "Castle Guard")
+    endif
 endfunction

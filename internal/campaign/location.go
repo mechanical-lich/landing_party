@@ -10,7 +10,10 @@ type Location struct {
 	Kind       string `json:"kind"` // planet, moon, asteroid_field, ...
 	MapID      string `json:"map_id"`
 	ScenarioID string `json:"scenario_id"`
-	Seed       int64  `json:"seed"`
+	// History is the SiteHistory ID bound at charting (see Campaign.History);
+	// "" for Home, the Wreck Site and the tutorial.
+	History string `json:"history,omitempty"`
+	Seed    int64  `json:"seed"`
 
 	Discovered bool `json:"discovered"`
 	Visited    bool `json:"visited"`
@@ -93,13 +96,18 @@ type QuestFixture struct {
 	Structure string `json:"structure,omitempty"`
 	StructW   int    `json:"struct_w,omitempty"`
 	StructH   int    `json:"struct_h,omitempty"`
+
+	// EventID is the history event a datapad records. A "lore_datapad" fixture
+	// carries only that (no quest) and is placed at the event's resolved
+	// origin; a quest datapad carries its quest and the site's story event.
+	EventID string `json:"event_id,omitempty"`
 }
 
 // AddFixture appends a fixture for this location unless one already exists for
 // the same quest.
 func (l *Location) AddFixture(f QuestFixture) {
 	for i := range l.Fixtures {
-		if l.Fixtures[i].QuestID == f.QuestID {
+		if l.Fixtures[i].QuestID == f.QuestID && l.Fixtures[i].EventID == f.EventID {
 			return
 		}
 	}
