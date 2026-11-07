@@ -968,8 +968,9 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	})
 
 	// --- combat ---
-	// attack_at(x, y, z) — attack the entity at the given tile, if any.
-	// Returns 1 if an attack was made.
+	// attack_at(x, y, z) — melee the entity at the given tile, if any. The tile
+	// must be the caller's own or one of the eight beside it (z within one);
+	// anything farther returns 0. Returns 1 if an attack was made.
 	var entitiesBuf []*ecs.Entity
 	interp.RegisterFunc("attack_at", func(args ...any) (any, error) {
 		if len(args) < 3 {
@@ -978,6 +979,13 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		x := int(toAIFloat(args[0]))
 		y := int(toAIFloat(args[1]))
 		z := int(toAIFloat(args[2]))
+		// Melee only reaches the caller's own tile or one beside it (one z up or
+		// down allowed for slopes); a farther tile is out of reach, whatever the
+		// script asked for.
+		self := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		if !withinSquare(self.GetX(), self.GetY(), x, y, 1) || z < self.GetZ()-1 || z > self.GetZ()+1 {
+			return float64(0), nil
+		}
 		entitiesBuf = entitiesBuf[:0]
 		level.GetEntitiesAt(x, y, z, &entitiesBuf)
 		for _, e := range entitiesBuf {

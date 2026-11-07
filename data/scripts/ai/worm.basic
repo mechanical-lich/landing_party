@@ -1,4 +1,7 @@
-# Worm AI: burrows underground, surfaces to attack nearby enemies.
+# Worm AI: burrows underground, surfaces to attack nearby enemies. It feels
+# prey through the ground (no line-of-sight), rises no higher than the ground
+# above it, and on the surface follows the terrain one level up or down at a
+# time; it bites only prey beside it.
 # State vars:
 #   "surfaced"    — 1 while above ground, 0 while underground
 #   "surface_ttl" — turns remaining before retreating underground
@@ -32,12 +35,22 @@ function on_turn()
         ttl = ttl - 1
         set_var("surface_ttl", ttl)
 
-        if find_nearest_enemy(3) = 1 then
+        # Feel for prey through the ground within 3 tiles. Only prey up on the
+        # ground (any height) is chased here; a colonist in a cave below is left
+        # for the underground hunt once the worm has dug back down.
+        if sense_nearest_enemy(3) = 1 then
             ex = get_nearest_x()
             ey = get_nearest_y()
-            attack_at(ex, ey, sz)
-            set_var("surface_ttl", 3)
-            return
+            ez = get_nearest_z()
+            if ez >= get_surface_z(ex, ey) then
+                set_var("surface_ttl", 3)
+                # Bite if it's beside us, otherwise slither one step toward it.
+                if attack_at(ex, ey, ez) = 1 then
+                    return
+                endif
+                ground_step(sx, sy, sz, ex, ey)
+                return
+            endif
         endif
 
         # No enemies or timer expired: retreat underground.
@@ -68,46 +81,37 @@ function on_turn()
         ey = get_nearest_y()
         ez = get_nearest_z()
 
-        # Enemy is above — rise toward them.
-        if ez > sz then
-            burrow_by(0, 0, 1)
-            return
-        endif
-
-        # Enemy is below — dig down.
-        if ez < sz then
-            burrow_by(0, 0, -1)
-            return
-        endif
-
-        # Same z — attack if adjacent, otherwise burrow toward them.
-        dx = 0
-        dy = 0
-        if ex > sx then dx = 1 endif
-        if ex < sx then dx = -1 endif
-        if ey > sy then dy = 1 endif
-        if ey < sy then dy = -1 endif
-        adist = ex - sx
-        if adist < 0 then adist = -adist endif
-        bdist = ey - sy
-        if bdist < 0 then bdist = -bdist endif
-        if adist <= 1 and bdist <= 1 then
-            attack_at(ex, ey, sz)
+        # Beside it (one level up or down at most): lunge out and bite.
+        if attack_at(ex, ey, ez) = 1 then
             set_var("surfaced", 1)
             set_var("surface_ttl", 4)
             return
         endif
-        # Try to close distance on the longer axis first.
-        moved = 0
-        if adist >= bdist then
-            if dx != 0 then moved = burrow_by(dx, 0, 0) endif
-            if moved = 0 and dy != 0 then moved = burrow_by(0, dy, 0) endif
+
+        # Both up on the ground: chase across it, climbing and dropping with
+        # the terrain rather than tunnelling level through hills.
+        if sz >= surf_z and ez >= get_surface_z(ex, ey) then
+            if ground_step(sx, sy, sz, ex, ey) = 1 then
+                return
+            endif
         else
-            if dy != 0 then moved = burrow_by(0, dy, 0) endif
-            if moved = 0 and dx != 0 then moved = burrow_by(dx, 0, 0) endif
-        endif
-        if moved = 1 then
-            return
+            # Enemy is above — rise toward them, but no higher than our own
+            # column's surface (worms can't fly).
+            if ez > sz and sz < surf_z then
+                burrow_by(0, 0, 1)
+                return
+            endif
+
+            # Enemy is below — dig down.
+            if ez < sz then
+                burrow_by(0, 0, -1)
+                return
+            endif
+
+            # Same level (or as high as we can rise) — tunnel toward them.
+            if tunnel_toward(sx, sy, sz, ex, ey) = 1 then
+                return
+            endif
         endif
     else
         # No prey in range — clear the alert so we screech again next sighting.
@@ -154,4 +158,78 @@ function on_turn()
         dir = rnd_int(4) + 1
         set_var("dir", dir)
     endif
+endfunction
+
+# ground_step moves one tile across the surface toward (tx, ty): onto the next
+# column's ground, at most one level up or down. Tries the direct step, then
+# each axis alone. Returns 1 if the worm moved.
+function ground_step(gx, gy, gz, tx, ty)
+    gdx = 0
+    gdy = 0
+    if tx > gx then gdx = 1 endif
+    if tx < gx then gdx = -1 endif
+    if ty > gy then gdy = 1 endif
+    if ty < gy then gdy = -1 endif
+    if ground_step_to(gx, gy, gz, gdx, gdy) = 1 then
+        return 1
+    endif
+    if gdx != 0 then
+        if gdy != 0 then
+            if ground_step_to(gx, gy, gz, gdx, 0) = 1 then
+                return 1
+            endif
+            if ground_step_to(gx, gy, gz, 0, gdy) = 1 then
+                return 1
+            endif
+        endif
+    endif
+    return 0
+endfunction
+
+# ground_step_to makes one ground move by (gdx, gdy); a zero move is no move.
+function ground_step_to(gx, gy, gz, gdx, gdy)
+    if gdx = 0 and gdy = 0 then
+        return 0
+    endif
+    gnz = get_surface_z(gx + gdx, gy + gdy)
+    gdz = gnz - gz
+    if gnz < 0 or gdz < -1 or gdz > 1 then
+        return 0
+    endif
+    return burrow_by(gdx, gdy, gdz)
+endfunction
+
+# tunnel_toward burrows one tile level toward (tx, ty), longer axis first,
+# never out into open air (or off the map). Returns 1 if the worm moved.
+function tunnel_toward(gx, gy, gz, tx, ty)
+    gdx = 0
+    gdy = 0
+    if tx > gx then gdx = 1 endif
+    if tx < gx then gdx = -1 endif
+    if ty > gy then gdy = 1 endif
+    if ty < gy then gdy = -1 endif
+    gad = tx - gx
+    if gad < 0 then gad = -gad endif
+    gbd = ty - gy
+    if gbd < 0 then gbd = -gbd endif
+    if gad >= gbd then
+        if tunnel_to(gx, gy, gz, gdx, 0) = 1 then return 1 endif
+        if tunnel_to(gx, gy, gz, 0, gdy) = 1 then return 1 endif
+    else
+        if tunnel_to(gx, gy, gz, 0, gdy) = 1 then return 1 endif
+        if tunnel_to(gx, gy, gz, gdx, 0) = 1 then return 1 endif
+    endif
+    return 0
+endfunction
+
+# tunnel_to makes one level move by (gdx, gdy); a zero move is no move.
+function tunnel_to(gx, gy, gz, gdx, gdy)
+    if gdx = 0 and gdy = 0 then
+        return 0
+    endif
+    gk = get_terrain_kind(gx + gdx, gy + gdy, gz)
+    if gk = "atmosphere" or gk = "void" or gk = "space" then
+        return 0
+    endif
+    return burrow_by(gdx, gdy, 0)
 endfunction
