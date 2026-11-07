@@ -381,6 +381,75 @@
       "text": "{date}: the {civ} of {site} left the {tech} behind."
     },
     {
+      "id": "city_grows",
+      "requires": {
+        "resident": true,
+        "tech_min": "industrial",
+        "tech_max": "atomic"
+      },
+      "civ": "resident",
+      "gap_days": [
+        3650,
+        18250
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@dwelling",
+            "w": 31,
+            "h": 25,
+            "occupants": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the old city",
+      "text": "{date}: the {civ} of {site} pulled down their old homes and built a city of the {tech}."
+    },
+    {
+      "id": "silos_dug",
+      "requires": {
+        "resident": true,
+        "tech_min": "atomic",
+        "tech_max": "atomic"
+      },
+      "civ": "resident",
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "stamp",
+          "count": 1,
+          "params": {
+            "script": "@works",
+            "w": 23,
+            "h": 15,
+            "occupants": "none",
+            "purpose": "command"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "place": "the silo",
+      "text": "{date}: the {civ} of {site} sank silos for their {weapon}, and waited."
+    },
+    {
       "id": "civ_rises",
       "requires": {
         "resident": true,

@@ -102,6 +102,15 @@ medieval), capped by `species_tech_max` (yetis stop at medieval), and climbs
 through `tech_advances` stages (`effects.tech: "+1"`), never past atomic;
 `civ_collapses` costs a level. `Civ.Tech` is the highest it reached.
 
+A people's homes reflect its rise, not its peak: the rise stamps a village
+(primitive or medieval). A people that has reached industrial or atomic may
+then rebuild: the native arcs' golden-age stage (the one after their
+`tech_advances`, picking `civ_rises` / `civ_thrives`) also offers
+`city_grows` (industrial or atomic: `@dwelling`, a city block) and
+`silos_dug` (atomic: `@works` with the `command` purpose, a missile silo) as
+alternatives, so they replace a golden age rather than add events. Over 500
+seeds about 1.7% of sites keep a city block and 0.8% a missile silo.
+
 Every event with a civ snapshots that civ's level then into `vars.tech`, so
 `{tech}` renders its label ("iron age") and `{weapon}` one of its weapons.
 `requires.tech_min` / `tech_max` gate the acting civ: reactors and nuclear
@@ -134,7 +143,9 @@ a level without the role drops the stamp (its datapad stays). Every history
 stamp gets a `tech` param. Each kept structure also leaves one of its
 level's relics (`relics`, item blueprints in
 `data/blueprints/items/relics.json`) on the ground at its origin.
-`history-dump -stats` prints the tech distribution of natives and events.
+`history-dump -stats` prints the tech distribution of natives and events,
+and the kept (and budget-dropped) stamps by script with the share of sites
+that hold one.
 
 ## Two peoples: the war arc and its variants
 

@@ -79,7 +79,7 @@ when quiet), `tier`, `known_events`, `adrift`, `in_orbit`, `won`, `lost`,
 `known_techs`), `fuel`,
 `hold`, `site_storage`, `site_structures`, `crew` (name, where, x, y, z, task),
 `crew_at`, `crew_on_site`, `loaded`, `owed`, `tutorial` (`step`, `index`,
-`count`, `done`, `skipped`, `ended`), `modal`, `incident`, `notifications`,
+`count`, `done`, `skipped`, `ended`, `panel_covered`), `modal`, `incident`, `notifications`,
 `paused`, `pause_text`, `cursor_mode`, `build_mode`, `camera`, `selected`,
 `settlement`, `messages` (last 10). Fields that do not apply to the current
 screen are absent or null.

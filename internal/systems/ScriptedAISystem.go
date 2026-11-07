@@ -309,12 +309,15 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 
 	// --- entity search ---
 	// find_nearest_worker(radius) — finds nearest entity with a Worker component.
+	// Every finder searches the square within radius tiles of the caller in
+	// each direction, inclusive (see closestWithin).
 	// find_nearest_blueprint(blueprint, radius) — finds nearest entity with matching blueprint.
 	// Both return 1 on success and populate get_nearest_x/y/z.
 	//
 	// find_nearest_worker and find_nearest_enemy cache the last found entity and
-	// skip the full ring scan while the target is still alive and in LOS. The
-	// cache is cleared when the target dies, goes out of LOS, or LOS is blocked.
+	// skip the full ring scan while the target is still alive, within the radius
+	// asked for and in LOS. The cache is cleared when the target dies, leaves the
+	// radius, or LOS is blocked.
 	var lastNearX, lastNearY, lastNearZ int
 	var cachedWorker *ecs.Entity
 	var workerMissCooldown int
@@ -331,7 +334,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 				cachedWorker.HasComponent(components.Worker) &&
 				cachedWorker.HasComponent(rlcomponents.Position) {
 				cp := cachedWorker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				if losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
+				if withinSquare(sx, sy, cp.GetX(), cp.GetY(), radius) && losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
 					lastNearX, lastNearY, lastNearZ = cp.GetX(), cp.GetY(), cp.GetZ()
 					return float64(1), nil
 				}
@@ -344,8 +347,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			return float64(0), nil
 		}
 
-		found := level.GetClosestEntityMatching(
-			sx, sy, sz, radius*2, radius*2, entity,
+		found := closestWithin(level, sx, sy, sz, radius, entity,
 			func(c *ecs.Entity) bool {
 				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(components.Worker) {
 					return false
@@ -376,10 +378,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			radius = int(toAIFloat(args[1]))
 		}
 		pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		found := level.GetClosestEntityMatching(
-			pc.GetX(), pc.GetY(), pc.GetZ(),
-			radius*2, radius*2,
-			entity,
+		found := closestWithin(level, pc.GetX(), pc.GetY(), pc.GetZ(), radius, entity,
 			func(c *ecs.Entity) bool {
 				return !c.HasComponent(rlcomponents.Dead) && c.Blueprint == bp
 			},
@@ -448,7 +447,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 				cachedEnemy.HasComponent(rlcomponents.Position)
 			if alive {
 				cp := cachedEnemy.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				if losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
+				if withinSquare(sx, sy, cp.GetX(), cp.GetY(), radius) && losCheck(level, sx, sy, cp.GetX(), cp.GetY(), sz) {
 					lastNearX, lastNearY, lastNearZ = cp.GetX(), cp.GetY(), cp.GetZ()
 					return float64(1), nil
 				}
@@ -461,8 +460,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			return float64(0), nil
 		}
 
-		found := level.GetClosestEntityMatching(
-			sx, sy, sz, radius*2, radius*2, entity,
+		found := closestWithin(level, sx, sy, sz, radius, entity,
 			func(c *ecs.Entity) bool {
 				if !isEnemy(c) {
 					return false
@@ -521,7 +519,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		var best *ecs.Entity
 		bestDistSq := int(^uint(0) >> 1)
 		for z := 0; z < level.GetDepth(); z++ {
-			found := level.GetClosestEntityMatching(sx, sy, z, radius*2, radius*2, entity, isEnemy)
+			found := closestWithin(level, sx, sy, z, radius, entity, isEnemy)
 			if found == nil {
 				continue
 			}
@@ -1291,4 +1289,32 @@ func toAIFloat(v any) float64 {
 		return float64(t)
 	}
 	return 0
+}
+
+// closestWithin returns the nearest entity on plane z, other than exclude, that
+// satisfies match and lies within r tiles of (x, y) on both axes, inclusive.
+//
+// rlworld's GetClosestEntityMatching(x, y, z, w, h, ...) searches the box
+// [x-w/2, x+w/2), exclusive on its far side, so passing w = 2r missed anything
+// exactly r tiles east or south (find_nearest_worker(1) did not see a colonist
+// one tile east). Asking for one tile more each way and filtering back to r
+// makes the square symmetric.
+func closestWithin(level *world.Level, x, y, z, r int, exclude *ecs.Entity, match func(*ecs.Entity) bool) *ecs.Entity {
+	if r < 0 {
+		return nil
+	}
+	return level.GetClosestEntityMatching(x, y, z, 2*r+2, 2*r+2, exclude, func(c *ecs.Entity) bool {
+		if !c.HasComponent(rlcomponents.Position) {
+			return false
+		}
+		cp := c.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		return withinSquare(x, y, cp.GetX(), cp.GetY(), r) && match(c)
+	})
+}
+
+// withinSquare reports whether (tx, ty) is within r tiles of (x, y) on both
+// axes, inclusive.
+func withinSquare(x, y, tx, ty, r int) bool {
+	dx, dy := tx-x, ty-y
+	return dx >= -r && dx <= r && dy >= -r && dy <= r
 }

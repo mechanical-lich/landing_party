@@ -57,6 +57,7 @@
 # 8 close_colonist
 {"op":"wait_until","path":"tutorial.step","eq":"close_colonist","max_ticks":60}
 {"op":"assert","path":"modal","contains":"colonistModal"}
+{"op":"assert","path":"tutorial.panel_covered","eq":true}
 {"op":"screenshot","name":"s08_close_colonist"}
 {"op":"click","target":"modal:colonistModal:close"}
 # 9 haul_food: click three rations.
@@ -153,6 +154,7 @@
 {"op":"click","target":"entity:basic_workbench"}
 {"op":"assert","path":"modal","contains":"craftingModal"}
 {"op":"click","target":"modal:craftingModal:item:craftRecipeList:sleeping bag"}
+{"op":"assert","path":"tutorial.panel_covered","eq":true}
 {"op":"screenshot","name":"s17_crafting_modal"}
 {"op":"click","target":"modal:craftingModal:close"}
 {"op":"assert","path":"modal","eq":[]}
@@ -167,6 +169,7 @@
 {"op":"click","target":"entity:research_lab"}
 {"op":"assert","path":"modal","contains":"researchModal"}
 {"op":"click","target":"modal:researchModal:item:researchTechList:basic metallurgy"}
+{"op":"assert","path":"tutorial.panel_covered","eq":true}
 {"op":"screenshot","name":"s18_research_modal"}
 {"op":"click","target":"modal:researchModal:close"}
 # 19 pack_cargo: metal and crystal up from the supply pad, where the ore went.

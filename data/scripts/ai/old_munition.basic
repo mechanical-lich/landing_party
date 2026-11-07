@@ -6,8 +6,8 @@ function on_turn()
         explode()
         return
     endif
-    # The search box runs one short on its far side: look 2 out, act at 1.
-    if find_nearest_worker(2) = 1 and dist(get_self_x(), get_self_y(), get_nearest_x(), get_nearest_y()) < 1.5 then
+    # Radius 1: the colonist's own tile or any of the eight beside it.
+    if find_nearest_worker(1) = 1 then
         explode()
     endif
 endfunction

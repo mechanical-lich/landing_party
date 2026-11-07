@@ -19,20 +19,6 @@ alone and need a play-test or a judgment call.
   (phase C1 of the factions plan), driven by vmtest for integration and
   balance soak runs. Useful on its own before any enemy faction exists.
 
-- The tutorial panel covers the bottom rows of the research and crafting
-  modals; it could collapse to its title row while a HUD modal is open, as it
-  does for the storage inspector.
-
-- `find_nearest_worker(r)` in the scripted-AI API searches a box exclusive on
-  its far side, so `r = 1` misses a colonist one tile east (and every radius
-  is one short that way). The step-7 hazard scripts search one wider and check
-  distance; fixing the helper (`GetClosestEntityMatching` bounds) would let
-  them drop that.
-- City blocks and missile silos (industrial / atomic dwellings and works) are
-  in the structure library and `tech.json` but never stamped: peoples build
-  their dwellings when they rise, always primitive or medieval. Needs a
-  dwelling stamped after tech advances, or a people rising at a higher level.
-
 ## Verify
 
 - Fix the resource tracker. No tracker-named code found; confirm which HUD
@@ -48,6 +34,22 @@ alone and need a play-test or a judgment call.
   the tutorial's food budget.
 
 ## Done
+
+- Fixed 2026-11-07 on `claude/todo-fixes-9fd09a` (not yet merged):
+  - The tutorial panel drops to its title row, below the modal, while any
+    HUD modal is open (Esc menu, save, load, crafting, research, colonist),
+    as it did for the storage inspector; it no longer covers the research
+    and crafting modals' bottom rows. vmtest `tutorial.panel_covered`.
+  - `find_nearest_worker(r)` and the other scripted-AI finders search r
+    tiles in every direction, inclusive (rlworld's box was exclusive on its
+    far side), and drop a cached target that has left r. The spore pod and
+    old munition ask for radius 1 instead of searching 2 and checking
+    distance.
+  - City blocks and missile silos are stamped: an industrial or atomic
+    people's golden-age stage may instead rebuild (`city_grows`,
+    `silos_dug`). About 1.7% of sites keep a city block and 0.8% a missile
+    silo; events per site unchanged. `history-dump -stats` gains a stamps by
+    script table.
 
 - Lore content plan, steps 1–8, implemented 2026-11-07 on
   `claude/lore-content-649632` (not yet merged): hazard tiers and calm

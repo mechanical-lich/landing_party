@@ -22,10 +22,11 @@ const (
 	tutPanelDashY = 120
 	tutPanelH     = 140
 	tutPanelBarH  = 26 // the title row alone, when collapsed
-	// tutPanelInspectorY is where the title row goes while a storage inspector
-	// is open: below the centred 760px modal, above the resource bar and the
-	// dashboard's status lines.
-	tutPanelInspectorY = 676
+	// tutPanelCoveredY is where the title row goes while a storage inspector or
+	// a HUD modal is open: below the lowest of them (inspector bottom 666,
+	// colonist 680, research and crafting 650), above the resource bar (765)
+	// and the dashboard's status lines.
+	tutPanelCoveredY = 686
 	// tutSkipArmFrames is how long "Really skip?" stays armed.
 	tutSkipArmFrames = 180
 )
@@ -46,7 +47,7 @@ type tutorialPanel struct {
 
 	rect      minui.Rect // the full panel this frame
 	collapsed bool       // [-] pressed: title row only
-	inspector bool       // a storage inspector is open: title row only, moved
+	covered   bool       // a storage inspector or HUD modal is open: title row only, moved
 
 	collapseBtn *minui.Button
 	manualBtn   *minui.Button
@@ -134,8 +135,8 @@ func (p *tutorialPanel) layout(ctx string) {
 	} else {
 		p.rect = minui.Rect{X: tutPanelSiteX, Y: tutPanelSiteY, Width: tutPanelSiteW, Height: tutPanelH}
 	}
-	if p.inspector {
-		p.rect.Y = tutPanelInspectorY
+	if p.covered {
+		p.rect.Y = tutPanelCoveredY
 		p.rect.Height = tutPanelBarH
 	} else if p.collapsed {
 		p.rect.Height = tutPanelBarH
@@ -150,17 +151,19 @@ func (p *tutorialPanel) layout(ctx string) {
 }
 
 // Update lays the panel out and runs its buttons. Buttons are skipped while an
-// incident popup owns input, and while a storage inspector is open (the panel
-// is then only a title row).
+// incident popup owns input, and while a storage inspector or a HUD modal
+// (Esc menu, save, load, crafting, research, colonist) is open: the panel is
+// then only a title row below the modal, so it covers none of its rows.
 func (p *tutorialPanel) Update(ctx string, s *MainState, d *DashboardState) {
-	p.inspector = (s != nil && s.storageInspector != nil && s.storageInspector.Visible) ||
+	p.covered = (s != nil && s.storageInspector != nil && s.storageInspector.Visible) ||
+		(s != nil && s.guiManager != nil && s.guiManager.AnyModalOpen()) ||
 		(d != nil && d.storageInspector != nil && d.storageInspector.Visible)
 	p.layout(ctx)
 	if p.skipArmed != 0 && p.b.frame > p.skipArmed {
 		p.skipArmed = 0
 		p.skipBtn.Text = "Skip tutorial"
 	}
-	if p.b.wm.ActiveIncident() != nil || p.inspector {
+	if p.b.wm.ActiveIncident() != nil || p.covered {
 		return
 	}
 	if p.ending {
@@ -198,7 +201,7 @@ func (p *tutorialPanel) Draw(screen *ebiten.Image) {
 
 	title := p.titleText()
 	mlge_text.Draw(screen, title, 14, r.X+10, r.Y+6, tutTitleColor)
-	if !p.inspector {
+	if !p.covered {
 		p.collapseBtn.Text = "-"
 		if p.collapsed {
 			p.collapseBtn.Text = "+"

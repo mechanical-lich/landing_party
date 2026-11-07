@@ -274,6 +274,9 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 		out["tutorial"] = map[string]any{
 			"step": b.dir.StepID(), "index": b.dir.Index(), "count": b.dir.Count(),
 			"done": b.dir.Done(), "skipped": b.dir.Skipped(), "ended": b.ended,
+			// panel_covered: the panel is down to its title row below an open
+			// storage inspector or HUD modal.
+			"panel_covered": b.panel != nil && b.panel.covered,
 		}
 	} else {
 		out["tutorial"] = nil
@@ -570,11 +573,11 @@ func vmTutorialTarget(name string) (guest.Rect, bool) {
 	p := b.panel
 	switch name {
 	case "skip":
-		if !p.ending && !p.collapsed && !p.inspector {
+		if !p.ending && !p.collapsed && !p.covered {
 			return minuitarget.Element(p.skipBtn)
 		}
 	case "manual":
-		if step := b.dir.Current(); !p.ending && !p.collapsed && !p.inspector && step != nil && step.Topic != "" {
+		if step := b.dir.Current(); !p.ending && !p.collapsed && !p.covered && step != nil && step.Topic != "" {
 			return minuitarget.Element(p.manualBtn)
 		}
 	case "close":
@@ -582,7 +585,7 @@ func vmTutorialTarget(name string) (guest.Rect, bool) {
 			return minuitarget.Element(p.closeBtn)
 		}
 	case "collapse":
-		if !p.inspector {
+		if !p.covered {
 			return minuitarget.Element(p.collapseBtn)
 		}
 	}

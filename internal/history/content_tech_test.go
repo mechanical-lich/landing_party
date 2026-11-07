@@ -131,3 +131,45 @@ func TestContentTechData(t *testing.T) {
 		t.Errorf("yeti cap %q, want medieval", lib.Civs.SpeciesTechMax["yeti"])
 	}
 }
+
+// An industrial or atomic people can rebuild: over 300 seeds some sites keep a
+// city block and some a missile silo, each on a few percent of sites at most,
+// and each stands at an industrial-or-later (silo: atomic) people's origin.
+func TestContentHigherTechDwellings(t *testing.T) {
+	lib := loreLibrary(t)
+	sites := 0
+	have := map[string]int{}
+	for _, list := range contentSites(t, lib, 300, false) {
+		for _, s := range list {
+			sites++
+			log.SetOutput(&bytes.Buffer{})
+			evd := s.h.Evidence(lib, s.SiteHistory)
+			log.SetOutput(os.Stderr)
+			on := map[string]bool{}
+			for _, f := range evd.Features {
+				sc, _ := f.Params["script"].(string)
+				if f.Kind != "stamp" || (sc != "city_block" && sc != "missile_silo") {
+					continue
+				}
+				on[sc] = true
+				lvl, _ := f.Params["tech"].(string)
+				minLvl := TechIndustrial
+				if sc == "missile_silo" {
+					minLvl = TechAtomic
+				}
+				if TechIndex(lvl) < TechIndex(minLvl) || lvl == TechSpacefaring {
+					t.Errorf("%s: %s at %q", s.ID, sc, lvl)
+				}
+			}
+			for sc := range on {
+				have[sc]++
+			}
+		}
+	}
+	for _, sc := range []string{"city_block", "missile_silo"} {
+		share := 100 * float64(have[sc]) / float64(sites)
+		if have[sc] == 0 || share > 5 {
+			t.Errorf("%s on %d of %d sites (%.1f%%), want some and at most 5%%", sc, have[sc], sites, share)
+		}
+	}
+}

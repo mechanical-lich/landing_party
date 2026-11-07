@@ -70,6 +70,10 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 	nativeTech := map[string]int{}
 	eventTech := map[string]int{}
 	natives := 0
+	sites := 0
+	scriptStamps := map[string]int{} // kept stamps by script
+	scriptSites := map[string]int{}  // sites with at least one
+	scriptDrops := map[string]int{}  // stamps the lore budget dropped
 	// Budget drops are logged; the table counts what is kept.
 	log.SetOutput(&bytes.Buffer{})
 	for s := 1; s <= seeds; s++ {
@@ -82,9 +86,22 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 			}
 			ev := h.Evidence(lib, site)
 			stamps := 0
+			sites++
+			onSite := map[string]bool{}
 			for _, f := range ev.Features {
 				if f.Kind == "stamp" {
 					stamps++
+					script, _ := f.Params["script"].(string)
+					scriptStamps[script]++
+					onSite[script] = true
+				}
+			}
+			for sc := range onSite {
+				scriptSites[sc]++
+			}
+			for _, d := range ev.Dropped {
+				if d.Kind == "stamp" && d.Limit != "tech" {
+					scriptDrops[d.Script]++
 				}
 			}
 			civs := map[string]bool{}
@@ -167,6 +184,23 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "(natives by the highest level reached; events by the acting civ's level then)")
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "== Stamps by script, %d seeds (%d sites) ==\n", seeds, sites)
+	fmt.Fprintf(w, "%-22s %7s %7s %7s\n", "", "stamps", "sites %", "dropped")
+	scripts := make([]string, 0, len(scriptStamps))
+	for sc := range scriptStamps {
+		scripts = append(scripts, sc)
+	}
+	sort.Slice(scripts, func(i, j int) bool {
+		if scriptStamps[scripts[i]] != scriptStamps[scripts[j]] {
+			return scriptStamps[scripts[i]] > scriptStamps[scripts[j]]
+		}
+		return scripts[i] < scripts[j]
+	})
+	for _, sc := range scripts {
+		fmt.Fprintf(w, "%-22s %7d %6.2f%% %7d\n", sc, scriptStamps[sc], 100*float64(scriptSites[sc])/float64(max(sites, 1)), scriptDrops[sc])
+	}
+	fmt.Fprintln(w, "(kept stamps; sites with at least one; dropped: left out by the lore budget)")
 	fmt.Fprintln(w)
 	if campaigns > 0 {
 		printRecurrence(w, campaigns)

@@ -191,7 +191,9 @@
         {
           "pick": [
             "civ_thrives",
-            "civ_rises"
+            "civ_rises",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -461,7 +463,9 @@
         {
           "pick": [
             "civ_rises",
-            "reactor_built"
+            "reactor_built",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 90,
@@ -528,7 +532,9 @@
         {
           "pick": [
             "civ_thrives",
-            "civ_rises"
+            "civ_rises",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -600,7 +606,9 @@
         },
         {
           "pick": [
-            "civ_rises"
+            "civ_rises",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -671,7 +679,9 @@
         {
           "pick": [
             "civ_rises",
-            "civ_thrives"
+            "civ_thrives",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -747,7 +757,9 @@
         },
         {
           "pick": [
-            "civ_thrives"
+            "civ_thrives",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -834,7 +846,9 @@
         {
           "pick": [
             "civ_rises",
-            "civ_thrives"
+            "civ_thrives",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 80,
@@ -961,7 +975,9 @@
             "civ_rises",
             "reactor_built",
             "observatory_built",
-            "archive_sealed"
+            "archive_sealed",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 90,
@@ -1156,7 +1172,9 @@
         {
           "pick": [
             "civ_rises",
-            "civ_thrives"
+            "civ_thrives",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 50,
@@ -1211,7 +1229,9 @@
         {
           "pick": [
             "civ_rises",
-            "civ_thrives"
+            "civ_thrives",
+            "city_grows",
+            "silos_dug"
           ],
           "optional": true,
           "chance": 50,

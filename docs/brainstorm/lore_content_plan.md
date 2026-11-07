@@ -875,12 +875,15 @@ mechanics in step 7.
   only (else a warship) and count three stamps.
 - Tower purposes (temple / observatory / watchtower) change room names, plus
   a research desk for an observatory, not the layout.
-- City blocks and missile silos are wired but not reachable yet: peoples
-  build their dwellings when they rise, always primitive or medieval.
+- City blocks and missile silos were wired but not reachable: peoples
+  build their dwellings when they rise, always primitive or medieval. Fixed
+  2026-11-07: `city_grows` and `silos_dug` follow an industrial or atomic
+  people's advances (see `docs/developer/lore.md`, Tech levels).
 - One sentry-turret sprite (tinted), not one per tech level.
-- `find_nearest_worker(r)` searches a box exclusive on its far side, so r=1
-  misses a colonist one tile east; the touch-range AI scripts search 2 and
-  check distance.
+- `find_nearest_worker(r)` searched a box exclusive on its far side, so r=1
+  missed a colonist one tile east; the touch-range AI scripts searched 2 and
+  checked distance. Fixed 2026-11-07: every finder is inclusive at r (and a
+  cached target outside r is dropped), the scripts ask for r=1.
 - Station vacuum does not damage colonists; it blocks anyone without a full
   enviro outfit. `hull_breach` therefore gates its stores (space tiles over
   the deck) rather than hurting; it draws as deck, only the hover panel says
