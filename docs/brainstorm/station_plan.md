@@ -1,11 +1,7 @@
 # Abandoned Station Rebuild — Implementation Plan
 
-<<<<<<< HEAD
-Status (2026-11-07): **plan only**, nothing implemented. Written against
-=======
-Status (2026-11-07): **built**, steps 1-9, on `claude/station-5b3f90`
-(not yet merged); as-built notes per step at the end. Written against
->>>>>>> refs/heads/claude/station-5b3f90
+Status (2026-11-07): **built**, steps 1-9, merged to `dev` (`bc4619a`);
+as-built notes per step at the end. Written against
 `dev` at `1c14684`. All draft text here (room names, messages, clue lines,
 quest names) is placeholder; the owner rewrites it (see "Where the owner
 rewrites text").
@@ -833,8 +829,6 @@ the log console). All marked `"_draft"` as the existing files are.
 - **Restored power reward.** Default: lights, doors, a working `research_lab`
   in the lab module. Should power also raise ambient light, or run the
   station's `fuel_refiner`?
-<<<<<<< HEAD
-=======
 
 ## As built (2026-11-07)
 
@@ -951,4 +945,3 @@ other decks are judged by deck, not distance.
 fields `view_room`, `view_module`, `in_view`. `lore_station` uses seed 114
 (`sys_57`, fuel 10); seed 20 `sys_82` no longer has a quiet station.
 
->>>>>>> refs/heads/claude/station-5b3f90
