@@ -38,7 +38,14 @@ func contentBuildTerrain(t *testing.T, lib *history.Library, h *history.History,
 		BiomeSingle: md.BiomeMap.Single, ReferenceArea: md.Size.MidArea(),
 		SkipBiomeFeatures: md.SkipBiomeFeatures,
 		Origins:           ev.Origins, ChapterEvent: ev.Chapter, OriginKeepOut: ev.KeepOut,
-		Flags: h.LoreFlags(lib, site),
+		Flags: h.LoreFlags(lib, site), OriginModules: ev.OriginModules,
+	}
+	if ev.Station != nil {
+		tp := map[string]any{generation.StationPlanParam: ev.Station.ToParam()}
+		for k, v := range md.TerrainParams {
+			tp[k] = v
+		}
+		opts.TerrainParams = tp
 	}
 	blocks := append([]mapdef.FeatureBlock(nil), md.Features...)
 	if sc := scenario.ByID(site.Scenario); sc != nil {
@@ -67,7 +74,12 @@ func TestContentStampsKeepClear(t *testing.T) {
 		t.Skip("builds 400 sites")
 	}
 	loreLoadData(t)
-	generation.SetStructureRunner(func(*world.Level, string, int, int, int, int, map[string]any, int64) error { return nil })
+	// A stub that paints one tile, so the stamp counts as built (a stamp that
+	// builds nothing is not recorded).
+	generation.SetStructureRunner(func(l *world.Level, _ string, x, y, w, h int, _ map[string]any, _ int64) error {
+		l.SetFloor(x+w/2, y+h/2, max(l.GetSurfaceZ(x+w/2, y+h/2), 0), "hull_floor", 0)
+		return nil
+	})
 	lib, err := history.DefaultLibrary()
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +95,7 @@ func TestContentStampsKeepClear(t *testing.T) {
 				t.Fatal(err)
 			}
 			level := contentBuildTerrain(t, lib, h, site)
-			lx, ly, _, ok := generation.Landing(level)
+			lx, ly, lz, ok := generation.Landing(level)
 			if !ok {
 				t.Errorf("%s seed %d: no landing reserve", m, site.Seed)
 				continue
@@ -93,6 +105,17 @@ func TestContentStampsKeepClear(t *testing.T) {
 			fs := level.StampFootprints
 			for j, f := range fs {
 				stamps++
+				// A station's stamp fills a module's rect: one on another deck
+				// is nowhere near the landing.
+				offDeck := false
+				for _, m := range level.Modules {
+					if m.X == f[0] && m.Y == f[1] && m.W == f[2] && m.H == f[3] && m.Z != lz {
+						offDeck = true
+					}
+				}
+				if offDeck {
+					continue
+				}
 				if f[0] <= lx+half && f[0]+f[2]-1 >= lx-half && f[1] <= ly+half && f[1]+f[3]-1 >= ly-half {
 					t.Errorf("%s seed %d: stamp %v overlaps the landing reserve at (%d,%d)", m, site.Seed, f, lx, ly)
 				}

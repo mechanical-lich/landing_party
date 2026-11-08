@@ -120,6 +120,16 @@ Read and write named parameters in the current param frame. Parameters are the p
 
 The caller (quest fixture dispatch) pre-populates `quest_id` before invoking `generate`. Child scripts invoked via `gen_structure` receive a copy of the parent's frame and cannot write back to it. A `stamp` feature passes every param except `script`, `w` and `h` through.
 
+### `has_param(name)`, the deck param `z`
+
+`has_param` is 1 when the caller set the param (even to 0). Station modules,
+the ship sections, `crashed_ship`, `ruin_pass` and `hull_breach` build on the
+deck in param `z` when it is set (`deck_z`), else on `get_surface_z`;
+`frame=station` marks a station module (a section comes either way round,
+a hangar keeps its blast doors, no furrow, no cracked floors). Station-only
+builtins: `lock_door(x, y, z, key)`, `spawn_station_log(x, y, z)`,
+`claim_module_storage(module_id, owner)`. See lore.md, "Stations".
+
 ### Ships: `crashed_ship`
 
 `crashed_ship` lays a hull along its footprint: a crash furrow at the aft end, then its class's sections aft to fore (each its own script, sharing its end walls with the next, doorways cut along the keel), the bridge narrower at the nose. Params: `class` (`scout` 13×9 engine/quarters/bridge; `freighter` 25×13 engine/reactor/2–3 cargo/bridge; `colony` 31×17 engine/reactor/cargo/2 cryo bays/bridge; `warship` 29×15 engine/reactor/hangar/2 armouries/quarters/bridge; `mothership` a field of 3–5 wrecked sections ~60×60; `saucer` the round greyish hull `crashed_ufo` always built), `damage` (0 landed, 1 breaches, 2 broken in two with the aft half out of line, 3 broken and ruined), `crew` (`alive`: crew and a Commander quest target on the bridge; `dead`; `occupants: cryo` leaves sleepers in the cryo berths), `holds` (the cargo loot table), `clue`/`event` (the bridge datapad: why it came), `room_<section>` (room names). Sections: `ship_bridge`, `ship_quarters`, `ship_cargo`, `ship_reactor`, `ship_engine`, `ship_cryo_bay`, `ship_armoury`, `ship_hangar`; each names its room and fills its lockers. `crashed_ufo` is a wrapper for `class: saucer` and builds tile for tile what it did before (`TestContentCrashedUfoUnchanged`). Every class builds in about 1–5 ms.

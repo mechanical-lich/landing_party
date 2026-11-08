@@ -161,7 +161,7 @@ func sampleSource(s FeatureSpec) string {
 // never place (empty region, or the biome is absent from this map).
 func featureSampler(level *world.Level, s FeatureSpec, rng *rand.Rand) (next func() (int, int), ok bool) {
 	if s.At != "" {
-		ox, oy, _, found := Origin(level, s.At)
+		ox, oy, oz, found := Origin(level, s.At)
 		if !found {
 			// No such origin on this level (a scenario's anchored feature on a
 			// site with no history): place it as an ordinary feature.
@@ -177,7 +177,7 @@ func featureSampler(level *world.Level, s FeatureSpec, rng *rand.Rand) (next fun
 		keep := Budget().KeepOut
 		return func() (int, int) {
 			x, y := ox+randIntn(rng, jitter*2+1)-jitter, oy+randIntn(rng, jitter*2+1)-jitter
-			if landingDistance(level, x, y) < keep && landingDistance(level, ox, oy) >= keep {
+			if landingDistanceAt(level, x, y, oz) < keep && landingDistanceAt(level, ox, oy, oz) >= keep {
 				return ox, oy
 			}
 			return x, y

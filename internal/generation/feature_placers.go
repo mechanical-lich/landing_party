@@ -9,6 +9,8 @@ import (
 
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
 )
 
 func init() {
@@ -44,6 +46,21 @@ func standableTile(level *world.Level, x, y, z int) bool {
 func standableSurface(level *world.Level, x, y int) bool {
 	surfZ := level.GetSurfaceZ(x, y)
 	return surfZ >= 0 && level.GetTerrainKind(x, y, surfZ) == world.TKSurface && standableTile(level, x, y, surfZ)
+}
+
+// anchorZ is the level a feature places on at column (x, y): the surface
+// there, else, for a feature anchored at an origin (a station has no
+// surface), the origin's deck; -1 for neither. fromOrigin says which.
+func anchorZ(level *world.Level, s FeatureSpec, x, y int) (z int, fromOrigin bool) {
+	if z := level.GetSurfaceZ(x, y); z >= 0 {
+		return z, false
+	}
+	if s.At != "" {
+		if _, _, oz, ok := Origin(level, s.At); ok {
+			return oz, true
+		}
+	}
+	return -1, false
 }
 
 // clearBlockedEntities removes whatever stands on (x,y,z) once a paint has made
@@ -108,7 +125,7 @@ func spawnInTiles(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string, 
 			var near [][3]int
 			keep := Budget().KeepOut
 			for _, t := range targets {
-				if dx, dy := t[0]-ox, t[1]-oy; dx*dx+dy*dy <= reach*reach && landingDistance(level, t[0], t[1]) >= keep {
+				if dx, dy := t[0]-ox, t[1]-oy; dx*dx+dy*dy <= reach*reach && landingDistanceAt(level, t[0], t[1], t[2]) >= keep {
 					near = append(near, t)
 				}
 			}
@@ -194,11 +211,14 @@ func placeScatterEntity(level *world.Level, s FeatureSpec, rng *rand.Rand) error
 	}
 	wantKind := featureParamString(s, "kind", "surface")
 	placeAnchors(level, s, rng, 50, func(cx, cy int) bool {
-		surfZ := level.GetSurfaceZ(cx, cy)
+		surfZ, onDeck := anchorZ(level, s, cx, cy)
 		if surfZ < 0 {
 			return false
 		}
-		if kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
+		if !onDeck && kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
+			return false
+		}
+		if t := level.GetTilePtr(cx, cy, surfZ); t == nil || world.IsSpaceTile(t) {
 			return false
 		}
 		if !standableTile(level, cx, cy, surfZ) || level.GetEntityAt(cx, cy, surfZ) != nil {
@@ -227,11 +247,11 @@ func placeScatterTile(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	}
 	wantKind := featureParamString(s, "kind", "surface")
 	placeAnchors(level, s, rng, 50, func(cx, cy int) bool {
-		surfZ := level.GetSurfaceZ(cx, cy)
+		surfZ, onDeck := anchorZ(level, s, cx, cy)
 		if surfZ < 0 {
 			return false
 		}
-		if kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
+		if !onDeck && kindString(level.GetTerrainKind(cx, cy, surfZ)) != wantKind {
 			return false
 		}
 		if level.GetEntityAt(cx, cy, surfZ) != nil {
@@ -312,7 +332,7 @@ func placeRadiationPocket(level *world.Level, s FeatureSpec, rng *rand.Rand) err
 	// rooms a seed would block).
 	oreOK := oreTile != "none" && requireTile(oreTile)
 	placeAnchors(level, s, rng, 5, func(cx, cy int) bool {
-		surfZ := level.GetSurfaceZ(cx, cy)
+		surfZ, _ := anchorZ(level, s, cx, cy)
 		if surfZ < 0 {
 			return false
 		}
@@ -525,7 +545,7 @@ func spawnAtOrigin(level *world.Level, s FeatureSpec, rng *rand.Rand, bp string,
 		if t == nil || world.IsSpaceTile(t) || !standableTile(level, x, y, oz) || level.GetEntityAt(x, y, oz) != nil {
 			continue
 		}
-		if landingDistance(level, x, y) < Budget().KeepOut {
+		if landingDistanceAt(level, x, y, oz) < Budget().KeepOut {
 			continue // never spawn into the landing's keep-out
 		}
 		e, err := factory.Create(bp, x, y, oz)
@@ -686,6 +706,17 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 	w := featureParamInt(s, "w", 9)
 	h := featureParamInt(s, "h", 7)
 	count := rollCount(s, rng, 1)
+	if m := stampModule(level, s); m != nil {
+		// On a station a stamp anchored in a module builds into that
+		// module's rect on its deck (a breach blows out a whole section).
+		params := stampParams(s.Params)
+		if params == nil {
+			params = map[string]any{}
+		}
+		params["z"], params["frame"] = float64(m.Z), "station"
+		level.StampFootprints = append(level.StampFootprints, [6]int{m.X, m.Y, m.W, m.H, m.X + m.W/2, m.Y + m.H/2})
+		return runStructure(level, script, m.X, m.Y, m.W, m.H, params, rng.Int63())
+	}
 	next, ok := featureSampler(level, s, rng)
 	if !ok {
 		return nil // region/biome not present on this map
@@ -737,14 +768,73 @@ func placeStamp(level *world.Level, s FeatureSpec, rng *rand.Rand) error {
 			continue
 		}
 		level.StampFootprints = append(level.StampFootprints, [6]int{bestX, bestY, w, h, ax, ay})
+		before, beforeN := footprintSignature(level, bestX, bestY, w, h)
 		// Derive the script's seed from the build stream so it stays
 		// reproducible while remaining distinct per stamp. Params other than
 		// the footprint pass through to the script.
 		if err := runStructure(level, script, bestX, bestY, w, h, stampParams(s.Params), rng.Int63()); err != nil {
 			return err
 		}
+		// A script that found nothing to build on (a ground structure on a
+		// station's decks, where there is no surface) leaves no footprint.
+		if after, afterN := footprintSignature(level, bestX, bestY, w, h); structureRunner != nil && after == before && afterN <= beforeN {
+			level.StampFootprints = level.StampFootprints[:len(level.StampFootprints)-1]
+			where := sampleSource(s)
+			if s.At != "" {
+				where = s.At
+			}
+			log.Printf("lore budget: stamp %s dropped: built nothing, over the no_surface limit (%s)", script, where)
+		}
 	}
 	return nil
+}
+
+// footprintSignature hashes every tile slot of a footprint through the
+// level's depth and counts the entities standing in it, so a stamp that
+// painted and spawned nothing can be told apart from one that did (clearing
+// the footprint first only ever lowers the count).
+func footprintSignature(level *world.Level, x, y, w, h int) (uint64, int) {
+	const prime = 1099511628211
+	sig := uint64(14695981039346656037)
+	mix := func(v int) { sig = (sig ^ uint64(v)) * prime }
+	for z := 0; z < level.GetDepth(); z++ {
+		for fy := y; fy < y+h; fy++ {
+			for fx := x; fx < x+w; fx++ {
+				t := level.GetTilePtr(fx, fy, z)
+				if t == nil {
+					continue
+				}
+				mix(int(t.Floor.Type))
+				mix(int(t.Middle.Type))
+			}
+		}
+	}
+	n := 0
+	for _, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range list {
+			if e == nil || !e.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if px, py := pc.GetX(), pc.GetY(); px >= x && px < x+w && py >= y && py < y+h {
+				n++
+			}
+		}
+	}
+	return sig, n
+}
+
+// stampModule is the station module an anchored stamp's origin stands in,
+// nil off a station or for an unanchored stamp.
+func stampModule(level *world.Level, s FeatureSpec) *world.Module {
+	if s.At == "" || len(level.Modules) == 0 {
+		return nil
+	}
+	ox, oy, oz, ok := Origin(level, s.At)
+	if !ok {
+		return nil
+	}
+	return level.ModuleAt(ox, oy, oz)
 }
 
 // stampFallback samples a fresh set of candidates for an unanchored stamp

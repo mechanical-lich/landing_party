@@ -44,8 +44,11 @@ function placers_at_origin()
     for attempt = 1 to 400
         if placers_spawned < 6 then
             if find_open_tile_near(ox, oy, oz, 12) = 1 then
-                spawn_entity("wire_placer", get_open_x(), get_open_y(), oz)
-                placers_spawned = placers_spawned + 1
+                # Never into vacuum (a station's breach, the void outside).
+                if get_tile_type(get_open_x(), get_open_y(), oz) <> "space" then
+                    spawn_entity("wire_placer", get_open_x(), get_open_y(), oz)
+                    placers_spawned = placers_spawned + 1
+                endif
             endif
         endif
     next attempt
@@ -63,7 +66,7 @@ function placers_far_out(sx, sy, sz)
                 ox = get_open_x()
                 oy = get_open_y()
                 d = dist(sx, sy, ox, oy)
-                if d > 30 then
+                if d > 30 and get_tile_type(ox, oy, sz) <> "space" then
                     spawn_entity("wire_placer", ox, oy, sz)
                     placers_spawned = placers_spawned + 1
                 endif

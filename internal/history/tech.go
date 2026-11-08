@@ -149,8 +149,31 @@ type ShipClass struct {
 }
 
 type purposesFile struct {
-	ShipClasses map[string]ShipClass  `json:"ship_classes"`
-	Purposes    map[string]PurposeDef `json:"purposes"`
+	ShipClasses     map[string]ShipClass         `json:"ship_classes"`
+	Purposes        map[string]PurposeDef        `json:"purposes"`
+	StationPurposes map[string]StationPurposeDef `json:"station_purposes"`
+}
+
+// StationPurposeDef is what a station was built for (purposes.json
+// station_purposes): the arcs it can found, its frame and decks, the modules
+// it always has and those it often has (percent chance each), the loot its
+// holds take, its room names and clue, and how it tilts the history's
+// choices (event picks within an arc stage, chapters within a tier).
+type StationPurposeDef struct {
+	Arcs     []string          `json:"arcs"`
+	Frame    []string          `json:"frame"`
+	Decks    []int             `json:"decks"`
+	Modules  []string          `json:"modules"`
+	Optional map[string]int    `json:"optional,omitempty"`
+	Holds    string            `json:"holds,omitempty"`
+	Rooms    map[string]string `json:"rooms,omitempty"`
+	Clue     string            `json:"clue,omitempty"`
+	// Sealed modules by kind ("armoury": "keycard").
+	Sealed map[string]string `json:"sealed,omitempty"`
+	// EventWeights multiply an event's chance within an arc stage;
+	// ChapterWeights a chapter's weight within its tier.
+	EventWeights   map[string]float64 `json:"event_weights,omitempty"`
+	ChapterWeights map[string]float64 `json:"chapter_weights,omitempty"`
 }
 
 type techFile struct {

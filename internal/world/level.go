@@ -75,9 +75,9 @@ type Level struct {
 	SmellDiffuseIndex int
 
 	// Z-band boundaries (inclusive). Set during generation.
-	SurfaceZ     int // the "ground" z-level
-	AtmosphereZ  int // first z-level of air above surface
-	SpaceZ       int // first z-level of vacuum/space
+	SurfaceZ    int // the "ground" z-level
+	AtmosphereZ int // first z-level of air above surface
+	SpaceZ      int // first z-level of vacuum/space
 
 	// FeatureAreaScale multiplies areal feature counts (ore veins, scatters,
 	// etc.) so resource density stays constant across the map-size roll: a map
@@ -110,6 +110,11 @@ type Level struct {
 	// Rooms are named areas structure scripts mark (name_room): the hover
 	// panel shows the name of the room a tile is in ("Specimen Tanks").
 	Rooms []Room
+
+	// Modules are a station's modules as the primer laid them out (saved):
+	// origins resolve into them, the power system and the planet generator
+	// read them. Empty on any other level.
+	Modules []Module
 
 	// Background is true while this level ticks as a background level. Anything
 	// that presents to the player (effects, music) must skip it: those are global
@@ -364,6 +369,52 @@ func (l *Level) SetSurfaceZ(x, y, z int) {
 type Room struct {
 	X, Y, Z, W, H int
 	Name          string
+}
+
+// Module is one module of a station: a rect on one deck.
+type Module struct {
+	ID   string `json:"id"`
+	Kind string `json:"kind"`
+	X    int    `json:"x"`
+	Y    int    `json:"y"`
+	Z    int    `json:"z"`
+	W    int    `json:"w"`
+	H    int    `json:"h"`
+	Name string `json:"name,omitempty"`
+	// Door is the entrance the frame opened (x, y on the module's deck).
+	DoorX  int    `json:"door_x"`
+	DoorY  int    `json:"door_y"`
+	Sealed string `json:"sealed,omitempty"`
+	Damage int    `json:"damage,omitempty"`
+	Event  string `json:"event,omitempty"`
+}
+
+// Contains reports whether (x, y, z) lies inside the module's rect.
+func (m Module) Contains(x, y, z int) bool {
+	return z == m.Z && x >= m.X && x < m.X+m.W && y >= m.Y && y < m.Y+m.H
+}
+
+// Center is the module's centre tile.
+func (m Module) Center() (int, int, int) { return m.X + m.W/2, m.Y + m.H/2, m.Z }
+
+// ModuleAt is the module holding (x, y, z), nil for none.
+func (l *Level) ModuleAt(x, y, z int) *Module {
+	for i := range l.Modules {
+		if l.Modules[i].Contains(x, y, z) {
+			return &l.Modules[i]
+		}
+	}
+	return nil
+}
+
+// ModuleByID is the module with that ID, nil for none.
+func (l *Level) ModuleByID(id string) *Module {
+	for i := range l.Modules {
+		if l.Modules[i].ID == id {
+			return &l.Modules[i]
+		}
+	}
+	return nil
 }
 
 // AddRoom names a rectangle (x, y, w, h) at z.

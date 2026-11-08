@@ -103,6 +103,20 @@ func landingDistance(level *world.Level, x, y int) int {
 	return max(abs(x-lx), abs(y-ly)) - half
 }
 
+// landingDistanceAt is landingDistance at a deck: on a station (a level with
+// Modules) each deck of difference from the landing's adds stationDeckCost
+// tiles, so an anchored feature's keep-out holds across decks.
+func landingDistanceAt(level *world.Level, x, y, z int) int {
+	d := landingDistance(level, x, y)
+	if len(level.Modules) == 0 {
+		return d
+	}
+	if _, _, lz, ok := Landing(level); ok {
+		d += stationDeckCost * abs(z-lz)
+	}
+	return d
+}
+
 // rectInLanding reports whether a footprint (x, y, w, h) overlaps the reserve
 // box grown by pad tiles.
 func rectInLanding(level *world.Level, x, y, w, h, pad int) bool {

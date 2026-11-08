@@ -1,6 +1,11 @@
 # Abandoned Station Rebuild — Implementation Plan
 
+<<<<<<< HEAD
 Status (2026-11-07): **plan only**, nothing implemented. Written against
+=======
+Status (2026-11-07): **built**, steps 1-9, on `claude/station-5b3f90`
+(not yet merged); as-built notes per step at the end. Written against
+>>>>>>> refs/heads/claude/station-5b3f90
 `dev` at `1c14684`. All draft text here (room names, messages, clue lines,
 quest names) is placeholder; the owner rewrites it (see "Where the owner
 rewrites text").
@@ -828,3 +833,122 @@ the log console). All marked `"_draft"` as the existing files are.
 - **Restored power reward.** Default: lights, doors, a working `research_lab`
   in the lab module. Should power also raise ambient light, or run the
   station's `fuel_refiner`?
+<<<<<<< HEAD
+=======
+
+## As built (2026-11-07)
+
+Every open question took its default except where noted. Commits: step 1
+`fd886f5`, 2 `4cb5c99`, 3 `059aa4b`, 4 `d88662f`, 5 `c2538dc`, 6 `7af1642`,
+7 `71fc039`, 8 `d46917d`, 9 the last commit on the branch.
+
+**Numbers** (`make history-dump HSTATS=500 HMAP=abandoned_station`, all
+steps in):
+
+- Tiers 31/51/19 at 500 seeds; 34/46/20 at 2000. The 500-seed set swings
+  about ±3 by sampling alone (2000 seeds sit on the 35/45/20 target), so the
+  ±2/±3 checks were judged at 2000.
+- Purposes: lost stations garrison 15%, habitat 20%, refinery 17%, relay
+  14%, research 19%, shipyard 15% (weights 15/20/15/15/15/20); drone
+  stations relay 100%; all station sites relay 35%, the rest 11-15%.
+- Origins by deck z0 9%, z1 14%, z2 40%, z3 28%, z4 9%; inside a module
+  2369 of 2369 (100%; 0% before, all on deck 0).
+- Stamps 39 kept in evidence, 39 recorded, 39 painted (`hull_breach`);
+  docked wrecks 326 in the plans, 326 built. Before step 1, 1.1 stamps per
+  site were recorded and only `hull_breach` painted.
+- Every station chapter above 3% (lowest `wreck_eggs_hatch` 3.0% at 500,
+  4.0% at 2000; `wreck_nanites_wake` 3.2% / 3.6%).
+- Scenario shares on the station map (500 seeds): base 69.4%, autonz 8.6%,
+  xenos 7.6%, grey 7.6%, mutants 6.8% (before: 68/9/9/9/5).
+
+**Planet-generator seeds** (`go run ./cmd/planet-generator -history -map
+abandoned_station -seed N`, or `-png <dir>` headless): purposes: relay 7
+and 42 (spine, 3 decks), refinery 1 (spine, 4), habitat 3 (ring, 5), 5
+(spine) and 777 (ring, 5), garrison 14 (cross) and 123 (ring, 4), research
+12 (ring, 4), shipyard 38 (spine). Endings:
+reactor_failure 1, station_lost 3, colony_abandoned 4, station_breached 6,
+nanite_conversion 12, colony_withdrawn 19, drone_station_fails 48 (quiet).
+`TestStationDecayFollowsTheEnding` logs the first seed of each ending.
+
+**Step 1.** As planned. A stamp counts as placed only if it changed a tile
+or added an entity in its footprint (`footprintSignature`), whatever the
+reason it built nothing. Two tests that used do-nothing stub runners now
+paint a tile. Planet-only events: `impact`, `impact_cataclysm`,
+`famine_year`, `migration`, `raid`, `quake`, `herds_migrate`, `meteor_fall`,
+`buried_cache`, `civ_rises_on_ruins`. history-dump's `-stats` now honours
+`-map` and builds every station site (about 7 s for 500).
+
+**Step 2.** The modules keep their centre row and column clear (the frame
+opens doors at a wall's centre); ship sections don't, so the primer clears
+the way through every door after the script. New builtin `has_param` (a
+numeric `z` of 0 could not be told from unset). `station_console` is a new
+inert blueprint for consoles and racks. Observatory windows are plain hull:
+the tile set has no see-through solid tile, so the `viewport` default would
+only have been a renamed wall with no art (the plan's cheap alternative).
+Ship sections mirror on a station (`frame=station`), so their presets vary
+by seed as `TestContentPresetsBuild` requires.
+
+**Step 3.** `station_purposes` gained `arcs`, `sealed` and `event_weights`
+(the plan's "reactor-failure endings likelier" and "docked wreck likelier"
+biases are event weights within an arc stage). `station_experiment` builds
+its lab (module evidence) instead of requiring one: gating it starved the
+threat tier. A crewed relay gets quarters. `archive_sealed` lost "below
+the surface" from its text. The `station_purpose` lore flag landed here.
+
+**Step 4.** Ordinary module doorways are open, not airlocks: a door with
+no `OwnedBy` costs 1000 to path through for every faction and a
+colony-owned one shuts creatures out, so doors stand only where they mean
+something (sealed modules, the bridge, the dock's airlock pair). Spare slots
+hold `station_bay` rooms (maintenance, storeroom, mess, office) so decks
+read as a station. There is no ceiling pass at all (the old one laid the
+stray plates). The old primer's stairs put `stairs_up` over `stairs_down`
+on middle decks; each column now alternates two tiles. Modules that don't
+fit move to their smallest size, then to another deck. A cross whose map
+is too short for its vertical arm lays a spine. The planet generator gained
+`-png` (per-deck PNGs, a montage and an index of modules and origins), the
+way stations were looked at headlessly.
+
+**Step 5.** The docked wreck berths at the far end of a deck away from the
+dock (the top deck down, the dock's deck last) with its own gangway, not at
+the end of the dock's arm: at the arm it would sit inside the landing's
+keep-out, so the eggs, swarms and leaks that grow from a wreck would spawn
+on the landing or be refused. A colony hull docks as a warship. On a cross the berth keeps clear of the
+vertical arm; where it cannot, the wreck's deck lays no arm (found in step
+9 on seed 14). Unbound
+origins take their deck from their rolled tile (`(x + y) % decks`), so they
+spread. Anchored stamps on a station build into their module's rect.
+
+**Step 6.** `nanite_conversion` binds to a module (`origin_at:
+"module:@any"`) so its deck is known before the primer runs; with the
+plan's `spread: 1` the wire covers its deck and one either side, so up to
+three decks (the plan's "one or two" holds only at the station's top or
+bottom). Its `wire_placer` pods are anchored at the origin on stations.
+Bays take their deck's and the station's damage too. `hull_breach` is
+`safe_start`.
+
+**Step 7.** The Repair order is a click on the dead generator (as a click
+on a bed orders sleep), not an inspector button. Its cost lives in a hidden
+`station_generator` buildable (4 machine parts, 5 fuel) rather than on
+`Repairable`. Colonists only fetch from colony-owned storage, so
+`station_setup.basic` claims the dock's lockers (`claim_module_storage`)
+and the dock's spares locker uses a new `station_spares` table that always
+covers the repair. The keycard lies on the bridge floor (else the
+generator's) and counts once a colonist carries it or it is in colony
+storage. The bridge door stays locked until power, so the order is power,
+bridge, keycard, archive. Station quests are attached per station site from
+its own data (`addStationQuests`; `station_archive` only with a sealed
+archive): putting them in the tag-rolled pool moved every later campaign
+roll (`TestLoreHistoryKeepsSeedsMapsPositionsNames`), so there is no
+`station` location tag.
+
+**Step 8.** `station_mutants` and `grey_contact` stations get at least four
+decks (their creatures spawn below the landing deck). The autonz setup
+script never started wire placers on space. The scenario test checks that
+no threat stands on the dock's deck within the hazard keep-out; threats on
+other decks are judged by deck, not distance.
+
+**Step 9.** `debug module [walk] <id>` and `debug deck <z>`, and state
+fields `view_room`, `view_module`, `in_view`. `lore_station` uses seed 114
+(`sys_57`, fuel 10); seed 20 `sys_82` no longer has a quiet station.
+
+>>>>>>> refs/heads/claude/station-5b3f90

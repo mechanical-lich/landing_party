@@ -176,6 +176,7 @@ type SaveData struct {
 	BiomeRuns   []StrRun            `json:"BiomeRuns,omitempty"`
 	Regions     map[string][][3]int `json:"Regions,omitempty"`
 	Rooms       []Room              `json:"Rooms,omitempty"`
+	Modules     []Module            `json:"Modules,omitempty"`
 
 	// Flags holds script/quest state (start coords, settlement name, colonist
 	// faction, game flags read by the objective evaluator). Values are
@@ -448,6 +449,7 @@ func SaveLevel(level *Level, settlementNames ...string) SaveData {
 		BiomeRuns:      encodeStrRuns(level.BiomeMap),
 		Regions:        level.Regions,
 		Rooms:          level.Rooms,
+		Modules:        level.Modules,
 		Flags:          level.Flags,
 	}
 }
@@ -497,6 +499,7 @@ func LoadSaveData(data SaveData) *Level {
 		level.BiomeMap = decodeStrRuns(data.BiomeRuns, w*h)
 	}
 	level.Rooms = data.Rooms
+	level.Modules = data.Modules
 	if data.Regions != nil {
 		level.Regions = data.Regions
 	}

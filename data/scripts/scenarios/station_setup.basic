@@ -1,7 +1,10 @@
+# station_setup — the Abandoned Station's opening (station_plan.md, section
+# 10). The party lands at the dock; the station is dark until its main
+# generator is repaired (click it: colonists haul machine parts and fuel to
+# it, and the dock's spares locker holds enough). DRAFT wording: the owner
+# rewrites every message.
 function on_setup()
-    add_message("Day 1. The station hums with residual power. Find the main generator.")
-
-    # Use the starting_floor anchor placed by the abandoned_station primer.
+    # The starting_floor anchor is the dock (station primer).
     n = get_region_count("starting_floor")
     if n > 0 then
         sx = get_region_x("starting_floor", 0)
@@ -16,6 +19,18 @@ function on_setup()
     sname = get_flag("settlement_name")
     faction = get_flag("colonist_faction")
 
+    if get_region_count("module:generator") > 0 then
+        gz = get_region_z("module:generator", 0)
+        add_message("Day 1. The station is dark and cold. The main generator is " + deck_word(gz - sz) + ". Bring machine parts and fuel.")
+    else
+        add_message("Day 1. The station is dark and cold.")
+    endif
+    if get_flag_or("station_purpose", "") = "relay" then
+        add_message("No crew ever lived here. The relay core still hums on standby.")
+    endif
+
+    # The dock's lockers are the party's: its spares repair the generator.
+    claim_module_storage("dock", sname)
     spawn_entity_owned("storage_locker", sx, sy, sz, sname)
     spawn_entity_owned("basic_workbench", sx + 1, sy, sz, sname)
 
@@ -26,6 +41,29 @@ function on_setup()
     endif
 
     set_flag("station_started", 1)
+endfunction
+
+# deck_word says where a deck is from the dock's: "on this deck", "one deck
+# down", "two decks up".
+function deck_word(dz)
+    if dz = 0 then
+        return "on this deck"
+    endif
+    n = dz
+    dir = "up"
+    if dz < 0 then
+        n = 0 - dz
+        dir = "down"
+    endif
+    word = "one deck"
+    if n = 2 then
+        word = "two decks"
+    elseif n = 3 then
+        word = "three decks"
+    elseif n > 3 then
+        word = "far decks"
+    endif
+    return word + " " + dir
 endfunction
 
 # Three grunts within 15 tiles of the experiment, on its deck, outside the

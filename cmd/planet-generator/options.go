@@ -43,14 +43,9 @@ var primerParams = map[string][]paramDef{
 		{"min_size", "Min asteroid size", 40, 0, 400, 5},
 		{"noise_scale", "Noise scale", 22, 4, 100, 1},
 	},
-	"abandoned_station": {
-		{"floors", "Floors", 3, 1, 12, 1},
-		{"station_size", "Station size", 50, 10, 300, 5},
-		{"hub_radius", "Hub radius", 5, 2, 30, 1},
-		{"spokes", "Spokes", 4, 0, 8, 1},
-		{"bud_attempts", "Room attempts", 60, 0, 400, 5},
-		{"min_room", "Min room", 4, 2, 20, 1},
-		{"max_room", "Max room", 8, 3, 40, 1},
+	"station": {
+		{"margin", "Margin (void round it)", 14, 4, 40, 1},
+		{"dock_arm", "Docking arm", 10, 4, 20, 1},
 	},
 }
 

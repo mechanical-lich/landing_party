@@ -17,7 +17,7 @@ type MapDef struct {
 	Name          string         `json:"name"`
 	Description   string         `json:"description"`
 	Size          SizeBlock      `json:"size"`           // generation dimensions; rolled per-location
-	Terrain       string         `json:"terrain"`        // primer name: "planet", "asteroid_field", "abandoned_station"
+	Terrain       string         `json:"terrain"`        // primer name: "planet", "asteroid_field", "station"
 	TerrainParams map[string]any `json:"terrain_params"` // forwarded to the primer
 	BiomeMap      BiomeMapBlock  `json:"biome_map"`      // optional
 	Features      []FeatureBlock `json:"features"`       // ordered feature placements
@@ -37,6 +37,10 @@ type MapDef struct {
 
 // Present is a map's present-day planet state: what its history has to explain.
 type Present struct {
+	// Kind is the kind of site: "planet" (the default) or "station". Events
+	// with requires.site keep to their kind, and evidence blocks with "on"
+	// build only on theirs.
+	Kind string `json:"kind,omitempty"`
 	// Life and Status list the allowed final values (any of).
 	Life   []string `json:"life"`
 	Status []string `json:"status"`
@@ -55,6 +59,35 @@ type Present struct {
 	Density int `json:"density,omitempty"`
 	// Layers is the chance a site first runs an older people's layer arc.
 	Layers *PresentLayers `json:"layers,omitempty"`
+	// StationPurposes weighs what a station site was built for (the
+	// station_purposes of data/history/purposes.json), rolled by its founding
+	// event's "@station_purpose" var.
+	StationPurposes map[string]int `json:"station_purposes,omitempty"`
+	// LoreBudget overrides the matching fields of the map's size class in
+	// the lore budget (a station: two stamps, a bigger footprint share, no
+	// underground). nil fields keep the class's.
+	LoreBudget *LoreBudgetOverride `json:"lore_budget,omitempty"`
+}
+
+// LoreBudgetOverride is a map's own lore budget limits.
+type LoreBudgetOverride struct {
+	Stamps           *int     `json:"stamps,omitempty"`
+	FootprintPercent *float64 `json:"footprint_percent,omitempty"`
+	Underground      *int     `json:"underground,omitempty"`
+}
+
+// Site kinds (Present.Kind).
+const (
+	SitePlanet  = "planet"
+	SiteStation = "station"
+)
+
+// SiteKind is the present's kind of site, "planet" when unset.
+func (p *Present) SiteKind() string {
+	if p == nil || p.Kind == "" {
+		return SitePlanet
+	}
+	return p.Kind
 }
 
 // PresentLayers lists the layer arcs a site of the map may run first, and how

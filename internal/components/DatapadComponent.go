@@ -11,6 +11,9 @@ type DatapadComponent struct {
 	// Text, when set, is what the datapad says (a clue a structure left);
 	// otherwise it reads as its event's chronicle line.
 	Text string `json:",omitempty"`
+	// Log marks a station's log console: reading it makes every event with
+	// an origin on its level known.
+	Log bool `json:",omitempty"`
 }
 
 func (c *DatapadComponent) GetType() ecs.ComponentType { return Datapad }

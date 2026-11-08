@@ -95,6 +95,7 @@ var mirrorSpecs = map[string]mirrorArgs{
 	"get_biome": {pt: 0}, "get_surface_z": {pt: 0},
 	"carve_round_room": {pt: 0}, "carve_circle": {pt: 0},
 	"spawn_lore_datapad": {pt: 0}, "fill_container": {pt: 0},
+	"spawn_station_log": {pt: 0}, "lock_door": {pt: 0},
 	"carve_room": {pt: 0, rect: true}, "carve_rect": {pt: 0, rect: true}, "name_room": {pt: 0, rect: true},
 	"spawn_entity": {pt: 1, entity: true}, "spawn_entity_owned": {pt: 1, entity: true},
 	"spawn_entity_named": {pt: 1, entity: true}, "tag_region": {pt: 1},

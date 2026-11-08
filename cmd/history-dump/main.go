@@ -57,7 +57,11 @@ func main() {
 		return
 	}
 	if *stats > 0 {
-		printStats(os.Stdout, lib, maps, *stats, max(*stats/10, 1))
+		statMaps := maps
+		if *mapID != "" {
+			statMaps = []string{*mapID}
+		}
+		printStats(os.Stdout, lib, statMaps, *stats, max(*stats/10, 1))
 		return
 	}
 
@@ -208,13 +212,20 @@ func printBySite(w *os.File, lib *history.Library, h *history.History, names map
 			fmt.Fprintf(w, ", contaminants %s", strings.Join(s.State.Contaminants, "/"))
 		}
 		fmt.Fprintln(w)
+		ev := h.Evidence(lib, s)
 		for _, id := range s.Events {
 			e := h.Event(id)
 			at := ""
 			if e.Origin != nil {
 				at = fmt.Sprintf("  @%d,%d", e.Origin.X, e.Origin.Y)
 			}
+			if m := ev.OriginModules[id]; m != "" {
+				at += " in " + m
+			}
 			fmt.Fprintf(w, "   %s%s\n", h.Render(lib, e, names[s.ID]), at)
+		}
+		if ev.Station != nil {
+			fmt.Fprintf(w, "   plan: %s\n", history.StationPlanText(ev.Station, func(id string) string { return h.Event(id).Type }))
 		}
 		fmt.Fprintln(w)
 	}

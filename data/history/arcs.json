@@ -1075,7 +1075,6 @@
         {
           "pick": [
             "station_built",
-            "civ_rises_on_ruins",
             "settles_on_ruins"
           ]
         },
@@ -1095,7 +1094,8 @@
             "lab_founded",
             "reactor_built",
             "observatory_built",
-            "archive_sealed"
+            "archive_sealed",
+            "station_expanded"
           ],
           "optional": true,
           "chance": 90,
@@ -1109,7 +1109,9 @@
             "station_lost",
             "nanite_conversion",
             "colony_abandoned",
-            "colony_withdrawn"
+            "colony_withdrawn",
+            "reactor_failure",
+            "station_breached"
           ]
         },
         {

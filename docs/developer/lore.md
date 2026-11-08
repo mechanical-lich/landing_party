@@ -282,7 +282,7 @@ always did (frozen copies compared tile for tile).
 | Script | What | Params beyond the contract | Footprint |
 |---|---|---|---|
 | `crashed_ship` | a hull of sections aft to fore, crash furrow, damage 0–3 | `class` (scout, freighter, colony, warship, mothership, saucer), `crew` (alive/dead), `occupants: cryo` | scout 13×9 … mothership 60×60 (field) |
-| `ship_bridge`, `ship_quarters`, `ship_cargo`, `ship_reactor`, `ship_engine`, `ship_cryo_bay`, `ship_armoury`, `ship_hangar` | one section each (called by `crashed_ship`) | `crew_state`, `holds`, `room_<section>` | the section's rect |
+| `ship_bridge`, `ship_quarters`, `ship_cargo`, `ship_reactor`, `ship_engine`, `ship_cryo_bay`, `ship_armoury`, `ship_hangar` | one section each (called by `crashed_ship`); also station modules (below) | `crew_state`, `holds`, `room_<section>`, `z`, `frame` | the section's rect |
 | `crashed_ufo` | wrapper: `crashed_ship` class `saucer` | `crew` | 17×17–21×21 |
 | `castle_town` | the castle (unchanged) with cottages in a ring outside its walls, doors facing it, a road from its gate to the edge; below 36×28 the castle alone | `tech` | 36×28–48×40 |
 | `village` | huts round a fire; palisade from medieval | `tech` | 17×13–31×25 |
@@ -304,6 +304,7 @@ always did (frozen copies compared tile for tile).
 | `cave_in` | collapsed chamber, cache to dig out | `tech` | 9×7–17×13 |
 | `defence_post` | broken wall round sentry turrets | `tech`, `turrets`, `occupants: dormant` | 9×9–15×15 |
 | `hull_breach` | a station section open to space, stores at its heart | | 9×7–15×11 |
+| `station_dock`, `station_generator`, `station_lab`, `station_botany`, `station_archive`, `station_observatory`, `station_relay`, `station_refinery`, `station_medbay` | station modules: one room each, furnished, lit by `station_light`s, centre row and column kept clear for the frame's doors (see "Stations") | `z`, `room_<kind>`, `sealed` | S 7×7, M 11×9, L 15×11, XL 21×13 |
 | `ruin_pass` | helper: wears a footprint by `damage` | `wall`, `floor` | any |
 
 **Builtins** (all structure and setup scripts): `fill_container(x, y, z,
@@ -315,6 +316,13 @@ single 4-connected outline; `mirror(x, y, w, h, flip_x, flip_y)` reflects
 everything the script builds after it, so each ground script, hazard prop and
 history ship comes out in one of four seeded orientations (the frozen
 quest/scenario scripts excepted). `ruin_pass` is the shared damage helper.
+`has_param(key)` is 1 when the caller set the param (even to 0): station
+modules, the ship sections, `crashed_ship` and `ruin_pass` read the deck
+from param `z` when it is set (`deck_z`), else from `get_surface_z`, so the
+same script builds on a station's decks and on the ground. `frame=station`
+marks a station module: a ship section then comes either way round and a
+hangar keeps its blast doors; `crashed_ship` docked at a station lays no
+furrow; `ruin_pass` cracks no floors.
 
 **Data.** `data/history/tech.json` (levels: label, role → script and
 footprint, or a list of weighted alternatives; weapons, relics), `data/history/purposes.json` (ship classes; per
@@ -330,12 +338,116 @@ as ASCII with its time. The structure viewer (`go run
 ./cmd/structure-viewer`) has a Presets… list, `data/history/structure_presets.json`:
 every ship purpose at its class's footprint, every tech level's roles at
 their normal and small footprints with the role's default purpose, and each
-fixed event stamp, all with `occupants: none`; its Damage control sets
+fixed event stamp, all with `occupants: none`, and (group "Station
+modules") every station module at its slot sizes; its Damage control sets
 `damage` 0–3, and hovering a named room shows the name in the toolbar. The
 presets are drawn from `tech.json`, `purposes.json` and `events.json`;
 `TestContentPresetsMatchData` fails when they drift (regenerate the list
 rather than hand-editing it) and `TestContentPresetsBuild` builds each one
 intact and ruined.
+
+## Stations
+
+The Abandoned Station (`present.kind: "station"`) is built from its history
+the way a crashed ship is built from sections (design and as-built notes:
+[station_plan.md](../brainstorm/station_plan.md)).
+
+**Site kind.** `requires.site` keeps an event to planets or stations
+(`meteor_fall`, `buried_cache`, `impact`, `quake`, `raid` ... are
+planet-only); an evidence block's `on` builds it on one kind only. A ground
+stamp on a station is dropped (`Dropped`, limit `no_surface`): only
+`hull_breach` and `crashed_ship` (as the docked wreck) build there, and a
+stamp whose script paints nothing is never recorded in `StampFootprints`.
+
+**The plan.** The founding event (`station_built`, `drone_station_built`)
+rolls `vars.purpose = "@station_purpose"` from the map's
+`present.station_purposes` among `data/history/purposes.json`
+`station_purposes` whose `arcs` include the site's (a drone relay is always
+`relay`). The purpose gives the frame (`spine`, `ring`, `cross`), the decks,
+the modules it always has and those it often has (percent), the cargo's
+holds, room names, a clue, sealed modules, and `event_weights` /
+`chapter_weights` that tilt the arc's picks and the chapter roll. Events add
+modules with evidence kind `module` (`params.module`, `sealed`,
+`occupants`, `log`; `@optional` for `station_expanded`); a module the
+station already has is reused. `origin_at: "module:a,b"` binds the event's
+origin to the first such module (`@outer` a non-core module, `@any` any but
+the dock); an event growing from another's origin (`origin_from`) shares its
+module. `requires.modules` needs a module of a kind. `History.Evidence` puts
+the plan in `SiteEvidence.Station` and the bindings in `OriginModules`;
+`history-dump` prints it per site.
+
+**The primer** (`internal/generation/primer_station_modules.go`, terrain
+`station`) reads the plan from `TerrainParams.station_plan` (else
+`DefaultStationPlan`), allocates modules to decks by band (dock; generator
+and reactor below it; hangar, cargo and refinery low; quarters, botany,
+medbay, cryo middle; bridge, lab, archive, armoury upper; observatory and
+relay top), never a chapter's or creature-spawning module on the dock's
+deck, and lays each deck's frame: modules hung off the corridors in slots
+(S 7×7, M 11×9, L 15×11, XL 21×13) sharing walls, their scripts run into the
+slot with `z` and `frame=station`, spare slots filled with `station_bay`
+rooms. The dock is deck 1 of a station of 4+ decks (deck 0 below it), with
+its airlock pair and a 10-tile arm; two stair columns, each alternating two
+tiles so every deck has an up and a down. Regions: `starting_floor` and
+`station_dock` (the dock), `station_hub`, `station_deck:<z>` (main column),
+`module:<id>`, `station_room_large`. `Level.Modules` (saved) holds each
+module's rect, deck, name, door, seal, damage and event.
+
+| Module | Script | Slot |
+|---|---|---|
+| dock | `station_dock` | M |
+| generator | `station_generator` | M |
+| reactor | `ship_reactor` | L |
+| cargo | `ship_cargo` | L, XL |
+| quarters | `ship_quarters` | M, L |
+| hangar | `ship_hangar` | XL |
+| bridge | `ship_bridge` | M |
+| lab | `station_lab` | M, L |
+| cryo | `ship_cryo_bay` | L |
+| armoury | `ship_armoury` | S, M |
+| botany | `station_botany` | L |
+| archive | `station_archive` | M |
+| observatory | `station_observatory` | M |
+| relay | `station_relay` | L |
+| refinery | `station_refinery` | XL |
+| medbay | `station_medbay` | S, M |
+| (filler) | `station_bay` | S, M |
+
+A kept `crashed_ship` becomes `plan.Wreck`: docked at the far end of a
+deck away from the dock (the top one down), joined to the corridor by a
+gangway, the level module `wreck`. Its events' origins stand in it.
+
+**Origins** on a station (`ResolveStationOrigins`): a bound origin resolves
+to its module's centre on its deck; an unbound one to the nearest module,
+each deck of difference counting 12 tiles, never the dock (and a hazard's
+never on the dock's deck). Anchored features read the origin's deck;
+`landingDistanceAt` adds the deck cost; an anchored stamp builds into its
+module's rect.
+
+**Decay.** The plan carries a status floor (fallen or dead 1, a drone relay
+0), each event's `station_damage` (`scope` `station`, `deck` with `spread`,
+or `module` with `deck` and `station` floors; `kind` `breach`, `nanite`,
+`meltdown`, `abandoned`) and the chapter's module (+1 hazard, +2 threat).
+`StationPlan.ModuleDamage` gives each module the largest of its own, its
+deck's and the station's. Looks: breach runs `hull_breach` into the module
+at 3; nanite wires floors (and that deck's corridors); meltdown leaves
+rubble outside the reactor and a hot core (`ship_reactor` on a station is
+cold below damage 2); abandoned keeps a third of each locker and opens its
+doors.
+
+**Power and goals.** Stations are dark: `station_light`s carry `Powered`
+and `StationPowerSystem` holds them at 0 until `power:main`. Clicking the
+dead generator (`Repairable`) orders a haul-and-build of the hidden
+`station_generator` buildable (4 machine parts, 5 fuel) that replaces it
+and sets `power:main`; the dock's spares locker (`station_spares`, claimed
+for the colony by `station_setup.basic`) always covers it. The bridge door
+is `Powered` (locked until power); sealed modules have a locked blast door
+with `KeyId` `station_keycard`, the keycard lying in the bridge (else the
+generator); `KeyDoorSystem` opens it for a colonist beside it whose colony
+holds the key, sets `door:<module kind>` and gives the door to the colony.
+The station log (a `Datapad` with `Log`) reveals every event with an origin.
+Every station site gets the `station_power` quest, and one with a sealed
+archive `station_archive` (`addStationQuests`, drawn from the site's own
+data, not the campaign stream).
 
 ## Determinism
 
@@ -362,6 +474,8 @@ before setup scripts:
 | `has_wreck`, `has_reactor` | 1 when the history left a wreck or reactor |
 | `population` | `never`, `outpost`, `colony`, `civilization` |
 | `origin:<event>:x/y/z` | Every event's resolved origin (`generation.Origin`) |
+| `station_purpose` | A station's purpose (`relay`, `research`, ...), `""` elsewhere |
+| `power:main`, `door:<kind>` | Set in play: the generator repaired, a sealed module opened |
 | chapter `flags` | e.g. `chapter_crew` |
 
 Scripts read them with `get_flag` or `get_flag_or(key, default)`; helpers

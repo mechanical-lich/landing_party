@@ -1,11 +1,19 @@
 {
-  "_draft": "DRAFT purposes: why a place was built or a ship came. class: a ship purpose's hull class. rooms: names its structure gives its rooms (room_<key> params). holds: the loot table its lockers take. clue: the datapad left inside, rendered with the event's fills ({civ}, {site}, figures, vars). The owner rewrites names and clues.",
+  "_draft": "DRAFT purposes: why a place was built or a ship came. class: a ship purpose's hull class. rooms: names its structure gives its rooms (room_<key> params). holds: the loot table its lockers take. clue: the datapad left inside, rendered with the event's fills ({civ}, {site}, figures, vars). The owner rewrites names and clues. station_purposes: station purposes (station_plan.md section 4): what a station was built for, rolled by its founding event from the map's present.station_purposes among those its arc can found. frame and decks shape it; modules it always has, optional ones by percent; holds stock its cargo; rooms and clue name and explain it; sealed locks a module's door; event_weights and chapter_weights tilt the history. The owner rewrites room names and clues.",
   "ship_classes": {
     "scout": {"w": 13, "h": 9},
     "freighter": {"w": 25, "h": 13},
     "colony": {"w": 31, "h": 17},
     "warship": {"w": 29, "h": 15},
     "mothership": {"w": 60, "h": 60, "stamps": 3, "large_only": true}
+  },
+  "station_purposes": {
+    "relay":    {"arcs": ["drone_station", "lost_station"], "frame": ["spine"], "decks": [3, 3], "modules": ["dock", "generator", "relay"], "optional": {"cargo": 60, "hangar": 40, "observatory": 30}, "holds": "machine_parts", "rooms": {"room_relay": "Relay Core", "room_hangar": "Drone Bay"}, "clue": "Relay telemetry of the {civ}: carrier steady, no operator logged in.", "chapter_weights": {"autonz_sleeper": 2.0}},
+    "research": {"arcs": ["lost_station"], "frame": ["ring"], "decks": [4, 5], "modules": ["dock", "generator", "bridge", "lab", "quarters"], "optional": {"lab": 50, "cryo": 40, "archive": 40, "observatory": 30, "medbay": 50}, "holds": "medical", "rooms": {"room_bridge": "Operations", "room_lab": "Research Wing"}, "clue": "Research log of the {civ}: findings filed, funding cut, crew rotated home.", "chapter_weights": {"station_experiment": 2.0}},
+    "refinery": {"arcs": ["lost_station"], "frame": ["spine"], "decks": [4, 4], "modules": ["dock", "generator", "reactor", "refinery", "cargo"], "optional": {"cargo": 60, "quarters": 70, "hangar": 40}, "holds": "mine_ore", "rooms": {"room_refinery": "Ore Refinery", "room_cargo": "Ore Hold"}, "clue": "Shift log of the {civ} refinery: quota met, quota raised, quota met.", "event_weights": {"reactor_failure": 2.0}},
+    "shipyard": {"arcs": ["lost_station"], "frame": ["spine"], "decks": [4, 5], "modules": ["dock", "generator", "hangar", "cargo"], "optional": {"reactor": 50, "quarters": 70, "armoury": 30}, "holds": "ship_cargo", "rooms": {"room_hangar": "Construction Gantry", "room_cargo": "Yard Stores"}, "clue": "Yard ledger of the {civ}: three hulls laid down, one launched.", "event_weights": {"ancient_wreck": 2.0}},
+    "garrison": {"arcs": ["lost_station"], "frame": ["cross", "ring"], "decks": [4, 4], "modules": ["dock", "generator", "bridge", "armoury", "quarters"], "optional": {"armoury": 50, "medbay": 60, "hangar": 40}, "holds": "ship_armoury", "rooms": {"room_bridge": "Command Deck", "room_quarters": "Barracks"}, "clue": "Standing orders of the {civ} garrison: hold the station. No relief is coming.", "sealed": {"armoury": "keycard"}},
+    "habitat":  {"arcs": ["lost_station"], "frame": ["ring", "spine"], "decks": [5, 5], "modules": ["dock", "generator", "bridge", "quarters", "botany"], "optional": {"quarters": 60, "botany": 50, "medbay": 50, "cargo": 60, "cryo": 30}, "holds": "colony_stores", "rooms": {"room_bridge": "Habitat Control"}, "clue": "Census of the {civ} habitat: births up, rations down, hope steady."}
   },
   "purposes": {
     "survey":       {"class": "scout", "holds": "survey_data", "rooms": {"room_bridge": "Survey Deck"}, "clue": "Survey log of the {civ}: charted {site}; nothing here worth the fuel to come back for."},

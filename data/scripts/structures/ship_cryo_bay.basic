@@ -3,8 +3,16 @@
 # end walls with the sections either side, names the room (param room_cryo, else
 # "Cryo Bay") and furnishes it. Furniture keeps off the keel row so the doorways
 # crashed_ship opens between sections stay clear.
+# A station reuses it as a module: param z is its deck (else the ground under
+# it), frame=station marks it a module (no ship-only details), occupants
+# defaults to what its caller passes.
 function generate(x, y, w, h)
-    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    # A station module comes either way round (a ship's sections face the
+    # way crashed_ship lays them).
+    if get_param("frame") = "station" then
+        mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    endif
+    sz = deck_z(x, y, w, h)
     if sz < 0 then
         return
     endif
@@ -45,4 +53,13 @@ function room(key, def)
         return def
     endif
     return v
+endfunction
+
+# The deck to build on: the param z (a station module, a docked wreck), else
+# the ground under the footprint.
+function deck_z(x, y, w, h)
+    if has_param("z") = 1 then
+        return get_param("z") + 0
+    endif
+    return get_surface_z(x + int(w / 2), y + int(h / 2))
 endfunction

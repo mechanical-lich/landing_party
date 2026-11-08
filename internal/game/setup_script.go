@@ -15,6 +15,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mechanical-basic/pkg/basic"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
 )
 
@@ -990,6 +991,88 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 			return v, nil
 		}
 		return "", nil
+	})
+
+	// lock_door(x, y, z, key) — lock the door at (x, y, z); key names the
+	// item blueprint that opens it (KeyDoorSystem), "" for none. Returns 1 if
+	// there was a door.
+	reg("lock_door", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x, y, z := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		key := ""
+		if len(args) > 3 {
+			key = fmt.Sprint(args[3])
+		}
+		for _, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+			for _, e := range list {
+				if pc, ok := entityPos(e); ok && e.HasComponent(rlcomponents.Door) && pc.GetX() == x && pc.GetY() == y && pc.GetZ() == z {
+					d := e.GetComponent(rlcomponents.Door).(*rlcomponents.DoorComponent)
+					d.Locked, d.KeyId, d.Open = true, key, false
+					if !e.HasComponent(rlcomponents.Solid) {
+						e.AddComponent(&rlcomponents.SolidComponent{})
+					}
+					return float64(1), nil
+				}
+			}
+		}
+		return float64(0), nil
+	})
+
+	// spawn_station_log(x, y, z) — a station's log console: a datapad that,
+	// read, makes every event with an origin on this level known.
+	reg("spawn_station_log", func(args ...any) (any, error) {
+		if len(args) < 3 {
+			return float64(0), nil
+		}
+		x, y, z := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		e, err := factory.Create("datapad", x, y, z)
+		if err != nil {
+			return float64(0), nil
+		}
+		e.AddComponent(&components.DatapadComponent{Log: true})
+		if e.HasComponent(rlcomponents.Description) {
+			e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name = "Station Log"
+		}
+		level.AddEntity(e)
+		return float64(1), nil
+	})
+
+	// claim_module_storage(module_id, owner) — every storage container in a
+	// station module (Level.Modules) becomes owner's: the colony's to use.
+	// Returns how many.
+	reg("claim_module_storage", func(args ...any) (any, error) {
+		if len(args) < 2 {
+			return float64(0), nil
+		}
+		m := level.ModuleByID(fmt.Sprint(args[0]))
+		if m == nil {
+			return float64(0), nil
+		}
+		owner := fmt.Sprint(args[1])
+		n := 0
+		for _, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+			for _, e := range list {
+				if pc, ok := entityPos(e); ok && e.HasComponent(components.Storage) && m.Contains(pc.GetX(), pc.GetY(), pc.GetZ()) {
+					e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy = owner
+					n++
+				}
+			}
+		}
+		return float64(n), nil
+	})
+
+	// has_param(key) — 1 when the caller seeded the param (even as 0), else 0:
+	// tells an absent numeric param (a station module's z) from a set one.
+	reg("has_param", func(args ...any) (any, error) {
+		if len(args) < 1 {
+			return float64(0), nil
+		}
+		if _, ok := ctx.topParams()[fmt.Sprint(args[0])]; ok {
+			return float64(1), nil
+		}
+		return float64(0), nil
 	})
 
 	// gen_structure(name, x, y, w, h) — stamp a structure script. Reentrant:

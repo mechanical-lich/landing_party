@@ -16,6 +16,9 @@ type BuildRequest struct {
 	// from a worker's bag, blueprint -> quantity. The task's cost is satisfied
 	// when Delivered covers it.
 	Delivered map[string]int
+	// Replace repairs: the Repairable entity at the tile gives way to the
+	// built one, and sets its flag (a station's generator).
+	Replace bool
 }
 
 type DigRequest struct {

@@ -16,6 +16,9 @@
 #            in a cryo bay.
 #   purpose, holds, clue, event, room_<section>: passed to the sections (what
 #            the ship carried, its datapad, its room names).
+#   z        the deck to build on (a hull docked at a station); default the
+#            ground under the footprint.
+#   frame    "station": docked, not crashed (no furrow); passed to the sections.
 #
 # The footprint is the ship's: nothing is drawn outside x..x+w-1, y..y+h-1.
 
@@ -44,7 +47,7 @@ function generate(x, y, w, h)
         saucer(x, y, w, h)
         return
     endif
-    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    sz = deck_z(x, y, w, h)
     if sz < 0 then
         return
     endif
@@ -222,12 +225,15 @@ function keel(x, y, w, h, sz, class, damage)
         used = used + sw
         px = px + sw - 1
     next i
-    # The furrow the hull ploughed before it stopped.
-    for k = 0 to furrow - 1
-        for j = 2 to h - 3
-            set_tile(x + k, y + j, sz, "crater_ground")
-        next j
-    next k
+    # The furrow the hull ploughed before it stopped (none for a hull docked
+    # at a station, frame=station).
+    if get_param("frame") <> "station" then
+        for k = 0 to furrow - 1
+            for j = 2 to h - 3
+                set_tile(x + k, y + j, sz, "crater_ground")
+            next j
+        next k
+    endif
     for i = 0 to count - 1
         gen_structure(sec_script(sec[i]), secx[i], secy[i], secl[i], sech[i])
     next i
@@ -427,4 +433,13 @@ function room_name(key, def)
         return def
     endif
     return v
+endfunction
+
+# The deck to build on: the param z (a station module, a docked wreck), else
+# the ground under the footprint.
+function deck_z(x, y, w, h)
+    if has_param("z") = 1 then
+        return get_param("z") + 0
+    endif
+    return get_surface_z(x + int(w / 2), y + int(h / 2))
 endfunction

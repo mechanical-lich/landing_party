@@ -5,6 +5,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,6 +40,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlsystems"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlworld"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -80,6 +83,10 @@ type SettlementConfig struct {
 	// has_wreck, has_reactor, population), set on the level before setup
 	// scripts run, alongside the resolved origin_x/y/z.
 	SiteFlags map[string]any
+	// SiteStation is a station site's plan (history.SiteEvidence.Station)
+	// for the station primer, and SiteOriginModules each origin's module.
+	SiteStation       *generation.StationPlan
+	SiteOriginModules map[string]string
 }
 
 type MainState struct {
@@ -392,6 +399,8 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	addLogic(s.fovSystem)
 	addLogic(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	addLogic(&systems.FactionDoorSystem{})
+	addLogic(&systems.StationPowerSystem{})
+	addLogic(&systems.KeyDoorSystem{Faction: "colony"})
 	addLogic(&systems.ScriptSystem{})
 	addLogic(&rlsystems.StatusConditionSystem{})
 
@@ -631,6 +640,16 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 			MinZ: fb.MinZ, MaxZ: fb.MaxZ, Params: fb.Params, At: fb.At,
 		})
 	}
+	if s.settlementCfg.SiteStation != nil {
+		// The station primer lays the site's own plan.
+		tp := make(map[string]any, len(md.TerrainParams)+1)
+		for k, v := range md.TerrainParams {
+			tp[k] = v
+		}
+		tp[generation.StationPlanParam] = s.settlementCfg.SiteStation.ToParam()
+		opts.TerrainParams = tp
+	}
+	opts.OriginModules = s.settlementCfg.SiteOriginModules
 	opts.Origins = s.settlementCfg.SiteOrigins
 	opts.OriginKeepOut = s.settlementCfg.SiteKeepOut
 	opts.ChapterEvent = s.settlementCfg.SiteChapter
@@ -1721,6 +1740,8 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				})
 			} else if ent != nil && ent.HasComponent(components.Bed) && s.MainSettlement != nil {
 				s.addSleepTask(tX, tY)
+			} else if ent != nil && ent.HasComponent(components.Repairable) && s.MainSettlement != nil {
+				s.addRepairTask(ent)
 			} else {
 				// Select entity (colonist, building, etc.)
 				for _, e := range s.level.Entities {
@@ -1888,6 +1909,44 @@ func (s *MainState) addBuildTask(x, y int) {
 	if !buildable.AllowMultiple {
 		s.CursorMode = gui.CursorModeDefault
 	}
+}
+
+// addRepairTask orders a broken machine repaired: a build of its Repairable
+// Into at its tile, hauling Into's cost there (construction's hidden
+// buildable), that replaces it when done.
+func (s *MainState) addRepairTask(ent *ecs.Entity) {
+	rc := ent.GetComponent(components.Repairable).(*components.RepairableComponent)
+	pc, ok := entityPos(ent)
+	if !ok || rc.Into == "" {
+		return
+	}
+	x, y, z := pc.GetX(), pc.GetY(), pc.GetZ()
+	for _, t := range s.MainSettlement.Tasks.GetTasks() {
+		if t.X == x && t.Y == y && t.Z == z && t.Action == task_requests.BuildAction {
+			return
+		}
+	}
+	b := construction.GetBuildable(rc.Into)
+	s.MainSettlement.Tasks.AddTask(&task.Task{
+		Action: task_requests.BuildAction,
+		Data:   task_requests.BuildRequest{X: x, Y: y, Z: z, Type: rc.Into, Required: b.BuildTime, Replace: true},
+		X:      x, Y: y, Z: z,
+	})
+	message.PostMessage("Orders", fmt.Sprintf("Repair ordered: %s (needs %s).", rlentity.GetName(ent), repairCostText(b.Cost)))
+}
+
+// repairCostText is a cost list for a message ("4 machine parts, 5 fuel").
+func repairCostText(cost map[string]int) string {
+	keys := make([]string, 0, len(cost))
+	for k := range cost {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%d %s", cost[k], strings.ReplaceAll(k, "_", " ")))
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (s *MainState) addSleepTask(x, y int) {
@@ -2480,6 +2539,10 @@ func (s *MainState) collectDatapads() {
 		}
 		dp := e.GetComponent(components.Datapad).(*components.DatapadComponent)
 		s.level.RemoveEntity(e)
+		if dp.Log {
+			s.readStationLog()
+			continue
+		}
 		text, _ := s.campaign.RevealDatapad(dp.EventID)
 		if dp.Text != "" {
 			// A clue left in a structure: its own words; the event it
@@ -2493,6 +2556,30 @@ func (s *MainState) collectDatapads() {
 			message.PostMessage("Datapad", fmt.Sprintf("Recovered a datapad — new lead: %s. %s", q.Name, q.Description))
 		}
 	}
+}
+
+// readStationLog reads a station's log console: every event with an origin
+// on this level becomes known, each new one read out.
+func (s *MainState) readStationLog() {
+	var ids []string
+	for k := range s.level.Flags {
+		if strings.HasPrefix(k, "origin:") && strings.HasSuffix(k, ":x") {
+			if id := strings.TrimSuffix(strings.TrimPrefix(k, "origin:"), ":x"); id != generation.ChapterOrigin {
+				ids = append(ids, id)
+			}
+		}
+	}
+	sort.Strings(ids)
+	n := 0
+	for _, id := range ids {
+		if text, newly := s.campaign.RevealDatapad(id); text != "" {
+			n++
+			if newly {
+				message.PostMessage("Datapad", "Station log: "+text)
+			}
+		}
+	}
+	message.PostMessage("Datapad", fmt.Sprintf("Recovered the station log: %d records.", n))
 }
 
 // evaluateQuests progresses campaign quests against the shared eval context,

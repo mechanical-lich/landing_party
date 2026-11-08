@@ -6,14 +6,16 @@
 # touched, so doorways stay open.
 #
 # Callers: set_param("wall", "<wall tile>") (and "floor") then gen_structure("ruin_pass",
-# x, y, w, h); damage comes from the caller's own params.
+# x, y, w, h); damage comes from the caller's own params, the deck from param z
+# (else the ground). On a station (frame=station) floors never crack: there is
+# no ground under them.
 function generate(x, y, w, h)
     damage = get_param("damage") + 0
     wall = get_param("wall")
     if damage <= 0 or wall = "" then
         return
     endif
-    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    sz = deck_z(x, y, w, h)
     if sz < 0 then
         return
     endif
@@ -54,7 +56,7 @@ function generate(x, y, w, h)
 
     # A ruin's floors (the param "floor" tile) crack open to the ground.
     floor = get_param("floor")
-    if damage >= 3 and floor <> "" then
+    if damage >= 3 and floor <> "" and get_param("frame") <> "station" then
         for j = 0 to h - 1
             for i = 0 to w - 1
                 if get_tile_type(x + i, y + j, sz) = floor and rnd_int(100) < 15 then
@@ -90,4 +92,13 @@ function generate(x, y, w, h)
             endif
         next i
     next j
+endfunction
+
+# The deck to build on: the param z (a station module, a docked wreck), else
+# the ground under the footprint.
+function deck_z(x, y, w, h)
+    if has_param("z") = 1 then
+        return get_param("z") + 0
+    endif
+    return get_surface_z(x + int(w / 2), y + int(h / 2))
 endfunction

@@ -81,7 +81,9 @@ when quiet), `tier`, `known_events`, `adrift`, `in_orbit`, `won`, `lost`,
 `crew_at`, `crew_on_site`, `loaded`, `owed`, `tutorial` (`step`, `index`,
 `count`, `done`, `skipped`, `ended`, `panel_covered`), `modal`, `incident`, `notifications`,
 `paused`, `pause_text`, `cursor_mode`, `build_mode`, `camera`, `selected`,
-`settlement`, `messages` (last 10). Fields that do not apply to the current
+`settlement`, `view_room` and `view_module` (the named room and station
+module at the view's centre), `in_view` (blueprint → count on screen),
+`messages` (last 10). Fields that do not apply to the current
 screen are absent or null.
 
 ### Targets
@@ -128,6 +130,8 @@ tutorial off.
 | `incident <location id or ship>` | Raises the away-damage popup for that loaded level |
 | `reveal all` | Marks every history event known (a long Legends chronicle) |
 | `datapad` | Puts the first colonist on the nearest lore datapad (the next update picks it up) |
+| `module [walk] <id>` | Frames a station module (`Level.Modules`: `dock`, `generator`, `lab`, `cargo:2`, `wreck`); `walk` puts the first colonist inside |
+| `deck <z>` | Frames deck z of a station on its main stair column (`station_deck:<z>`) |
 | `origin [walk [event type [n]]]` | Frames the camera on the site history's resolved chapter origin (the `region:lore_origin` tag), or on the origin of the site's event of that type; `walk` also puts the first colonist on the nearest free tile there, so its field of view reveals it; `n` picks the nth event of that type (the two sides of a per-side event) |
 
 ### Determinism
@@ -157,6 +161,7 @@ runs; assert counts rather than specific enemies there.
 | `lore_hazard` | Seed 407: the Star Map's amber Hazard tag on a `dormant_nest` earth_like site, then the eggs by the wreck at its origin |
 | `lore_war` | Seed 125: the start system is a `sundered_world` earth site; walk to each side's fort (`debug origin walk fortify 1` and `2`), the battlefield and a side's dwelling |
 | `lore_ship` | Seed 11: the start system's old warship wreck (`crashed_ship`, purpose warship), lighting off, walked to: hull, sections, rooms |
+| `lore_station` | Seed 114: jump to the quiet station `sys_57`, land at the dock (`view_module` dock, room "Docking Bay"), `debug module walk generator` (room "Main Generator", a `station_generator_broken` in view), then decks 0-2 from the main stair column; lighting off |
 
 Seeds for the lore scripts come from `make history-dump HFIND=<terms>`
 (comma-separated, all required: tier, map, location ID, event type, `stamped:<type>` for an event that keeps its structure, `<var>=<value>` for an event var such as `purpose=warship`), which

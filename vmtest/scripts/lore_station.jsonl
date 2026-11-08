@@ -1,0 +1,49 @@
+{"name":"lore_station","seed":114,"config":{"debugDisableLighting":true}}
+# A quiet abandoned station built from its history: seed 114's sys_57 is a
+# quiet station (no chapter). Land at the dock, walk to the main generator
+# (dead until repaired) and look at every deck from the main stair column.
+# Lighting is off so whole modules show.
+# Re-find with: make history-dump HFIND=quiet,abandoned_station
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lore Station"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"114"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"click","target":"row:locList:sys_57"}
+{"op":"assert","path":"selected_location.id","eq":"sys_57"}
+{"op":"assert","path":"selected_location.tier","eq":"quiet"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_57"}
+{"op":"assert","path":"campaign.scenario","eq":"abandoned_station"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"landing"}
+{"op":"debug","cmd":"module dock"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"view_module","eq":"dock"}
+{"op":"assert","path":"view_room","eq":"Docking Bay"}
+{"op":"screenshot","name":"dock"}
+{"op":"debug","cmd":"module walk generator"}
+{"op":"wait","ticks":20}
+{"op":"assert","path":"view_module","eq":"generator"}
+{"op":"assert","path":"view_room","eq":"Main Generator"}
+{"op":"assert","path":"in_view.station_generator_broken","eq":1}
+{"op":"screenshot","name":"generator"}
+{"op":"debug","cmd":"deck 0"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"deck0"}
+{"op":"debug","cmd":"deck 1"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"deck1"}
+{"op":"debug","cmd":"deck 2"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"deck2"}

@@ -1,25 +1,25 @@
 {
     "id": "abandoned_station",
     "name": "Abandoned Station",
-    "description": "A derelict multi-floor station drifting in the void.",
+    "description": "A derelict multi-deck station drifting in the void.",
     "size": {
-        "w": { "min": 120, "max": 160 },
-        "h": { "min": 120, "max": 160 },
+        "w": { "min": 100, "max": 140 },
+        "h": { "min": 80, "max": 120 },
         "z": { "min": 5, "max": 5 }
     },
-    "terrain": "abandoned_station",
-    "terrain_params": { "floors": 5, "station_size": 50, "hub_radius": 5, "spokes": 4, "bud_attempts": 80, "min_room": 4, "max_room": 8 },
-    "features": [
-        { "kind": "botany_bay", "count": 2, "count_max": 4, "params": { "tile": "dirt_floor", "radius": 3 } },
-        { "kind": "radiation_pocket", "count": 1, "count_max": 3, "in_region": "station_room_large", "jitter": 4, "params": { "peak": 180, "radius": 3 } }
-    ],
+    "terrain": "station",
+    "terrain_params": { "margin": 14, "dock_arm": 10 },
+    "features": [],
     "present": {
+        "kind": "station",
         "life": ["none"],
         "status": ["fallen", "dead"],
         "arcs": ["drone_station", "lost_station"],
         "tiers": {"threat": 35, "hazard": 45, "quiet": 20},
         "safe_tiers": {"hazard": 60, "quiet": 40},
-        "density": 40
+        "density": 40,
+        "station_purposes": {"relay": 15, "research": 20, "refinery": 15, "shipyard": 15, "garrison": 15, "habitat": 20},
+        "lore_budget": {"stamps": 2, "footprint_percent": 6, "underground": 0}
     },
     "base_scenario": "abandoned_station"
 }

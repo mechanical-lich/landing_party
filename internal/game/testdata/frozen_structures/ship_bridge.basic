@@ -1,0 +1,38 @@
+# ship_bridge — the command deck at the nose: consoles, the ship's datapad (why it came), and its Commander when the crew lived.
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_bridge, else
+# "Bridge") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_bridge", "Bridge"))
+    cy = y + int(h / 2)
+    fx = x + w - 2
+    # Consoles along the forward wall, off the keel row.
+    spawn_entity("research_lab", fx, y + 1, sz)
+    if h >= 6 then
+        spawn_entity("work_light", fx, y + h - 2, sz)
+    endif
+    # The ship's log: why it came here.
+    spawn_lore_datapad(fx - 1, cy, sz)
+    if get_param("crew_state") = "alive" then
+        spawn_entity_named("whitish", x + int(w / 2), cy, sz, "Commander")
+        add_epithet(x + int(w / 2), cy, sz)
+        mark_quest_target(x + int(w / 2), cy, sz)
+        if w >= 5 then
+            spawn_entity("greyish", x + 1, y + 1, sz)
+        endif
+    endif
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

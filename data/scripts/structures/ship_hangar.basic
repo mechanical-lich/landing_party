@@ -3,18 +3,32 @@
 # end walls with the sections either side, names the room (param room_hangar, else
 # "Hangar") and furnishes it. Furniture keeps off the keel row so the doorways
 # crashed_ship opens between sections stay clear.
+# A station reuses it as a module: param z is its deck (else the ground under
+# it), frame=station marks it a module (no ship-only details), occupants
+# defaults to what its caller passes.
 function generate(x, y, w, h)
-    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    # A station module comes either way round (a ship's sections face the
+    # way crashed_ship lays them).
+    if get_param("frame") = "station" then
+        mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    endif
+    sz = deck_z(x, y, w, h)
     if sz < 0 then
         return
     endif
     carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
     name_room(x, y, sz, w, h, room("room_hangar", "Hangar"))
-    # The bay doors on the outer wall gave way in the crash.
+    # The bay doors on the outer wall gave way in the crash; a station's
+    # hangar keeps them, a run of blast doors.
     cx = x + int(w / 2)
     clear_middle(cx, y + h - 1, sz)
     clear_middle(cx - 1, y + h - 1, sz)
     clear_middle(cx + 1, y + h - 1, sz)
+    if get_param("frame") = "station" then
+        spawn_entity("blast_door", cx - 1, y + h - 1, sz)
+        spawn_entity("blast_door", cx, y + h - 1, sz)
+        spawn_entity("blast_door", cx + 1, y + h - 1, sz)
+    endif
     spawn_entity("work_light", x + 1, y + 1, sz)
     spawn_entity("mineral_bin", x + w - 2, y + 1, sz)
     fill_container(x + w - 2, y + 1, sz, "ship_cargo")
@@ -26,4 +40,13 @@ function room(key, def)
         return def
     endif
     return v
+endfunction
+
+# The deck to build on: the param z (a station module, a docked wreck), else
+# the ground under the footprint.
+function deck_z(x, y, w, h)
+    if has_param("z") = 1 then
+        return get_param("z") + 0
+    endif
+    return get_surface_z(x + int(w / 2), y + int(h / 2))
 endfunction

@@ -150,5 +150,31 @@
             ],
             "MaxStack": 20
         }
+    },
+    "station_keycard": {
+        "Appearance": {
+            "R": 120,
+            "G": 200,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_items",
+            "SpriteX": 224,
+            "SpriteY": 0,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Station Keycard",
+            "Faction": ""
+        },
+        "Item": {
+            "Description": "DRAFT. A station officer's keycard. It still opens the sealed doors."
+        },
+        "Material": {
+            "Tags": [
+                "relic",
+                "keycard"
+            ],
+            "MaxStack": 5
+        }
     }
 }

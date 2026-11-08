@@ -37,6 +37,8 @@ func (l siteLore) apply(cfg *SettlementConfig) {
 	cfg.SiteKeepOut = l.evidence.KeepOut
 	cfg.SiteChapter = l.evidence.Chapter
 	cfg.SiteFlags = l.flags
+	cfg.SiteStation = l.evidence.Station
+	cfg.SiteOriginModules = l.evidence.OriginModules
 }
 
 // setLoreFlags puts the site's history where setup scripts read it: the lore

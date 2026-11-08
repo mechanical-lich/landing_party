@@ -108,6 +108,7 @@ func main() {
 	scenarioID := flag.String("scenario", "", "scenario to start with (default: one for the map)")
 	fromHistory := flag.Bool("history", false, "take the scenario from the site's generated history")
 	seed := flag.String("seed", "", "generation seed (default: random)")
+	pngDir := flag.String("png", "", "headless: build the location once, write one PNG per level (deck) into this directory and exit")
 	flag.Parse()
 
 	cfg := config.Global()
@@ -140,6 +141,14 @@ func main() {
 	if *seed != "" {
 		opts.seedText = *seed
 		opts.rerollSize()
+	}
+
+	if *pngDir != "" {
+		opts.fromHistory = *fromHistory && *scenarioID == ""
+		if err := writeLevelPNGs(opts, *pngDir); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
 	a := &app{opts: opts, fullbright: true, autoGen: true, genPending: 2}

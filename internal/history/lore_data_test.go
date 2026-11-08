@@ -151,8 +151,34 @@ func TestLoreLibraryReferencesResolve(t *testing.T) {
 		if e.PerSide && e.TextMeanwhile == "" {
 			t.Errorf("per-side event %s has no text_meanwhile", id)
 		}
-		if a := e.OriginAt; a != "" && a != "side" && a != "border" {
+		if a := e.OriginAt; strings.HasPrefix(a, "module:") {
+			// One or more module kinds, the first the station has winning,
+			// or @outer (an outer module the plan picks).
+			for _, k := range strings.Split(strings.TrimPrefix(a, "module:"), ",") {
+				if _, ok := generation.ModuleKinds[k]; !ok && k != "@outer" && k != "@any" {
+					t.Errorf("event %s: origin_at names unknown module %q", id, k)
+				}
+			}
+		} else if a != "" && a != "side" && a != "border" {
 			t.Errorf("event %s: unknown origin_at %q", id, a)
+		}
+		for _, k := range e.Requires.Modules {
+			if _, ok := generation.ModuleKinds[k]; !ok {
+				t.Errorf("event %s: requires unknown module %q", id, k)
+			}
+		}
+		for _, ev := range e.Evidence {
+			if ev.On != "" && ev.On != mapdef.SitePlanet && ev.On != mapdef.SiteStation {
+				t.Errorf("event %s: evidence on unknown site kind %q", id, ev.On)
+			}
+		}
+		if d := e.StationDamage; d != nil {
+			if d.Scope != "station" && d.Scope != "deck" && d.Scope != "module" || d.Level < 0 || d.Level > 3 {
+				t.Errorf("event %s: bad station_damage %+v", id, *d)
+			}
+			if d.Kind != "" && d.Kind != "breach" && d.Kind != "nanite" && d.Kind != "meltdown" && d.Kind != "abandoned" {
+				t.Errorf("event %s: unknown station_damage kind %q", id, d.Kind)
+			}
 		}
 		if e.Text == "" {
 			t.Errorf("event %s has no text", id)
@@ -206,6 +232,16 @@ func TestLoreEvidenceExists(t *testing.T) {
 		hasOrigin := e.Origin || len(e.OriginFrom) > 0 || e.OriginAt != ""
 		for i, ev := range e.Evidence {
 			where := id + " evidence " + string(rune('0'+i))
+			if ev.Kind == "module" {
+				// A station module the plan builds, not a feature.
+				if ev.On != mapdef.SiteStation {
+					t.Errorf("%s: a module is built only on a station (on: station)", where)
+				}
+				if k, _ := ev.Params["module"].(string); generation.ModuleKinds[k].Script == "" && k != "@optional" {
+					t.Errorf("%s: unknown module %q", where, k)
+				}
+				continue
+			}
 			if ev.Kind != "lore_datapad" && generation.GetFeature(ev.Kind) == nil {
 				t.Errorf("%s: unknown feature kind %q", where, ev.Kind)
 			}

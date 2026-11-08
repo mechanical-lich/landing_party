@@ -181,5 +181,98 @@
             "Range": 5
         },
         "NeverSleep": {}
+    },
+    "station_light": {
+        "Appearance": {
+            "R": 200,
+            "G": 230,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "fantasy_world",
+            "SpriteX": 960,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Station Light",
+            "Faction": ""
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Light": {
+            "Level": 0,
+            "Range": 6
+        },
+        "Powered": {
+            "Grid": "main",
+            "Level": 110,
+            "Range": 6
+        },
+        "NeverSleep": {}
+    },
+    "station_generator_broken": {
+        "Appearance": {
+            "R": 150,
+            "G": 110,
+            "B": 100,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Main Generator (dead)",
+            "Faction": ""
+        },
+        "Repairable": {
+            "Into": "station_generator",
+            "SetsFlag": "power:main"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "station_generator": {
+        "Appearance": {
+            "R": 180,
+            "G": 255,
+            "B": 200,
+            "Bounces": true,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Main Generator",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Light": {
+            "Level": 80,
+            "Range": 4
+        },
+        "NeverSleep": {},
+        "Solid": {}
+    },
+    "station_console": {
+        "Appearance": {
+            "R": 170,
+            "G": 210,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 576,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Station Console",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
     }
 }

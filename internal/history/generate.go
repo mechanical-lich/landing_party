@@ -365,6 +365,12 @@ func (s *siteSim) eligible(def *EventDef) bool {
 	if !r.Match.Holds(s.state) {
 		return false
 	}
+	if len(r.Site) > 0 && !Has(r.Site, s.md.Present.SiteKind()) {
+		return false
+	}
+	if len(r.Modules) > 0 && !s.stationHasAny(r.Modules) {
+		return false
+	}
 	for _, t := range r.Events {
 		if !s.hasType(t) {
 			return false
@@ -727,7 +733,9 @@ func (s *siteSim) applyOne(def *EventDef) {
 			d.civs = []string{c}
 		}
 	}
-	if d.origin == nil && def.OriginAt != "" && len(d.civs) > 0 {
+	if d.origin == nil && def.OriginAt != "" && len(d.civs) > 0 && (!strings.HasPrefix(def.OriginAt, "module:") || s.md.Present.SiteKind() == mapdef.SiteStation) {
+		// A station event bound to a module (origin_at "module:<kind>") gets
+		// an origin there; on a planet the binding means nothing.
 		d.origin = s.rollAt(def.OriginAt, d.civs[0])
 	}
 	if s.resident != "" {
@@ -769,6 +777,10 @@ func (s *siteSim) applyOne(def *EventDef) {
 		if opts := def.Vars[k]; len(opts) > 0 {
 			if d.vars == nil {
 				d.vars = map[string]string{}
+			}
+			if len(opts) == 1 && opts[0] == StationPurposeVar {
+				d.vars[k] = s.rollStationPurpose()
+				continue
 			}
 			d.vars[k] = opts[s.rng.Intn(len(opts))]
 		}
@@ -984,6 +996,99 @@ func (s *siteSim) rollPoint() *SitePoint {
 	return &SitePoint{X: x, Y: y}
 }
 
+// rollStationPurpose rolls a station's purpose from the map's
+// station_purposes among those its arc can found; "" when none can.
+func (s *siteSim) rollStationPurpose() string {
+	w := map[string]int{}
+	var keys []string
+	for _, id := range sortedKeys(s.md.Present.StationPurposes) {
+		if sp, ok := s.lib.StationPurposes[id]; ok && (len(sp.Arcs) == 0 || Has(sp.Arcs, s.arc.ID)) {
+			w[id] = s.md.Present.StationPurposes[id]
+			keys = append(keys, id)
+		}
+	}
+	if len(keys) == 0 {
+		return ""
+	}
+	return weightedPick(s.rng, keys, w)
+}
+
+// stationPurposeID is the purpose the site's founding event rolled, "" for
+// none (a planet, or a station not yet founded).
+func (s *siteSim) stationPurposeID() string {
+	for _, e := range s.events {
+		if e.def.Founds() && e.vars["purpose"] != "" {
+			return e.vars["purpose"]
+		}
+	}
+	return ""
+}
+
+// stationPurpose is the founding event's purpose, nil for none.
+func (s *siteSim) stationPurpose() *StationPurposeDef {
+	if sp, ok := s.lib.StationPurposes[s.stationPurposeID()]; ok {
+		return &sp
+	}
+	return nil
+}
+
+// stationHasAny reports whether the station has a module of one of kinds: its
+// purpose's own, or one an earlier event's evidence built.
+func (s *siteSim) stationHasAny(kinds []string) bool {
+	if s.md.Present.SiteKind() != mapdef.SiteStation {
+		return false
+	}
+	if sp := s.stationPurpose(); sp != nil {
+		for _, k := range sp.Modules {
+			if Has(kinds, k) {
+				return true
+			}
+		}
+	}
+	for _, e := range s.events {
+		for _, ev := range e.def.ModuleEvidence() {
+			if k, _ := ev.Params["module"].(string); Has(kinds, k) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// pickWeighted picks one of a stage's eligible events: evenly, or by the
+// station purpose's event_weights when it sets any of them.
+func (s *siteSim) pickWeighted(ok []*EventDef) *EventDef {
+	sp := s.stationPurpose()
+	weighted := false
+	if sp != nil {
+		for _, d := range ok {
+			if _, set := sp.EventWeights[d.ID]; set {
+				weighted = true
+			}
+		}
+	}
+	if !weighted {
+		return ok[s.rng.Intn(len(ok))]
+	}
+	ws := make([]int, len(ok))
+	total := 0
+	for i, d := range ok {
+		ws[i] = 100
+		if f, set := sp.EventWeights[d.ID]; set {
+			ws[i] = max(int(100*f+0.5), 1)
+		}
+		total += ws[i]
+	}
+	r := s.rng.Intn(total)
+	for i, w := range ws {
+		if r < w {
+			return ok[i]
+		}
+		r -= w
+	}
+	return ok[len(ok)-1]
+}
+
 // walk runs the main arc's stages; false if a required stage had nothing
 // eligible.
 func (s *siteSim) walk() bool { return s.walkArc(s.arc) }
@@ -1041,7 +1146,7 @@ func (s *siteSim) walkArc(arc *ArcDef) bool {
 			if k == 0 && st.Optional && s.rng.Intn(100) >= chance {
 				break
 			}
-			def := ok[s.rng.Intn(len(ok))]
+			def := s.pickWeighted(ok)
 			s.apply(def)
 			picked[def.ID] = true
 		}
@@ -1159,6 +1264,11 @@ func (s *siteSim) pickChapter(tier string, safe bool) (*siteSim, *EventDef) {
 		w := def.Weight[s.md.ID]
 		if w <= 0 || def.ChapterTier() != tier || s.repeats(def) || (safe && !def.SafeStart) {
 			continue
+		}
+		if sp := s.stationPurpose(); sp != nil {
+			if f, ok := sp.ChapterWeights[def.ID]; ok {
+				w = max(int(float64(w)*f+0.5), 1)
+			}
 		}
 		// The trial runs on its own copy of the stream so rejected chapters
 		// don't consume the site's rolls.

@@ -60,9 +60,10 @@ type Library struct {
 	TierTags map[string]TierTag
 	// TechDefs are the tech levels in order (tech.json).
 	TechDefs []TechDef
-	// Purposes and ShipClasses are purposes.json.
-	Purposes    map[string]PurposeDef
-	ShipClasses map[string]ShipClass
+	// Purposes, ShipClasses and StationPurposes are purposes.json.
+	Purposes        map[string]PurposeDef
+	ShipClasses     map[string]ShipClass
+	StationPurposes map[string]StationPurposeDef
 	// Maps are the map definitions whose present blocks the arcs end in, keyed
 	// by map ID.
 	Maps map[string]*mapdef.MapDef
@@ -174,6 +175,26 @@ type Requires struct {
 	TechMax string `json:"tech_max,omitempty"`
 	// Rival, when set, requires a rival people on the site (true) or none.
 	Rival *bool `json:"rival,omitempty"`
+	// Site lists the kinds of site the event can happen on ("planet",
+	// "station"; the map's present.kind); empty means any.
+	Site []string `json:"site,omitempty"`
+	// Modules needs the station to have a module of one of these kinds (its
+	// purpose's own, or one an earlier event built). Only on stations.
+	Modules []string `json:"modules,omitempty"`
+}
+
+// StationDamage is what an ending (or any event) did to a station: Level
+// 0-3 of Kind's look ("breach", "nanite", "meltdown", "abandoned") over
+// Scope: "station" (every module), "deck" (every module on the deck of the
+// event's origin, Spread decks either side at Level-1) or "module" (the
+// origin's module, its deck at Deck and the rest of the station at Station).
+type StationDamage struct {
+	Scope   string `json:"scope"`
+	Level   int    `json:"level"`
+	Kind    string `json:"kind,omitempty"`
+	Spread  int    `json:"spread,omitempty"`
+	Deck    int    `json:"deck,omitempty"`
+	Station int    `json:"station,omitempty"`
 }
 
 // Effects is what an event does to the planet and its resident civ.
@@ -225,6 +246,9 @@ const (
 // feature block; "at": "origin" anchors it at this event's resolved origin.
 type Evidence struct {
 	mapdef.FeatureBlock
+	// On builds the block only on one kind of site ("planet" or "station",
+	// the map's present.kind); empty means both.
+	On string `json:"on,omitempty"`
 }
 
 // EventDef is an event type from events.json.
@@ -311,9 +335,34 @@ type EventDef struct {
 	// Omen, on a chapter, is the line the Star Map adds after the arc's
 	// summary: what is going on there now.
 	Omen string `json:"omen,omitempty"`
+	// StationDamage, on a station, is the damage the event leaves.
+	StationDamage *StationDamage `json:"station_damage,omitempty"`
 	// Text is the chronicle template: {date}, {site}, {civ}, {enemy}, each
 	// figure's {role}, and each var.
 	Text string `json:"text"`
+}
+
+// StationPurposeVar is the var fill that rolls a station's purpose from the
+// map's present.station_purposes (among the purposes its arc can found).
+const StationPurposeVar = "@station_purpose"
+
+// Founds reports whether the event founds a station (its purpose var rolls
+// the station's purpose).
+func (e *EventDef) Founds() bool {
+	v := e.Vars["purpose"]
+	return len(v) == 1 && v[0] == StationPurposeVar
+}
+
+// ModuleEvidence lists the station modules an event's evidence asks for
+// (kind "module", built on stations).
+func (e *EventDef) ModuleEvidence() []Evidence {
+	var out []Evidence
+	for _, ev := range e.Evidence {
+		if ev.Kind == "module" && (ev.On == "" || ev.On == mapdef.SiteStation) {
+			out = append(out, ev)
+		}
+	}
+	return out
 }
 
 // Chapter tiers: how dangerous the site's present is. Quiet is the outcome
@@ -439,7 +488,7 @@ func LoadLibrary(dir string, maps []mapdef.MapDef) (*Library, error) {
 	if err := readJSON(filepath.Join(dir, "purposes.json"), &pf); err != nil {
 		return nil, err
 	}
-	lib.Purposes, lib.ShipClasses = pf.Purposes, pf.ShipClasses
+	lib.Purposes, lib.ShipClasses, lib.StationPurposes = pf.Purposes, pf.ShipClasses, pf.StationPurposes
 	for i := range maps {
 		m := maps[i]
 		lib.Maps[m.ID] = &m

@@ -90,6 +90,27 @@
     {"group": "Event stamps", "name": "bunker 11x9 (nuclear_war)", "script": "bunker", "w": 11, "h": 9, "params": {"occupants": "none", "purpose": "command", "holds": "machine_parts", "room_hall": "Command Bunker"}},
     {"group": "Event stamps", "name": "underground_dungeon 25x21 (ice_age)", "script": "underground_dungeon", "w": 25, "h": 21, "params": {"occupants": "none"}},
     {"group": "Event stamps", "name": "defence_post 11x11 (ancient_defences)", "script": "defence_post", "w": 11, "h": 11, "params": {"occupants": "dormant", "turrets": 2, "hostiles": 2}},
-    {"group": "Event stamps", "name": "hull_breach 11x9 (hull_breach)", "script": "hull_breach", "w": 11, "h": 9, "params": {"occupants": "none"}}
+    {"group": "Event stamps", "name": "hull_breach 11x9 (hull_breach)", "script": "hull_breach", "w": 11, "h": 9, "params": {"occupants": "none"}},
+    {"group": "Station modules", "name": "dock (M)", "script": "station_dock", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "generator (M)", "script": "station_generator", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "reactor (L)", "script": "ship_reactor", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "cargo (L)", "script": "ship_cargo", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "cargo (XL)", "script": "ship_cargo", "w": 21, "h": 13, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "quarters (M)", "script": "ship_quarters", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "quarters (L)", "script": "ship_quarters", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "hangar (XL)", "script": "ship_hangar", "w": 21, "h": 13, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "bridge (M)", "script": "ship_bridge", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "lab (M)", "script": "station_lab", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "lab (L)", "script": "station_lab", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "cryo (L)", "script": "ship_cryo_bay", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "armoury (S)", "script": "ship_armoury", "w": 7, "h": 7, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "armoury (M)", "script": "ship_armoury", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "botany (L)", "script": "station_botany", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "archive (M)", "script": "station_archive", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "observatory (M)", "script": "station_observatory", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "relay (L)", "script": "station_relay", "w": 15, "h": 11, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "refinery (XL)", "script": "station_refinery", "w": 21, "h": 13, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "medbay (S)", "script": "station_medbay", "w": 7, "h": 7, "params": {"frame": "station", "occupants": "none"}},
+    {"group": "Station modules", "name": "medbay (M)", "script": "station_medbay", "w": 11, "h": 9, "params": {"frame": "station", "occupants": "none"}}
   ]
 }

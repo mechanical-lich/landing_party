@@ -118,6 +118,28 @@ func vmState(cur state.StateInterface) map[string]any {
 		out["cursor_mode"] = string(s.CursorMode)
 		out["build_mode"] = s.buildMode
 		out["camera"] = map[string]any{"x": s.camera.X, "y": s.camera.Y, "z": s.camera.Z, "tile_w": s.camera.TileW}
+		if s.level != nil {
+			// What the view is centred on: its named room and station
+			// module, and how many of each blueprint stand in view.
+			st := s.camera.SidebarTiles()
+			cx, cy := s.camera.X+st+(s.camera.ViewW()-st)/2, s.camera.Y+s.camera.ViewH()/2
+			out["view_room"] = s.level.RoomAt(cx, cy, s.camera.Z)
+			if m := s.level.ModuleAt(cx, cy, s.camera.Z); m != nil {
+				out["view_module"] = m.ID
+			} else {
+				out["view_module"] = ""
+			}
+			inView := map[string]any{}
+			for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
+				for _, e := range list {
+					if pc, ok := entityPos(e); ok && e.Blueprint != "" && s.camera.Contains(pc.GetX(), pc.GetY(), pc.GetZ()) {
+						n, _ := inView[e.Blueprint].(int)
+						inView[e.Blueprint] = n + 1
+					}
+				}
+			}
+			out["in_view"] = inView
+		}
 		if st := s.MainSettlement; st != nil {
 			out["settlement"] = map[string]any{"name": st.Name, "x": st.CenterX, "y": st.CenterY, "z": st.CenterZ}
 		}
@@ -813,6 +835,46 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		if rest == "walk" {
 			// Put the first colonist on the nearest free tile there, so the
 			// game's own field of view reveals the origin.
+			for _, e := range s.level.Entities {
+				if !components.IsColonyWorker(e, s.colonyName()) {
+					continue
+				}
+				x, y, z := freeLandingTile(s.level, p[0], p[1], p[2])
+				if pc, ok := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent); ok {
+					pc.SetPosition(x, y, z)
+				}
+				break
+			}
+		}
+		return fmt.Sprintf("%d,%d,%d", p[0], p[1], p[2]), nil
+	case "module", "deck":
+		// "module [walk] <id>" frames a station module (and walks the first
+		// colonist into it); "deck <z>" frames deck z on the main stair column.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil {
+			return "", fmt.Errorf("%s needs a site on screen", verb)
+		}
+		var p [3]int
+		walk := false
+		if verb == "deck" {
+			pts := s.level.Regions["station_deck:"+strings.TrimSpace(rest)]
+			if len(pts) == 0 {
+				return "", fmt.Errorf("this site has no deck %q", rest)
+			}
+			p = pts[0]
+		} else {
+			id := strings.TrimSpace(rest)
+			if after, ok := strings.CutPrefix(id, "walk "); ok {
+				walk, id = true, strings.TrimSpace(after)
+			}
+			m := s.level.ModuleByID(id)
+			if m == nil {
+				return "", fmt.Errorf("this site has no module %q", id)
+			}
+			p[0], p[1], p[2] = m.Center()
+		}
+		s.camera.CenterOn(p[0], p[1], p[2])
+		if walk {
 			for _, e := range s.level.Entities {
 				if !components.IsColonyWorker(e, s.colonyName()) {
 					continue

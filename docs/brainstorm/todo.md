@@ -35,6 +35,13 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Abandoned Station rebuilt from its history, 2026-11-07, on
+  `claude/station-5b3f90` (not yet merged): stations built from modules on
+  a spine, ring or cross frame, purposes from the founding event, origins
+  in their modules on their decks, decay from the ending, a dead generator
+  to repair, powered lights and doors, a keycard-sealed archive, the station
+  log. Plan and as-built notes: [station_plan.md](station_plan.md).
+
 - Fixed 2026-11-07 on `claude/todo-fixes-9fd09a` (not yet merged):
   - The tutorial panel drops to its title row, below the modal, while any
     HUD modal is open (Esc menu, save, load, crafting, research, colonist),

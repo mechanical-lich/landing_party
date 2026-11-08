@@ -238,6 +238,33 @@
       "reward_resources": {
         "crystal": 2
       }
+    },
+    {
+      "id": "station_power",
+      "weight": 3,
+      "requires_tag": "station",
+      "name": "Power Restored",
+      "desc": "DRAFT. Repair the station's main generator and bring its power back.",
+      "trigger": "flag_set",
+      "flag": "power:main",
+      "reward_fuel_flat": 30,
+      "reward_resources": {
+        "crystal": 2
+      }
+    },
+    {
+      "id": "station_archive",
+      "weight": 2,
+      "requires_tag": "station",
+      "requires_module": "archive",
+      "name": "Sealed Records",
+      "desc": "DRAFT. Find the station's keycard and open its sealed archive.",
+      "trigger": "flag_set",
+      "flag": "door:archive",
+      "reward_fuel_flat": 25,
+      "reward_resources": {
+        "crystal": 3
+      }
     }
   ]
 }

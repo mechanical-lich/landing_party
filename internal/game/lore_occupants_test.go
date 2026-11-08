@@ -75,10 +75,15 @@ func TestLoreQuietSiteStructuresAreEmpty(t *testing.T) {
 			t.Errorf("%s: %d brutes and %d guards in empty structures", m, brutes, guards)
 		}
 		// Stamps need open surface; a station has none, so none are placed
-		// there (as before this change): only the no-guards check applies.
-		// Elsewhere every placed stamp is there (its locker); a small map
-		// drops the ones its stamp spacing cannot fit.
-		if m != "abandoned_station" && (lockers < placed || placed < len(loreStructureScripts)/2) {
+		// there: only the no-guards check applies. Elsewhere every placed
+		// stamp is there (its locker); a small map drops the ones its stamp
+		// spacing cannot fit, and an asteroid field the ones that land off
+		// rock (a stamp that builds nothing is not counted as placed).
+		floor := len(loreStructureScripts) / 2
+		if m == "asteroid" {
+			floor = 2
+		}
+		if m != "abandoned_station" && (lockers < placed || placed < floor) {
 			t.Errorf("%s: %d lockers for %d of %d structures placed", m, lockers, placed, len(loreStructureScripts))
 		}
 	}

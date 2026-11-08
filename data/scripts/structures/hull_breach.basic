@@ -3,14 +3,17 @@
 # full enviro outfit (vacuum_resist); its stores sit on the one tile of deck
 # left at its heart, behind a breach in its wall.
 #
-# Params: holds, occupants, damage, event, clue, room_hall. Footprint 9x7
-# to 15x11.
+# Params: holds, occupants, damage, event, clue, room_hall, z (the deck: a
+# station breaches the module its origin stands in, the whole rect).
+# Footprint 9x7 to 21x13.
 function generate(x, y, w, h)
     # Seeded orientation: the same layout reflected left-right and/or
     # top-bottom (the builtin mirror reflects every coordinate after it).
     mirror(x, y, w, h, rnd_int(2), rnd_int(2))
     sz = get_surface_z(x + int(w / 2), y + int(h / 2))
-    if sz < 0 then
+    if has_param("z") = 1 then
+        sz = get_param("z") + 0
+    elseif sz < 0 then
         sz = get_flag_or("origin_z", 0)
     endif
     cx = x + int(w / 2)

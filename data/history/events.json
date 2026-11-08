@@ -87,7 +87,10 @@
         "remains": [
           "ruins"
         ],
-        "resident": false
+        "resident": false,
+        "site": [
+          "planet"
+        ]
       },
       "civ": "native",
       "effects": {
@@ -284,12 +287,27 @@
       "origin": true,
       "evidence": [
         {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "bridge",
+            "log": true
+          },
+          "at": "origin"
+        },
+        {
           "kind": "lore_datapad",
           "count": 1,
           "at": "origin"
         }
       ],
-      "place": "the station core"
+      "place": "the station core",
+      "origin_at": "module:bridge",
+      "vars": {
+        "purpose": [
+          "@station_purpose"
+        ]
+      }
     },
     {
       "id": "drone_station_built",
@@ -311,12 +329,26 @@
       "origin": true,
       "evidence": [
         {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "relay"
+          },
+          "at": "origin"
+        },
+        {
           "kind": "lore_datapad",
           "count": 1,
           "at": "origin"
         }
       ],
-      "place": "the relay core"
+      "place": "the relay core",
+      "origin_at": "module:relay",
+      "vars": {
+        "purpose": [
+          "@station_purpose"
+        ]
+      }
     },
     {
       "id": "islands_settled",
@@ -522,6 +554,15 @@
             "h": 19,
             "occupants": "none"
           },
+          "at": "origin",
+          "on": "planet"
+        },
+        {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "reactor"
+          },
           "at": "origin"
         },
         {
@@ -531,7 +572,8 @@
         }
       ],
       "text": "{date}: {chief_engineer} of the {civ} lit a great reactor on {site}.",
-      "place": "the reactor"
+      "place": "the reactor",
+      "origin_at": "module:reactor"
     },
     {
       "id": "lab_founded",
@@ -564,6 +606,15 @@
             "h": 13,
             "occupants": "none"
           },
+          "at": "origin",
+          "on": "planet"
+        },
+        {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "lab"
+          },
           "at": "origin"
         },
         {
@@ -580,7 +631,8 @@
           "xenobiology",
           "weapons_research"
         ]
-      }
+      },
+      "origin_at": "module:lab"
     },
     {
       "id": "refugees_arrive",
@@ -636,6 +688,15 @@
             "occupants": "none",
             "purpose": "observatory"
           },
+          "at": "origin",
+          "on": "planet"
+        },
+        {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "observatory"
+          },
           "at": "origin"
         },
         {
@@ -645,7 +706,8 @@
         }
       ],
       "text": "{date}: the {civ} raised an observatory on {site}; {astronomer} charted the region from it.",
-      "place": "the observatory"
+      "place": "the observatory",
+      "origin_at": "module:observatory"
     },
     {
       "id": "archive_sealed",
@@ -679,6 +741,16 @@
             "occupants": "none",
             "purpose": "archive"
           },
+          "at": "origin",
+          "on": "planet"
+        },
+        {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "archive",
+            "sealed": "keycard"
+          },
           "at": "origin"
         },
         {
@@ -687,8 +759,9 @@
           "at": "origin"
         }
       ],
-      "text": "{date}: {archivist} of the {civ} sealed the records of {site} in a vault below the surface.",
-      "place": "the vault"
+      "text": "{date}: {archivist} of the {civ} sealed the records of {site} in a vault.",
+      "place": "the vault",
+      "origin_at": "module:archive"
     },
     {
       "id": "hab_domes_raised",
@@ -955,7 +1028,10 @@
       "id": "impact",
       "requires": {
         "population": "never",
-        "life": "none"
+        "life": "none",
+        "site": [
+          "planet"
+        ]
       },
       "effects": {
         "status": "dead"
@@ -982,7 +1058,10 @@
     {
       "id": "impact_cataclysm",
       "requires": {
-        "resident": true
+        "resident": true,
+        "site": [
+          "planet"
+        ]
       },
       "effects": {
         "status": "fallen",
@@ -1044,7 +1123,13 @@
         1825,
         14600
       ],
-      "text": "{date}{during_war}: the {civ} gave up on {site}; {governor} ordered the last ships out."
+      "text": "{date}{during_war}: the {civ} gave up on {site}; {governor} ordered the last ships out.",
+      "origin_at": "module:hangar,dock",
+      "station_damage": {
+        "scope": "station",
+        "level": 1,
+        "kind": "abandoned"
+      }
     },
     {
       "id": "colony_withdrawn",
@@ -1066,7 +1151,13 @@
         1825,
         14600
       ],
-      "text": "{date}{during_war}: the {civ} withdrew from {site}, one ship at a time, until no one was left."
+      "text": "{date}{during_war}: the {civ} withdrew from {site}, one ship at a time, until no one was left.",
+      "origin_at": "module:hangar,dock",
+      "station_damage": {
+        "scope": "station",
+        "level": 1,
+        "kind": "abandoned"
+      }
     },
     {
       "id": "colony_starves",
@@ -1207,7 +1298,12 @@
         730,
         10950
       ],
-      "text": "{date}: the {civ} station went silent. {commander}'s last message was a distress call."
+      "text": "{date}: the {civ} station went silent. {commander}'s last message was a distress call.",
+      "origin_at": "module:bridge",
+      "station_damage": {
+        "scope": "station",
+        "level": 1
+      }
     },
     {
       "id": "drone_station_fails",
@@ -1415,7 +1511,19 @@
           "count_max": 3,
           "params": {
             "blueprint": "wire_placer"
-          }
+          },
+          "on": "planet"
+        },
+        {
+          "kind": "derelict_pod",
+          "on": "station",
+          "count": 1,
+          "count_max": 3,
+          "params": {
+            "blueprint": "wire_placer"
+          },
+          "at": "origin",
+          "jitter": 6
         },
         {
           "kind": "lore_datapad",
@@ -1423,7 +1531,152 @@
           "at": "origin"
         }
       ],
-      "text": "{date}: a nanite swarm took {site} apart and rebuilt it in wire. The {civ} went with it."
+      "text": "{date}: a nanite swarm took {site} apart and rebuilt it in wire. The {civ} went with it.",
+      "station_damage": {
+        "scope": "deck",
+        "level": 2,
+        "kind": "nanite",
+        "spread": 1
+      },
+      "origin_at": "module:@any"
+    },
+    {
+      "id": "station_expanded",
+      "requires": {
+        "resident": true,
+        "site": [
+          "station"
+        ]
+      },
+      "civ": "resident",
+      "figures": [
+        {
+          "role": "engineer"
+        }
+      ],
+      "gap_days": [
+        1825,
+        10950
+      ],
+      "origin": true,
+      "evidence": [
+        {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "@optional"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the {civ} added a new section to the station on {site}; {engineer} oversaw the work.",
+      "place": "the new section"
+    },
+    {
+      "id": "reactor_failure",
+      "requires": {
+        "resident": true,
+        "site": [
+          "station"
+        ],
+        "modules": [
+          "reactor"
+        ]
+      },
+      "effects": {
+        "status": "dead",
+        "add_contaminants": [
+          "radiation"
+        ],
+        "add_remains": [
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "figures": [
+        {
+          "role": "chief_engineer",
+          "fate": "died"
+        }
+      ],
+      "gap_days": [
+        730,
+        10950
+      ],
+      "origin": true,
+      "origin_from": [
+        "reactor_built"
+      ],
+      "origin_at": "module:reactor",
+      "station_damage": {
+        "scope": "module",
+        "level": 3,
+        "kind": "meltdown",
+        "deck": 2,
+        "station": 1
+      },
+      "evidence": [
+        {
+          "kind": "radiation_pocket",
+          "on": "station",
+          "count": 1,
+          "params": {
+            "peak": 160,
+            "radius": 4,
+            "ore_tile": "none"
+          },
+          "at": "origin"
+        },
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: the station reactor on {site} failed under {chief_engineer}. The {civ} crew did not get out.",
+      "place": "the dead reactor"
+    },
+    {
+      "id": "station_breached",
+      "requires": {
+        "resident": true,
+        "site": [
+          "station"
+        ]
+      },
+      "effects": {
+        "status": "dead",
+        "add_remains": [
+          "graves"
+        ],
+        "resident_fate": "died"
+      },
+      "gap_days": [
+        730,
+        10950
+      ],
+      "origin": true,
+      "origin_at": "module:@outer",
+      "station_damage": {
+        "scope": "module",
+        "level": 3,
+        "kind": "breach",
+        "deck": 2
+      },
+      "evidence": [
+        {
+          "kind": "lore_datapad",
+          "count": 1,
+          "at": "origin"
+        }
+      ],
+      "text": "{date}: a section of the {civ} station on {site} blew out, and the decks around it with it. No one answered the alarms.",
+      "place": "the breach"
     },
     {
       "id": "hive_consumption",
@@ -1547,7 +1800,10 @@
     {
       "id": "famine_year",
       "requires": {
-        "resident": true
+        "resident": true,
+        "site": [
+          "planet"
+        ]
       },
       "interlude": true,
       "gap_days": [
@@ -1563,6 +1819,9 @@
         "population": [
           "colony",
           "civilization"
+        ],
+        "site": [
+          "planet"
         ]
       },
       "interlude": true,
@@ -1590,7 +1849,10 @@
       "id": "raid",
       "requires": {
         "resident": true,
-        "tech_min": "spacefaring"
+        "tech_min": "spacefaring",
+        "site": [
+          "planet"
+        ]
       },
       "civ": "visitor",
       "interlude": true,
@@ -1633,7 +1895,12 @@
         365,
         5475
       ],
-      "text": "{date}: a great quake shook {site}."
+      "text": "{date}: a great quake shook {site}.",
+      "requires": {
+        "site": [
+          "planet"
+        ]
+      }
     },
     {
       "id": "comet_pass",
@@ -1650,6 +1917,9 @@
         "life": [
           "native",
           "alien"
+        ],
+        "site": [
+          "planet"
         ]
       },
       "interlude": true,
@@ -1675,7 +1945,12 @@
         }
       ],
       "place": "the fall site",
-      "text": "{date}: a meteor fell on {site} and left a glassy scar."
+      "text": "{date}: a meteor fell on {site} and left a glassy scar.",
+      "requires": {
+        "site": [
+          "planet"
+        ]
+      }
     },
     {
       "id": "passing_ship",
@@ -1709,7 +1984,10 @@
       "place": "the cache",
       "text": "{date}{during_war}: {civ} spacers buried a cache on {site} and never came back for it.",
       "requires": {
-        "tech_min": "spacefaring"
+        "tech_min": "spacefaring",
+        "site": [
+          "planet"
+        ]
       }
     },
     {
@@ -2666,13 +2944,22 @@
       ],
       "evidence": [
         {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "lab"
+          },
+          "at": "origin"
+        },
+        {
           "kind": "lore_datapad",
           "count": 1,
           "at": "origin"
         }
       ],
       "text": "{date}: an experiment aboard the station went wrong; things moved in the dark decks.",
-      "omen": "Something moves in the dark decks."
+      "omen": "Something moves in the dark decks.",
+      "origin_at": "module:lab"
     },
     {
       "id": "ship_shot_down",
@@ -2806,7 +3093,8 @@
         "ancient_wreck",
         "station_built",
         "drone_station_built"
-      ]
+      ],
+      "origin_at": "module:cargo,hangar"
     },
     {
       "id": "meteor_seeding",
@@ -2861,13 +3149,23 @@
       ],
       "evidence": [
         {
+          "kind": "module",
+          "on": "station",
+          "params": {
+            "module": "cryo",
+            "occupants": "cryo"
+          },
+          "at": "origin"
+        },
+        {
           "kind": "lore_datapad",
           "count": 1,
           "at": "origin"
         }
       ],
       "text": "{date}: the last {civ} to leave {site} left something in the hold behind them.",
-      "omen": "Something was left behind in a hold."
+      "omen": "Something was left behind in a hold.",
+      "origin_at": "module:cryo"
     },
     {
       "id": "deliberate_drop",
@@ -2990,7 +3288,8 @@
         }
       ],
       "text": "{date}: an Autonz swarm made planetfall on {site}.",
-      "omen": "An Autonz swarm has landed."
+      "omen": "An Autonz swarm has landed.",
+      "origin_at": "module:hangar,cargo"
     },
     {
       "id": "wreck_nanites_wake",
@@ -3472,7 +3771,8 @@
       "flags": {
         "hazard": "mutant_band"
       },
-      "place": "the mutants' lair"
+      "place": "the mutants' lair",
+      "origin_at": "module:quarters"
     },
     {
       "id": "restless_graves",
@@ -3526,7 +3826,8 @@
       "flags": {
         "hazard": "restless_graves"
       },
-      "place": "the graves"
+      "place": "the graves",
+      "origin_at": "module:quarters"
     },
     {
       "id": "autonz_sleeper",
@@ -3867,7 +4168,9 @@
       "omen": "A section of the station is open to space.",
       "flags": {
         "hazard": "hull_breach"
-      }
+      },
+      "origin_at": "module:@outer",
+      "safe_start": true
     },
     {
       "id": "colony_founded",

@@ -1,0 +1,93 @@
+# ruin_pass — the shared damage helper. Degrades whatever stands in its
+# footprint by the param "damage" (0 intact, 1 worn, 2 broken, 3 ruin): knocks
+# short runs out of walls of the param "wall" tile (half of them fall as
+# rubble), cracks floors of the param "floor" tile at damage 3, then turns any wall left standing alone
+# into a rubble pile, so a ruin never leaves a lone post. Only walls are
+# touched, so doorways stay open.
+#
+# Callers: set_param("wall", "<wall tile>") (and "floor") then gen_structure("ruin_pass",
+# x, y, w, h); damage comes from the caller's own params.
+function generate(x, y, w, h)
+    damage = get_param("damage") + 0
+    wall = get_param("wall")
+    if damage <= 0 or wall = "" then
+        return
+    endif
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    pct = 8
+    if damage = 2 then
+        pct = 20
+    endif
+    if damage >= 3 then
+        pct = 40
+    endif
+
+    # Knock out short runs of wall: 1-2 tiles along the wall's own line.
+    for j = 0 to h - 1
+        for i = 0 to w - 1
+            px = x + i
+            py = y + j
+            if get_tile_type(px, py, sz) = wall and rnd_int(100) < pct then
+                run = 1 + rnd_int(2)
+                ddx = 1
+                ddy = 0
+                if get_tile_type(px + 1, py, sz) <> wall and get_tile_type(px - 1, py, sz) <> wall then
+                    ddx = 0
+                    ddy = 1
+                endif
+                for k = 0 to run - 1
+                    qx = px + ddx * k
+                    qy = py + ddy * k
+                    if get_tile_type(qx, qy, sz) = wall then
+                        clear_middle(qx, qy, sz)
+                        if rnd_int(2) = 0 then
+                            set_tile(qx, qy, sz, "rubble_pile")
+                        endif
+                    endif
+                next k
+            endif
+        next i
+    next j
+
+    # A ruin's floors (the param "floor" tile) crack open to the ground.
+    floor = get_param("floor")
+    if damage >= 3 and floor <> "" then
+        for j = 0 to h - 1
+            for i = 0 to w - 1
+                if get_tile_type(x + i, y + j, sz) = floor and rnd_int(100) < 15 then
+                    set_tile(x + i, y + j, sz, "dirt_floor")
+                endif
+            next i
+        next j
+    endif
+
+    # Nothing left standing alone: a wall with no wall beside it falls too.
+    for j = 0 to h - 1
+        for i = 0 to w - 1
+            px = x + i
+            py = y + j
+            if get_tile_type(px, py, sz) = wall then
+                n = 0
+                if get_tile_type(px + 1, py, sz) = wall then
+                    n = n + 1
+                endif
+                if get_tile_type(px - 1, py, sz) = wall then
+                    n = n + 1
+                endif
+                if get_tile_type(px, py + 1, sz) = wall then
+                    n = n + 1
+                endif
+                if get_tile_type(px, py - 1, sz) = wall then
+                    n = n + 1
+                endif
+                if n = 0 then
+                    clear_middle(px, py, sz)
+                    set_tile(px, py, sz, "rubble_pile")
+                endif
+            endif
+        next i
+    next j
+endfunction

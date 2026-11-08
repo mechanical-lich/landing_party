@@ -53,9 +53,14 @@ type locTemplates struct {
 }
 
 type questTemplate struct {
-	ID             string         `json:"id"`
-	Weight         int            `json:"weight"`
-	RequiresTag    string         `json:"requires_tag"`
+	ID          string `json:"id"`
+	Weight      int    `json:"weight"`
+	RequiresTag string `json:"requires_tag"`
+	// RequiresModule keeps the quest to station sites whose plan has a
+	// module of this kind (station_archive needs an archive).
+	RequiresModule string `json:"requires_module,omitempty"`
+	// Flag is the level flag a flag_set quest waits on ("power:main").
+	Flag           string         `json:"flag,omitempty"`
 	Name           string         `json:"name"`
 	Desc           string         `json:"desc"`
 	Trigger        string         `json:"trigger"`
@@ -512,6 +517,7 @@ func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idH
 	}
 	c.bindHistory(loc, wantEvent)
 	c.addHistoryQuest(loc)
+	c.addStationQuests(loc)
 	return loc
 }
 
@@ -829,6 +835,11 @@ func (c *Campaign) buildQuestFromTemplate(rng *rand.Rand, t *questTemplate, loc 
 		q.Description = replaceTech(t.Desc, tech)
 		q.Objective = objective.Rule{Trigger: objective.TriggerTechResearched, TechKey: tech}
 		q.Reward.Fuel = t.RewardFuelFlat
+	case "flag_set":
+		q.Name = fmt.Sprintf("%s — %s", t.Name, loc.Name)
+		q.Description = t.Desc
+		q.Objective = objective.Rule{Trigger: objective.TriggerFlagSet, Flag: t.Flag}
+		q.Reward.Fuel = t.RewardFuelFlat
 	case "structure_built":
 		q.Name = fmt.Sprintf("%s — %s", t.Name, loc.Name)
 		q.Description = t.Desc
@@ -930,6 +941,65 @@ func weightedArchetype(rng *rand.Rand, lt *locTemplates) locArchetype {
 	return lt.Archetypes[0]
 }
 
+// StationQuestTag marks the quest templates every station site gets.
+const StationQuestTag = "station"
+
+// addStationQuests gives a station site its goals (station_plan.md, section
+// 10): every quest template tagged "station" whose required module the
+// site's plan has (power for all; the sealed archive where there is one).
+// They are bound here from the site's own data, drawing nothing from the
+// campaign's stream, so every other roll stays where it was.
+func (c *Campaign) addStationQuests(loc *Location) {
+	if loc.Kind != "station" || c.SiteHistory(loc) == nil {
+		return
+	}
+	_, qt, err := loadGenTemplates()
+	if err != nil {
+		return
+	}
+	for i := range qt.Templates {
+		t := &qt.Templates[i]
+		if t.RequiresTag != StationQuestTag || t.Trigger != "flag_set" {
+			continue
+		}
+		if t.RequiresModule != "" && !c.siteHasModule(loc, t.RequiresModule, strings.HasPrefix(t.Flag, "door:")) {
+			continue
+		}
+		c.QuestDefs = append(c.QuestDefs, Quest{
+			ID:          "sq_" + t.ID + "_" + loc.ID,
+			Name:        t.Name + " — " + loc.Name,
+			Description: t.Desc,
+			Location:    loc.ID,
+			Objective:   objective.Rule{Trigger: objective.TriggerFlagSet, Flag: t.Flag},
+			Reward:      QuestReward{Fuel: t.RewardFuelFlat, Resources: t.RewardRes},
+		})
+	}
+}
+
+// siteHasModule reports whether a charted station site's plan has a module
+// of kind, a sealed one if sealed (false for a planet or a site without a
+// history).
+func (c *Campaign) siteHasModule(loc *Location, kind string, sealed bool) bool {
+	site := c.SiteHistory(loc)
+	if site == nil {
+		return false
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return false
+	}
+	plan := c.History.Evidence(lib, site).Station
+	if plan == nil {
+		return false
+	}
+	for _, m := range plan.Modules {
+		if m.Kind == kind && (!sealed || m.Sealed != "") {
+			return true
+		}
+	}
+	return false
+}
+
 func pickQuestTemplate(rng *rand.Rand, qt *questTemplates, tags []string) *questTemplate {
 	var pool []*questTemplate
 	for i := range qt.Templates {
@@ -937,8 +1007,8 @@ func pickQuestTemplate(rng *rand.Rand, qt *questTemplates, tags []string) *quest
 		if t.SpawnArchetype != "" || t.History != "" {
 			continue // contracts bring their own location, history quests bind at charting; not tag-rolled
 		}
-		if t.RequiresTag != "" && !hasTag(tags, t.RequiresTag) {
-			continue
+		if t.RequiresTag != "" && !hasTag(tags, t.RequiresTag) || t.RequiresTag == StationQuestTag {
+			continue // station quests come with the station (addStationQuests)
 		}
 		w := t.Weight
 		if w <= 0 {

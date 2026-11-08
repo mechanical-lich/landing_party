@@ -882,6 +882,9 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		wc.CurrentTask.Data = buildRequest
 		if buildRequest.Progress >= buildRequest.Required {
 			sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+			if buildRequest.Replace {
+				replaceRepairable(level, buildRequest.X, buildRequest.Y, buildRequest.Z)
+			}
 			if buildable.IsEntity {
 				newEntity, err := factory.Create(buildRequest.Type, buildRequest.X, buildRequest.Y, buildRequest.Z)
 				if err == nil {
@@ -950,6 +953,26 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	} else {
 		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
 			releaseTaskAfterFailedMove(wc, pathFound)
+		}
+	}
+}
+
+// replaceRepairable removes the broken machine a repair replaces, setting
+// the level flag it names (Repairable.SetsFlag).
+func replaceRepairable(level *world.Level, x, y, z int) {
+	for _, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range append([]*ecs.Entity(nil), list...) {
+			if e == nil || !e.HasComponent(components.Repairable) || !e.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if pc.GetX() != x || pc.GetY() != y || pc.GetZ() != z {
+				continue
+			}
+			if f := e.GetComponent(components.Repairable).(*components.RepairableComponent).SetsFlag; f != "" {
+				level.Flags[f] = 1.0
+			}
+			level.RemoveEntity(e)
 		}
 	}
 }

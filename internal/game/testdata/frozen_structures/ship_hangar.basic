@@ -1,0 +1,29 @@
+# ship_hangar — an open bay for small craft, its doors burst.
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_hangar, else
+# "Hangar") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_hangar", "Hangar"))
+    # The bay doors on the outer wall gave way in the crash.
+    cx = x + int(w / 2)
+    clear_middle(cx, y + h - 1, sz)
+    clear_middle(cx - 1, y + h - 1, sz)
+    clear_middle(cx + 1, y + h - 1, sz)
+    spawn_entity("work_light", x + 1, y + 1, sz)
+    spawn_entity("mineral_bin", x + w - 2, y + 1, sz)
+    fill_container(x + w - 2, y + 1, sz, "ship_cargo")
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

@@ -16,9 +16,9 @@ type BuildWorldOptions struct {
 	// Seed makes terrain generation reproducible: primers and the biome map
 	// derive their noise from it, and math/rand is seeded for incidental
 	// generation variance (best-effort — not every rand call is audited).
-	Seed          int64
-	Terrain       string
-	TerrainParams map[string]any
+	Seed                int64
+	Terrain             string
+	TerrainParams       map[string]any
 	BiomeMapType        string
 	BiomeMapScale       float64
 	BiomeLatitudeWeight float64
@@ -42,6 +42,9 @@ type BuildWorldOptions struct {
 	// event ID (tiles from the reserve box); missing ones keep the budget's
 	// inert keep_out.
 	OriginKeepOut map[string]int
+	// OriginModules binds origins to a station's modules (event ID → module
+	// ID): such an origin resolves to its module's centre, on its deck.
+	OriginModules map[string]string
 	// Flags are set on the level before anything is placed, so structure
 	// scripts run by features can read them (the site's lore flags).
 	Flags map[string]any
@@ -119,7 +122,11 @@ func BuildWorld(opts BuildWorldOptions) (*world.Level, error) {
 
 	if !originsDone {
 		ReserveLanding(level, opts.Seed)
-		ResolveOriginsKeepOut(level, opts.Origins, opts.ChapterEvent, opts.OriginKeepOut)
+		if len(level.Modules) > 0 {
+			ResolveStationOrigins(level, opts.Origins, opts.ChapterEvent, opts.OriginKeepOut, opts.OriginModules)
+		} else {
+			ResolveOriginsKeepOut(level, opts.Origins, opts.ChapterEvent, opts.OriginKeepOut)
+		}
 	}
 	if len(opts.Features) > 0 {
 		PlaceFeatures(level, opts.Features, rng)

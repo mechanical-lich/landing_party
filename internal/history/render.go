@@ -167,6 +167,11 @@ type SiteEvidence struct {
 	// Budget is what the kept evidence spent against the site's size class
 	// (the planet generator's readout, lore plan step 8d).
 	Budget EvidenceBudget
+	// Station is a station site's plan (nil on a planet): the primer lays its
+	// frame and modules. OriginModules binds an event's origin to a module
+	// of it (event ID → module ID).
+	Station       *generation.StationPlan
+	OriginModules map[string]string
 }
 
 // EvidenceBudget is a site's lore budget and what its kept evidence spent.
@@ -177,6 +182,17 @@ type EvidenceBudget struct {
 	MaxFootprint                                        int                    // FootprintPercent of the surface, in tiles
 	Stamps, Footprint, Underground, Hostiles, Radiation int
 }
+
+// LimitNoSurface is the DroppedEvidence limit of a stamp left off a site with
+// no ground to build it on (a station).
+const LimitNoSurface = "no_surface"
+
+// offSurfaceScripts are the structure scripts that build on a level with no
+// surface (a station's decks): they take their deck from the origin.
+var offSurfaceScripts = map[string]bool{"hull_breach": true, "crashed_ship": true}
+
+// buildsOffSurface reports whether a structure script builds on a station.
+func buildsOffSurface(script string) bool { return offSurfaceScripts[script] }
 
 // DroppedEvidence is an evidence block the lore budget left out.
 type DroppedEvidence struct {
@@ -241,6 +257,17 @@ func costOf(fb mapdef.FeatureBlock) evidenceCost {
 	return c
 }
 
+// stampParams is a stamp's params without the ones the placer reads.
+func stampParams(p map[string]any) map[string]any {
+	out := map[string]any{}
+	for k, v := range p {
+		if k != "script" && k != "w" && k != "h" {
+			out[k] = v
+		}
+	}
+	return out
+}
+
 // paramInt reads a JSON (float64) or Go (int) number param.
 func paramInt(v any, def int) int {
 	switch n := v.(type) {
@@ -279,11 +306,27 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 	if md := lib.Maps[site.Map]; md != nil {
 		width, height, _ = md.Size.Roll(site.Seed)
 	}
+	kind := mapdef.SitePlanet
+	if md := lib.Maps[site.Map]; md != nil {
+		kind = md.Present.SiteKind()
+	}
 	class := b.For(width)
 	sizeName := "large"
 	for i, c := range b.Classes {
 		if c == class {
 			sizeName = []string{"small", "medium", "large"}[min(i, 2)]
+		}
+	}
+	if md := lib.Maps[site.Map]; md != nil && md.Present != nil && md.Present.LoreBudget != nil {
+		o := md.Present.LoreBudget
+		if o.Stamps != nil {
+			class.Stamps = *o.Stamps
+		}
+		if o.FootprintPercent != nil {
+			class.FootprintPercent = *o.FootprintPercent
+		}
+		if o.Underground != nil {
+			class.Underground = *o.Underground
 		}
 	}
 	type block struct {
@@ -321,6 +364,12 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 			if e.Kind == "lore_datapad" {
 				continue // every event with an origin leaves one (Datapads)
 			}
+			if e.On != "" && e.On != kind {
+				continue // built on the other kind of site
+			}
+			if e.Kind == "module" {
+				continue // the station plan builds it
+			}
 			fb := e.FeatureBlock
 			if fb.At == "origin" {
 				if ev.Origin == nil {
@@ -333,6 +382,14 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 				if fb, ok = h.stampFor(lib, site, ev, fb, sizeName); !ok {
 					role, _ := e.Params["script"].(string)
 					out.Dropped = append(out.Dropped, DroppedEvidence{Event: ev.ID, Type: ev.Type, Kind: fb.Kind, Script: role, Limit: "tech"})
+					continue // the datapad stays
+				}
+				// A station has no ground: a stamp whose script needs a
+				// surface would build nothing there.
+				if script, _ := fb.Params["script"].(string); kind == mapdef.SiteStation && !buildsOffSurface(script) {
+					out.Dropped = append(out.Dropped, DroppedEvidence{Event: ev.ID, Type: ev.Type, Kind: fb.Kind, Script: script, Limit: LimitNoSurface})
+					log.Printf("lore budget: %s (%s, %d wide) dropped the stamp %s of %s %s: over the %s limit",
+						site.ID, site.Map, width, script, ev.Type, ev.ID, LimitNoSurface)
 					continue // the datapad stays
 				}
 			}
@@ -424,8 +481,17 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 		Stamps: spent.stamps, Footprint: spent.footprint, Underground: spent.underground,
 		Hostiles: spent.hostiles, Radiation: spent.radiation}
 	relicked := map[string]bool{}
+	var wreck *generation.PlanWreck
 	for i, b := range blocks {
 		if !keep[i] {
+			continue
+		}
+		// On a station a ship comes to rest docked to it: the plan lays it.
+		if script, _ := b.fb.Params["script"].(string); kind == mapdef.SiteStation && script == "crashed_ship" {
+			if wreck == nil {
+				p := stampParams(b.fb.Params)
+				wreck = &generation.PlanWreck{Event: b.ev.ID, Params: p, W: paramInt(b.fb.Params["w"], 25), H: paramInt(b.fb.Params["h"], 13)}
+			}
 			continue
 		}
 		out.Features = append(out.Features, b.fb)
@@ -437,6 +503,9 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 					Params: map[string]any{"blueprint": r, "kind": "surface"}})
 			}
 		}
+	}
+	if kind == mapdef.SiteStation {
+		out.Station, out.OriginModules = h.stationPlan(lib, site, lib.Maps[site.Map], wreck)
 	}
 	return out
 }
@@ -499,6 +568,9 @@ func (h *History) stampFor(lib *Library, site *SiteHistory, ev *Event, fb mapdef
 		}
 		if sc, ok := lib.ShipClasses[class]; ok && sc.LargeOnly && size != "large" {
 			class = "warship"
+		}
+		if md := lib.Maps[site.Map]; md != nil && md.Present.SiteKind() == mapdef.SiteStation && class == "colony" {
+			class = "warship" // a colony hull is too long to dock at a station
 		}
 		if sc, ok := lib.ShipClasses[class]; ok {
 			params["class"] = class
@@ -591,6 +663,7 @@ func (h *History) LoreFlags(lib *Library, site *SiteHistory) map[string]any {
 		"population":   PopNever,
 	}
 	if site == nil {
+		f["station_purpose"] = ""
 		return f
 	}
 	f["population"] = site.State.Population
@@ -619,5 +692,6 @@ func (h *History) LoreFlags(lib *Library, site *SiteHistory) map[string]any {
 		f["tech"] = c.Tech
 	}
 	f["tier"] = h.TierOf(lib, site)
+	f["station_purpose"] = h.StationPurpose(lib, site)
 	return f
 }

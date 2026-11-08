@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
+	"github.com/mechanical-lich/landing_party/internal/mapdef"
 )
 
 // statRow accumulates one row of the -stats table.
@@ -74,6 +75,13 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 	scriptStamps := map[string]int{} // kept stamps by script
 	scriptSites := map[string]int{}  // sites with at least one
 	scriptDrops := map[string]int{}  // stamps the lore budget dropped
+	stations := map[string]*stationRow{}
+	for _, m := range maps {
+		if lib.Maps[m].Present.SiteKind() == mapdef.SiteStation {
+			loadBuildData()
+			break
+		}
+	}
 	// Budget drops are logged; the table counts what is kept.
 	log.SetOutput(&bytes.Buffer{})
 	for s := 1; s <= seeds; s++ {
@@ -85,6 +93,12 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 				log.Fatal(err)
 			}
 			ev := h.Evidence(lib, site)
+			if md := lib.Maps[m]; md.Present.SiteKind() == mapdef.SiteStation {
+				if stations[m] == nil {
+					stations[m] = &stationRow{}
+				}
+				stations[m].tallyStation(h, site, ev)
+			}
 			stamps := 0
 			sites++
 			onSite := map[string]bool{}
@@ -202,6 +216,11 @@ func printStats(w *os.File, lib *history.Library, maps []string, seeds, campaign
 	}
 	fmt.Fprintln(w, "(kept stamps; sites with at least one; dropped: left out by the lore budget)")
 	fmt.Fprintln(w)
+	for _, m := range maps {
+		if r := stations[m]; r != nil {
+			r.print(w, m)
+		}
+	}
 	if campaigns > 0 {
 		printRecurrence(w, campaigns)
 	}

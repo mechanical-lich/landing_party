@@ -1,0 +1,40 @@
+# ship_cargo — the hold: lockers and bins filled from the ship's cargo (param holds, by its purpose).
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_cargo, else
+# "Cargo Hold") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_cargo", "Cargo Hold"))
+    holds = get_param("holds")
+    if holds = "" then
+        holds = "ship_cargo"
+    endif
+    # Containers along both long walls, every other tile.
+    for i = 1 to w - 2
+        if i - int(i / 2) * 2 = 1 then
+            box = "storage_locker"
+            if rnd_int(3) = 0 then
+                box = "mineral_bin"
+            endif
+            spawn_entity(box, x + i, y + 1, sz)
+            fill_container(x + i, y + 1, sz, holds)
+            if h >= 7 and rnd_int(2) = 0 then
+                spawn_entity("storage_locker", x + i, y + h - 2, sz)
+                fill_container(x + i, y + h - 2, sz, holds)
+            endif
+        endif
+    next i
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

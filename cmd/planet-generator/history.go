@@ -24,6 +24,7 @@ var (
 	colOrigin  = color.RGBA{230, 90, 230, 255}
 	colLanding = color.RGBA{90, 200, 255, 255}
 	colKeepOut = color.RGBA{90, 200, 255, 110}
+	colModule  = color.RGBA{120, 230, 140, 230}
 )
 
 // siteLore is the generated history of the location being previewed: a
@@ -316,6 +317,12 @@ func (a *app) drawOriginsOverview(dst *ebiten.Image, r rect, sx, sy float32) {
 		vector.StrokeRect(dst, float32(r.x)+float32(f[0])*sx, float32(r.y)+float32(f[1])*sy,
 			float32(f[2])*sx, float32(f[3])*sy, 1, colStamp, false)
 	}
+	for _, m := range a.lab.Level().Modules {
+		if m.Z == a.lab.Camera().Z {
+			vector.StrokeRect(dst, float32(r.x)+float32(m.X)*sx, float32(r.y)+float32(m.Y)*sy,
+				float32(m.W)*sx, float32(m.H)*sy, 1, colModule, false)
+		}
+	}
 	for _, p := range a.opts.lore.origins(a.lab.Level()) {
 		x := float32(r.x) + float32(p.X)*sx
 		y := float32(r.y) + float32(p.Y)*sy
@@ -351,6 +358,23 @@ func (a *app) drawOriginsWorld(screen *ebiten.Image) {
 		x0, y0 := c.WorldToScreenF(f[0], f[1])
 		x1, y1 := c.WorldToScreenF(f[0]+f[2], f[1]+f[3])
 		vector.StrokeRect(screen, x0, y0, x1-x0, y1-y0, 1, colStamp, false)
+	}
+	// A station's modules on the deck in view, outlined and named.
+	for _, m := range lvl.Modules {
+		if m.Z != c.Z {
+			continue
+		}
+		x0, y0 := c.WorldToScreenF(m.X, m.Y)
+		x1, y1 := c.WorldToScreenF(m.X+m.W, m.Y+m.H)
+		vector.StrokeRect(screen, x0, y0, x1-x0, y1-y0, 1.5, colModule, false)
+		label := m.ID
+		if m.Name != "" {
+			label += ": " + m.Name
+		}
+		if m.Sealed != "" {
+			label += " (sealed)"
+		}
+		mapLabel(screen, label, x0+2, y0+2, colModule)
 	}
 	if a.opts.lore.site == nil {
 		return

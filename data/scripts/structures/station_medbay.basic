@@ -1,0 +1,82 @@
+# station_medbay — the med bay: beds along one wall, the medical cabinet.
+#
+# A station module (docs/developer/lore.md, "Stations"): params z, damage
+# 0-3, holds (default medical), event, clue, room_medbay.
+# occupants: none; a module spawns no one. Sizes 7x7 to 13x9; the centre
+# row and column stay clear.
+function generate(x, y, w, h)
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = deck_z(x, y, w, h)
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_medbay", "Med Bay"))
+    # A bed is two tiles tall, anchored at its lower one.
+    for i = 1 to w - 2
+        if off_aisle(x + i, y + 2, x, y, w, h) = 1 and off_aisle(x + i, y + 1, x, y, w, h) = 1 and i - int(i / 2) * 2 = 1 then
+            spawn_entity("bed", x + i, y + 2, sz)
+        endif
+    next i
+    locker(x + w - 2, y + h - 2, sz, holds_or("medical"))
+    spawn_entity("station_light", x + 1, y + h - 2, sz)
+    spawn_lore_datapad(x + 2, y + h - 2, sz)
+    ruin(x, y, w, h)
+endfunction
+
+# ── Shared helpers (each station module carries its own copy) ───────────────
+
+# The deck to build on: the param z (a station module), else the ground
+# under the footprint (the structure viewer, a cheat stamp without z).
+function deck_z(x, y, w, h)
+    if has_param("z") = 1 then
+        return get_param("z") + 0
+    endif
+    return get_surface_z(x + int(w / 2), y + int(h / 2))
+endfunction
+
+# A room's name: the param key (from the purpose), else def.
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# The param holds, else def: the loot table this module's lockers take.
+function holds_or(def)
+    v = get_param("holds")
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction
+
+# A locker at (lx, ly) filled from table ("" leaves it empty).
+function locker(lx, ly, lz, table)
+    spawn_entity("storage_locker", lx, ly, lz)
+    if table <> "" then
+        fill_container(lx, ly, lz, table)
+    endif
+endfunction
+
+# 1 off the cross aisle: a module keeps its centre row and column clear, so
+# a door the frame opens in the middle of any wall leads straight in.
+function off_aisle(px, py, x, y, w, h)
+    if px = x + int(w / 2) or py = y + int(h / 2) then
+        return 0
+    endif
+    return 1
+endfunction
+
+# Wear the whole module by the param damage (ruin_pass), as a station wears:
+# hull walls fall, floors never crack.
+function ruin(x, y, w, h)
+    if get_param("damage") + 0 > 0 then
+        set_param("wall", "hull_wall")
+        set_param("floor", "hull_floor")
+        set_param("frame", "station")
+        gen_structure("ruin_pass", x, y, w, h)
+    endif
+endfunction

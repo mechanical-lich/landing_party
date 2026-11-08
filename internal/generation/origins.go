@@ -219,3 +219,83 @@ var anchorable = map[string]bool{
 
 // Anchorable reports whether a feature kind honours "at".
 func Anchorable(kind string) bool { return anchorable[kind] }
+
+// ResolveStationOrigins is ResolveOriginsKeepOut on a station (a level with
+// Modules): an origin bound to a module (bound: event ID → module ID)
+// resolves inside that module on its deck, keep-out aside, since the module
+// was placed to keep it (allocation keeps a chapter's module off the dock's
+// deck). An unbound origin goes to the module nearest its rolled tile, each
+// deck of difference counting stationDeckCost tiles, the rolled tile's deck
+// taken from its coordinates so unbound origins spread over the decks; never
+// the dock, and for an origin with a hazard's keep-out never a module on the
+// dock's deck. Origins rolled on one tile still move together. A bound
+// origin whose module was not laid out (a wreck with no room) resolves as an
+// unbound one.
+func ResolveStationOrigins(level *world.Level, rolled map[string][2]int, chapter string, keepOut map[string]int, bound map[string]string) {
+	decks := 1
+	for _, m := range level.Modules {
+		decks = max(decks, m.Z+1)
+	}
+	dockZ := level.SurfaceZ
+	done := map[[2]int][3]int{}
+	for _, key := range sortedOriginKeys(rolled) {
+		var r [3]int
+		if m := level.ModuleByID(bound[key]); m != nil {
+			r = moduleSpot(level, m)
+		} else if prev, ok := done[rolled[key]]; ok {
+			r = prev
+		} else {
+			p := rolled[key]
+			z0 := (p[0] + p[1]) % decks
+			hazard := keepOut[key] >= Budget().HazardKeepOut
+			var best *world.Module
+			bestD := 0
+			for i := range level.Modules {
+				m := &level.Modules[i]
+				if m.Kind == "dock" || hazard && decks >= 3 && m.Z == dockZ {
+					continue
+				}
+				mx, my, mz := m.Center()
+				d := max(abs(mx-p[0]), abs(my-p[1])) + stationDeckCost*abs(mz-z0)
+				if best == nil || d < bestD {
+					best, bestD = m, d
+				}
+			}
+			if best == nil {
+				x, y, z := resolveOrigin(level, p[0], p[1], 0)
+				r = [3]int{x, y, z}
+			} else {
+				r = moduleSpot(level, best)
+			}
+			done[p] = r
+		}
+		SetOrigin(level, key, r[0], r[1], r[2])
+		if key == chapter {
+			SetOrigin(level, ChapterOrigin, r[0], r[1], r[2])
+		}
+	}
+}
+
+// moduleSpot is where an origin stands in a module: its centre (a module
+// keeps its centre row and column clear), else the nearest tile inside it
+// one can stand on.
+func moduleSpot(level *world.Level, m *world.Module) [3]int {
+	cx, cy, z := m.Center()
+	for r := 0; r <= max(m.W, m.H); r++ {
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if max(abs(dx), abs(dy)) != r {
+					continue
+				}
+				x, y := cx+dx, cy+dy
+				if !m.Contains(x, y, z) {
+					continue
+				}
+				if t := level.GetTilePtr(x, y, z); t != nil && standableTile(level, x, y, z) && !world.IsSpaceTile(t) && level.GetSolidEntityAt(x, y, z) == nil {
+					return [3]int{x, y, z}
+				}
+			}
+		}
+	}
+	return [3]int{cx, cy, z}
+}

@@ -258,5 +258,14 @@
         "cost": { "metal_ore": 8, "crystal": 4 },
         "category": "structures",
         "order": 14
+    },
+    "station_generator": {
+        "name": "Main Generator (repair)",
+        "type": "station_generator",
+        "description": "DRAFT. Repairs a station's dead main generator: machine parts and fuel hauled to it bring the station's power back.",
+        "build_time": 60,
+        "is_entity": true,
+        "hidden": true,
+        "cost": { "machine_parts": 4, "fuel": 5 }
     }
 }

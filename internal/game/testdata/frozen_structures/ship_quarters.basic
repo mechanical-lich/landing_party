@@ -1,0 +1,44 @@
+# ship_quarters — bunks for the crew, and their provisions.
+# A crashed_ship section: carves its rect (x, y, w, h) in hull, sharing its
+# end walls with the sections either side, names the room (param room_quarters, else
+# "Crew Quarters") and furnishes it. Furniture keeps off the keel row so the doorways
+# crashed_ship opens between sections stay clear.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    carve_room(x, y, sz, w, h, "hull_wall", "hull_floor")
+    name_room(x, y, sz, w, h, room("room_quarters", "Crew Quarters"))
+    # Bunks along the long walls.
+    # The locker (rooms 7+ tall) takes the last column: bunks stop short of it,
+    # since a bed covers its anchor and the tile above.
+    last = w - 2
+    if h >= 7 then
+        last = w - 3
+    endif
+    for i = 1 to last
+        if i - int(i / 2) * 2 = 1 then
+            # A bed is two tiles tall, anchored at its lower one.
+            spawn_entity("bed", x + i, y + 2, sz)
+            if h >= 7 then
+                spawn_entity("bed", x + i, y + h - 2, sz)
+            endif
+        endif
+    next i
+    if h >= 7 then
+        spawn_entity("storage_locker", x + w - 2, y + h - 2, sz)
+        fill_container(x + w - 2, y + h - 2, sz, "provisions")
+    endif
+    if get_param("crew_state") = "alive" then
+        spawn_entity("greyish", x + int(w / 2), y + int(h / 2), sz)
+    endif
+endfunction
+
+function room(key, def)
+    v = get_param(key)
+    if v = "" then
+        return def
+    endif
+    return v
+endfunction

@@ -208,6 +208,16 @@ endfunction
 
 ---
 
+## Stations
+
+The Abandoned Station's scenarios (`abandoned_station`, `station_mutants`,
+`grey_contact`, `exterminate_xenos`, `autonz_incursion`) land at the dock
+(`starting_floor`) and grow their threat from the chapter's origin, which on
+a station is a module off the dock's deck. `station_mutants` and
+`grey_contact` spawn below the landing deck (`max_z_delta: -1`), so their
+stations get at least four decks (the dock on deck 1). Setup scripts reject
+`space` tiles. See lore.md, "Stations".
+
 ## Internal maps and a fixed start
 
 Two switches exist for hand-placed locations such as the tutorial's Training

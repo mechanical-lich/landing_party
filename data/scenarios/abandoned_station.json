@@ -1,7 +1,7 @@
 {
     "id": "abandoned_station",
     "name": "Abandoned Station",
-    "description": "A derelict station drifting in the void. Restore power and reclaim the botany bays.",
+    "description": "DRAFT. A derelict station drifting in the void. Restore the main generator, unseal the archive, and reclaim the botany bays.",
     "enabled": true,
     "setup_scripts": [
         "data/scripts/scenarios/station_setup.basic"
