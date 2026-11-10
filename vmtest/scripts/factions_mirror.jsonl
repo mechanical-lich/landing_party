@@ -1,0 +1,43 @@
+{"name":"factions_mirror","seed":19}
+# New Expedition seed 19 with Rival factions 2: one hive and one rival colony
+# (the mirror doctrine), whose ship is seeded landed on Slag Hollow (sys_55,
+# 10 fuel from the Wreck Site). Jump there: from orbit the ship is seen,
+# drawn on the Star Map as a dart beside the site, the site tagged RIVAL
+# COLONY · NEUTRAL. Beam one colonist down and land: the colony's camp is
+# built onto the level (a bunker room with its airlock, a locker holding its
+# kit and a workbench, four colonists of its own) and the landing turns it
+# hostile. Let its director work a while, then frame the camp with debug
+# rival walk and look.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Rivals"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"19"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"campaign.faction_count","eq":2}
+{"op":"assert","path":"campaign.ships.fl1","eq":"sys_55"}
+{"op":"assert","path":"campaign.diplomacy.mirror","eq":"neutral"}
+{"op":"click","target":"row:locList:sys_55"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_55"}
+{"op":"assert","path":"campaign.known_fleets","gte":1}
+{"op":"screenshot","name":"starmap"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.diplomacy.mirror","eq":"hostile"}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"assert","path":"rival.workers","eq":4}
+{"op":"assert","path":"rival.built.airlock","eq":1}
+{"op":"assert","path":"rival.built.storage_locker","gte":1}
+{"op":"wait_until","path":"rival.ordered.build:bed","gte":1,"max_ticks":600}
+{"op":"wait","ticks":600}
+{"op":"debug","cmd":"rival walk"}
+{"op":"wait","ticks":20}
+{"op":"screenshot","name":"camp"}

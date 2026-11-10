@@ -1,0 +1,55 @@
+{"name":"factions_autonz_hub","seed":65}
+# The autonz as a settlement (autonz_plan.md, phase E3): New Expedition seed
+# 65 with Rival factions 4, 120 days on (debug days): Leaden Ridge (sys_5)
+# holds an autonz hub that knows its relay and seeker patterns by Tier 1's
+# assimilation walk. Jump there, beam one down, set the autonz neutral (so
+# its enforcers stay off the landing party) and land: the hub materialises
+# with its Signal Core on the red core, the cogitator and a relay pylon on
+# the wire's edge, its prints by type (wire placers, enforcers, relay drones,
+# seekers). Frames: the hub (the core and cogitator), the hub a day on, and
+# the Factions tab's autonz row (units by type, structures).
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lattice"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"65"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"campaign.faction_count","eq":4}
+{"op":"debug","cmd":"days 120"}
+{"op":"click","target":"row:locList:sys_5"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_5"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"debug","cmd":"stance autonz neutral"}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"stance autonz neutral"}
+{"op":"assert","path":"autonz.stage","eq":1}
+{"op":"assert","path":"autonz.built.signal_core","eq":1}
+{"op":"assert","path":"autonz.built.cogitator","eq":1}
+{"op":"assert","path":"autonz.built.relay_pylon","eq":1}
+{"op":"assert","path":"autonz.units.wire_placer","gte":1}
+{"op":"assert","path":"autonz.units.enforcer","gte":1}
+{"op":"debug","cmd":"rival walk"}
+{"op":"wait","ticks":20}
+{"op":"debug","cmd":"autonz 0 -2"}
+{"op":"wait","ticks":10}
+{"op":"screenshot","name":"hub"}
+{"op":"wait","ticks":750}
+{"op":"debug","cmd":"autonz 0 -2"}
+{"op":"wait","ticks":10}
+{"op":"assert","path":"autonz.units.wire_placer","gte":1}
+{"op":"screenshot","name":"hub_a_day_on"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}

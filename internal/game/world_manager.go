@@ -20,6 +20,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
@@ -62,6 +63,8 @@ type WorldManager struct {
 	// lastVisit orders loaded locations for eviction: higher is more recent.
 	lastVisit map[string]int
 	visits    int
+	// liveFactionDay is the last star-date day stepLiveFactions ran.
+	liveFactionDay history.StarDate
 
 	// owed is each away planet's background ticks due but not yet run, and
 	// lastServed the planet the round-robin paid last. See TickBackground.
@@ -75,6 +78,7 @@ type WorldManager struct {
 	incidents     []Incident
 	notifications []Notification
 	popup         *incidentPopup
+	encPopup      *encounterPopup
 
 	// pauseReason is who set paused, for the HUD marker: "star map", "incident".
 	pauseReason string
@@ -84,6 +88,13 @@ type WorldManager struct {
 	// and it ticks in the background. See docs/developer/the_ship.md.
 	shipLevel *MainState
 
+	// observerIgnored counts incidents observer mode answered Ignore.
+	observerIgnored int
+	// viewedID is the planet the viewer is on ("" on the ship or the
+	// dashboard): kept loaded while viewed (view.go). viewVisited holds a
+	// viewed-only planet's Visited from before it was viewed.
+	viewedID    string
+	viewVisited map[string]bool
 	// paused stops all background ticking (the Star-Map pause toggle).
 	paused bool
 
@@ -205,7 +216,7 @@ func (wm *WorldManager) enforceLoadedCap() error {
 	for len(wm.loaded) > maxLoadedPlanets() {
 		victim := ""
 		for id := range wm.loaded {
-			if id != wm.currentID && (victim == "" || wm.lastVisit[id] < wm.lastVisit[victim]) {
+			if id != wm.currentID && id != wm.viewedID && (victim == "" || wm.lastVisit[id] < wm.lastVisit[victim]) {
 				victim = id
 			}
 		}
@@ -234,6 +245,11 @@ func (wm *WorldManager) TotalColonists() int {
 }
 
 func NewWorldManager(c *campaign.Campaign) *WorldManager {
+	observerRunActive = c != nil && c.Observer
+	observerLock = nil // the console's lock was the last campaign's
+	seedSimRand(c)
+	resetPresenceTechs()
+	wireCampaignTechs(c)
 	wm := &WorldManager{
 		Campaign:   c,
 		loaded:     map[string]*MainState{},
@@ -241,6 +257,7 @@ func NewWorldManager(c *campaign.Campaign) *WorldManager {
 		owed:       map[string]int{},
 		lastDamage: map[string]int{},
 	}
+	syncFactionHostility(c)
 	if err := wm.buildShip(); err != nil {
 		log.Printf("buildShip: %v", err)
 	}
@@ -276,6 +293,7 @@ func (wm *WorldManager) buildShip() error {
 	}
 	ms.campaign = c
 	ms.wm = wm
+	ms.applyDoctrine()
 	ms.MainSettlement = wm.ensureShipSettlement(shipName)
 	ms.gm.suppressSpawns = true // the ship is a safe haven; no hostile waves
 	// Frame the camera on the starting hull — the level is mostly empty void.
@@ -323,6 +341,14 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 	}
 	// One world frame is one tick of the campaign clock, wherever the player is.
 	wm.Campaign.TickStarDate()
+	// Rival factions step once per new star-date day; loaded planets are
+	// simulated for real and skipped.
+	wm.Campaign.StepFactions(wm.IsLoaded)
+	// Presences on loaded planets launch by the same rule, once a day.
+	if day := wm.Campaign.FactionDay; day != wm.liveFactionDay {
+		wm.liveFactionDay = day
+		wm.stepLiveFactions()
+	}
 	if wm.shipLevel != nil && wm.shipLevel != live {
 		// The live level's Update reset the per-frame pathfinding budget for
 		// itself; each background tick needs its own.
@@ -341,7 +367,7 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 			// Crew lost while away: nothing keeps this planet simulated (decision
 			// #4). The one in orbit stays in memory, ready for a beam-down.
 			wm.owed[id] = 0
-			if id != wm.currentID {
+			if id != wm.currentID && id != wm.viewedID {
 				if err := wm.Freeze(wm.Campaign.Locations[id], ms); err != nil {
 					log.Printf("freeze unstaffed %s: %v", id, err)
 				}
@@ -389,11 +415,17 @@ func positiveOr(v, fallback int) int {
 // ClockStopped reports whether the whole world clock is stopped, by the pause
 // toggle or by an incident awaiting an answer.
 func (wm *WorldManager) ClockStopped() bool {
-	return wm.paused || wm.ActiveIncident() != nil
+	return wm.paused || wm.PopupUp()
 }
 
 // updatePopup runs the incident popup for a frame; see incidentPopup.update.
 func (wm *WorldManager) updatePopup() state.StateInterface {
+	if wm.encPopup == nil {
+		wm.encPopup = newEncounterPopup(wm)
+	}
+	if t := wm.encPopup.update(); t != nil || wm.Campaign.Encounter.Pending() {
+		return t // the encounter has the input
+	}
 	if wm.popup == nil {
 		wm.popup = newIncidentPopup(wm)
 	}
@@ -401,9 +433,19 @@ func (wm *WorldManager) updatePopup() state.StateInterface {
 }
 
 func (wm *WorldManager) drawPopup(screen *ebiten.Image) {
+	if wm.encPopup != nil && wm.Campaign.Encounter.Pending() {
+		wm.encPopup.draw(screen)
+		return
+	}
 	if wm.popup != nil {
 		wm.popup.draw(screen)
 	}
+}
+
+// PopupUp reports whether a popup (an encounter or an incident) has the
+// input.
+func (wm *WorldManager) PopupUp() bool {
+	return wm.ActiveIncident() != nil || wm.Campaign != nil && wm.Campaign.Encounter.Pending()
 }
 
 // SetPaused toggles the world clock (background ticking); Paused reports it.
@@ -420,6 +462,7 @@ func (wm *WorldManager) EnterShip() (*MainState, error) {
 	if wm.shipLevel == nil {
 		return nil, fmt.Errorf("the ship is not available")
 	}
+	wm.EndView()
 	// Clear the transition flags set when the ship last opened the Star Map,
 	// else it would bounce straight back.
 	wm.shipLevel.done = false
@@ -512,8 +555,10 @@ func SeedNewCampaign(c *campaign.Campaign) {
 	// research-gated features (Encyclopedia, Global Inventory tiers, etc.) are
 	// immediately available on a fresh campaign.
 	if config.Global().UnlockAllResearch {
-		for key := range research.AllTechs() {
-			c.UnlockTech(key)
+		for _, key := range researchTreeOf(playerSettlementOf(c)) {
+			if _, ok := research.GetTech(key); ok {
+				c.UnlockTech(key)
+			}
 		}
 	}
 }
@@ -876,8 +921,19 @@ func (wm *WorldManager) Freeze(loc *campaign.Location, s *MainState) error {
 	if err := wm.writeLocation(loc, s); err != nil {
 		return err
 	}
+	// A boarded ship not taken goes on once the player leaves its deck, and
+	// its deck with it: the encounter location goes (unless colonists stayed
+	// aboard), so boardings do not pile up in the save and the Star Map.
+	// A taken ship's deck stays (its hold is loot).
+	released := wm.Campaign.ReleaseBoarding(loc) && loc.Colonists == 0
 	for _, name := range locationSettlements(loc, s.colonyName()) {
 		delete(settlement.Settlements, name)
+	}
+	if released {
+		if loc.SaveFile != "" {
+			_ = os.Remove(filepath.Join(campaignRoot(wm.Campaign.Name), loc.SaveFile))
+		}
+		delete(wm.Campaign.Locations, loc.ID)
 	}
 	delete(wm.loaded, loc.ID)
 	delete(wm.lastVisit, loc.ID)
@@ -901,6 +957,9 @@ func (wm *WorldManager) writeLocation(loc *campaign.Location, s *MainState) erro
 	loc.BuildMode = s.buildMode
 	loc.Visited = true
 	loc.Colonists = countLevelColonists(s.level, colony)
+	// Faction presences: what lives there now is the record.
+	reconcileFactions(c, loc, s.level)
+	reconcileBoarding(c, loc, s)
 	// Snapshot storage so the Global Inventory can read this site without
 	// having to load its level file.
 	loc.StorageSummary = storage.Summarize(
@@ -993,6 +1052,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 
 	ms.campaign = c
 	ms.wm = wm
+	ms.applyDoctrine()
 	// Cache the generated map dimensions on the location so the Star Map can
 	// size its icon without loading the level.
 	if ms.level != nil {
@@ -1012,6 +1072,10 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	}
 	loc.Visited = true
 	spawnLocationFixtures(c, loc, ms.level)
+	// Faction presences go on top of the history (built with the level) and
+	// the fixtures: their stamps keep clear of both.
+	materialiseFactions(c, loc, ms.level, ms.scenario)
+	materialiseBoarding(c, loc, ms.level)
 	installCampaignStorageHook(c)
 	// Park it: detach listeners until the player Resumes.
 	ms.teardown()
@@ -1182,11 +1246,19 @@ func (wm *WorldManager) Travel(locID string) error {
 	}
 	from := c.CurrentLocationID // origin of this jump, for the travel-route log
 	jumpDays := campaign.JumpDays(c.FuelCost(locID))
+	// A faction ship the jump meets, found where the fleets are as it
+	// starts; answered once in orbit (phase D, interception).
+	var met *campaign.Encounter
+	if dest.Kind != campaign.HomeKind && dest.Kind != campaign.EncounterKind {
+		met = c.DetectInterception(from, locID, c.StarDate, jumpDays)
+	}
 	if cur := wm.Current(); cur != nil {
 		if c.CurrentLocationID == locID {
 			return nil // already loaded
 		}
-		if isStaffed(cur) {
+		if isStaffed(cur) || wm.currentID == wm.viewedID {
+			// Staffed, or the viewer is on it: it stays loaded (a viewed
+			// one is frozen when the viewer leaves, view.go).
 			wm.currentID = ""
 		} else if err := wm.Freeze(c.Locations[wm.currentID], cur); err != nil {
 			return err
@@ -1197,6 +1269,9 @@ func (wm *WorldManager) Travel(locID string) error {
 	c.RecordTravel(from, locID)
 	// The jump takes time on the campaign clock; levels left behind don't see it.
 	c.AdvanceDays(jumpDays)
+	// The factions live through the jump's days (the level left behind is
+	// still loaded if staffed, and skipped).
+	c.StepFactions(wm.IsLoaded)
 	// Reaching Home ends the run in victory — no level to generate or land.
 	if dest.Kind == campaign.HomeKind {
 		c.CurrentLocationID = locID
@@ -1214,6 +1289,7 @@ func (wm *WorldManager) Travel(locID string) error {
 	}
 	c.CurrentLocationID = locID
 	wm.landSet = false
+	delete(wm.viewVisited, locID) // in orbit: visited for real
 	ms := wm.loaded[locID]
 	if ms != nil {
 		// A fixture added while this planet stayed loaded appears on arrival,
@@ -1227,6 +1303,14 @@ func (wm *WorldManager) Travel(locID string) error {
 	}
 	wm.setCurrent(locID, ms)
 	orbit(ms)
+	wm.noteInterception(met)
+	// From orbit the crew can see what holds the planet.
+	for _, p := range c.RevealPresences(dest) {
+		if d := campaign.LoadFactionData().Doctrine(p.Doctrine); d != nil {
+			// Named by morph: the hive's identity is hidden (factions.md).
+			message.PostMessage("Star Map", d.OrbitAlert(dest))
+		}
+	}
 	if err := wm.enforceLoadedCap(); err != nil {
 		return err
 	}
@@ -1309,6 +1393,7 @@ func (wm *WorldManager) EnterCurrent() (*MainState, error) {
 	wm.Current().done = false
 	wm.Current().next = nil
 	wm.Current().reattach()
+	wm.viewedID = wm.currentID
 	installCampaignStorageHook(wm.Campaign)
 	return wm.Current(), nil
 }
@@ -1368,8 +1453,10 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 	lvl := wm.shipLevel.level
 	shipName := wm.shipSettlementName()
 	cx, cy, cz := ship.HullCenter()
-	for i := 0; i < n; i++ {
-		ce, err := factory.Create("colonist", 0, 0, 0)
+	// The crew's composition is the player doctrine's (SeedShipCrew's n split
+	// by share): n colonists for the colony.
+	for _, bp := range crewBlueprints(wm.Campaign, n) {
+		ce, err := factory.Create(bp, 0, 0, 0)
 		if err != nil {
 			continue
 		}
@@ -1404,6 +1491,7 @@ func (wm *WorldManager) BeamDown(colonist *ecs.Entity) error {
 	}
 	tagColonistSettlement(colonist, wm.currentColonyName())
 	level.AddEntity(colonist)
+	wm.contactFactions(wm.Campaign.CurrentLocation())
 	if countLevelColonists(level, wm.currentColonyName()) == 1 {
 		wm.Campaign.RecordLive("colony_founded", wm.Campaign.CurrentLocation(), map[string]string{"colony": wm.Campaign.ColonyDisplayName()})
 	}
@@ -1516,7 +1604,8 @@ func LoadCampaign(name string) (*campaign.Campaign, error) {
 	}
 	// Campaigns from before the generated history (version 2) are not migrated:
 	// their sites were charted with rolled scenarios and no past to explain them.
-	if c.Version < campaign.CampaignVersion {
+	// Version 2 gains an empty faction layer (campaign.MigrateCampaign).
+	if err := campaign.MigrateCampaign(&c); err != nil {
 		return nil, fmt.Errorf("campaign %q is from an older version of the game (save version %d, need %d) and can't be loaded; start a new expedition", name, c.Version, campaign.CampaignVersion)
 	}
 	// Saves from before per-location settlements tag everything on a planet with

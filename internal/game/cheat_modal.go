@@ -55,7 +55,7 @@ func (cm *CheatModal) rebuildModal() {
 	cm.modal.SetPosition(mx, my)
 	cm.modal.Closeable = false
 
-	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>  |  research <tech_id>  |  stamp <script> [w h] [k=v ...]")
+	cm.input = minui.NewTextInput("cheat_input", "find <name>  |  mv <x> <y> <z>  |  tp <name> <x> <y> <z>  |  give <resource> <amount>  |  research <tech_id>  |  observer on|off  |  stamp <script> [w h] [k=v ...]")
 	cm.input.SetPosition(10, 20)
 	cm.input.SetSize(cheatModalW-20, 30)
 	cm.modal.AddChild(cm.input)
@@ -356,6 +356,48 @@ func (cm *CheatModal) runCommand(raw string) {
 		}
 		cm.ms.campaign.UnlockTech(key)
 		message.PostMessage("cheat", fmt.Sprintf("researched %s", key))
+
+	case "faction":
+		// "faction tech <faction> <tech_id>": the faction's presence on this
+		// site knows the tech at once, in its record and its live
+		// settlement (phase E3: a bronze frame that does not wait on the
+		// day). Units printed from now on take its effect.
+		if len(parts) < 4 || strings.ToLower(parts[1]) != "tech" {
+			message.PostMessage("cheat", "usage: faction tech <faction> <tech_id>")
+			return
+		}
+		msg, err := grantFactionTech(cm.ms, strings.ToLower(parts[2]), strings.ToLower(parts[3]))
+		if err != nil {
+			message.PostMessage("cheat", "faction tech: "+err.Error())
+			return
+		}
+		message.PostMessage("cheat", msg)
+
+	case "observer":
+		// An observer run is one for its whole length (no ship to hand
+		// back; "take over the expedition" is a todo). On a normal campaign
+		// the command flips the observer lock for this session: the
+		// settlement director runs the colony, the cursor gives no orders,
+		// the marker shows; the ship stays the player's. The config flag
+		// is left as it is (it seeds the next New Expedition).
+		if observerRun() {
+			message.PostMessage("cheat", "observer run: observer mode stays on for the whole run (taking over the expedition is not supported yet)")
+			return
+		}
+		on := !observerMode()
+		if len(parts) > 1 {
+			switch strings.ToLower(parts[1]) {
+			case "on":
+				on = true
+			case "off":
+				on = false
+			default:
+				message.PostMessage("cheat", "usage: observer on|off")
+				return
+			}
+		}
+		setObserverMode(on)
+		message.PostMessage("cheat", fmt.Sprintf("observer lock %s (ground orders and the marker; the ship stays yours)", map[bool]string{true: "on", false: "off"}[on]))
 
 	default:
 		message.PostMessage("cheat", "unknown command: "+parts[0])

@@ -89,8 +89,9 @@ type Level struct {
 
 	// StampFootprints are the stamps placed so far in this build, as
 	// (x, y, w, h, anchorX, anchorY) with anchor -1 for an unanchored stamp,
-	// so later stamps keep their distance (generation.placeStamp).
-	// Generation-only; not persisted.
+	// so later stamps keep their distance (generation.placeStamp), and a
+	// faction presence sited after a thaw keeps clear (persisted in the
+	// level's save).
 	StampFootprints [][6]int
 
 	// Terrain skeleton produced by a TerrainPrimer. Indexed by (z*H + y)*W + x.

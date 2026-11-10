@@ -1,0 +1,61 @@
+{"name":"factions_hive","seed":777}
+# The hive as a settlement (hive_plan.md, phase E2). New Expedition seed 777
+# with Rival factions 3 (as factions_site: with 1 the seed's hive is on Glass
+# Expanse), then 36 days pass (debug days) so the brood on Rust Tangle
+# (sys_43) grows into a hive. Jump there, beam one colonist down and land:
+# the presence is built as a settlement (the hive_core chamber laid with
+# resin, the heart with grey eggs, pools with its biomass, the stage's
+# clusters, chamber and spire, drones, scouts and warriors by type, coloured
+# eggs). The stance is set neutral so its guards leave the landing party be
+# while the frames are taken. Frames: the Star Map tag, the hive framed on
+# its heart, the hive three days on (its director laying resin, foraging,
+# laying eggs on the grey ones), and the Factions tab (morph names: hidden
+# identity).
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Swarm"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"debug","cmd":"days 36"}
+{"op":"assert","path":"campaign.presences.sys_43","gte":12}
+{"op":"click","target":"row:locList:sys_43"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"selected_location.known_factions","eq":1}
+{"op":"screenshot","name":"starmap"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"stance hive neutral"}
+{"op":"assert","path":"faction.stage","eq":2}
+{"op":"assert","path":"faction.launcher","eq":true}
+{"op":"assert","path":"faction.bodies","gte":12}
+{"op":"assert","path":"faction.units.drone","gte":1}
+{"op":"assert","path":"faction.larvae","gte":1}
+{"op":"assert","path":"faction.built.hive_heart","eq":1}
+{"op":"assert","path":"faction.built.biomass_pool","gte":1}
+{"op":"assert","path":"faction.built.egg_cluster","gte":1}
+{"op":"assert","path":"faction.built.evolution_chamber","eq":1}
+{"op":"debug","cmd":"faction walk"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"hive"}
+# Three days live: the director lays resin, forages, lays eggs on the grey
+# ones; the eggs hatch and their young grow into workers.
+{"op":"wait","ticks":2250}
+{"op":"debug","cmd":"faction"}
+{"op":"assert","path":"faction.ordered.convert:hive_resin","gte":1}
+{"op":"assert","path":"faction.bodies","gte":12}
+{"op":"screenshot","name":"hive_3days"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}

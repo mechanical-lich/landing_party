@@ -66,6 +66,11 @@ type GenConfig struct {
 	// jump, whose history only ends in a safe chapter (see
 	// history.BindSiteSafe). 0 means start_radius: the start system only.
 	SafeStartRadius float64 `json:"safe_start_radius"`
+
+	// FactionsDefault / FactionsMax are the New Expedition "Rival factions"
+	// stepper's starting value and upper bound.
+	FactionsDefault int `json:"factions_default"`
+	FactionsMax     int `json:"factions_max"`
 }
 
 // ScannerTier is one ship-scanner power level: the chance a scan reveals a new
@@ -102,8 +107,10 @@ func defaultGenConfig() GenConfig {
 			{Chance: 0.20, Range: 50},
 			{Chance: 0.30, Range: 100},
 		},
-		ScanFuelCosts:  []int{200, 100, 50},
-		JumpFuelPerDay: 3,
+		ScanFuelCosts:   []int{200, 100, 50},
+		JumpFuelPerDay:  3,
+		FactionsDefault: 1,
+		FactionsMax:     3,
 	}
 }
 
@@ -128,6 +135,15 @@ func genConfig() GenConfig {
 	}
 	if cfg.NewSystemOneIn < 1 {
 		cfg.NewSystemOneIn = 1
+	}
+	if cfg.FactionsMax < 0 {
+		cfg.FactionsMax = 0
+	}
+	if cfg.FactionsDefault > cfg.FactionsMax {
+		cfg.FactionsDefault = cfg.FactionsMax
+	}
+	if cfg.FactionsDefault < 0 {
+		cfg.FactionsDefault = 0
 	}
 	if cfg.HomeBias < 0 {
 		cfg.HomeBias = 0

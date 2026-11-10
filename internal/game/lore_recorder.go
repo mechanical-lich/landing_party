@@ -128,9 +128,11 @@ func (s *MainState) checkThreatCleared() {
 		want[b] = true
 	}
 	alive := 0
-	for _, e := range s.level.Entities {
-		if e != nil && want[e.Blueprint] && !e.HasComponent(rlcomponents.Dead) {
-			alive++
+	for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
+		for _, e := range list { // a hive's grey eggs stand among the static
+			if e != nil && want[e.Blueprint] && !e.HasComponent(rlcomponents.Dead) {
+				alive++
+			}
 		}
 	}
 	switch {
@@ -181,4 +183,3 @@ func (s *MainState) revealReachedOrigins() {
 		}
 	}
 }
-

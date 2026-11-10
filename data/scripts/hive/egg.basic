@@ -1,0 +1,24 @@
+# A hive egg of either morph (crawler or flier). spawn_kin names the next
+# stage after this egg's own blueprint (xeno_egg -> xeno_hatchling) and passes
+# on its type and the presence it belongs to. A typed egg hatches after its
+# type's hatch_turns (seeded at spawn); a wild one after 20.
+function on_turn()
+    turns = get_var("turns") + 0
+    turns = turns + 1
+    set_var("turns", turns)
+
+    hatch = get_var("hatch_turns") + 0
+    if hatch <= 0 then
+        hatch = 20
+    endif
+
+    if turns >= hatch then
+        add_message(get_self_name() + " was heard hatching!")
+        x = get_self_x()
+        y = get_self_y()
+        z = get_self_z()
+        spawn_kin("egg_cracked", x, y, z)
+        spawn_kin("hatchling", x, y, z)
+        despawn_self()
+    endif
+endfunction

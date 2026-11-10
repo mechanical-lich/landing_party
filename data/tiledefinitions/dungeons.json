@@ -679,5 +679,6 @@
             }
         ],
         "resource": "fantasy_world"
-    }
+    },
+  {"name": "hive_resin", "layer": "floor", "variants": [{"variant": 0, "spriteX": 72, "spriteY": 168}, {"variant": 1, "spriteX": 96, "spriteY": 168}, {"variant": 2, "spriteX": 120, "spriteY": 168}, {"variant": 3, "spriteX": 144, "spriteY": 168}], "resource": "fantasy_world", "speed": {"hive": 0.75, "*": 1.4}}
 ]

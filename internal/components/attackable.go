@@ -11,8 +11,10 @@ import (
 // hostile AI. Colonists, buildings, and items lack those AI components, so they
 // are excluded. This is the single definition of "attackable enemy" shared by
 // the click-to-attack order and the rogue bump-attack; keeping them in sync
-// stopped ScriptedAI mobs (e.g. mutants) from being un-orderable.
+// stopped ScriptedAI mobs (e.g. mutants) from being un-orderable. A worker of
+// a faction hostile to the player is one too (hostility.go).
 func IsAttackTarget(e *ecs.Entity) bool {
 	return e != nil && e.HasComponent(rlcomponents.Health) &&
-		(e.HasComponent(FactionAI) || e.HasComponent(ScriptedAI) || e.HasComponent(rlcomponents.HostileAI))
+		(e.HasComponent(FactionAI) || e.HasComponent(ScriptedAI) || e.HasComponent(rlcomponents.HostileAI)) ||
+		IsHostileWorker(e)
 }

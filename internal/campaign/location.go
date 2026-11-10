@@ -32,6 +32,10 @@ type Location struct {
 	// QuestTag carries the location's first archetype tag, used to match
 	// tag-gated quest templates posted to an existing system.
 	QuestTag string `json:"quest_tag,omitempty"`
+	// Tags are the archetype's tags (ore, biomass, hostile, salvage, ...),
+	// read by faction carrying capacity. Saves from before factions carry
+	// only QuestTag (see CapacityTags).
+	Tags []string `json:"tags,omitempty"`
 
 	// Tutorial marks the Training Ground: random contracts are never posted to
 	// it (see MaybeTravelQuests).
@@ -66,6 +70,11 @@ type Location struct {
 	// level load (see the game-side spawn hook); persisted so a fixture added
 	// after the location was first visited still appears on the next trip.
 	Fixtures []QuestFixture `json:"fixtures,omitempty"`
+	// Boarding is a boarded faction ship (Kind "encounter", phase D).
+	Boarding *Boarding `json:"boarding,omitempty"`
+	// Ruins are the camps fleet factions left here when they lifted off,
+	// ruined on the level live or at its next build (phase D4).
+	Ruins []FactionRuin `json:"ruins,omitempty"`
 
 	// StorageSummary is the cached blueprint→total-quantity snapshot of all
 	// colony-owned storage at this location, refreshed on Freeze. Used by the
@@ -83,6 +92,13 @@ type Location struct {
 	// entry) of a station's structure, captured at generation so the Star Map
 	// can draw a map-shaped icon. Only set for station-kind locations.
 	StationFootprint []uint16 `json:"station_footprint,omitempty"`
+
+	// Factions are the enemy presences on this site (faction.go), on top of
+	// its history: they never change the chapter or scenario.
+	Factions []FactionPresence `json:"factions,omitempty"`
+	// Husks are presences that died out here on their own (exhausted), to
+	// be left on the level as a husk stamp the next time it is built.
+	Husks []FactionHusk `json:"husks,omitempty"`
 }
 
 // QuestFixture describes one quest-placed entity for a location.

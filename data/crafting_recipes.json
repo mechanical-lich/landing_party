@@ -5,7 +5,8 @@
         "output": "colonist",
         "build_time": 150,
         "cost": { "biomass": 25 },
-        "station": "bio_printer"
+        "station": "bio_printer",
+        "deploy_on_craft": true
     },
     "refine_fuel": {
         "name": "Refine Fuel Cell",
@@ -29,6 +30,71 @@
         "output": "sleeping_bag",
         "build_time": 15,
         "cost": { "biomass": 3 },
+        "station": "basic_workbench"
+    },
+
+    "print_wire_placer": {
+        "name": "Print Wire Placer",
+        "description": "Assemble a wire placer at the autonz fabricator from ore. The autonz doctrine's unit (docs/developer/factions.md, The autonz).",
+        "output": "wire_placer_crew",
+        "build_time": 120,
+        "cost": { "metal_ore": 4 },
+        "station": "autonz_fabricator",
+        "deploy_on_craft": true,
+        "kin_type": "wire_placer"
+    },
+    "print_enforcer": {
+        "name": "Print Enforcer",
+        "description": "Assemble an enforcer at the autonz fabricator from ore and crystal. The autonz doctrine's unit (docs/developer/factions.md, The autonz).",
+        "output": "enforcer_crew",
+        "build_time": 160,
+        "cost": { "metal_ore": 8, "crystal": 1 },
+        "station": "autonz_fabricator",
+        "deploy_on_craft": true,
+        "kin_type": "enforcer"
+    },
+    "print_greenish": {
+        "name": "Print Greenish",
+        "description": "Grow a greenish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "output": "greenish_crew",
+        "build_time": 120,
+        "cost": { "metal_ore": 6, "crystal": 1 },
+        "station": "bio_printer",
+        "deploy_on_craft": true
+    },
+    "print_greyish": {
+        "name": "Print Greyish",
+        "description": "Grow a greyish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "output": "greyish_crew",
+        "build_time": 120,
+        "cost": { "metal_ore": 6, "crystal": 2 },
+        "station": "bio_printer",
+        "deploy_on_craft": true
+    },
+    "print_pinkish": {
+        "name": "Print Pinkish",
+        "description": "Grow a pinkish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "output": "pinkish_crew",
+        "build_time": 120,
+        "cost": { "metal_ore": 8, "crystal": 2 },
+        "station": "bio_printer",
+        "deploy_on_craft": true
+    },
+    "print_whitish": {
+        "name": "Print Whitish",
+        "description": "Grow a whitish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "output": "whitish_crew",
+        "build_time": 120,
+        "cost": { "metal_ore": 6, "crystal": 4 },
+        "station": "bio_printer",
+        "deploy_on_craft": true
+    },
+    "protein_press": {
+        "name": "Protein Bar",
+        "description": "Press biomass into a protein bar. Plain and filling, and the only food a crew can make for itself.",
+        "output": "protein_bar",
+        "build_time": 15,
+        "cost": { "biomass": 2 },
         "station": "basic_workbench"
     },
 
@@ -532,5 +598,140 @@
         "cost": { "metal_ore": 12, "crystal": 4 },
         "station": "robot_workbench",
         "requires_tech": "construction_robotics"
+    },
+    "hive_egg_drone": {
+        "name": "Drone Egg",
+        "description": "DRAFT. Lay a drone egg on a grey egg: the brood's biomass carried to it.",
+        "output": "xeno_egg",
+        "kin_type": "drone",
+        "build_time": 60,
+        "cost": { "biomass": 2 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true
+    },
+    "hive_egg_scout": {
+        "name": "Scout Egg",
+        "description": "DRAFT. Lay a scout egg on a grey egg: the brood's biomass carried to it.",
+        "output": "troid_egg",
+        "kin_type": "scout",
+        "build_time": 60,
+        "cost": { "biomass": 2 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true
+    },
+    "hive_egg_warrior": {
+        "name": "Warrior Egg",
+        "description": "DRAFT. Lay a warrior egg on a grey egg: the brood's biomass carried to it.",
+        "output": "xeno_egg",
+        "kin_type": "warrior",
+        "build_time": 90,
+        "cost": { "biomass": 4 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true,
+        "requires_tech": "hive_warrior_brood"
+    },
+    "hive_egg_hunter": {
+        "name": "Hunter Egg",
+        "description": "DRAFT. Lay a hunter egg on a grey egg: the brood's biomass carried to it.",
+        "output": "troid_egg",
+        "kin_type": "hunter",
+        "build_time": 90,
+        "cost": { "biomass": 5 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true,
+        "requires_tech": "hive_hunter_brood"
+    },
+    "hive_egg_burrower": {
+        "name": "Burrower Egg",
+        "description": "DRAFT. Lay a burrower egg on a grey egg: the brood's biomass carried to it.",
+        "output": "xeno_egg",
+        "kin_type": "burrower",
+        "build_time": 120,
+        "cost": { "biomass": 5 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true,
+        "requires_tech": "hive_burrower_brood"
+    },
+    "hive_egg_spitter": {
+        "name": "Spitter Egg",
+        "description": "DRAFT. Lay a spitter egg on a grey egg: the brood's biomass carried to it.",
+        "output": "troid_egg",
+        "kin_type": "spitter",
+        "build_time": 120,
+        "cost": { "biomass": 6 },
+        "station": "hive_larva",
+        "consume_station": true,
+        "deploy_on_craft": true,
+        "requires_tech": "hive_spitter_brood"
+    },
+    "print_relay_drone": {
+        "name": "Print Relay Drone",
+        "description": "_draft",
+        "output": "relay_drone_crew",
+        "kin_type": "relay_drone",
+        "build_time": 120,
+        "cost": { "metal_ore": 4, "crystal": 2 },
+        "station": "autonz_fabricator",
+        "deploy_on_craft": true,
+        "requires_tech": "autonz_relay_pattern"
+    },
+    "print_seeker": {
+        "name": "Print Seeker",
+        "description": "_draft",
+        "output": "seeker_crew",
+        "kin_type": "seeker",
+        "build_time": 120,
+        "cost": { "metal_ore": 5, "crystal": 1 },
+        "station": "autonz_fabricator",
+        "deploy_on_craft": true,
+        "requires_tech": "autonz_seeker_pattern"
+    },
+    "print_harvester": {
+        "name": "Print Harvester",
+        "description": "_draft",
+        "output": "harvester_crew",
+        "kin_type": "harvester",
+        "build_time": 160,
+        "cost": { "metal_ore": 4, "ferrite": 2 },
+        "station": "autonz_foundry",
+        "deploy_on_craft": true,
+        "requires_tech": "autonz_foundry_pattern"
+    },
+    "print_sentinel": {
+        "name": "Print Sentinel",
+        "description": "_draft",
+        "output": "sentinel_crew",
+        "kin_type": "sentinel",
+        "build_time": 200,
+        "cost": { "metal_ore": 6, "crystal": 1, "ferrite": 3 },
+        "station": "autonz_foundry",
+        "deploy_on_craft": true,
+        "requires_tech": "autonz_sentinel_pattern"
+    },
+    "print_warden": {
+        "name": "Print Warden",
+        "description": "_draft",
+        "output": "warden_crew",
+        "kin_type": "warden",
+        "build_time": 240,
+        "cost": { "metal_ore": 10, "crystal": 2, "ferrite": 4 },
+        "station": "autonz_foundry",
+        "deploy_on_craft": true,
+        "requires_tech": "autonz_warden_pattern"
+    },
+    "refine_ferrite": {
+        "name": "Refine Ferrite",
+        "description": "_draft",
+        "output": "ferrite",
+        "count": 2,
+        "build_time": 90,
+        "cost": { "metal_ore": 4, "crystal": 1 },
+        "station": "autonz_foundry",
+        "requires_tech": "autonz_foundry_pattern"
     }
 }

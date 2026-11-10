@@ -28,10 +28,14 @@ func TestMain(m *testing.M) {
 	if err := factory.FactoryLoadDir("data/blueprints"); err != nil {
 		panic("load blueprints: " + err.Error())
 	}
+	if err := loadContentTables(); err != nil {
+		panic("load content tables: " + err.Error())
+	}
 	// Both load lazily once and are cached, so prime them before tests chdir to
 	// their temp save dirs.
 	config.Global()
 	lore.RandomSettlementName()
+	campaign.LoadFactionData() // the player's doctrine, read by every MainState
 	if _, err := history.DefaultLibrary(); err != nil {
 		panic("load history library: " + err.Error())
 	}

@@ -1,0 +1,6 @@
+# The hive's egg launcher (a resin spire). It does nothing on its own turn:
+# firing is decided on the campaign tier (StepLiveFactions in the world
+# manager), which uses the spire as the visible source. It has a script so it
+# counts as a creature a colonist can be ordered to attack.
+function on_turn()
+endfunction

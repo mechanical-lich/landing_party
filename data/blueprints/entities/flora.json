@@ -31,7 +31,7 @@
             "SpriteX": 1176,
             "SpriteY": 72
         },
-         "Choppable": {
+        "Choppable": {
             "Health": 1
         },
         "Description": {
@@ -100,7 +100,7 @@
             "SpriteX": 1152,
             "SpriteY": 72
         },
-         "Choppable": {
+        "Choppable": {
             "Health": 1
         },
         "Description": {
@@ -146,7 +146,7 @@
             "SpriteX": 1176,
             "SpriteY": 48
         },
-         "Choppable": {
+        "Choppable": {
             "Health": 1
         },
         "Description": {
@@ -155,6 +155,31 @@
         },
         "Drops": {
             "Items": [
+                "biomass"
+            ]
+        },
+        "Inanimate": {}
+    },
+    "resin_bloom": {
+        "Appearance": {
+            "R": 215,
+            "G": 120,
+            "B": 235,
+            "Resource": "fantasy_world",
+            "SpriteX": 1104,
+            "SpriteY": 72
+        },
+        "Choppable": {
+            "Health": 1
+        },
+        "Description": {
+            "Name": "Resin Bloom",
+            "Faction": "",
+            "LongDescription": "DRAFT. A soft violet growth that pushes up through hive resin. It is mostly water and sugar."
+        },
+        "Drops": {
+            "Items": [
+                "biomass",
                 "biomass"
             ]
         },

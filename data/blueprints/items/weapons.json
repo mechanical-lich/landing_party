@@ -418,5 +418,45 @@
             "Ranged": true,
             "TwoHanded": true
         }
+    },
+    "spit_gland": {
+        "Description": {
+            "Name": "Spit Gland",
+            "Faction": "",
+            "LongDescription": "DRAFT. A gland that throws acid. Part of the body that grew it."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 0
+        },
+        "Weapon": {
+            "Display": "tentacles",
+            "AttackBonus": 2,
+            "AttackDice": "1d10",
+            "DamageType": "acid",
+            "Range": 6,
+            "Ranged": true
+        }
+    },
+    "sentinel_emitter": {
+        "Description": {
+            "Name": "Sentinel Emitter",
+            "Faction": "",
+            "LongDescription": "DRAFT. The beam emitter set in a sentinel's shell. Part of the machine, not a tool."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 0
+        },
+        "Weapon": {
+            "Display": "laser",
+            "AttackBonus": 2,
+            "AttackDice": "1d8",
+            "DamageType": "energy",
+            "Range": 6,
+            "Ranged": true
+        }
     }
 }

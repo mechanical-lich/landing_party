@@ -134,8 +134,16 @@ func GenerationConfig() GenConfig { return genConfig() }
 // GenerateCampaign builds a fully procedural campaign: a generated start
 // system, a far-off visible "Home" (reaching it wins), a couple of nearby
 // systems, and their quests. Everything is derived from seed and persisted, so
-// loading a save reproduces the run exactly.
+// loading a save reproduces the run exactly. It seeds no rival factions (see
+// GenerateCampaignOpts).
 func GenerateCampaign(name string, seed int64) (*Campaign, error) {
+	return GenerateCampaignOpts(name, seed, GenOptions{})
+}
+
+// GenerateCampaignOpts is GenerateCampaign with the New Expedition options:
+// opts.Factions rival presences are seeded once the opening map is charted,
+// from their own random stream, so the map is the same at every count.
+func GenerateCampaignOpts(name string, seed int64, opts GenOptions) (*Campaign, error) {
 	lt, qt, err := loadGenTemplates()
 	if err != nil {
 		return nil, err
@@ -148,6 +156,7 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 		Locations: make(map[string]*Location),
 		Ship:      NewShipState(cfg.RosterCap),
 		History:   history.New(seed),
+		Player:    NewPlayerPresence(opts.Doctrine),
 	}
 	rng := rand.New(rand.NewSource(seed))
 
@@ -200,6 +209,8 @@ func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 		c.QuestDefs = append(c.QuestDefs, *qd)
 	}
 
+	c.seedFactions(opts.Factions)
+	c.Observer = opts.Observer
 	c.BindQuests()
 	return c, nil
 }
@@ -398,6 +409,8 @@ func (c *Campaign) Scan(level int) (*Location, bool) {
 	// The scan runs from here — a miss still counts (the caller charges fuel).
 	c.ScanSeq++
 	rng := rand.New(rand.NewSource(c.Seed + int64(c.ScanSeq)*2246822519))
+	// The sweep shows what holds the worlds already charted in range.
+	c.RevealPresencesWithin(cur.X, cur.Y, tier.Range)
 	if rng.Float64() >= tier.Chance {
 		return nil, true // ran, came back empty
 	}
@@ -506,6 +519,7 @@ func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idH
 		Y:        y,
 		Summary:  a.Summary,
 		QuestTag: firstTag(a.Tags),
+		Tags:     append([]string(nil), a.Tags...),
 	}
 	// The scenario used to be rolled here. History picks it now (bindHistory);
 	// this draw stands in for the old roll so every later draw, and with it
@@ -642,15 +656,8 @@ func (c *Campaign) RevealDatapad(id string) (text string, newly bool) {
 }
 
 func (c *Campaign) reveal(id string, side bool) (text string, newly bool) {
-	if c == nil || c.History == nil || id == "" {
-		return "", false
-	}
-	ev := c.History.Event(id)
-	if ev == nil {
-		return "", false
-	}
-	lib, err := history.DefaultLibrary()
-	if err != nil {
+	text = c.eventText(id, side)
+	if text == "" {
 		return "", false
 	}
 	if c.History.Known == nil {
@@ -658,6 +665,28 @@ func (c *Campaign) reveal(id string, side bool) (text string, newly bool) {
 	}
 	newly = !c.History.Known[id]
 	c.History.Known[id] = true
+	return text, newly
+}
+
+// DatapadText is what a datapad holding event id reads (RevealDatapad's
+// text) without making the event known: the observer reads a datapad where
+// it lies. "" for an unknown event.
+func (c *Campaign) DatapadText(id string) string { return c.eventText(id, true) }
+
+// eventText renders event id (its datapad account when side), "" if there
+// is no such event.
+func (c *Campaign) eventText(id string, side bool) string {
+	if c == nil || c.History == nil || id == "" {
+		return ""
+	}
+	ev := c.History.Event(id)
+	if ev == nil {
+		return ""
+	}
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		return ""
+	}
 	site := ""
 	if s := c.History.Sites[ev.Site]; s != nil {
 		if loc := c.Locations[s.Location]; loc != nil {
@@ -665,9 +694,9 @@ func (c *Campaign) reveal(id string, side bool) (text string, newly bool) {
 		}
 	}
 	if side {
-		return c.History.RenderSide(lib, ev, site), newly
+		return c.History.RenderSide(lib, ev, site)
 	}
-	return c.History.Render(lib, ev, site), newly
+	return c.History.Render(lib, ev, site)
 }
 
 // RecordLive appends a live history event at loc (dated in the star date,

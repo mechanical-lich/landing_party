@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"github.com/mechanical-lich/landing_party/internal/director"
 	"log"
 	"math/rand"
 	"os"
@@ -113,10 +114,19 @@ type MainState struct {
 	bgSystemManager *ecs.SystemManager
 	// fovSystem is held so the current viewport can be handed to it each frame for
 	// bounding the Visible clear (it no longer reads a copy off Level).
-	fovSystem        *systems.FOVSystem
-	gm               *GameMaster
+	fovSystem *systems.FOVSystem
+	gm        *GameMaster
 	// locationID is the campaign location this level belongs to, "" for The Ship.
 	locationID string
+	// director runs this settlement in observer mode (director_orders.go).
+	director *director.Director
+	// factionDirectors run this level's faction settlements, by settlement
+	// name (faction_settlement.go).
+	factionDirectors map[string]*director.Director
+	// colonistsDied counts this level's colonists who died on it (stats).
+	colonistsDied int
+	// builtHere counts structures the colony finished on this level (stats).
+	builtHere map[string]int
 	// pauseReason says who set Paused when it wasn't Space; see pauseIndicatorText.
 	pauseReason string
 	// scenario is this level's own scenario, set at generation or load; nil for
@@ -139,12 +149,12 @@ type MainState struct {
 	// marquee is the KeeperRL-style rectangle drag-select for Dig/Mine: press to
 	// anchor a corner, drag to the opposite corner, release to queue a task on
 	// every eligible tile in the box. A plain click is just a 1x1 marquee.
-	marqueeActive bool
-	marqueeStartX int
-	marqueeStartY int
-	marqueeEndX   int
-	marqueeEndY   int
-	hoverTileX    int
+	marqueeActive    bool
+	marqueeStartX    int
+	marqueeStartY    int
+	marqueeEndX      int
+	marqueeEndY      int
+	hoverTileX       int
 	hoverTileY       int
 	hoverActive      bool
 	hoverHasEntity   bool // an entity (not just a tile) is under the cursor
@@ -154,6 +164,12 @@ type MainState struct {
 	mapModal         *MapModal
 	cheatModal       *CheatModal
 	storageInspector *StorageInspectorModal
+	// inspector is the read-only entity inspector (entity_inspector.go),
+	// made on first use.
+	inspector *entityInspector
+	// contextTitle and contextBody are the HUD context hint last set
+	// (SetContext), for the vmtest state.
+	contextTitle, contextBody string
 	// cursorTools dispatches the modal cursor modes (Relocate/Store/Drop/Pickup);
 	// each tool owns its pending selection state. The named fields expose the
 	// public entry points (Begin/Request) the storage inspector and colonist
@@ -174,6 +190,8 @@ type MainState struct {
 	roguePath         [][2]int
 	campaign          *campaign.Campaign
 	wm                *WorldManager
+	// observerReveal: RevealAll was set for observer mode (view.go).
+	observerReveal bool
 	dashboardBtn      *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
@@ -247,6 +265,7 @@ func (s *MainState) registerLevelListeners() {
 	}
 	ev := s.level.Events
 	ev.RegisterListener(s, eventsystem.ResearchDone) // state: unlock tech
+	ev.RegisterListener(s, eventsystem.StructureBuilt) // stats: builtHere
 	ev.RegisterListener(&listeners.KillListener{Post: s.present}, eventsystem.EntityKilled)
 	ev.RegisterListener(&listeners.StructureListener{Post: s.present}, eventsystem.StructureBuilt)
 	ev.RegisterListener(&listeners.ResearchListener{Post: s.present}, eventsystem.ResearchDone)
@@ -303,7 +322,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			}
 		},
 	}
-	addLogic(s.initiativeSystem)
+	addLogic(tileInitiative{s.initiativeSystem})
 
 	s.cleanUpSystem = &rlsystems.CleanUpSystem{
 		OnEntityDead: func(levelInterface rlworld.LevelInterface, entity *ecs.Entity) {
@@ -318,6 +337,10 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if s.lore != nil {
 				s.lore.recordDeath(entity)
 			}
+			if entity.HasComponents(components.Worker, components.Settlement) &&
+				entity.GetComponent(components.Settlement).(*components.SettlementComponent).Name == s.colonyName() {
+				s.colonistsDied++
+			}
 			if s.campaign != nil && entity.HasComponent(components.QuestTarget) {
 				qt := entity.GetComponent(components.QuestTarget).(*components.QuestTargetComponent)
 				s.campaign.MarkTargetKilled(qt.QuestID)
@@ -326,9 +349,12 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if entity.HasComponent(components.Worker) {
 				wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 				if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
-					wc.CurrentTask.Stop()
+					workerai.StopTask(wc.CurrentTask) // a death: back to the queue
 					wc.CurrentTask = nil
 				}
+			}
+			if !entity.HasComponent(components.Choppable) {
+				grantKillDrops(level, entity) // the hive's corpses as biomass
 			}
 			if entity.HasComponent(components.Drops) {
 				dropsC := entity.GetComponent(components.Drops).(*components.DropsComponent)
@@ -433,6 +459,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.level = level
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
+	s.applyDoctrine()
 	s.mapModal = newMapModal(level, s.colonyName)
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
@@ -489,7 +516,7 @@ func (s *MainState) colonyName() string {
 // knownTechs returns the campaign's tech list if in campaign mode, else the settlement's.
 func (s *MainState) knownTechs() []string {
 	if s.campaign != nil {
-		return s.campaign.KnownTechs
+		return s.campaign.KnownTechs()
 	}
 	if s.MainSettlement != nil {
 		return s.MainSettlement.KnownTechs
@@ -530,23 +557,31 @@ func (s *MainState) unlockTech(key string) {
 }
 
 // findAdjacentWorker returns the first colony worker within one tile of (x,y,z),
-// presumed to be the killer of a freshly-dead hostile. Returns nil if no
-// friendly worker is adjacent (drops will fall to the ground in that case).
+// else (phase D) the first worker of any other settlement there: a rival
+// colonist who chops a tree or kills a critter collects what drops, as the
+// player's do, for its own settlement.
 func findAdjacentWorker(level *world.Level, colony string, x, y, z int) *ecs.Entity {
+	var other *ecs.Entity
 	for dx := -1; dx <= 1; dx++ {
 		for dy := -1; dy <= 1; dy++ {
 			for _, e := range level.Entities {
-				if !components.IsColonyWorker(e, colony) {
+				if e == nil || !e.HasComponents(components.Worker, components.Settlement) || e.HasComponent(rlcomponents.Dead) {
 					continue
 				}
 				pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-				if pc.GetX() == x+dx && pc.GetY() == y+dy && pc.GetZ() == z {
+				if pc.GetX() != x+dx || pc.GetY() != y+dy || pc.GetZ() != z {
+					continue
+				}
+				if components.IsColonyWorker(e, colony) {
 					return e
+				}
+				if other == nil {
+					other = e
 				}
 			}
 		}
 	}
-	return nil
+	return other
 }
 
 func (s *MainState) newGame() {
@@ -668,6 +703,7 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 	s.setLoreFlags()
 	s.registerLevelListeners()
 	s.guiManager = gui.NewGUIManager()
+	s.applyDoctrine()
 	s.mapModal = newMapModal(s.level, s.colonyName)
 	s.refreshResourceScanner()
 	s.cheatModal = newCheatModal(s)
@@ -735,8 +771,8 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 		} else if s.settlementCfg.CampaignMode {
 			// Campaign: no auto-spawn — colonists beam down from the ship.
 		} else {
-			for i := 0; i < 5; i++ {
-				if _, err := spawnColonist(s.level, name, spawnX+i-2, spawnY, spawnZ); err != nil {
+			for i, bp := range crewBlueprints(s.campaign, 5) {
+				if _, err := spawnCrewMember(s.level, bp, name, spawnX+i-2, spawnY, spawnZ); err != nil {
 					log.Printf("spawn colonist: %v", err)
 				}
 			}
@@ -748,7 +784,13 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 
 // spawnColonist creates a colony worker belonging to the named settlement.
 func spawnColonist(level *world.Level, colony string, x, y, z int) (*ecs.Entity, error) {
-	colonist, err := factory.Create("colonist", x, y, z)
+	return spawnCrewMember(level, "colonist", colony, x, y, z)
+}
+
+// spawnCrewMember creates a worker of blueprint belonging to the named
+// settlement.
+func spawnCrewMember(level *world.Level, blueprint, colony string, x, y, z int) (*ecs.Entity, error) {
+	colonist, err := factory.Create(blueprint, x, y, z)
 	if err != nil {
 		return nil, err
 	}
@@ -801,8 +843,21 @@ func (s *MainState) Update() state.StateInterface {
 	// already take the HUD's input exclusively, and must keep updating to be
 	// used and closed.
 	s.guiManager.SetInputBlocked(s.mapModal.Visible || s.cheatModal.Visible ||
-		(s.storageInspector != nil && s.storageInspector.Visible) || s.incidentUp())
+		(s.storageInspector != nil && s.storageInspector.Visible) || s.inspectorUp() || s.incidentUp())
 	s.guiManager.SetPauseIndicator(s.pauseIndicatorText())
+	s.guiManager.SetObserverIndicator(observerMode())
+	s.syncObserverReveal()
+	view := s.wm.viewLabel(s)
+	s.guiManager.SetViewIndicator(view)
+	// The way out of a viewed planet is back to the Star Map.
+	switch {
+	case observerRun():
+		s.dashboardBtn.Text = "Star Map"
+	case view != "":
+		s.dashboardBtn.Text = "To Ship"
+	default:
+		s.dashboardBtn.Text = "Dashboard"
+	}
 	s.guiManager.Update()
 	// In Rogue mode the controlled colonist died or was lost — exit cleanly.
 	if s.rogueEntity != nil &&
@@ -830,6 +885,12 @@ func (s *MainState) Update() state.StateInterface {
 	s.cheatModal.Update()
 	if s.storageInspector != nil {
 		s.storageInspector.Update()
+	}
+	if s.inspector != nil {
+		s.inspector.Update()
+		if s.tick%30 == 0 {
+			s.inspector.Refresh(s.campaign, s.level)
+		}
 	}
 	s.updateHovered()
 
@@ -890,7 +951,7 @@ func (s *MainState) adoptWorldPause() {
 
 // incidentUp reports whether the incident popup holds the screen.
 func (s *MainState) incidentUp() bool {
-	return s.wm != nil && s.wm.ActiveIncident() != nil
+	return s.wm != nil && s.wm.PopupUp()
 }
 
 // clockStopped reports whether the world stands still on this level: paused by the
@@ -974,6 +1035,9 @@ func (s *MainState) Draw(screen *ebiten.Image) {
 	s.cheatModal.Draw(screen)
 	if s.storageInspector != nil {
 		s.storageInspector.Draw(screen)
+	}
+	if s.inspector != nil {
+		s.inspector.Draw(screen)
 	}
 	tutorialDraw(screen)
 	if s.wm != nil {
@@ -1073,7 +1137,9 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.done = true
 		}
 	case gui.CraftRequestedEvent:
-		s.addCraftTask(ev.RecipeID, ev.Station)
+		if !observerMode() {
+			s.addCraftTask(ev.RecipeID, ev.Station)
+		}
 	case gui.StationClickedEvent:
 		if s.MainSettlement != nil {
 			cs := ev.Station.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
@@ -1081,7 +1147,7 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			for _, k := range s.knownTechs() {
 				knownTechs[k] = true
 			}
-			allRecipes := crafting.RecipesByStation(cs.StationID)
+			allRecipes := craftableAt(s.doctrineSettlement(), cs.StationID)
 			var recipes, lockedRecipes []crafting.Recipe
 			for _, r := range allRecipes {
 				if r.RequiresTech == "" || knownTechs[r.RequiresTech] {
@@ -1102,8 +1168,26 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.guiManager.OpenResearchModal(ev.Station, available, locked, completed, inProgress, queue)
 		}
 	case gui.ResearchRequestedEvent:
-		s.addResearchTask(ev.TechKey, ev.Station)
+		if !observerMode() {
+			s.addResearchTask(ev.TechKey, ev.Station)
+		}
+	case eventsystem.StructureBuiltEvent:
+		if ev.Settlement == s.colonyName() {
+			if s.builtHere == nil {
+				s.builtHere = map[string]int{}
+			}
+			s.builtHere[ev.Type]++
+		}
 	case eventsystem.ResearchDoneEvent:
+		if ev.Settlement != "" && ev.Settlement != s.colonyName() {
+			// A faction settlement's research is its own (reconcile writes it
+			// onto its presence).
+			if st := settlement.Settlements[ev.Settlement]; st != nil {
+				st.UnlockTech(ev.TechKey)
+				retypeSettlement(s.level, ev.Settlement, ev.TechKey) // upgrades reach the living
+			}
+			break
+		}
 		s.unlockTech(ev.TechKey)
 		s.guiManager.SetKnownTechs(s.knownTechs())
 		s.refreshResourceScanner()
@@ -1184,73 +1268,37 @@ func (s *MainState) researchSnapshot() (available, locked, completed, inProgress
 		queue = append(queue, gui.ResearchQueueEntry{Name: name, Progress: progress, Delivered: delivered, Required: required})
 	}
 
-	for _, t := range research.AvailableTechs(s.knownTechs()) {
+	st := s.doctrineSettlement()
+	for _, t := range availableResearch(st, s.knownTechs()) {
 		if inProgressSet[t.Key] {
 			continue
 		}
 		available = append(available, t)
 	}
-	locked = research.LockedTechs(s.knownTechs())
+	locked = lockedResearch(st, s.knownTechs())
 	return
 }
 
-func (s *MainState) addResearchTask(techKey string, station *ecs.Entity) {
-	if s.MainSettlement == nil {
-		return
-	}
-	tech, found := research.GetTech(techKey)
-	if !found {
-		log.Printf("[RESEARCH] tech not found: %s", techKey)
-		return
-	}
-	if s.hasTech(techKey) {
-		message.AddMessage(tech.Name + " already researched.")
-		return
-	}
-	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.Completed || t.Action != task_requests.ResearchAction {
-			continue
+func (s *MainState) addResearchTask(techKey string, station *ecs.Entity) bool {
+	ok, why := orderResearch(s.MainSettlement, s.doctrineSettlement(), s.hasTech, techKey, station)
+	if ok {
+		if tech, found := research.GetTech(techKey); found {
+			message.AddMessage("Queued research: " + tech.Name)
 		}
-		if rr, ok := t.Data.(*task_requests.ResearchRequest); ok && rr.TechKey == techKey {
-			message.AddMessage(tech.Name + " is already being researched.")
-			return
-		}
+	} else if why != "" && why != "unknown" && why != "no settlement" {
+		message.AddMessage(why)
 	}
-	pc := station.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.ResearchAction,
-		Data: &task_requests.ResearchRequest{
-			TechKey:  techKey,
-			Building: tech.RequiredBuilding,
-			Required: tech.Duration,
-		},
-		X: pc.GetX(), Y: pc.GetY(), Z: pc.GetZ(),
-	})
-	message.AddMessage("Queued research: " + tech.Name)
+	return ok
 }
 
-func (s *MainState) addCraftTask(recipeID string, station *ecs.Entity) {
-	if s.MainSettlement == nil {
-		return
+func (s *MainState) addCraftTask(recipeID string, station *ecs.Entity) bool {
+	if !orderCraft(s.MainSettlement, s.doctrineSettlement(), s.hasTech, recipeID, station) {
+		return false
 	}
-	recipe, found := crafting.GetRecipe(recipeID)
-	if !found {
-		log.Printf("[CRAFT] recipe not found: %s", recipeID)
-		return
+	if recipe, found := crafting.GetRecipe(recipeID); found {
+		message.AddMessage("Queued: craft " + recipe.Name)
 	}
-	wbPC := station.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.CraftAction,
-		Data: task_requests.CraftRequest{
-			RecipeID:   recipeID,
-			WorkbenchX: wbPC.GetX(),
-			WorkbenchY: wbPC.GetY(),
-			WorkbenchZ: wbPC.GetZ(),
-			Required:   recipe.BuildTime,
-		},
-		X: wbPC.GetX(), Y: wbPC.GetY(), Z: wbPC.GetZ(),
-	})
-	message.AddMessage("Queued: craft " + recipe.Name)
+	return true
 }
 
 // BeginRelocate is called from the storage inspector; it delegates to the
@@ -1532,6 +1580,12 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 		}
 		return
 	}
+	if s.inspectorUp() {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			s.inspector.Close()
+		}
+		return
+	}
 
 	for _, k := range e.Keys {
 		switch k.String() {
@@ -1593,6 +1647,9 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 
 // beamUpSelected sends the currently selected colonist up to the ship roster.
 func (s *MainState) beamUpSelected() {
+	if observerMode() {
+		return // the expedition director beams crew
+	}
 	e := s.selectedEntity
 	if !components.IsColonyWorker(e, s.colonyName()) {
 		message.PostMessage("Ship", "Select a colonist to beam up.")
@@ -1628,6 +1685,7 @@ func (s *MainState) openDashboard() {
 		return
 	}
 	s.teardown()
+	s.wm.EndView() // a viewed-only planet is frozen again (view.go)
 	if s.Paused {
 		s.Paused = false
 		s.wm.paused = true
@@ -1668,6 +1726,9 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		return
 	}
 	if s.storageInspector != nil && s.storageInspector.Visible {
+		return
+	}
+	if s.inspectorUp() {
 		return
 	}
 	if s.guiManager.GetMouseFocused() || s.guiManager.WithinModalBounds(ebiten.CursorPosition()) {
@@ -1721,26 +1782,24 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		}
 		if s.CursorMode == gui.CursorModeDefault {
 			ent := s.level.GetEntityAt(tX, tY, s.camera.Z)
+			// Observer mode: a click only selects; the director gives the orders.
+			orders := !observerMode()
 
-			if ent != nil && components.IsAttackTarget(ent) && s.MainSettlement != nil {
+			if orders && ent != nil && components.IsAttackTarget(ent) && s.MainSettlement != nil {
 				// Attack hostile entity (faction raiders, scripted mutants/zombies, etc.)
 				s.MainSettlement.Tasks.AddTask(&task.Task{
 					Action: task_requests.AttackAction, Data: ent,
 					X: tX, Y: tY, Z: s.camera.Z, Escalated: true,
 				})
-			} else if ent != nil && ent.HasComponent(components.Choppable) && s.MainSettlement != nil {
+			} else if orders && ent != nil && ent.HasComponent(components.Choppable) && s.MainSettlement != nil {
 				// Harvest choppable entity (flora, crystals, etc.)
 				s.addMineTask(tX, tY)
-			} else if ent != nil && ent.HasComponent(rlcomponents.Item) && s.MainSettlement != nil {
+			} else if orders && ent != nil && ent.HasComponent(rlcomponents.Item) && s.MainSettlement != nil {
 				// Retrieve dropped item
-				s.MainSettlement.Tasks.AddTask(&task.Task{
-					Action: task_requests.RetrieveAction,
-					Data:   task_requests.RetrieveRequest{Item: ent},
-					X:      tX, Y: tY, Z: s.camera.Z, Escalated: true,
-				})
-			} else if ent != nil && ent.HasComponent(components.Bed) && s.MainSettlement != nil {
+				s.queueRetrieve(ent, tX, tY, s.camera.Z)
+			} else if orders && ent != nil && ent.HasComponent(components.Bed) && s.MainSettlement != nil {
 				s.addSleepTask(tX, tY)
-			} else if ent != nil && ent.HasComponent(components.Repairable) && s.MainSettlement != nil {
+			} else if orders && ent != nil && ent.HasComponent(components.Repairable) && s.MainSettlement != nil {
 				s.addRepairTask(ent)
 			} else {
 				// Select entity (colonist, building, etc.)
@@ -1764,7 +1823,11 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					ent.AddComponent(&components.SelectedComponent{})
 					s.selectedEntity = ent
 					event.GetQueuedInstance().SendEvent(gui.EntitySelectedEvent{Entity: ent})
-					if ent.HasComponent(components.CraftingStation) {
+					if !orders {
+						// Observer mode: every entity opens the read-only
+						// inspector (no settlement to give orders to).
+						s.openInspector(ent)
+					} else if ent.HasComponent(components.CraftingStation) {
 						event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
 					} else if ent.HasComponent(components.ResearchBuilding) {
 						event.GetQueuedInstance().QueueEvent(gui.ResearchStationClickedEvent{Station: ent})
@@ -1772,6 +1835,11 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 						event.GetQueuedInstance().QueueEvent(gui.ColonistSelectedEvent{Entity: ent})
 					} else if ent.HasComponent(components.Storage) && s.storageInspector != nil {
 						s.storageInspector.Open(ent)
+					} else if ent.HasComponent(rlcomponents.Health) && ent.HasComponent(rlcomponents.Initiative) {
+						// A creature or another faction's worker (a body
+						// that acts, not a door or wall) the click gives
+						// no order to: read it.
+						s.openInspector(ent)
 					}
 				} else if s.MainSettlement != nil {
 					// Walkable empty tile — queue a move task
@@ -1795,7 +1863,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					}
 				}
 			}
-		} else if s.MainSettlement != nil {
+		} else if s.MainSettlement != nil && !observerMode() {
 			// Perform the active order
 			switch s.CursorMode {
 			case gui.CursorModeBuild:
@@ -1852,7 +1920,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		if s.CursorMode != gui.CursorModeDefault {
 			// Cancel active order, return to default
 			event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-		} else if s.MainSettlement != nil {
+		} else if s.MainSettlement != nil && !observerMode() {
 			// Cancel any pending task at this tile
 			for _, t := range s.MainSettlement.Tasks.GetTasks() {
 				if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
@@ -1896,19 +1964,25 @@ func (s *MainState) addBuildTask(x, y int) {
 			y += sc.Height / 2
 		}
 	}
-	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.X == x && t.Y == y && t.Z == s.camera.Z && t.Action == task_requests.BuildAction {
-			return
-		}
+	if !s.queueBuild(s.buildMode, x, y, s.camera.Z) {
+		return
 	}
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.BuildAction,
-		Data:   task_requests.BuildRequest{X: x, Y: y, Z: s.camera.Z, Type: s.buildMode, Required: buildable.BuildTime},
-		X:      x, Y: y, Z: s.camera.Z,
-	})
 	if !buildable.AllowMultiple {
 		s.CursorMode = gui.CursorModeDefault
 	}
+}
+
+// queueRetrieve orders a dropped item brought into storage (a click on it,
+// and the director's hauling).
+func (s *MainState) queueRetrieve(item *ecs.Entity, x, y, z int) {
+	orderRetrieve(s.MainSettlement, item, x, y, z)
+}
+
+// queueBuild posts a build of kind at (x, y, z), the BuildRequest position
+// (a sized entity's centre), unless one is already ordered there. The build
+// cursor and the director both order through it.
+func (s *MainState) queueBuild(kind string, x, y, z int) bool {
+	return orderBuild(s.MainSettlement, s.level, kind, x, y, z)
 }
 
 // addRepairTask orders a broken machine repaired: a build of its Repairable
@@ -2021,6 +2095,9 @@ func (s *MainState) startMarquee(x, y int) {
 // addDigTask/addMineTask self-filter ineligible tiles and dedup, so a sweep over
 // the whole rectangle is safe; a plain click commits a 1x1 box (one tile).
 func (s *MainState) commitMarquee() {
+	if observerMode() {
+		return // the director gives the orders
+	}
 	minX, maxX := minMax(s.marqueeStartX, s.marqueeEndX)
 	minY, maxY := minMax(s.marqueeStartY, s.marqueeEndY)
 	for y := minY; y <= maxY; y++ {
@@ -2047,24 +2124,11 @@ func minMax(a, b int) (int, int) {
 	return b, a
 }
 
-func (s *MainState) addDigTask(x, y int) {
-	if s.MainSettlement == nil {
-		return
-	}
-	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.X == x && t.Y == y && t.Z == s.camera.Z && t.Action == task_requests.DigAction {
-			return
-		}
-	}
-	tile := s.level.GetTileAt(x, y, s.camera.Z)
-	if tile == nil || !tile.IsSolid() {
-		return
-	}
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.DigAction,
-		Data:   task_requests.DigRequest{X: x, Y: y, Z: s.camera.Z, Required: 5},
-		X:      x, Y: y, Z: s.camera.Z,
-	})
+func (s *MainState) addDigTask(x, y int) { s.queueDig(x, y, s.camera.Z) }
+
+// queueDig orders a solid tile dug out, unless it is already ordered.
+func (s *MainState) queueDig(x, y, z int) bool {
+	return orderDig(s.MainSettlement, s.level, x, y, z)
 }
 
 // addMineTask queues a Mine/Chop order at (x,y) when the tile holds something
@@ -2072,53 +2136,12 @@ func (s *MainState) addDigTask(x, y int) {
 // (ore). It reports whether it queued (or already had) such a task, so the Dig
 // sweep can mine/chop those tiles and plain-dig the rest. Plain rock/dirt yields
 // nothing, so it returns false there.
-func (s *MainState) addMineTask(x, y int) bool {
-	if s.MainSettlement == nil {
-		return false
-	}
-	z := s.camera.Z
-	// Dedup: an area sweep can revisit a tile; don't stack duplicate mine orders.
-	for _, t := range s.MainSettlement.Tasks.GetTasks() {
-		if t.X == x && t.Y == y && t.Z == z && t.Action == task_requests.MineAction {
-			return true
-		}
-	}
-	// Prefer a Choppable entity at the tile (e.g. alien_crystal). Required is
-	// derived from the entity's Choppable.Health so harder things take longer.
-	var entBuf []*ecs.Entity
-	s.level.GetEntitiesAt(x, y, z, &entBuf)
-	for _, e := range entBuf {
-		if !e.HasComponent(components.Choppable) {
-			continue
-		}
-		ch := e.GetComponent(components.Choppable).(*components.ChoppableComponent)
-		req := task_requests.MineRequest{X: x, Y: y, Z: z, Required: ch.Health * 10, Target: e}
-		s.MainSettlement.Tasks.AddTask(&task.Task{
-			Action: task_requests.MineAction,
-			Data:   req,
-			X:      x, Y: y, Z: z,
-		})
-		return true
-	}
+func (s *MainState) addMineTask(x, y int) bool { return s.queueMine(x, y, s.camera.Z) }
 
-	tile := s.level.GetTileAt(x, y, z)
-	if tile == nil {
-		return false
-	}
-	t := tile.(*world.Tile)
-	if t.Middle.IsEmpty() {
-		return false
-	}
-	tileName := world.TileDefinitions[t.Middle.Type].Name
-	if !world.IsDepositTileName(tileName) {
-		return false
-	}
-	s.MainSettlement.Tasks.AddTask(&task.Task{
-		Action: task_requests.MineAction,
-		Data:   task_requests.MineRequest{X: x, Y: y, Z: z, Required: 50},
-		X:      x, Y: y, Z: z,
-	})
-	return true
+// queueMine is addMineTask on level z (the Mine and Dig cursors and the
+// director).
+func (s *MainState) queueMine(x, y, z int) bool {
+	return orderMine(s.MainSettlement, s.level, x, y, z)
 }
 
 func (s *MainState) updateHovered() {
@@ -2141,7 +2164,7 @@ func (s *MainState) updateHovered() {
 	if tile == nil && entity == nil {
 		s.guiManager.ClearHover()
 		if s.CursorMode == gui.CursorModeDefault {
-			s.guiManager.SetDefaultContext("", "", "")
+			s.SetContext("", "", "")
 		} else if tool, ok := s.cursorTools[s.CursorMode]; ok {
 			tool.Hover(tX, tY, s.camera.Z)
 		}
@@ -2222,13 +2245,17 @@ func (s *MainState) updateHovered() {
 // updateDefaultContext detects what a Default-mode left-click would do at (tX,tY)
 // and updates the HUD context hint accordingly.
 func (s *MainState) updateDefaultContext(tX, tY int) {
+	if observerMode() {
+		s.observerContext(tX, tY)
+		return
+	}
 	if entity := s.level.GetEntityAt(tX, tY, s.camera.Z); entity != nil {
 		if components.IsAttackTarget(entity) {
 			name := "Enemy"
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.SetDefaultContext("Attack: "+name, "Order colonists to attack this target.", entity.Blueprint)
+			s.SetContext("Attack: "+name, "Order colonists to attack this target.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(components.Choppable) {
@@ -2236,7 +2263,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.SetDefaultContext("Harvest: "+name, "Order colonists to harvest this.", entity.Blueprint)
+			s.SetContext("Harvest: "+name, "Order colonists to harvest this.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(rlcomponents.Item) {
@@ -2244,7 +2271,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.SetDefaultContext("Retrieve: "+name, "Order colonists to pick this up.", entity.Blueprint)
+			s.SetContext("Retrieve: "+name, "Order colonists to pick this up.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(components.Bed) {
@@ -2252,7 +2279,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.SetDefaultContext("Sleep: "+name, "Order the most wounded idle colonist to rest here.", entity.Blueprint)
+			s.SetContext("Sleep: "+name, "Order the most wounded idle colonist to rest here.", entity.Blueprint)
 			return
 		}
 		if components.IsColonyWorker(entity, s.colonyName()) {
@@ -2260,7 +2287,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.guiManager.SetDefaultContext("Inspect: "+name, "View equipment, inventory, and task filters.", entity.Blueprint)
+			s.SetContext("Inspect: "+name, "View equipment, inventory, and task filters.", entity.Blueprint)
 			return
 		}
 	}
@@ -2271,12 +2298,12 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 		walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
 		hasFloor := !t.Floor.IsEmpty()
 		if walkable && hasFloor {
-			s.guiManager.SetDefaultContext("Move Here", "Send colonists to this location.", "")
+			s.SetContext("Move Here", "Send colonists to this location.", "")
 			return
 		}
 	}
 
-	s.guiManager.SetDefaultContext("", "", "")
+	s.SetContext("", "", "")
 }
 
 // refreshSaveNames re-reads the saves directory and updates the HUD list. Called
@@ -2543,39 +2570,41 @@ func (s *MainState) collectDatapads() {
 			s.readStationLog()
 			continue
 		}
-		text, _ := s.campaign.RevealDatapad(dp.EventID)
-		if dp.Text != "" {
-			// A clue left in a structure: its own words; the event it
-			// belongs to becomes known all the same.
-			text = dp.Text
-		}
+		// A clue left in a structure reads as its own words; the event it
+		// belongs to becomes known all the same.
+		text, lead := datapadReading(s.campaign, dp)
+		s.campaign.RevealDatapad(dp.EventID)
 		if text != "" {
 			message.PostMessage("Datapad", "Recovered a datapad: "+text)
+			s.campaign.RecordDatapad(s.siteName(), text)
 		}
 		if q := s.campaign.UnlockQuest(dp.QuestID); q != nil {
-			message.PostMessage("Datapad", fmt.Sprintf("Recovered a datapad — new lead: %s. %s", q.Name, q.Description))
+			message.PostMessage("Datapad", "Recovered a datapad — new lead: "+lead)
+			s.campaign.RecordDatapad(s.siteName(), "New lead: "+lead)
 		}
 	}
+}
+
+// siteName names the location this level is, "" without one.
+func (s *MainState) siteName() string {
+	if s.campaign != nil {
+		if loc := s.campaign.Locations[s.locationID]; loc != nil {
+			return loc.Name
+		}
+	}
+	return ""
 }
 
 // readStationLog reads a station's log console: every event with an origin
 // on this level becomes known, each new one read out.
 func (s *MainState) readStationLog() {
-	var ids []string
-	for k := range s.level.Flags {
-		if strings.HasPrefix(k, "origin:") && strings.HasSuffix(k, ":x") {
-			if id := strings.TrimSuffix(strings.TrimPrefix(k, "origin:"), ":x"); id != generation.ChapterOrigin {
-				ids = append(ids, id)
-			}
-		}
-	}
-	sort.Strings(ids)
 	n := 0
-	for _, id := range ids {
+	for _, id := range stationLogIDs(s.level) {
 		if text, newly := s.campaign.RevealDatapad(id); text != "" {
 			n++
 			if newly {
 				message.PostMessage("Datapad", "Station log: "+text)
+				s.campaign.RecordDatapad(s.siteName(), "Station log: "+text)
 			}
 		}
 	}
@@ -2616,6 +2645,9 @@ func (s *MainState) checkTotalWipe() {
 	}
 	if s.wm == nil || s.wm.TotalColonists() > 0 {
 		return
+	}
+	if c.Observer && c.Expedition() != nil {
+		return // an observer run's colonists are the expedition fleet's
 	}
 	c.Lost = true
 	message.PostMessage("Mission", "All colonists are lost. The expedition ends here.")
@@ -2940,4 +2972,38 @@ func isStandable(level *world.Level, x, y, z int) bool {
 		return false
 	}
 	return true
+}
+
+// openInspector opens the read-only entity inspector on e.
+func (s *MainState) openInspector(e *ecs.Entity) {
+	if s.inspector == nil {
+		s.inspector = newEntityInspector()
+	}
+	s.inspector.Open(s.campaign, s.level, e)
+}
+
+// inspectorUp reports whether the entity inspector is open.
+func (s *MainState) inspectorUp() bool { return s.inspector != nil && s.inspector.Visible }
+
+// observerContext is the default cursor's hint in observer mode: no
+// colonists to order, so a click on an entity inspects it (a datapad reads),
+// and an empty tile does nothing. DRAFT text: the owner rewrites it.
+func (s *MainState) observerContext(tX, tY int) {
+	e := s.level.GetEntityAt(tX, tY, s.camera.Z)
+	if e == nil {
+		for _, se := range s.level.StaticEntities {
+			if pc, ok := entityPos(se); ok && pc.GetX() == tX && pc.GetY() == tY && pc.GetZ() == s.camera.Z {
+				e = se
+				break
+			}
+		}
+	}
+	switch {
+	case e == nil:
+		s.SetContext("", "", "")
+	case e.HasComponent(components.Datapad):
+		s.SetContext("Read: "+entityDisplayLabel(e), "Click to read it.", e.Blueprint)
+	default:
+		s.SetContext("Inspect: "+entityDisplayLabel(e), "Click to see its stats and inventory.", e.Blueprint)
+	}
 }

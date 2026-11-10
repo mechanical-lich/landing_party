@@ -1,0 +1,380 @@
+{
+    "wire_placer_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "WIRE PLACER",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "wire placer"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 8,
+            "AC": 4,
+            "BasicAttackDice": "1d4"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
+        }
+    },
+    "enforcer_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 192,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "ENFORCER",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "enforcer"
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
+        }
+    },
+    "relay_drone_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "RELAY DRONE",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "relay drone",
+            "LongDescription": "DRAFT. An Autonz relay drone, printed."
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 8,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 4,
+            "Int": 4,
+            "Dex": 10,
+            "AC": 4,
+            "BasicAttackDice": "1d4"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
+        }
+    },
+    "seeker_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "SEEKER",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "seeker",
+            "LongDescription": "DRAFT. An Autonz seeker, printed."
+        },
+        "Health": {
+            "MaxHealth": 10
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 16,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
+        }
+    },
+    "harvester_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 288,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "HARVESTER",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "harvester",
+            "LongDescription": "DRAFT. An Autonz harvester, printed."
+        },
+        "Health": {
+            "MaxHealth": 10
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 8,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite",
+                "ferrite"
+            ]
+        }
+    },
+    "sentinel_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "SENTINEL",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "sentinel",
+            "LongDescription": "DRAFT. An Autonz sentinel, printed."
+        },
+        "Health": {
+            "MaxHealth": 14
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 6,
+            "Int": 4,
+            "Dex": 14,
+            "AC": 10,
+            "BasicAttackDice": "1d4"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite",
+                "ferrite"
+            ]
+        }
+    },
+    "warden_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 216,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "WARDEN",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "warden",
+            "LongDescription": "DRAFT. An Autonz warden, printed."
+        },
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 14,
+            "Int": 4,
+            "Dex": 10,
+            "AC": 12,
+            "BasicAttackDice": "2d6"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite",
+                "ferrite"
+            ]
+        }
+    },
+    "autonz_sleeper_node": {
+        "Appearance": {
+            "R": 90,
+            "G": 95,
+            "B": 120,
+            "Resource": "scifi_entities",
+            "SpriteX": 384,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "DORMANT NODE",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "sleeper",
+            "LongDescription": "DRAFT. A dark Autonz cube half sunk in the ground. A faint carrier tone pulses inside it, counting."
+        },
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Kin": {
+            "Morph": "structure"
+        },
+        "Solid": {}
+    }
+}

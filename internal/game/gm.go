@@ -55,8 +55,8 @@ func (gm *GameMaster) Update(sc *scenario.Scenario) {
 	hostileCount := 0
 	for _, e := range gm.level.Entities {
 		if !e.HasComponent(rlcomponents.Dead) &&
-			(e.HasComponent(components.FactionAI) || e.HasComponent(components.ScriptedAI)) {
-			hostileCount++
+			(e.HasComponent(components.FactionAI) || e.HasComponent(components.ScriptedAI) || hiveWorker(e)) {
+			hostileCount++ // every hive body, wild or settled, counts (hive_plan.md)
 		}
 	}
 

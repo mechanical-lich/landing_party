@@ -1,0 +1,32 @@
+{"name":"observer_datapad","seed":1512,"config":{"observerMode":true,"debugDisableLighting":true}}
+# Reading a datapad in an observer run: New Expedition seed 1512 with
+# observer mode on; View the xeno wreck site (sys_10, lore_legends' site),
+# where nobody of the player's ever walks, and click a lore datapad where it
+# lies. The inspector shows its whole text, the words a colonist picking it
+# up reads (datapadReading), and reading it changes nothing: the event stays
+# unknown. Frames: the site viewed, the datapad read.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Pad Watch"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"1512"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"observer_run","eq":true}
+{"op":"assert","path":"campaign.known_events","eq":0}
+{"op":"click","target":"row:locList:sys_10"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"location","eq":"sys_10"}
+{"op":"key","key":"Space"}
+{"op":"debug","cmd":"focus datapad"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"site"}
+{"op":"click","target":"focused"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"modal","contains":"entity_inspector"}
+{"op":"assert","path":"entity_inspector.text","contains":"— Datapad —"}
+{"op":"assert","path":"context.title","contains":"Read: "}
+{"op":"assert","path":"campaign.known_events","eq":0}
+{"op":"screenshot","name":"datapad_read"}

@@ -1,13 +1,13 @@
 {
   "id": "exterminate_xenos",
   "name": "Exterminate Xenos",
-  "description": "A xeno infestation has spread across the region. Hunt down and destroy every egg and xenomorph to win.",
+  "description": "A xeno infestation has spread across the region. Hunt down and destroy every xeno and every egg to win.",
   "enabled": true,
   "setup_scripts": [
     "data/scripts/scenarios/xeno_purge_setup.basic"
   ],
   "hostile_max": 200,
-  "threat_blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3"],
+  "threat_blueprints": ["xeno_egg", "xeno_hatchling", "xeno_stage2", "xeno_stage3", "xeno_crew", "troid_crew", "hive_larva"],
   "threat_name": "xeno",
   "supported_maps": [
     "earth_like",

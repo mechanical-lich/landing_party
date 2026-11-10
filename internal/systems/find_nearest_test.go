@@ -131,3 +131,32 @@ endfunction
 		})
 	}
 }
+
+// A wild hive creature never hunts the hive's own workers (a presence's
+// drones): find_nearest_worker skips workers of the caller's faction and
+// still finds a colonist behind them.
+func TestFindNearestWorkerSkipsOwnFaction(t *testing.T) {
+	lvl := world.NewLevel(16, 16, 4)
+	self := mob(lvl, "hive", 5, 5, 1)
+	drone := mob(lvl, "hive", 6, 5, 1)
+	drone.AddComponent(&components.WorkerComponent{})
+	interp := basic.NewMechanicalBasic()
+	registerScriptedAIFuncs(interp, self, lvl, &components.ScriptedAIComponent{Vars: map[string]any{}})
+	require.NoError(t, interp.Load(`
+function probe()
+    return find_nearest_worker(4)
+endfunction
+function px()
+    find_nearest_worker(4)
+    return get_nearest_x()
+endfunction
+`))
+	assert.Equal(t, 0.0, callNum(t, interp, "probe"), "the hive's own drone")
+	w := mob(lvl, "colony", 8, 5, 1)
+	w.AddComponent(&components.WorkerComponent{})
+	assert.Equal(t, 0.0, callNum(t, interp, "probe"), "miss cooldown")
+	for i := 0; i < 5; i++ {
+		callNum(t, interp, "probe")
+	}
+	assert.Equal(t, 8.0, callNum(t, interp, "px"), "the colonist behind it")
+}

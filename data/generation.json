@@ -34,6 +34,10 @@
   "jump_fuel_per_day": 3,
 
   "safe_start_radius": 8,
+
+  "factions_default": 1,
+  "factions_max": 4,
+
   "lore_budget": {
     "_note": "Per map size class (max_width; 0 = the largest): what a site's history evidence may leave, and the least gap between stamps. Keep-outs are tiles from the landing reserve box (2*landing_half+1 wide). See docs/developer/lore.md.",
     "classes": [

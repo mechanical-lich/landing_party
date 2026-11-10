@@ -120,5 +120,25 @@
             "Tags": ["stone", "mineral", "raw_material"],
             "MaxStack": 500
         }
+    },
+    "ferrite": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 336,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "Ferrite",
+            "Faction": "",
+            "LongDescription": "DRAFT. A dense grey block of refined autonz feedstock. Salvage; nothing the colony makes uses it yet."
+        },
+        "Item": {},
+        "Material": {
+            "Tags": ["ferrite", "metal", "salvage", "raw_material"],
+            "MaxStack": 100
+        }
     }
 }

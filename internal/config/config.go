@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"testing"
 )
 
 type Config struct {
@@ -30,10 +31,10 @@ type Config struct {
 	// into the campaign's KnownTechs on creation. Debug aid for testing
 	// research-gated features (Encyclopedia, Global Inventory tiers, etc.)
 	// without grinding research time.
-	UnlockAllResearch      bool   `json:"unlockAllResearch"`
-	ProfileCPU             bool   `json:"profileCPU"`
-	ProfileMemory          bool   `json:"profileMemory"`
-	OverrideGCMemoryLimit  int64  `json:"overrideGCMemoryLimit"`
+	UnlockAllResearch     bool  `json:"unlockAllResearch"`
+	ProfileCPU            bool  `json:"profileCPU"`
+	ProfileMemory         bool  `json:"profileMemory"`
+	OverrideGCMemoryLimit int64 `json:"overrideGCMemoryLimit"`
 	// Rogue mode key-repeat: frames before held WASD starts repeating, and the
 	// interval between repeated moves. At 60 fps, 20 delay ≈ 333 ms, 4 interval ≈ 67 ms.
 	RogueKeyRepeatDelay    int `json:"rogueKeyRepeatDelay"`
@@ -71,6 +72,12 @@ type Config struct {
 	// tutorial's "don't show again" choice; the player can still flip the
 	// toggle each time.
 	TutorialOffDefault bool `json:"tutorialOffDefault"`
+
+	// ObserverMode makes the game play itself (phase C1 of the enemy
+	// factions plan): the director runs the player's settlement, the cursor
+	// gives no orders, incident popups are answered Ignore and the Star Map
+	// never stops the clock. For integration and balance runs.
+	ObserverMode bool `json:"observerMode"`
 }
 
 // LoadConfig reads and unmarshals a JSON config file.
@@ -94,7 +101,24 @@ const localConfigPath = "data/config.local.json"
 // applyLocalOverrides merges config.local.json on top of cfg if the file
 // exists. Only the fields present in the local file are overwritten; all
 // others keep their value from the base config.
+//
+// Under go test (testing.Testing()) the file is skipped: it is the player's
+// own and git-ignored, so a developer's observer-mode or unlock flags must
+// never change what a test sees. The game binary always applies it.
 func applyLocalOverrides(cfg *Config) {
+	if localOverridesDisabled() {
+		return
+	}
+	applyLocalOverridesFrom(cfg, localConfigPath)
+}
+
+// localOverridesDisabled reports whether config.local.json is ignored: always
+// under go test, never in the game.
+func localOverridesDisabled() bool { return testing.Testing() }
+
+// applyLocalOverridesFrom merges the JSON file at path onto cfg (missing file:
+// no-op). Split out so a test can prove the merge itself still works.
+func applyLocalOverridesFrom(cfg *Config, localConfigPath string) {
 	data, err := os.ReadFile(localConfigPath)
 	if os.IsNotExist(err) {
 		return // no local overrides, nothing to do

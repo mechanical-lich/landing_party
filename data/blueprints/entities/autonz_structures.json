@@ -1,0 +1,169 @@
+{
+    "signal_core": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 384,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "Signal Core",
+            "Faction": "autonz",
+            "Species": "signal_core",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A red-slit Autonz cube at the heart of a hub. Signals leave from it."
+        },
+        "Health": {
+            "MaxHealth": 60
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    },
+    "cogitator": {
+        "Appearance": {
+            "R": 120,
+            "G": 170,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 576,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Cogitator",
+            "Faction": "autonz",
+            "Species": "cogitator",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. An Autonz terminal humming through patterns it has taken from elsewhere."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "ResearchBuilding": {
+            "Type": "cogitator"
+        }
+    },
+    "converter_node": {
+        "Appearance": {
+            "R": 120,
+            "G": 190,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Converter Node",
+            "Faction": "autonz",
+            "Species": "converter_node",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A pylon that spools wire out to the placers near it."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "ConvertBoost": {
+            "radius": 5,
+            "factor": 0.5
+        }
+    },
+    "defence_pylon": {
+        "Appearance": {
+            "R": 255,
+            "G": 110,
+            "B": 100,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Defence Pylon",
+            "Faction": "autonz",
+            "Species": "defence_pylon",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A sentinel's post on the edge of the wire."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    },
+    "relay_pylon": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_world",
+            "SpriteX": 720,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Relay Pylon",
+            "Faction": "autonz",
+            "Species": "relay_pylon",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A relay drone folded into a mast. It carries the hub's signal further."
+        },
+        "Health": {
+            "MaxHealth": 30
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    }
+}

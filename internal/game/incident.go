@@ -8,6 +8,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/config"
 	"github.com/mechanical-lich/landing_party/internal/eventsystem"
 	"github.com/mechanical-lich/landing_party/internal/storage"
+	"github.com/mechanical-lich/mlge/message"
 	"github.com/mechanical-lich/mlge/state"
 	"github.com/mechanical-lich/mlge/ui/minui"
 )
@@ -67,6 +68,15 @@ func (wm *WorldManager) noteAwayDamage(s *MainState, ev eventsystem.EntityDamage
 	}
 	victim := entityDisplayName(ev.Victim)
 	where := wm.locationLabel(s.locationID)
+	if observerRun() {
+		// An observer run has no colonists of the player's to raise this
+		// (the expedition's are a faction's); kept as a guard: nothing is
+		// addressed to a player who is not there. Ignored and logged.
+		wm.notify(s, fmt.Sprintf("%s came under attack", victim))
+		wm.observerIgnored++
+		message.PostMessage("Observer", fmt.Sprintf("Incident on %s (%s under attack): ignored.", where, victim))
+		return
+	}
 	wm.incidents = append(wm.incidents, Incident{LocationID: s.locationID, Where: where, Victim: victim})
 	wm.notify(s, fmt.Sprintf("%s came under attack", victim))
 }

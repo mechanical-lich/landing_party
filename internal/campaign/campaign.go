@@ -14,7 +14,10 @@ import (
 // CampaignVersion is the current campaign-save schema version, stamped at
 // generation. Version 2 added the generated history and the star date; older
 // campaigns are refused on load rather than migrated (see game.LoadCampaign).
-const CampaignVersion = 2
+// Version 3 added enemy faction presences; a version 2 save migrates with none
+// (MigrateCampaign). Version 4 moved the player's known techs onto the
+// player's own presence (Player); a version 3 save migrates them there.
+const CampaignVersion = 4
 
 type Campaign struct {
 	// Version is the save-schema version (see CampaignVersion).
@@ -55,9 +58,17 @@ type Campaign struct {
 	// died (named bosses / bounty creatures). Persisted so completion
 	// survives freeze/thaw and save/load.
 	KilledTargets map[string]bool `json:"killed_targets,omitempty"`
-	// KnownTechs is the set of tech keys the colony has researched. Stored
-	// here (not on Settlement) so it persists across planets and save/load.
-	KnownTechs []string `json:"known_techs,omitempty"`
+	// Player is the player's settlement as a faction presence (faction and
+	// doctrine "colony" by default, phase C0): its KnownTechs are the techs
+	// the colony has researched, kept here (not on a Settlement) so they
+	// persist across planets and save/load, where every faction keeps its
+	// own (plan, "Two homes for known techs"). It lives on no location and
+	// is never stepped by StepFactions. nil on a campaign built by hand;
+	// UnlockTech creates it.
+	Player *FactionPresence `json:"player,omitempty"`
+	// LegacyKnownTechs is a version 3 save's known techs, read only for
+	// MigrateCampaign, which moves them onto Player.
+	LegacyKnownTechs []string `json:"known_techs,omitempty"`
 
 	// KnownEntities is the set of blueprint IDs the player has hovered at
 	// least once. Populated regardless of whether the Encyclopedia is
@@ -73,13 +84,45 @@ type Campaign struct {
 	// History is the campaign's generated past (civs, figures, site histories)
 	// and, later, the record of play. See internal/history.
 	History *history.History `json:"history,omitempty"`
+	// DatapadsRead are the datapads the crew has picked up, in the order
+	// read, with what each said: the Legends tab lists them for re-reading
+	// (datapads.go).
+	DatapadsRead []DatapadRead `json:"datapads_read,omitempty"`
 
 	// Tutorial is the guided first landing's progress; nil when the expedition
 	// started without it (and on every older save).
 	Tutorial *TutorialProgress `json:"tutorial,omitempty"`
 
+	// FactionCount is the New Expedition "Rival factions" choice the campaign
+	// was created with; it scales spread pressure (see faction.go).
+	FactionCount int `json:"faction_count,omitempty"`
+	// Observer marks an observer run (observer.go): started with observer
+	// mode on, no player ship, the expedition a fleet-carried presence.
+	// Saved; the whole run is one.
+	Observer bool `json:"observer,omitempty"`
+	// FactionDay is the last star-date day StepFactions has stepped.
+	FactionDay history.StarDate `json:"faction_day,omitempty"`
+	// FactionSeq numbers presences (FactionPresence.ID).
+	FactionSeq int `json:"faction_seq,omitempty"`
+	// Fleets are things in flight between locations (eggs a launcher fired)
+	// and faction ships, flying or landed; numbered by FleetSeq.
+	Fleets   []Fleet `json:"fleets,omitempty"`
+	FleetSeq int     `json:"fleet_seq,omitempty"`
+	// Diplomacy is each faction's stance toward the player where it has
+	// changed from its doctrine's (faction_ship.go, Stance).
+	Diplomacy map[string]string `json:"diplomacy,omitempty"`
+	// Encounter is a faction ship met in space awaiting the player's
+	// answer, or just answered (phase D; faction_intercept.go).
+	Encounter *Encounter `json:"encounter,omitempty"`
+	// EncounterSeq numbers boarding locations.
+	EncounterSeq int `json:"encounter_seq,omitempty"`
+
 	questByID map[string]*Quest               `json:"-"`
 	questEval map[string]*objective.Evaluator `json:"-"`
+
+	// shipOrders are the factions whose mothership builds a ship this day
+	// (phase D; built after the fleet pass, never saved).
+	shipOrders []string
 }
 
 // Day is the star date as a plain day count, for displays and end screens.
@@ -191,9 +234,35 @@ func (c *Campaign) HomeLocation() *Location {
 	return nil
 }
 
+// DefaultPlayerDoctrine is the player's doctrine when nothing chooses one:
+// today's colony. A title-screen race choice (phase F) sets
+// GenOptions.Doctrine instead.
+const DefaultPlayerDoctrine = "colony"
+
+// NewPlayerPresence is the player's presence running doctrine ("" is
+// DefaultPlayerDoctrine).
+func NewPlayerPresence(doctrine string) *FactionPresence {
+	if doctrine == "" {
+		doctrine = DefaultPlayerDoctrine
+	}
+	return &FactionPresence{ID: PlayerPresenceID, Faction: doctrine, Doctrine: doctrine, LastShotDay: NeverFired}
+}
+
+// PlayerPresenceID is the player's presence's ID; FactionSeq never makes it.
+const PlayerPresenceID = "player"
+
+// KnownTechs is the tech keys the colony has researched (the player
+// presence's).
+func (c *Campaign) KnownTechs() []string {
+	if c.Player == nil {
+		return nil
+	}
+	return c.Player.KnownTechs
+}
+
 // HasTech reports whether the campaign has researched the given tech key.
 func (c *Campaign) HasTech(key string) bool {
-	for _, k := range c.KnownTechs {
+	for _, k := range c.KnownTechs() {
 		if k == key {
 			return true
 		}
@@ -201,11 +270,15 @@ func (c *Campaign) HasTech(key string) bool {
 	return false
 }
 
-// UnlockTech adds key to KnownTechs if not already present.
+// UnlockTech adds key to the player's known techs if not already present.
 func (c *Campaign) UnlockTech(key string) {
-	if !c.HasTech(key) {
-		c.KnownTechs = append(c.KnownTechs, key)
+	if c.HasTech(key) {
+		return
 	}
+	if c.Player == nil {
+		c.Player = NewPlayerPresence("")
+	}
+	c.Player.KnownTechs = append(c.Player.KnownTechs, key)
 }
 
 // Ship-scanner research chains. A level is the count of consecutive techs
@@ -244,8 +317,8 @@ func (c *Campaign) ScanFuelCost() int {
 
 // KnownTechSet returns KnownTechs as a set for O(1) lookup.
 func (c *Campaign) KnownTechSet() map[string]bool {
-	set := make(map[string]bool, len(c.KnownTechs))
-	for _, k := range c.KnownTechs {
+	set := make(map[string]bool, len(c.KnownTechs()))
+	for _, k := range c.KnownTechs() {
 		set[k] = true
 	}
 	return set

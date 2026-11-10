@@ -403,6 +403,45 @@ starts them clean.
 **Tuning.** `incidentCooldownTicks` (1800) and `notificationMergeTicks` (600) in
 `data/config.json`.
 
+## Viewed planets — BUILT (observer mode v2)
+
+`internal/game/view.go`; docs/developer/factions.md, "Observer mode". The
+Star Map's **View** button (observer mode only: an observer run, where it is
+the whole interface, or the observer lock on a normal campaign) opens any
+charted site's level for the viewer, wherever the ship is (an observer run
+has none) and whether or not anyone is on it (`WorldManager.ViewLocation`). `WorldManager.viewedID` is the planet the
+viewer is on (`EnterCurrent` sets it to the planet in orbit; `EnterShip`
+and `MainState.openDashboard` end the view, `EndView`).
+
+- **Load.** A planet not in memory is built or thawed by `buildParked` and
+  added to `loaded` like any other (`addLoaded`), then re-attached; one
+  already loaded is just entered. Its `Visited` from before is kept in
+  `viewVisited` and the expedition director reads that, so a look does not
+  count as a visit.
+- **While viewed** it is the live level (`TickBackground(live)` skips it;
+  it ticks itself every frame) and is never frozen: not by the unstaffed
+  sweep in `TickBackground`, not by `enforceLoadedCap`, and not by `Travel`
+  when the ship leaves the planet the viewer is on (it stays loaded with
+  `currentID` cleared, as a staffed one does). Because it is loaded, Tier 1
+  skips it and refuses it as an egg target, and its presences step by the
+  live rule (`stepLiveFactions`), as on any loaded level.
+- **Leave.** `EndView` freezes a planet the ship is not over that has no
+  colony worker of the player's on it (listeners detached first), and puts
+  its `Visited` back. In an observer run that is every planet, the
+  expedition's included: its colony is a faction settlement, reconciled
+  into the fleet's record on the freeze, and Tier 1 takes it back. A staffed one, or the planet in orbit, stays loaded by the usual
+  rules. Travelling to a planet clears its `viewVisited` entry: it is
+  visited for real.
+- **What a view leaves.** The level is saved, so the site has a `SaveFile`
+  from then on and the next build thaws it; its presences are
+  `Materialized` (their stamps stand on the saved level) with their record
+  reconciled from the level as on any freeze. A view of no ticks changes no
+  count; once left the planet steps under Tier 1 exactly as one never
+  viewed (`TestViewedPlanetStepsAsBeforeOnceLeft`: thirty days of a hive
+  site, viewed and not, match).
+- **Cap.** A view counts against `maxLoadedPlanets` like any loaded
+  planet; the viewed one and the one in orbit are never the eviction victim.
+
 ## Open follow-ups discovered during the audit
 
 - ~~Worker chatter reaching the live log from background levels~~ — done: worker,

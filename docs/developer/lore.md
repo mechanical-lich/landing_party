@@ -301,6 +301,7 @@ always did (frozen copies compared tile for tile).
 | `circle_ruined_tower` | wrapper: `circle_tower` at damage 2 | | 21×21–25×25 |
 | `underground_dungeon` | unchanged | `depth` | 25×21 |
 | `nest` | resin chamber of eggs (husks when empty) | `egg`, `eggs` | 9×9–15×15 |
+| `hive_nest`, `hive_core` | a faction presence's stage stamps ([factions.md](factions.md)): one resin chamber; a wide one with two ways in and a "Nest Heart" (DRAFT; hidden identity: never "Hive") for the launcher. Terrain only (an exhausted presence's husk is the `nest` above, empty) | | 11×11–17×17, 17×17–25×25 |
 | `cave_in` | collapsed chamber, cache to dig out | `tech` | 9×7–17×13 |
 | `defence_post` | broken wall round sentry turrets | `tech`, `turrets`, `occupants: dormant` | 9×9–15×15 |
 | `hull_breach` | a station section open to space, stores at its heart | | 9×7–15×11 |
@@ -498,6 +499,9 @@ The recorder (`loreRecorder`, one per level) writes live events, known at
 once and dated in the star date: `colonist_died` and `boss_slain` (killer from
 the last `EntityDamagedEvent`), `colony_founded`, `colony_left`,
 `colony_wiped`, `quest_completed`, `contract_taken`, `threat_cleared`.
+Rival factions add `faction_arrived`, `faction_grew`, `faction_launched` and
+`faction_wiped`, recorded beside the site's history rather than in it and
+known only once the presence is seen ([factions.md](factions.md)).
 Player-facing text uses display names (the expedition's colony, quest titles
 without their site suffix).
 

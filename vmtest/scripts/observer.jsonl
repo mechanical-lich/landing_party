@@ -1,0 +1,91 @@
+{"name":"observer","seed":777,"config":{"observerMode":true}}
+# An observer run (observerMode on at New Expedition): no player ship. New
+# Expedition seed 777, one rival (the hive). The crew, hold and fuel are the
+# expedition, a fleet on the Star Map flown by the expedition table: it
+# lifts off the Wreck Site on day 1 and lands on the start system (Murk
+# Shoals) on day 4. The Star Map has no Travel, Beam or Scan, the dashboard
+# no To Ship or To Site; the viewer selects a planet and Views it. Viewing
+# Murk Shoals shows the expedition's colony, a settlement the settlement
+# director runs; leaving it unloads the planet (nobody of the player's is
+# there) and the expedition goes on under Tier 1. Then Rust Tangle (sys_43),
+# a planet nothing is on. The viewer sees every faction from day 0 (the
+# hive on the Star Map, the Factions tab). Frames: the Star Map adrift, the
+# Factions tab, the hive on Glass Expanse at day 0 (selected from the tab),
+# the Star Map after the landing,
+# the expedition's colony at once and after a day, Rust Tangle, the Star
+# Map after, and the hive on Glass Expanse viewed from its Factions row.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Observer"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"observer_run","eq":true}
+{"op":"assert","path":"crew.#","eq":0}
+{"op":"assert","path":"expedition.crew","eq":6}
+{"op":"assert","path":"expedition.fuel","eq":400}
+# The viewer is omniscient: the hive is on the Star Map from day 0 (the
+# records' known flags untouched: known_factions stays a normal campaign's).
+{"op":"assert","path":"shown_presences","gte":1}
+{"op":"assert","path":"campaign.day","eq":0}
+{"op":"screenshot","name":"adrift"}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}
+# A site row selects it on the Star Map: the hive on Glass Expanse, day 0.
+{"op":"click","target":"factions:site:sys_54"}
+{"op":"assert","path":"selected_location.id","eq":"sys_54"}
+{"op":"assert","path":"campaign.day","eq":0}
+{"op":"screenshot","name":"hive_day0"}
+# Day 1: the table launches it off the Wreck Site; day 4 it lands.
+{"op":"wait_until","path":"expedition.last_move","eq":"launch","max_ticks":900}
+{"op":"wait_until","path":"expedition.site","eq":"start","max_ticks":3000}
+{"op":"assert","path":"expedition.fuel","lte":399}
+{"op":"click","target":"row:locList:start"}
+{"op":"screenshot","name":"expedition_landed"}
+# View: the expedition's colony on Murk Shoals, run by the settlement director.
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"location","eq":"start"}
+{"op":"assert","path":"viewing","eq":"start"}
+{"op":"assert","path":"view_label","eq":"VIEWING Murk Shoals"}
+{"op":"assert","path":"observer","eq":true}
+{"op":"assert","path":"rival.faction","eq":"expedition"}
+{"op":"assert","path":"rival.workers","eq":6}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"viewing_expedition"}
+{"op":"wait","ticks":750}
+{"op":"assert","path":"rival.workers","gte":6}
+{"op":"screenshot","name":"expedition_a_day_on"}
+# Leaving unloads it; the expedition goes on.
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"assert","path":"viewing","eq":""}
+{"op":"assert","path":"loaded.#","eq":0}
+{"op":"assert","path":"expedition.site","eq":"start"}
+# A planet nothing is on.
+{"op":"click","target":"row:locList:sys_43"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"view_label","eq":"VIEWING Rust Tangle"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"viewing_rust_tangle"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"assert","path":"loaded.#","eq":0}
+{"op":"screenshot","name":"after"}
+# The hive's planet: from its Factions row, View opens on the nest (the
+# largest presence), stamp and bodies built; leaving unloads it again.
+{"op":"click","target":"tab:factions"}
+{"op":"click","target":"factions:site:sys_54"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"location","eq":"sys_54"}
+{"op":"assert","path":"faction.population","gte":1}
+{"op":"assert","path":"faction.bodies","gte":1}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"viewing_hive"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"assert","path":"loaded.#","eq":0}

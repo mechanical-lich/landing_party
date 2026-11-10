@@ -69,13 +69,17 @@ func (p *legendsPanel) refreshText() {
 	if i := p.filters.SelectedIndex; i >= 0 && i < len(p.keys) {
 		key = p.keys[i]
 	}
-	sig := key + "|" + itoa(len(p.known()))
+	sig := key + "|" + itoa(len(p.known())) + "|" + itoa(len(p.campaign.DatapadsRead))
 	if sig == p.shown {
 		return
 	}
 	p.shown = sig
 	p.lines = p.chronicle()
 	p.text.Clear()
+	if len(p.lines) == 0 && key == datapadsKey {
+		p.text.AddText("No datapads read yet.") // DRAFT text: the owner rewrites it
+		return
+	}
 	if len(p.lines) == 0 {
 		p.text.AddText("Nothing known yet. Datapads, scans and the places where things happened tell the story.")
 		return
@@ -112,7 +116,7 @@ func (p *legendsPanel) known() []*history.Event {
 	}
 	var out []*history.Event
 	for i := range h.Events {
-		if h.Known[h.Events[i].ID] {
+		if eventShown(h, &h.Events[i]) {
 			out = append(out, &h.Events[i])
 		}
 	}
@@ -141,6 +145,10 @@ func (p *legendsPanel) populate() {
 	}
 	h := p.campaign.History
 	items, keys := []string{"All events"}, []string{""}
+	if len(p.campaign.DatapadsRead) > 0 {
+		// Every datapad the crew picked up, word for word, to read again.
+		items, keys = append(items, "Datapads read" /* DRAFT text */), append(keys, datapadsKey)
+	}
 	seen := map[string]bool{}
 	var sites, civs, figs [][2]string
 	for _, ev := range p.known() {
@@ -189,6 +197,9 @@ func (p *legendsPanel) chronicle() []string {
 	if i := p.filters.SelectedIndex; i >= 0 && i < len(p.keys) {
 		key = p.keys[i]
 	}
+	if key == datapadsKey {
+		return datapadsReadLines(p.campaign)
+	}
 	kind, id, _ := strings.Cut(key, ":")
 	var out []string
 	for _, ev := range p.known() {
@@ -218,4 +229,21 @@ func (p *legendsPanel) Draw(screen *ebiten.Image) {
 	p.filters.Draw(screen)
 	mlge_text.Draw(screen, "Chronicle", 16, 400, dashContentTop+24, color.RGBA{200, 220, 255, 255})
 	p.text.Draw(screen)
+}
+
+// datapadsKey is the Legends filter that lists the datapads read.
+const datapadsKey = "pads:"
+
+// datapadsReadLines are the datapads the crew has read, oldest first, each
+// with its star date and site.
+func datapadsReadLines(c *campaign.Campaign) []string {
+	var out []string
+	for _, d := range c.DatapadsRead {
+		where := ""
+		if d.Site != "" {
+			where = ", " + d.Site
+		}
+		out = append(out, "Star Date "+itoa(d.Day)+where+": "+d.Text)
+	}
+	return out
 }

@@ -164,6 +164,11 @@ type SaveData struct {
 	// campaign freeze (and can't be reset by re-issuing a mine order).
 	ResourceAmount map[TileCoord]int `json:"ResourceAmount,omitempty"`
 
+	// StampFootprints are the level's stamps (Level.StampFootprints), so a
+	// stamp placed after a thaw (a faction presence first sited then) keeps
+	// clear of what was stamped before. Absent on older saves.
+	StampFootprints [][6]int `json:"StampFootprints,omitempty"`
+
 	// Version is the save-schema version (see SaveVersion). Absent (0) on legacy
 	// saves, which predate the terrain-skeleton/Flags persistence below.
 	Version int `json:"Version,omitempty"`
@@ -433,24 +438,25 @@ func SaveLevel(level *Level, settlementNames ...string) SaveData {
 	}
 
 	return SaveData{
-		Version:        SaveVersion,
-		FloorRuns:      encodeFloorRuns(level.Data),
-		MiddleRuns:     encodeMiddleRuns(level.Data),
-		TileCatalog:    catalog,
-		Entities:       saveEntities,
-		StaticEntities: staticSaveEntities,
-		Settlements:    settlements,
-		MapSizeW:       level.GetWidth(),
-		MapSizeH:       level.GetHeight(),
-		MapSizeZ:       level.GetDepth(),
-		ResourceAmount: resourceAmount,
-		TerrainRuns:    encodeTerrainRuns(level.Terrain),
-		SurfaceRuns:    encodeInt16Runs(level.SurfaceMap),
-		BiomeRuns:      encodeStrRuns(level.BiomeMap),
-		Regions:        level.Regions,
-		Rooms:          level.Rooms,
-		Modules:        level.Modules,
-		Flags:          level.Flags,
+		Version:         SaveVersion,
+		FloorRuns:       encodeFloorRuns(level.Data),
+		MiddleRuns:      encodeMiddleRuns(level.Data),
+		TileCatalog:     catalog,
+		Entities:        saveEntities,
+		StaticEntities:  staticSaveEntities,
+		Settlements:     settlements,
+		MapSizeW:        level.GetWidth(),
+		MapSizeH:        level.GetHeight(),
+		MapSizeZ:        level.GetDepth(),
+		ResourceAmount:  resourceAmount,
+		StampFootprints: append([][6]int(nil), level.StampFootprints...),
+		TerrainRuns:     encodeTerrainRuns(level.Terrain),
+		SurfaceRuns:     encodeInt16Runs(level.SurfaceMap),
+		BiomeRuns:       encodeStrRuns(level.BiomeMap),
+		Regions:         level.Regions,
+		Rooms:           level.Rooms,
+		Modules:         level.Modules,
+		Flags:           level.Flags,
 	}
 }
 
@@ -527,6 +533,7 @@ func LoadSaveData(data SaveData) *Level {
 			level.ResourceAmount[k] = v
 		}
 	}
+	level.StampFootprints = append([][6]int(nil), data.StampFootprints...)
 
 	// Merge rather than replace: settlements of other loaded levels aren't this
 	// save's to drop. A save only carries its own level's (see SaveLevel).

@@ -23,6 +23,7 @@ run-planet-generator:
 # make history-dump HCAMPAIGNS=300 HFREQ=0   (scenario share through charting)
 # make history-dump HFIND=hazard,dormant_nest (seeds for vmtest scripts)
 # make history-dump HSTATS=500               (density: events, origins, stamps per site)
+# make history-dump HFACTIONS=0,1,2,3 HFSEEDS=1-5 HFDAYS=100 (rival factions over time; HFDETAIL=1 lists them, HFCOLS=0,40,100,200,300 picks the days)
 HSEED ?= 1
 HSITES ?= 8
 HMAP ?=
@@ -31,8 +32,13 @@ HCHARTED ?=
 HCAMPAIGNS ?= 0
 HFIND ?=
 HSTATS ?=
+HFACTIONS ?=
+HFSEEDS ?= 1-5
+HFDAYS ?= 100
+HFDETAIL ?=
+HFCOLS ?=
 history-dump:
-	go run ./cmd/history-dump -seed $(HSEED) -sites $(HSITES) -freq $(HFREQ) $(if $(HMAP),-map $(HMAP)) $(if $(HCHARTED),-charted) -campaigns $(HCAMPAIGNS) $(if $(HFIND),-find $(HFIND)) $(if $(HSTATS),-stats $(HSTATS))
+	go run ./cmd/history-dump -seed $(HSEED) -sites $(HSITES) -freq $(HFREQ) $(if $(HMAP),-map $(HMAP)) $(if $(HCHARTED),-charted) -campaigns $(HCAMPAIGNS) $(if $(HFIND),-find $(HFIND)) $(if $(HSTATS),-stats $(HSTATS)) $(if $(HFACTIONS),-factions $(HFACTIONS) -fseeds $(HFSEEDS) -fdays $(HFDAYS)) $(if $(HFDETAIL),-fdetail) $(if $(HFCOLS),-fcols $(HFCOLS))
 
 run-debug:
 	GODEBUG=gctrace=1 go run $(LDFLAGS) ./cmd/game/*.go
@@ -62,6 +68,40 @@ update-go-deps:
 ifneq (,$(wildcard vendor))
 	go mod vendor
 endif
+
+# ---- Observer soak (docs/developer/factions.md, "Observer mode"): ten seeds,
+# the director running a landed party for 20,000 ticks, the expedition soak
+# (ten seeds, the expedition director flying the ship from adrift), then the
+# autonz soak (phase E3: ten node seeds and five hub seeds, AUTONZTICKS,
+# 30,000) and the hive soak (HIVETICKS, 30,000: forty days); prints every
+# table. make soak SOAKSEEDS=3 SOAKTICKS=6000 for a shorter run.
+#
+# make soak-autonz and make soak-hive run one soak alone, its seeds as
+# separate processes side by side (SOAKJOBS at once, scripts/soak_par.sh),
+# joined into the same table and thresholds. make soak-autonz SOAKSEEDS=3
+# AUTONZTICKS=9000 for a quick tuning round (HUBSEEDS: the hub seeds,
+# default half the node seeds).
+SOAKSEEDS ?= 10
+SOAKTICKS ?= 20000
+HIVETICKS ?= 30000
+AUTONZTICKS ?= 30000
+HUBSEEDS ?= $(shell echo $$(( ($(SOAKSEEDS) + 1) / 2 )))
+SOAKJOBS ?= 10
+# upto lists 1..N, none for 0 (BSD seq 1 0 counts down: "1 0").
+upto = $(shell i=1; while [ $$i -le $(1) ]; do echo $$i; i=$$((i+1)); done)
+.PHONY: soak soak-autonz soak-hive
+soak:
+	LP_SOAK=1 LP_SOAK_SEEDS=$(SOAKSEEDS) LP_SOAK_TICKS=$(SOAKTICKS) go test ./internal/game -run "TestObserverSoak|TestExpeditionSoak" -v -count=1 -timeout 30m
+	$(MAKE) soak-autonz
+	$(MAKE) soak-hive
+
+soak-autonz:
+	LP_SOAK_AUTONZ_TICKS=$(AUTONZTICKS) sh scripts/soak_par.sh TestAutonzSoak TestAutonzSoakJoin $(SOAKJOBS) \
+		$(addprefix node:,$(call upto,$(SOAKSEEDS))) $(addprefix hub:,$(call upto,$(HUBSEEDS)))
+
+soak-hive:
+	LP_SOAK_HIVE_TICKS=$(HIVETICKS) sh scripts/soak_par.sh TestHiveSoak TestHiveSoakJoin $(SOAKJOBS) \
+		$(addprefix hive:,$(call upto,$(SOAKSEEDS)))
 
 # ---- VM play-testing (docs/developer/vmtest.md; the host is mlge's cmd/vmtest,
 # a go.mod tool, so it is built against this module's Ebiten) ----

@@ -3,6 +3,7 @@ package workerai
 import (
 	"github.com/mechanical-lich/landing_party/internal/chatter"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/mechanical-lich/landing_party/internal/audio"
@@ -53,6 +54,10 @@ func CompleteTaskWithMessage(entity *ecs.Entity, t *task.Task, msg string) {
 	t.Complete()
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
 	wc.CurrentTask = nil
+	if entity.HasComponent(components.Settlement) &&
+		strings.Contains(entity.GetComponent(components.Settlement).(*components.SettlementComponent).Name, ":") {
+		return // a faction settlement's ("<faction>:<loc>") work is not the player's chatter
+	}
 	chatter.Post(rlentity.GetName(entity), msg)
 }
 
@@ -81,6 +86,19 @@ func markSeenAroundStairs(level *world.Level, x, y, z int) {
 	}
 }
 
+// sameSettlement reports whether b is a's settlement's (or has none): a
+// worker of another settlement (a faction's) is never picked up.
+func sameSettlement(a, b *ecs.Entity) bool {
+	if !b.HasComponent(components.Settlement) {
+		return true
+	}
+	if !a.HasComponent(components.Settlement) {
+		return false
+	}
+	return a.GetComponent(components.Settlement).(*components.SettlementComponent).Name ==
+		b.GetComponent(components.Settlement).(*components.SettlementComponent).Name
+}
+
 // interactWithTile inspects the tile at (tx,ty,tz) and morphs wc.CurrentTask into
 // the appropriate action. Returns true if an action was started, false to fall through to scout.
 func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent, tx, ty, tz int) bool {
@@ -91,7 +109,7 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		if candidate == entity {
 			continue
 		}
-		if candidate.HasComponent(rlcomponents.Health) && candidate.HasComponent(rlcomponents.HostileAI) {
+		if candidate.HasComponent(rlcomponents.Health) && candidate.HasComponent(rlcomponents.HostileAI) || components.IsHostileWorker(candidate) {
 			wc.CurrentTask.Action = task_requests.AttackAction
 			wc.CurrentTask.Data = candidate
 			return true
@@ -105,7 +123,7 @@ func interactWithTile(level *world.Level, entity *ecs.Entity, wc *components.Wor
 		}
 		// Deployed Worker entities (recalled robots) are pickup targets too,
 		// not just rlcomponents.Item-tagged objects.
-		if candidate.HasComponent(rlcomponents.Item) || candidate.HasComponent(components.Worker) {
+		if candidate.HasComponent(rlcomponents.Item) || candidate.HasComponent(components.Worker) && sameSettlement(entity, candidate) {
 			wc.CurrentTask.Action = task_requests.PickupAction
 			return true
 		}
@@ -384,7 +402,7 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	recipe, found := getRecipe(cr.RecipeID)
 	if !found {
 		log.Printf("[CRAFT] recipe not found: %s", cr.RecipeID)
-		wc.CurrentTask.Stop()
+		StopTask(wc.CurrentTask)
 		wc.CurrentTask = nil
 		aiMemory.State = "idle"
 		return
@@ -411,22 +429,65 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	}
 
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
+	if recipe.RequiresTech != "" && !SettlementKnowsTech(sc.Name, recipe.RequiresTech) {
+		CompleteTaskWithMessage(entity, wc.CurrentTask, "Can't craft "+recipe.Name+" yet")
+		aiMemory.State = "idle"
+		return
+	}
+	var station *ecs.Entity
+	if recipe.ConsumeStation {
+		station = stationAt(level, recipe.Station, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+		if station == nil {
+			// The grey egg is gone (eaten by another order, killed): the
+			// materials stay in the bag and go back to storage.
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Nothing left to work for "+recipe.Name)
+			aiMemory.State = "idle"
+			return
+		}
+	}
 	cr.Progress += workStep(wc, entity, "Int")
 	wc.CurrentTask.Data = cr
 	if cr.Progress >= cr.Required {
+		if recipe.KinType != "" {
+			// A typed output (an egg of the crafter's hive): its type,
+			// presence and settlement, laid in the used-up station's place.
+			presence := ""
+			if k := components.KinOf(entity); k != nil {
+				presence = k.Presence
+			}
+			if station != nil {
+				level.RemoveEntity(station)
+			}
+			if out, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ); err == nil {
+				if recipe.DeployOnCraft && !recipe.ConsumeStation {
+					// A printed unit (the autonz'; an egg laid in a grey
+					// egg's place is not one): a worker of the crafter's
+					// settlement, by the station, before its type gives it
+					// its role and tasks.
+					deployWorker(out, sc.Name)
+				}
+				factory.ApplyType(out, recipe.KinType, presence)
+				components.KinOf(out).Settlement = sc.Name
+				level.AddEntity(out)
+			}
+			progression.AwardXP(entity, "Int", progression.XPPerTask)
+			CompleteTaskWithMessage(entity, wc.CurrentTask, "Crafted "+recipe.Name)
+			aiMemory.State = "idle"
+			return
+		}
+		if station != nil {
+			level.RemoveEntity(station)
+		}
 		output, err := factory.Create(recipe.Output, cr.WorkbenchX, cr.WorkbenchY, cr.WorkbenchZ)
+		if err == nil && recipe.Count > 1 && output.HasComponent(components.Material) {
+			output.GetComponent(components.Material).(*components.MaterialComponent).Quantity = recipe.Count
+		}
 		if err == nil {
-			if recipe.Output == "colonist" {
-				// Bio-printed colonists join the colony at the printer rather
-				// than going into the crafter's inventory.
-				if output.HasComponent(components.Settlement) {
-					output.GetComponent(components.Settlement).(*components.SettlementComponent).Name = sc.Name
-				} else {
-					output.AddComponent(&components.SettlementComponent{Name: sc.Name})
-				}
-				if !output.HasComponent(components.Worker) {
-					output.AddComponent(&components.WorkerComponent{SelfDefend: true})
-				}
+			if recipe.DeployOnCraft {
+				// A deployed unit (a bio-printed colonist) joins the crafter's
+				// settlement at the station rather than going into the
+				// crafter's inventory.
+				deployWorker(output, sc.Name)
 				level.AddEntity(output)
 			} else {
 				inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
@@ -465,8 +526,14 @@ func handleResearchTask(level *world.Level, entity *ecs.Entity, wc *components.W
 
 	rr.Progress += workStep(wc, entity, "Int")
 	if rr.Progress >= rr.Required {
-		level.QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey})
-		audio.PlayGlobal("research_done") // milestone chime, heard on any level
+		who := ""
+		if entity.HasComponent(components.Settlement) {
+			who = entity.GetComponent(components.Settlement).(*components.SettlementComponent).Name
+		}
+		level.QueueEvent(eventsystem.ResearchDoneEvent{TechKey: rr.TechKey, Settlement: who})
+		if !strings.Contains(who, ":") { // not a faction settlement ("<faction>:<loc>")
+			audio.PlayGlobal("research_done") // milestone chime, heard on any level
+		}
 		progression.AwardXP(entity, "Int", progression.XPPerTask)
 		if techFound {
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Researched "+tech.Name)
@@ -851,6 +918,20 @@ func handleMoveTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 	if moved, _ := MoveTowardsTarget(level, entity, tx, ty, tz); moved {
 		return
 	}
+	// Arrived. A hold (a director's: the hive's shot waiting by its spire)
+	// stands there until it is released.
+	if wc.CurrentTask.Data == task_requests.HoldHere {
+		return
+	}
+	if wc.CurrentTask.Action == task_requests.MoveAction {
+		// A director's walk (a post, a waypoint): arriving is all of it. The
+		// tile's interactions (picking up what stands there) are the
+		// player's Move Here's.
+		wc.CurrentTask.Complete()
+		wc.CurrentTask = nil
+		aiMemory.State = "idle"
+		return
+	}
 	// Arrived — inspect target tile and auto-detect action.
 	if interactWithTile(level, entity, wc, aiMemory, tx, ty, tz) {
 		return
@@ -896,9 +977,42 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 							startY := buildRequest.Y - sizec.Height/2
 							for dx := 0; dx < sizec.Width && canPlace; dx++ {
 								for dy := 0; dy < sizec.Height && canPlace; dy++ {
-									if level.GetSolidEntityAt(startX+dx, startY+dy, buildRequest.Z) != nil {
-										canPlace = false
+									b := level.GetSolidEntityAt(startX+dx, startY+dy, buildRequest.Z)
+									if b == nil {
+										continue
 									}
+									if b.HasComponent(components.Worker) {
+										// Someone is standing in the footprint (a
+										// worker crossing a bed's second tile, or the
+										// builder itself): rather than finish with
+										// nothing placed and the materials gone, hold
+										// the work at done and wait. The builder steps
+										// out of the footprint first.
+										buildRequest.Progress = buildRequest.Required
+										if b == entity {
+											wc.CurrentTask.Data = buildRequest
+											stepOutOfFootprint(level, entity, startX, startY, sizec.Width, sizec.Height, buildRequest.X, buildRequest.Y, buildRequest.Z)
+											return
+										}
+										buildRequest.Waited++
+										if buildRequest.Waited > maxFootprintWait {
+											// Someone who never moves (a rival's
+											// sentry): back to the queue, its
+											// materials kept, for a later try.
+											buildRequest.Waited = 0
+											wc.CurrentTask.Data = buildRequest
+											if !strings.Contains(sc.Name, ":") {
+												chatter.Post(rlentity.GetName(entity), "Someone is standing where the "+buildable.Name+" goes") // DRAFT
+											}
+											StopTask(wc.CurrentTask)
+											wc.CurrentTask = nil
+											aiMemory.State = "idle"
+											return
+										}
+										wc.CurrentTask.Data = buildRequest
+										return
+									}
+									canPlace = false
 								}
 							}
 						}
@@ -953,6 +1067,28 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 	} else {
 		if moved, pathFound := MoveTowardsTarget(level, entity, wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z); !moved {
 			releaseTaskAfterFailedMove(wc, pathFound)
+		}
+	}
+}
+
+// stepOutOfFootprint moves a builder standing inside the w x h footprint at
+// (sx, sy) one step to a free tile outside it, still beside the build site
+// (tx, ty), so the structure can be placed (a walk, not a teleport).
+func stepOutOfFootprint(level *world.Level, entity *ecs.Entity, sx, sy, w, h, tx, ty, z int) {
+	in := func(x, y int) bool { return x >= sx && x < sx+w && y >= sy && y < sy+h }
+	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			x, y := pc.GetX()+dx, pc.GetY()+dy
+			if (dx == 0 && dy == 0) || in(x, y) || !level.InBounds(x, y, z) {
+				continue
+			}
+			if utility.Abs(x-tx) > 1 || utility.Abs(y-ty) > 1 || level.GetSolidEntityAt(x, y, z) != nil {
+				continue
+			}
+			if moved, _ := MoveTowardsTarget(level, entity, x, y, z); moved {
+				return
+			}
 		}
 	}
 }
@@ -1272,3 +1408,33 @@ func dropMaterialAt(level *world.Level, inv *rlcomponents.InventoryComponent, bl
 	}
 	level.AddEntity(dropped)
 }
+
+// stationAt is the crafting station of id standing at (x, y, z), or nil.
+func stationAt(level *world.Level, id string, x, y, z int) *ecs.Entity {
+	var buf []*ecs.Entity
+	level.GetEntitiesAt(x, y, z, &buf)
+	for _, e := range buf {
+		if e.HasComponent(components.CraftingStation) && !e.HasComponent(rlcomponents.Dead) &&
+			e.GetComponent(components.CraftingStation).(*components.CraftingStationComponent).StationID == id {
+			return e
+		}
+	}
+	return nil
+}
+
+// deployWorker makes a crafted output a worker of settlement name (a printed
+// colonist or unit), standing at the station.
+func deployWorker(output *ecs.Entity, name string) {
+	if output.HasComponent(components.Settlement) {
+		output.GetComponent(components.Settlement).(*components.SettlementComponent).Name = name
+	} else {
+		output.AddComponent(&components.SettlementComponent{Name: name})
+	}
+	if !output.HasComponent(components.Worker) {
+		output.AddComponent(&components.WorkerComponent{SelfDefend: true})
+	}
+}
+
+// maxFootprintWait is how many turns finished build work waits on someone
+// else standing in its footprint before the builder lets the task go.
+const maxFootprintWait = 300

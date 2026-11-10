@@ -7,7 +7,7 @@
             "B": 255,
             "Bounces": true,
             "Resource": "scifi_entities",
-            "SpriteX": 240,
+            "SpriteX": 192,
             "SpriteY": 936
         },
         "Description": {
@@ -48,6 +48,11 @@
             "Dex": 12,
             "AC": 8,
             "BasicAttackDice": "1d6"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
         }
     },
     "wire_placer": {
@@ -58,7 +63,7 @@
             "B": 255,
             "Bounces": true,
             "Resource": "scifi_entities",
-            "SpriteX": 0,
+            "SpriteX": 48,
             "SpriteY": 936
         },
         "Description": {
@@ -90,6 +95,68 @@
             "Dex": 8,
             "AC": 4,
             "BasicAttackDice": "1d4"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
+        }
+    },
+    "enforcer_dormant": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 144,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "DORMANT ENFORCER",
+            "Faction": "autonz",
+            "Species": "autonz",
+            "Classification": "enforcer",
+            "LongDescription": "DRAFT. An Autonz enforcer with its visor dark. It has been waiting here a long time."
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "laser_pistol"
+            ]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/faction_humanoid.basic",
+            "vars": {
+                "ignored_factions": ""
+            }
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Drops": {
+            "Items": [
+                "ferrite"
+            ]
         }
     }
 }

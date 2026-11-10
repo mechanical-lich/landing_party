@@ -1,0 +1,15 @@
+{
+    "id": "boarding",
+    "name": "Boarding",
+    "description": "Phase D: a faction ship met in space, boarded from a docking deck (docs/developer/factions.md, Interception). Never generated for a site; an encounter location uses it.",
+    "size": {
+        "w": { "min": 64, "max": 64 },
+        "h": { "min": 48, "max": 48 },
+        "z": { "min": 3, "max": 3 }
+    },
+    "internal": true,
+    "terrain": "void",
+    "terrain_params": { "deck_w": 46, "deck_h": 30 },
+    "features": [],
+    "base_scenario": "boarding"
+}

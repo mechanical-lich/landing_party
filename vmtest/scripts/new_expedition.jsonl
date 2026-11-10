@@ -1,5 +1,6 @@
 {"name":"new_expedition","seed":777}
-# Title -> New Expedition with seed 777 and the tutorial off -> Star Map (adrift)
+# Title -> New Expedition with seed 777, the tutorial off and the Rival factions
+# stepper walked to both ends and back to its default -> Star Map (adrift)
 # -> travel to the start system -> beam two colonists down -> To Site -> 600 ticks.
 # The start system is a first jump, so its history ends safe (here a quiet
 # earth_like world) and the crew is still standing after 600 ticks.
@@ -15,6 +16,22 @@
 {"op":"click","target":"title:tutorial"}
 {"op":"assert","path":"title_fields.tutorial","eq":false}
 {"op":"assert","path":"title_fields.seed","eq":"777"}
+# Rival factions: default 1 (generation.json), clamped to 0..factions_max (4).
+{"op":"assert","path":"title_fields.factions","eq":1}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"assert","path":"title_fields.factions","eq":4}
+{"op":"screenshot","name":"factions_max"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"assert","path":"title_fields.factions","eq":0}
+{"op":"click","target":"title:factions_plus"}
+{"op":"assert","path":"title_fields.factions","eq":1}
 {"op":"screenshot","name":"new_screen"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
@@ -22,6 +39,9 @@
 {"op":"assert","path":"campaign.adrift","eq":true}
 {"op":"assert","path":"campaign.in_orbit","eq":false}
 {"op":"assert","path":"campaign.seed","eq":777}
+{"op":"assert","path":"campaign.faction_count","eq":1}
+# The seeded presence is never on the start system (the safe first jump).
+{"op":"assert","path":"campaign.presences.start","eq":null}
 {"op":"assert","path":"tutorial","eq":null}
 {"op":"assert","path":"fuel","eq":400}
 {"op":"assert","path":"crew_at.ship","eq":6}

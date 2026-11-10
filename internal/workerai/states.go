@@ -213,6 +213,10 @@ func HandleTaskState(level *world.Level, entity *ecs.Entity) {
 		handleBuildTask(level, entity, wc, aiMemory)
 	case task_requests.DigAction:
 		handleDigTask(level, entity, wc, aiMemory)
+	case task_requests.ConvertAction:
+		handleConvertTask(level, entity, wc, aiMemory)
+	case task_requests.DeployAction:
+		handleDeployTask(level, entity, wc, aiMemory)
 	case task_requests.MineAction:
 		handleMineTask(level, entity, wc, aiMemory)
 	case task_requests.PickupAction:
@@ -447,7 +451,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		return
 	}
 	if !entity.HasComponent(rlcomponents.Inventory) {
-		wc.CurrentTask.Stop()
+		StopTask(wc.CurrentTask)
 		wc.CurrentTask = nil
 		leave("idle")
 		return
@@ -470,7 +474,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 		}
 		// Full of things the task can't use, so no trip would ever make progress.
 		// Hand the task back and store the bag; haul empties it, then goes idle.
-		wc.CurrentTask.Stop()
+		StopTask(wc.CurrentTask)
 		wc.CurrentTask = nil
 		chatter.Post(rlentity.GetName(entity), "Bag too full to fetch materials")
 		leave("haul")
@@ -488,7 +492,7 @@ func HandleGatherMaterialsState(level *world.Level, entity *ecs.Entity) {
 			leave("task")
 			return
 		}
-		wc.CurrentTask.Stop()
+		StopTask(wc.CurrentTask)
 		wc.CurrentTask = nil
 		chatter.Post(rlentity.GetName(entity), "Insufficient materials to "+cost.Verb+" "+cost.Name)
 		leave("idle")
@@ -697,23 +701,27 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 	aiMemory := entity.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 
-	// Eat from own inventory first before walking to storage.
+	// Eat from own inventory first before walking to storage. A settlement's
+	// diet (the hive's biomass) is eaten a unit of a stack at a time.
+	diet := dietOf(entity)
 	if entity.HasComponent(rlcomponents.Inventory) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 		for i, item := range inv.Bag {
-			if !item.HasComponent(rlcomponents.Food) {
+			amount, ok := edible(item, diet)
+			if !ok {
 				continue
 			}
-			foodC := item.GetComponent(rlcomponents.Food).(*rlcomponents.FoodComponent)
 			if entity.HasComponent(rlcomponents.Health) {
 				hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
-				hc.Energy += foodC.Amount
+				hc.Energy += amount
 			}
 			if entity.HasComponent(components.Needs) {
 				nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
-				nc.Eat(foodC.Amount)
+				nc.Eat(amount)
 			}
-			inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			if eatOne(item) {
+				inv.Bag = append(inv.Bag[:i], inv.Bag[i+1:]...)
+			}
 			chatter.Post(rlentity.GetName(entity), "Ate "+item.Blueprint)
 			aiMemory.TargetX = -1
 			aiMemory.TargetY = -1
@@ -723,7 +731,12 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 	}
 
 	if aiMemory.TargetX == -1 && aiMemory.TargetY == -1 {
-		storage := FindClosestStorageWithComponent(level, sc.Name, rlcomponents.Food, pc.GetX(), pc.GetY(), pc.GetZ())
+		var storage *ecs.Entity
+		if len(diet) > 0 {
+			storage = closestStorageWithDiet(level, sc.Name, diet, pc.GetX(), pc.GetY())
+		} else {
+			storage = FindClosestStorageWithComponent(level, sc.Name, rlcomponents.Food, pc.GetX(), pc.GetY(), pc.GetZ())
+		}
 		if storage != nil {
 			spc := storage.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 			aiMemory.TargetX = spc.GetX()
@@ -745,14 +758,13 @@ func HandleFindFood(level *world.Level, entity *ecs.Entity) {
 				continue
 			}
 			storageC := e.GetComponent(components.Storage).(*components.StorageComponent)
-			foodEntity := storageC.TakeOneWithComponent(rlcomponents.Food)
+			foodEntity, amount := takeEdible(storageC, diet)
 			if foodEntity != nil {
 				hc := entity.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
-				foodC := foodEntity.GetComponent(rlcomponents.Food).(*rlcomponents.FoodComponent)
-				hc.Energy += foodC.Amount
+				hc.Energy += amount
 				if entity.HasComponent(components.Needs) {
 					nc := entity.GetComponent(components.Needs).(*components.NeedsComponent)
-					nc.Eat(foodC.Amount)
+					nc.Eat(amount)
 				}
 				chatter.Post(rlentity.GetName(entity), "Ate "+foodEntity.Blueprint)
 				aiMemory.TargetX = -1

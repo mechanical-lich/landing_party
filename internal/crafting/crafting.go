@@ -9,6 +9,8 @@ import (
 )
 
 type Recipe struct {
+	// Key is the recipe's map key in crafting_recipes.json, stamped on load.
+	Key          string         `json:"-"`
 	Name         string         `json:"name"`
 	Description  string         `json:"description"`
 	Output       string         `json:"output"`
@@ -16,26 +18,56 @@ type Recipe struct {
 	Cost         map[string]int `json:"cost"`
 	Station      string         `json:"station"`
 	RequiresTech string         `json:"requires_tech,omitempty"`
+	// DeployOnCraft puts the output on the level at the station as a worker
+	// of the crafter's settlement (a printed colonist) instead of into the
+	// crafter's bag (finding 4 of the enemy factions plan). A director
+	// printing a unit at its own fabricator sets it too.
+	DeployOnCraft bool `json:"deploy_on_craft,omitempty"`
+	// KinType is the unit type the output is given (factory.ApplyType; the
+	// hive's eggs, coloured by what will hatch), with the crafter's presence
+	// and settlement. ConsumeStation: the station is used up, and a deployed
+	// output stands on its tile in its place (an egg laid on a grey egg).
+	// hive_plan.md, "Larvae and eggs".
+	KinType        string `json:"kin_type,omitempty"`
+	ConsumeStation bool   `json:"consume_station,omitempty"`
+	// Count is how many of a material output one craft makes (the autonz'
+	// refine_ferrite: two); 0 or 1 is one.
+	Count int `json:"count,omitempty"`
 }
 
 var recipes map[string]Recipe
 
 func init() {
+	if err := Load("data/crafting_recipes.json"); err != nil {
+		log.Print("Failed to load crafting_recipes.json:", err)
+	}
+}
+
+// Load replaces the recipe table with path's (empty when it cannot be read;
+// Load("") clears it). init loads data/crafting_recipes.json relative to the
+// cwd.
+func Load(path string) error {
 	recipes = make(map[string]Recipe)
-	file, err := os.OpenFile("data/crafting_recipes.json", os.O_RDONLY, 0644)
+	if path == "" {
+		return nil
+	}
+	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
-		log.Print("Failed to open crafting_recipes.json:", err)
-		return
+		return err
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		log.Print("Failed to read crafting_recipes.json:", err)
-		return
+		return err
 	}
 	if err := json.Unmarshal(data, &recipes); err != nil {
-		log.Print("Failed to unmarshal crafting_recipes.json:", err)
+		return err
 	}
+	for k, r := range recipes {
+		r.Key = k
+		recipes[k] = r
+	}
+	return nil
 }
 
 func GetRecipe(key string) (Recipe, bool) {

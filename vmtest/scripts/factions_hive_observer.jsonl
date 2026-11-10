@@ -1,0 +1,66 @@
+{"name":"factions_hive_observer","seed":777,"config":{"observerMode":true}}
+# The hive as a settlement in an observer run (hive_plan.md, phase E2): New
+# Expedition seed 777 with Rival factions 3, 36 days on (debug days). The
+# viewer sees every faction by its name and the hive's bodies by type: the
+# Factions tab lists Rust Tangle's hive with its drones, scouts, warriors and
+# larvae; viewing it shows the settlement at work. Frames: the Factions tab
+# (type names), the hive viewed, and the hive a day on.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Swarm Watch"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"observer_run","eq":true}
+{"op":"debug","cmd":"days 36"}
+{"op":"assert","path":"campaign.presences.sys_43","gte":12}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}
+{"op":"click","target":"factions:site:sys_43"}
+{"op":"assert","path":"selected_location.id","eq":"sys_43"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"location","eq":"sys_43"}
+{"op":"assert","path":"faction.stage","eq":2}
+{"op":"assert","path":"faction.units.drone","gte":1}
+{"op":"debug","cmd":"faction"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"viewing_hive"}
+{"op":"wait","ticks":750}
+{"op":"debug","cmd":"faction"}
+{"op":"assert","path":"faction.bodies","gte":12}
+{"op":"screenshot","name":"hive_a_day_on"}
+# The inspector (observer mode): a click on any entity opens it read-only.
+# Paused so the drone stays on its tile between the focus and the click.
+{"op":"key","key":"Space"}
+{"op":"debug","cmd":"focus kin:drone"}
+{"op":"wait","ticks":2}
+{"op":"click","target":"focused"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"modal","contains":"entity_inspector"}
+{"op":"assert","path":"entity_inspector.text","contains":"Unit: crawler drone"}
+{"op":"assert","path":"context.title","contains":"Inspect: "}
+{"op":"assert","path":"entity_inspector.text","contains":"Health:"}
+{"op":"assert","path":"entity_inspector.text","contains":"Task:"}
+{"op":"screenshot","name":"inspect_drone"}
+{"op":"click","target":"inspect:close"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"modal.#","eq":0}
+{"op":"debug","cmd":"focus structure"}
+{"op":"wait","ticks":2}
+{"op":"click","target":"focused"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"modal","contains":"entity_inspector"}
+{"op":"screenshot","name":"inspect_structure"}
+{"op":"key","key":"Escape"}
+{"op":"wait","ticks":2}
+{"op":"debug","cmd":"focus storage"}
+{"op":"wait","ticks":2}
+{"op":"click","target":"focused"}
+{"op":"wait","ticks":2}
+{"op":"assert","path":"entity_inspector.text","contains":"Contents"}
+{"op":"screenshot","name":"inspect_storage"}

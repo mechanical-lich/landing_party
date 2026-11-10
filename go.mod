@@ -4,6 +4,12 @@ go 1.26.0
 
 toolchain go1.26.4
 
+// rand.Seed seeds the global math/rand source again (a no-op since Go 1.24):
+// the simulation (needs, scripts, the GameMaster, combat dice here and in
+// mlge/ml-rogue-lib) draws from it, and seedSimRand seeds it from the
+// campaign so the same seed plays the same way (soaks, saves).
+godebug randseednop=0
+
 //replace github.com/mechanical-lich/mechanical-basic => ../mechanical-basic
 //replace github.com/mechanical-lich/mlge => ../mlge
 

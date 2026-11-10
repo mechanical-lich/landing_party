@@ -1,0 +1,195 @@
+{
+    "greenish_crew": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "green"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 336,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1,
+                "tentacles": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "tentacles"
+            ]
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "greyish_crew": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 0,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "pinkish_crew": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "pink"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 192,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1,
+                "tentacles": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "tentacles"
+            ]
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "whitish_crew": {
+        "AIMemory": {},
+        "Description": {
+            "Name": "<greyish>",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "white"
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 96,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 0,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 1
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    }
+}

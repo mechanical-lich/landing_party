@@ -28,3 +28,9 @@
 {"op":"assert","path":"legends.#","gte":2}
 {"op":"assert","path":"legends_text","contains":"an Ixix ship came down hard on Scorch Expanse"}
 {"op":"screenshot","name":"legends"}
+# The datapads read, word for word: the Legends tab's "Datapads read" filter
+# (the datapad's own account, text_side, where the chronicle has the event's).
+{"op":"click","target":"legends:datapads"}
+{"op":"assert","path":"legends.#","gte":1}
+{"op":"assert","path":"legends_text","contains":"Star Date"}
+{"op":"screenshot","name":"datapads_read"}

@@ -1,0 +1,24 @@
+# autonz_node — a campaign autonz presence's node stage (docs/developer/factions.md,
+# The autonz): a small wired chamber, open on all four sides so the wire
+# placers can run their lines out from it. Terrain only; the world manager
+# claims a locker, places the fabricator and spawns the crew afterwards.
+# Footprint 7x7 to 11x11.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    r = int(w / 2) - 1
+    if int(h / 2) - 1 < r then
+        r = int(h / 2) - 1
+    endif
+    carve_room(cx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, "advanced_wall", "blue_wires")
+    clear_middle(cx, cy - r, sz)
+    clear_middle(cx, cy + r, sz)
+    clear_middle(cx - r, cy, sz)
+    clear_middle(cx + r, cy, sz)
+    carve_rect(cx - 1, cy - 1, sz, 3, 3, "red_wires")
+    name_room(cx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, "Node")
+endfunction

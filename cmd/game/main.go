@@ -57,6 +57,10 @@ func main() {
 		log.Fatalf("Failed to load blueprints: %v", err)
 	}
 
+	if err := game.ValidateData(); err != nil {
+		log.Fatalf("Failed to load factions: %v", err)
+	}
+
 	g, err := game.NewGame(cfg.Title)
 	if err != nil {
 		log.Fatal(err)

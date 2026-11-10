@@ -107,7 +107,11 @@ func workRate(entity *ecs.Entity, stat string) float64 {
 // the WorkerComponent so a rate of e.g. 1.3 averages out across ticks instead
 // of truncating to 1 every tick.
 func workStep(wc *components.WorkerComponent, entity *ecs.Entity, stat string) int {
-	wc.WorkCarry += workRate(entity, stat)
+	rate := workRate(entity, stat)
+	if wc.WorkMult > 0 {
+		rate *= wc.WorkMult
+	}
+	wc.WorkCarry += rate
 	steps := int(wc.WorkCarry)
 	wc.WorkCarry -= float64(steps)
 	return steps

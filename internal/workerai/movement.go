@@ -11,6 +11,7 @@ import (
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlentity"
 	"github.com/mechanical-lich/mlge/ecs"
+	"github.com/mechanical-lich/mlge/task"
 )
 
 // MoveTowardsTarget advances entity one step along a path to (targetX,targetY,targetZ).
@@ -129,7 +130,7 @@ func releaseTaskAfterFailedMove(wc *components.WorkerComponent, pathFound bool) 
 	if pathFound {
 		wc.CurrentTask.ReQueue()
 	} else {
-		wc.CurrentTask.Stop()
+		StopTask(wc.CurrentTask)
 	}
 	wc.CurrentTask = nil
 }
@@ -216,3 +217,11 @@ func flyMove(entity *ecs.Entity, level *world.Level, dx, dy, dz int) {
 	}
 	level.PlaceEntity(destX, destY, destZ, entity)
 }
+
+// StopTask puts a task the worker cannot finish back in its queue with
+// mlge's restart delay (task.Stop: the scheduler refuses a stopped task for
+// five real seconds). That delay is wall-clock, so a headless run faster than
+// real time depends on CPU load; soaks and determinism tests swap in
+// ReQueue (deterministicTaskStops). The real fix is a tick-based cooldown in
+// mlge's scheduler (docs/developer/factions.md, "Determinism").
+var StopTask = (*task.Task).Stop

@@ -362,7 +362,7 @@ func TestLoreScenariosCoveredAndSupported(t *testing.T) {
 		reach[lib.Maps[m].BaseScenario] = true
 	}
 	for _, sc := range scenario.AllEnabled() {
-		if sc.ID == "tutorial" {
+		if sc.ID == "tutorial" || internalOnly(lib, sc) {
 			continue
 		}
 		if !reach[sc.ID] {
@@ -423,4 +423,18 @@ func TestLoreEvidenceDeclaresOccupants(t *testing.T) {
 			}
 		}
 	}
+}
+
+// internalOnly reports a scenario that plays only on internal maps (phase
+// D's boarding deck): history never picks it, by design.
+func internalOnly(lib *Library, sc scenario.Scenario) bool {
+	if len(sc.SupportedMaps) == 0 {
+		return false
+	}
+	for _, id := range sc.SupportedMaps {
+		if m := lib.Maps[id]; m == nil || !m.Internal {
+			return false
+		}
+	}
+	return true
 }

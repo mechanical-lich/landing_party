@@ -44,6 +44,8 @@ func (s *MainState) stepWorld() {
 	if s.level.Events != nil {
 		s.level.Events.HandleQueue()
 	}
+	s.stepDirector()
+	s.stepFactionDirectors()
 	s.collectDatapads()
 	effect.GetEffectManager().Update()
 	// A quest target may have just died during cleanup — resolve immediately
@@ -84,6 +86,8 @@ func (s *MainState) stepBackground() {
 	if s.level.Events != nil {
 		s.level.Events.HandleQueue()
 	}
+	s.stepDirector()
+	s.stepFactionDirectors()
 	s.advanceClock()
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
@@ -203,7 +207,7 @@ func (s *MainState) rogueStepToward(tx, ty, tz int) {
 
 // enterRogueMode hands direct control of the given colonist to the player.
 func (s *MainState) enterRogueMode(ent *ecs.Entity) {
-	if !components.IsColonyWorker(ent, s.colonyName()) || !ent.HasComponent(rlcomponents.Position) {
+	if observerMode() || !components.IsColonyWorker(ent, s.colonyName()) || !ent.HasComponent(rlcomponents.Position) {
 		return
 	}
 	wc := ent.GetComponent(components.Worker).(*components.WorkerComponent)

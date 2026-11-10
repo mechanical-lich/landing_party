@@ -259,6 +259,17 @@ func (h *History) Event(id string) *Event {
 // template fills in vars and any figures it names. Live events are known the
 // moment they happen. Returns the event's ID.
 func (h *History) Record(typ string, date StarDate, site string, vars map[string]string, figs ...Figure) string {
+	return h.record(typ, date, site, true, vars, figs...)
+}
+
+// RecordBeside is Record for a layer on top of a site's history (a rival
+// faction's presence): the event names the site, so Legends files it there,
+// but does not join the site's own event list, which stays as generated.
+func (h *History) RecordBeside(typ string, date StarDate, site string, vars map[string]string) string {
+	return h.record(typ, date, site, false, vars)
+}
+
+func (h *History) record(typ string, date StarDate, site string, join bool, vars map[string]string, figs ...Figure) string {
 	if h.Figures == nil {
 		h.Figures = map[string]*Figure{}
 	}
@@ -276,7 +287,7 @@ func (h *History) Record(typ string, date StarDate, site string, vars map[string
 		h.Figures[f.ID] = &fc
 		ev.Figures = append(ev.Figures, f.ID)
 	}
-	if s := h.Sites[site]; s != nil {
+	if s := h.Sites[site]; s != nil && join {
 		s.Events = append(s.Events, ev.ID)
 	}
 	h.Events = append(h.Events, ev)

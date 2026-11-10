@@ -109,6 +109,8 @@ func (b *tutorialBridge) dashWidget(name string) minui.Element {
 			return p.locateBtn
 		case "travelBtn":
 			return p.travelBtn
+		case "viewBtn":
+			return p.viewBtn
 		case "shipList":
 			return p.shipList
 		case "planList":

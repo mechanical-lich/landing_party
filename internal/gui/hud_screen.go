@@ -67,6 +67,10 @@ type HUDScreen struct {
 	currentSubTitle    string
 	currentSubItems    []hudBuildOrderItem
 	currentSubCategory string
+	// buildMenu is the build menu's categories and their buildables, from
+	// the player's doctrine (SetBuildMenu); empty until the game sets it.
+	buildMenu   []BuildMenuCategory
+	buildPanelW int
 
 	// Population tab
 	populationVBox   *minui.VBox
@@ -75,6 +79,9 @@ type HUDScreen struct {
 	rogueExitButton  *minui.Button
 	pausePanel       *minui.Panel
 	pauseLabel       *minui.Label
+	observerPanel    *minui.Panel
+	viewPanel        *minui.Panel
+	viewLabel        *minui.Label
 	populationItems  []*minui.MenuItem
 	populationCtrl   []*minui.MenuItem
 	lastPopEntries   []PopulationEntry
@@ -98,7 +105,11 @@ type HUDScreen struct {
 	craftingModal      *minui.Modal
 	craftingRecipeList *minui.ListBox
 	craftingQueueList  *minui.ListBox
+	// craftingRecipeIDs are the listed recipes' keys in crafting_recipes.json
+	// ("" for a locked row), the ID a CraftRequestedEvent carries;
+	// craftingOutputs their outputs' blueprints, for the tooltip icon.
 	craftingRecipeIDs  []string
+	craftingOutputs    []string
 	craftingStationEnt *ecs.Entity
 
 	// Research station modal
@@ -273,7 +284,51 @@ func (h *HUDScreen) setupHUDElements() {
 	h.pausePanel.AddChild(h.pauseLabel)
 	h.pausePanel.SetVisible(false)
 	h.uiGUI.AddElement(h.pausePanel)
+
+	// Observer mode's marker sits just above the pause marker, in the same
+	// style, so a self-playing run is never mistaken for a player's.
+	h.observerPanel = minui.NewPanel("observerIndicator")
+	h.observerPanel.SetBounds(minui.Rect{X: sw - 16 - pauseW, Y: sh - msgH - 10 - 6 - 2*pauseH - 6, Width: pauseW, Height: pauseH})
+	observerLabel := minui.NewLabelWithColor("observerLabel", "OBSERVER", color.RGBA{120, 220, 255, 255})
+	observerLabel.SetPosition(10, 6)
+	observerLabel.GetStyle().Width = &pauseLabelW
+	h.observerPanel.AddChild(observerLabel)
+	h.observerPanel.SetVisible(false)
+	h.uiGUI.AddElement(h.observerPanel)
+
+	// Above it, the planet being viewed when the ship is elsewhere
+	// (observer mode v2's View).
+	const viewW = 420
+	h.viewPanel = minui.NewPanel("viewIndicator")
+	h.viewPanel.SetBounds(minui.Rect{X: sw - 16 - viewW, Y: sh - msgH - 10 - 6 - 3*pauseH - 12, Width: viewW, Height: pauseH})
+	h.viewLabel = minui.NewLabelWithColor("viewLabel", "", color.RGBA{120, 220, 255, 255})
+	h.viewLabel.SetPosition(10, 6)
+	viewLabelW := viewW - 20
+	h.viewLabel.GetStyle().Width = &viewLabelW
+	h.viewPanel.AddChild(h.viewLabel)
+	h.viewPanel.SetVisible(false)
+	h.uiGUI.AddElement(h.viewPanel)
 }
+
+// SetViewIndicator shows the viewed-planet line, or hides it if empty.
+func (h *HUDScreen) SetViewIndicator(text string) {
+	h.viewLabel.Text = text
+	h.viewPanel.SetVisible(text != "")
+}
+
+// ViewIndicator is the viewed-planet line ("" while hidden).
+func (h *HUDScreen) ViewIndicator() string {
+	if !h.viewPanel.IsVisible() {
+		return ""
+	}
+	return h.viewLabel.Text
+}
+
+// SetObserverIndicator shows or hides the observer-mode marker.
+func (h *HUDScreen) SetObserverIndicator(on bool) { h.observerPanel.SetVisible(on) }
+
+// ObserverIndicator reports whether the observer-mode marker is showing.
+func (h *HUDScreen) ObserverIndicator() bool { return h.observerPanel.IsVisible() }
 
 // SetPauseIndicator shows the marker with the given text, or hides it if empty.
 func (h *HUDScreen) SetPauseIndicator(text string) {
@@ -347,43 +402,88 @@ type hudBuildOrderItem struct {
 	mode        CursorModeType
 }
 
+// BuildMenuCategory is one build menu category: its buildables (build.json
+// keys) in menu order. The game fills it from the player's doctrine
+// (doctrine settlement build_menu and buildables); the category with ID
+// OrdersCategory also lists the cursor-mode orders, bound in code.
+type BuildMenuCategory struct {
+	ID    string
+	Label string
+	Types []string
+}
+
+// OrdersCategory is the build menu category that holds the cursor-mode
+// orders (dig, mine, store, ...).
+const OrdersCategory = "orders"
+
+// buildOrderItems are the orders category's cursor-mode pseudo-buildables.
+// They stay in code because they bind to CursorMode constants.
+var buildOrderItems = []hudBuildOrderItem{
+	{id: "default", label: "Default", description: "Default cursor mode. Select and inspect entities.", mode: CursorModeDefault},
+	{id: "dig", label: "Dig", description: "Drag to dig out an area — deposits and flora inside are mined/chopped for loot, the rest is cleared.", mode: CursorModeDig},
+	{id: "mine", label: "Mine/Chop", description: "Drag to mine ore deposits and chop flora and crystals for resources.", mode: CursorModeMine},
+	{id: "store", label: "Store", description: "Pick an item, then choose a storage container to put it in.", mode: CursorModeStore},
+	{id: "drop", label: "Drop", description: "Open a colonist, pick something from their bag, then click a destination (ground or storage).", mode: CursorModeDrop},
+	{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
+	{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
+	{id: "sleep", label: "Sleep", description: "Order a colonist to rest in a bed and restore health.", mode: CursorModeSleep},
+}
+
+// SetBuildMenu replaces the build menu's categories (the player's
+// doctrine's) and redraws the category list.
+func (h *HUDScreen) SetBuildMenu(cats []BuildMenuCategory) {
+	h.buildMenu = cats
+	h.rebuildBuildCategories()
+}
+
+// buildMenuTypes is a category's buildables in the current menu.
+func (h *HUDScreen) buildMenuTypes(categoryID string) []string {
+	for _, c := range h.buildMenu {
+		if c.ID == categoryID {
+			return c.Types
+		}
+	}
+	return nil
+}
+
+// rebuildBuildCategories lays out one row per build menu category.
+func (h *HUDScreen) rebuildBuildCategories() {
+	if h.buildCategoryPanel == nil || h.showSubMenuFn == nil {
+		return
+	}
+	const itemH = 24
+	panelW := h.buildPanelW
+	snapshot := make([]minui.Element, len(h.buildCategoryPanel.GetChildren()))
+	copy(snapshot, h.buildCategoryPanel.GetChildren())
+	for _, child := range snapshot {
+		h.buildCategoryPanel.RemoveChild(child)
+	}
+	y := 4
+	for _, cat := range h.buildMenu {
+		catCopy := cat
+		var items []hudBuildOrderItem
+		if cat.ID == OrdersCategory {
+			items = buildOrderItems
+		}
+		mi := minui.NewMenuItem("cat_"+cat.ID, cat.Label+" >")
+		mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
+		mi.OnClick = func() {
+			h.showSubMenuFn(catCopy.Label, items, catCopy.ID)
+		}
+		h.buildCategoryPanel.AddChild(mi)
+		y += itemH
+	}
+}
+
 func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	h.buildMenuItems = make(map[string]*minui.MenuItem)
 
 	const itemH = 24
 	const panelW = 192
+	h.buildPanelW = panelW
 
-	// Each category's `items` (cursor-mode pseudo-buildables) stays in code
-	// because it binds to CursorMode constants. Buildables themselves are
-	// pulled from build.json by category — adding a new wall/floor/door is a
-	// pure JSON edit (set "category" + optional "order").
-	type buildCategory struct {
-		id    string
-		label string
-		items []hudBuildOrderItem
-	}
-
-	categories := []buildCategory{
-		{
-			id:    "orders",
-			label: "Orders",
-			items: []hudBuildOrderItem{
-				{id: "default", label: "Default", description: "Default cursor mode. Select and inspect entities.", mode: CursorModeDefault},
-				{id: "dig", label: "Dig", description: "Drag to dig out an area — deposits and flora inside are mined/chopped for loot, the rest is cleared.", mode: CursorModeDig},
-				{id: "mine", label: "Mine/Chop", description: "Drag to mine ore deposits and chop flora and crystals for resources.", mode: CursorModeMine},
-				{id: "store", label: "Store", description: "Pick an item, then choose a storage container to put it in.", mode: CursorModeStore},
-				{id: "drop", label: "Drop", description: "Open a colonist, pick something from their bag, then click a destination (ground or storage).", mode: CursorModeDrop},
-				{id: "cancel", label: "Cancel Task", description: "Cancel a pending construction or mining order.", mode: CursorModeCancel},
-				{id: "attack", label: "Attack", description: "Order colonists to attack the target.", mode: CursorModeAttack},
-				{id: "sleep", label: "Sleep", description: "Order a colonist to rest in a bed and restore health.", mode: CursorModeSleep},
-			},
-		},
-		{id: "walls", label: "Walls"},
-		{id: "floors", label: "Floors"},
-		{id: "stairs", label: "Stairs"},
-		{id: "structures", label: "Structures"},
-		{id: "doors", label: "Doors"},
-	}
+	// The categories and their buildables come from the player's doctrine
+	// (SetBuildMenu); the orders category's items are buildOrderItems.
 
 	h.buildCategoryPanel = minui.NewPanel("buildCategories")
 	h.buildCategoryPanel.SetBounds(minui.Rect{X: 0, Y: 0, Width: panelW, Height: 600})
@@ -393,9 +493,9 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	h.buildSubPanel.SetVisible(false)
 
 	showSubMenu := func(title string, items []hudBuildOrderItem, categoryID string) {
-		// Buildables are looked up by category at render time, so changes to
-		// build.json (after a restart) flow through without code edits.
-		types := construction.BuildableTypesInCategory(categoryID)
+		// The category's buildables are the doctrine's, in build.json order
+		// (set by the game from build.json at state creation).
+		types := h.buildMenuTypes(categoryID)
 		h.currentSubTitle = title
 		h.currentSubItems = items
 		h.currentSubCategory = categoryID
@@ -504,18 +604,7 @@ func (h *HUDScreen) setupBuildTab(panel *minui.Panel) {
 	}
 
 	h.showSubMenuFn = showSubMenu
-
-	y := 4
-	for _, cat := range categories {
-		catCopy := cat
-		mi := minui.NewMenuItem("cat_"+cat.id, cat.label+" >")
-		mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
-		mi.OnClick = func() {
-			showSubMenu(catCopy.label, catCopy.items, catCopy.id)
-		}
-		h.buildCategoryPanel.AddChild(mi)
-		y += itemH
-	}
+	h.rebuildBuildCategories()
 
 	panel.AddChild(h.buildCategoryPanel)
 	panel.AddChild(h.buildSubPanel)
@@ -1199,6 +1288,10 @@ func colonistTaskEnabled(wc *components.WorkerComponent, action task_requests.Fi
 	return false
 }
 
+// CraftingRecipeIDs is the open crafting modal's rows' recipe IDs, "" for a
+// locked row: what selecting each row would queue.
+func (h *HUDScreen) CraftingRecipeIDs() []string { return append([]string(nil), h.craftingRecipeIDs...) }
+
 func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []crafting.Recipe, station *ecs.Entity) {
 	h.craftingStationEnt = station
 	h.craftingModal.Title = title
@@ -1207,6 +1300,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 	items := make([]string, 0, total)
 	itemColors := make([]color.Color, 0, total)
 	h.craftingRecipeIDs = h.craftingRecipeIDs[:0]
+	h.craftingOutputs = h.craftingOutputs[:0]
 	h.craftTooltipDescs = h.craftTooltipDescs[:0]
 
 	appendRecipe := func(r crafting.Recipe, locked bool) {
@@ -1227,8 +1321,9 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 				label = r.Name
 			}
 			itemColors = append(itemColors, nil)
-			h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Output)
+			h.craftingRecipeIDs = append(h.craftingRecipeIDs, r.Key)
 		}
+		h.craftingOutputs = append(h.craftingOutputs, r.Output)
 		items = append(items, label)
 		h.craftTooltipDescs = append(h.craftTooltipDescs, r.Description)
 	}
@@ -1250,7 +1345,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 		desc := h.craftTooltipDescs[idx]
 		var icon *minui.Icon
 		if idx < len(h.craftingRecipeIDs) && h.craftingRecipeIDs[idx] != "" {
-			icon = blueprintTooltipIcon(h.craftingRecipeIDs[idx])
+			icon = blueprintTooltipIcon(h.craftingOutputs[idx])
 		}
 		if desc == "" && icon == nil {
 			h.listTooltip.Hide()
@@ -1783,8 +1878,8 @@ func (h *HUDScreen) appendEntityDetails() {
 	if entity.HasComponent(rlcomponents.Description) {
 		dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
 		add("Name: " + dc.Name)
-		if dc.Faction != "" {
-			add("Faction: " + dc.Faction)
+		if f := factionLabel(dc.Faction); f != "" {
+			add("Faction: " + f)
 		}
 	}
 	if entity.HasComponent(rlcomponents.Health) {
@@ -2088,4 +2183,19 @@ func goalLinesEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// FactionLabel is the selected entity's faction as the HUD shows it, ""
+// to hide the line. The game wires it so a faction whose identity is hidden
+// (the hive) is never named in a normal campaign; nil shows the raw string.
+var FactionLabel func(faction string) string
+
+func factionLabel(faction string) string {
+	if faction == "" {
+		return ""
+	}
+	if FactionLabel != nil {
+		return FactionLabel(faction)
+	}
+	return faction
 }

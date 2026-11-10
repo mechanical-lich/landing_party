@@ -3855,7 +3855,7 @@
           "kind": "derelict_pod",
           "count": 1,
           "params": {
-            "blueprint": "enforcer"
+            "blueprint": "enforcer_dormant"
           },
           "at": "origin"
         },
@@ -4237,6 +4237,164 @@
         "threat"
       ],
       "text": "{date}: the last {threat} on {site} was destroyed."
+    },
+    {
+      "id": "faction_arrived",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: a {singular} egg came down on {site}. Something has begun to grow there."
+    },
+    {
+      "id": "faction_grew",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular",
+        "stage"
+      ],
+      "text": "{date}: the {faction} on {site} grew into a {stage}."
+    },
+    {
+      "id": "faction_launched",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {faction} on {site} fired an egg into space."
+    },
+    {
+      "id": "faction_wiped",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {faction} on {site} were wiped out."
+    },
+    {
+      "id": "faction_exhausted",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {faction} on {site} withered and died, leaving an empty husk."
+    },
+    {
+      "id": "faction_landed",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: a {singular} ship came down on {site} and its crew made camp."
+    },
+    {
+      "id": "faction_departed",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular",
+        "to"
+      ],
+      "text": "{date}: the {singular} on {site} lifted off for {to}, leaving its camp behind."
+    },
+    {
+      "id": "faction_upgraded",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular",
+        "tier"
+      ],
+      "text": "{date}: a {singular} ship docked at the mothership over {site} and came away a {tier}."
+    },
+    {
+      "id": "faction_mothership_lost",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {singular} mothership over {site} was boarded and destroyed; its ships scattered."
+    },
+    {
+      "id": "faction_evaded",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: near {site} the colonists' ship slipped past a {singular} ship."
+    },
+    {
+      "id": "faction_parley",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: near {site} the colonists hailed a {singular} ship, and both went on their way."
+    },
+    {
+      "id": "faction_boarded",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular",
+        "ship"
+      ],
+      "text": "{date}: near {site} the colonists boarded the {ship}."
+    },
+    {
+      "id": "faction_ship_taken",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the colonists took the {singular} ship at {site}; its crew is dead and its hold theirs."
+    },
+    {
+      "id": "faction_swarm_landed",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: an {faction} swarm made planetfall on {site} and began threading it with wire."
+    },
+    {
+      "id": "faction_signalled",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular",
+        "to"
+      ],
+      "text": "{date}: the {faction} hub on {site} sent a signal toward {to}."
+    },
+    {
+      "id": "faction_woke",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: something powered down on {site} woke and began laying {faction} wire."
+    },
+    {
+      "id": "faction_hostile",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {singular} on {site} took the colonists' landing as a threat and turned hostile."
     }
   ]
 }

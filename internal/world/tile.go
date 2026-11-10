@@ -49,17 +49,22 @@ func PathCostFunctionForEntity(level *Level, faction string, vacuumResist bool) 
 		_, _, fromZ := from.Coords()
 		toX, toY, toZ := to.Coords()
 
-		// Stair traversal still reads the Middle slot of `from`.
+		// Stair traversal still reads the Middle slot of `from`. A z step
+		// without the right stair under foot is never valid (the path checks
+		// reject it), so it costs far more than any penalty a valid route can
+		// carry: else a worker standing on a stair landing (+1000) makes the
+		// invalid drop beside the shaft look as cheap, the search returns it,
+		// and the shaft is unreachable (the director's digging found this).
 		if fromZ != toZ {
 			if from.Middle.IsEmpty() {
-				return 1000.0
+				return invalidZStep
 			}
 			fromDef := TileDefinitions[from.Middle.Type]
 			if fromZ < toZ && !fromDef.StairsUp {
-				return 1000.0
+				return invalidZStep
 			}
 			if fromZ > toZ && !fromDef.StairsDown {
-				return 1000.0
+				return invalidZStep
 			}
 		}
 
@@ -75,6 +80,9 @@ func PathCostFunctionForEntity(level *Level, faction string, vacuumResist bool) 
 		return cost
 	}
 }
+
+// invalidZStep is the cost of a z step with no stair for it.
+const invalidZStep = 1e7
 
 // IsDoorPassableByFaction returns true if the entity is a door that allows the given faction.
 func IsDoorPassableByFaction(e *ecs.Entity, faction string) bool {

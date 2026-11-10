@@ -1,0 +1,16 @@
+{
+    "id": "boarding",
+    "name": "Boarding",
+    "description": "A faction ship met in space and boarded (phase D). The ship and its crew are built by the game from the encounter, not by a setup script.",
+    "enabled": true,
+    "setup_scripts": [],
+    "hostile_max": 0,
+    "supported_maps": [
+        "boarding"
+    ],
+    "spawn_rules": {},
+    "lighting": {
+        "mode": "fixed",
+        "ambient_level": 40
+    }
+}

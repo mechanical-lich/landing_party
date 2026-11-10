@@ -36,6 +36,9 @@ type WorkerComponent struct {
 	// (see workerai.workStep). A worker advancing a task at e.g. 1.3 steps/tick
 	// banks the 0.3 here so fractional speed bonuses aren't lost to truncation.
 	WorkCarry float64
+	// WorkMult multiplies the worker's work rate (an evolve upgrade: the
+	// hive's drone vigour); 0 is 1.
+	WorkMult float64 `json:",omitempty"`
 	// DropOffItem is the specific inventory item to deposit when entering the
 	// "dropoff" state. Cleared after deposit.
 	DropOffItem *ecs.Entity

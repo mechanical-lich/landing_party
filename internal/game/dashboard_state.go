@@ -75,6 +75,7 @@ func NewDashboardState(c *campaign.Campaign, wm *WorldManager) *DashboardState {
 		{"quests", "Quests", newQuestsPanel(c, wm)},
 		{"encyclopedia", "Encyclopedia", newEncyclopediaPanel(c, wm)},
 		{"legends", "Legends", newLegendsPanel(c)},
+		{"factions", "Factions", newFactionsPanel(c, wm, d)},
 	}
 
 	cfg := config.Global()
@@ -94,13 +95,14 @@ func NewDashboardState(c *campaign.Campaign, wm *WorldManager) *DashboardState {
 	d.saveBtn.OnClick = d.save
 
 	d.returnShipBtn = minui.NewButton("dash_return_ship", "To Ship")
-	d.returnShipBtn.SetPosition(sw-110-150, 8)
-	d.returnShipBtn.SetSize(140, 34)
+	// Narrow enough to clear the seventh tab (Factions).
+	d.returnShipBtn.SetPosition(sw-110-106, 8)
+	d.returnShipBtn.SetSize(100, 34)
 	d.returnShipBtn.OnClick = d.returnToShip
 
 	d.returnSiteBtn = minui.NewButton("dash_return_site", "To Site")
-	d.returnSiteBtn.SetPosition(sw-110-150-150, 8)
-	d.returnSiteBtn.SetSize(140, 34)
+	d.returnSiteBtn.SetPosition(sw-110-106-106, 8)
+	d.returnSiteBtn.SetSize(100, 34)
 	d.returnSiteBtn.OnClick = d.returnToSite
 
 	if len(d.tabs) > 0 {
@@ -179,7 +181,7 @@ func (d *DashboardState) Update() state.StateInterface {
 			d.done = true
 			return d.next
 		}
-		if d.wm.ActiveIncident() != nil {
+		if d.wm.PopupUp() {
 			return d.next // the popup has the input
 		}
 	}
@@ -196,7 +198,7 @@ func (d *DashboardState) Update() state.StateInterface {
 			d.tabs[d.active].panel.Enter()
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && !observerRun() {
 		if d.wm.Current() != nil {
 			d.returnToSite()
 		} else {
@@ -206,9 +208,12 @@ func (d *DashboardState) Update() state.StateInterface {
 	}
 
 	d.tabBar.Update()
-	d.returnSiteBtn.SetEnabled(d.wm.Current() != nil)
-	d.returnShipBtn.Update()
-	d.returnSiteBtn.Update()
+	if !observerRun() {
+		// An observer run has no ship to board or orbit: View is the way down.
+		d.returnSiteBtn.SetEnabled(d.wm.Current() != nil)
+		d.returnShipBtn.Update()
+		d.returnSiteBtn.Update()
+	}
 	d.saveBtn.Update()
 
 	if d.active >= 0 && d.active < len(d.tabs) {
@@ -228,8 +233,10 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{6, 8, 16, 255})
 
 	d.tabBar.Draw(screen)
-	d.returnShipBtn.Draw(screen)
-	d.returnSiteBtn.Draw(screen)
+	if !observerRun() {
+		d.returnShipBtn.Draw(screen)
+		d.returnSiteBtn.Draw(screen)
+	}
 	d.saveBtn.Draw(screen)
 
 	site := "in transit"
@@ -239,6 +246,9 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 		site = "ADRIFT: " + loc.Name + " — choose a destination"
 	}
 	info := fmt.Sprintf("Fuel: %d      Star Date: %d      %s", d.fuelAvailable(), d.campaign.Day(), site)
+	if observerRun() {
+		info = fmt.Sprintf("OBSERVER      Star Date: %d      %s", d.campaign.Day(), expeditionLine(d.campaign))
+	}
 	mlge_text.Draw(screen, info, 14, 20, 56, color.RGBA{160, 185, 215, 255})
 
 	if d.active >= 0 && d.active < len(d.tabs) {
@@ -267,3 +277,22 @@ func (d *DashboardState) drawNotifications(screen *ebiten.Image) {
 }
 
 func (d *DashboardState) Done() bool { return d.done }
+
+// expeditionLine is the dashboard header's word on an observer run's
+// expedition fleet: where it is and its fuel.
+func expeditionLine(c *campaign.Campaign) string {
+	f := c.Expedition()
+	if f == nil {
+		return "expedition lost"
+	}
+	name := func(id string) string {
+		if loc := c.Locations[id]; loc != nil {
+			return loc.Name
+		}
+		return id
+	}
+	if f.Landed() {
+		return fmt.Sprintf("expedition on %s, fuel %d", name(f.LandedID), f.Presence.Fuel)
+	}
+	return fmt.Sprintf("expedition bound for %s, fuel %d", name(f.ToID), f.Presence.Fuel)
+}

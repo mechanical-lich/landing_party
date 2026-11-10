@@ -4,10 +4,12 @@ import (
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/mapdef"
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/task"
 )
@@ -193,6 +195,14 @@ func TestDummyColonistRunsWorkerAI(t *testing.T) {
 	if lab.s.MainSettlement == nil {
 		t.Fatal("no settlement to give tasks")
 	}
+	// The wall's real cost in its bag (every game test runs on the real
+	// content tables), so the build is one it can take up.
+	ore, err := factory.Create("metal_ore", x, y, z)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ore.GetComponent(components.Material).(*components.MaterialComponent).Quantity = 20
+	e.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).AddItem(ore)
 	tk := &task.Task{
 		X: x + 3, Y: y, Z: z, Action: task_requests.BuildAction,
 		Data: task_requests.BuildRequest{Type: "hull_wall", X: x + 3, Y: y, Z: z, Required: 5},

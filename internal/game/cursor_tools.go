@@ -56,6 +56,7 @@ type cursorToolHost interface {
 func (s *MainState) Level() *world.Level                { return s.level }
 func (s *MainState) Settlement() *settlement.Settlement { return s.MainSettlement }
 func (s *MainState) SetContext(title, body, bp string) {
+	s.contextTitle, s.contextBody = title, body
 	s.guiManager.SetDefaultContext(title, body, bp)
 }
 func (s *MainState) OpenColonistModal(c *ecs.Entity) { s.openColonistModal(c) }

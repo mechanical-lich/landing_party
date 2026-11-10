@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -57,6 +58,7 @@ type starMapPanel struct {
 
 	locateBtn   *minui.Button
 	travelBtn   *minui.Button
+	viewBtn     *minui.Button
 	scanBtn     *minui.Button
 	pauseBtn    *minui.Button
 	beamDownBtn *minui.Button
@@ -111,13 +113,20 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 
 	p.locateBtn = minui.NewButton("sm_locate", "Locate")
 	p.locateBtn.SetPosition(20, btnY)
-	p.locateBtn.SetSize(140, 30)
+	p.locateBtn.SetSize(100, 30)
 	p.locateBtn.OnClick = p.locate
 
 	p.travelBtn = minui.NewButton("sm_travel", "Travel Here")
-	p.travelBtn.SetPosition(170, btnY)
-	p.travelBtn.SetSize(150, 30)
+	p.travelBtn.SetPosition(128, btnY)
+	p.travelBtn.SetSize(130, 30)
 	p.travelBtn.OnClick = p.travel
+
+	// View opens the selected planet's level, wherever the ship is
+	// (observer mode v2, view.go).
+	p.viewBtn = minui.NewButton("sm_view", "View")
+	p.viewBtn.SetPosition(264, btnY)
+	p.viewBtn.SetSize(68, 30)
+	p.viewBtn.OnClick = p.view
 
 	p.beamDownBtn = minui.NewButton("sm_beam_down", "Beam Down  v")
 	p.beamDownBtn.SetPosition(340, btnY)
@@ -189,7 +198,16 @@ func (p *starMapPanel) refreshLocations() {
 	for _, loc := range locs {
 		p.locIDs = append(p.locIDs, loc.ID)
 		tag := ""
-		if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
+		if observerRun() {
+			// No ship of the player's: the expedition's whereabouts instead.
+			if f := p.campaign.Expedition(); f != nil && f.Landed() && f.LandedID == loc.ID {
+				tag = "  [expedition]"
+			} else if f != nil && !f.Landed() && f.ToID == loc.ID {
+				tag = "  [expedition bound]"
+			} else if loc.Visited && loc.HasSite() {
+				tag = "  [visited]"
+			}
+		} else if loc.ID == p.campaign.CurrentLocationID && p.wm.Current() != nil {
 			tag = "  [in orbit]"
 		} else if loc.ID == p.campaign.CurrentLocationID && loc.Kind == campaign.AdriftKind {
 			tag = "  [you are here, adrift]"
@@ -204,7 +222,7 @@ func (p *starMapPanel) refreshLocations() {
 				scenarioName = " · " + s.Name
 			}
 		}
-		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s", loc.Name, loc.Kind, scenarioName, p.campaign.FuelCost(loc.ID), tag))
+		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s%s", loc.Name, loc.Kind, scenarioName, p.campaign.FuelCost(loc.ID), tag, factionListTag(p.campaign, loc)))
 	}
 	p.locList.SetItems(labels)
 
@@ -406,9 +424,27 @@ func (p *starMapPanel) rowRect(id string) (minui.Rect, bool) {
 	return minui.Rect{X: content.X, Y: y, Width: content.Width, Height: rowH}, true
 }
 
+// view opens the selected planet's level (view.go).
+func (p *starMapPanel) view() {
+	if !observerMode() {
+		return
+	}
+	loc := p.selectedLocation()
+	if !loc.HasSite() {
+		p.status = "Nothing to view there."
+		return
+	}
+	ms, err := p.wm.ViewLocation(loc.ID)
+	if err != nil {
+		p.status = "View failed: " + err.Error()
+		return
+	}
+	p.pending = ms
+}
+
 func (p *starMapPanel) travel() {
 	loc := p.selectedLocation()
-	if loc == nil {
+	if loc == nil || observerRun() {
 		return
 	}
 	if lock := p.travelBlockReason(loc); lock != "" {
@@ -485,6 +521,9 @@ func (p *starMapPanel) closeScanModal() {
 }
 
 func (p *starMapPanel) beamDown() {
+	if observerRun() {
+		return
+	}
 	if p.wm.Current() == nil {
 		p.status = p.wm.NoSiteReason()
 		return
@@ -503,6 +542,9 @@ func (p *starMapPanel) beamDown() {
 }
 
 func (p *starMapPanel) beamUp() {
+	if observerRun() {
+		return
+	}
 	idx := p.planList.SelectedIndex
 	if idx < 0 || idx >= len(p.planEnts) {
 		p.status = "Select a colonist planetside."
@@ -554,6 +596,19 @@ func (p *starMapPanel) Update() {
 	p.handleCanvasInput()
 	p.locList.Update()
 	p.locateBtn.Update()
+	// View is the observer's (a run, or the lock on a normal campaign):
+	// in play it would scout any planet for free.
+	if observerMode() {
+		p.viewBtn.SetEnabled(p.selectedLocation().HasSite())
+		p.viewBtn.Update()
+	}
+	if observerRun() {
+		// No player ship: the map, Locate, View and the clock are the
+		// viewer's whole interface.
+		p.syncPauseBtn()
+		p.pauseBtn.Update()
+		return
+	}
 	p.refreshTravelLock()
 	p.travelBtn.Update()
 
@@ -778,31 +833,39 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 			vector.StrokeCircle(canvas, sx, sy, r+3, 2, color.RGBA{255, 230, 120, 255}, true)
 		}
 		mlge_text.Draw(canvas, loc.Name, 11, int(sx)+int(r)+4, int(sy)-7, color.RGBA{190, 205, 225, 255})
+		drawFactionBadges(canvas, loc, sx, sy, r)
 	}
+	p.drawFleets(canvas)
 
 	// Bottom control strip.
 	sh := config.Global().ScreenHeight
 	lblY := sh - 204
 	lbl := color.RGBA{160, 185, 215, 255}
 	mlge_text.Draw(screen, "Destinations", 14, 20, lblY, lbl)
-	mlge_text.Draw(screen, "On Ship", 14, 340, lblY, lbl)
-	planTitle := "Planetside"
-	if cur != nil && p.wm.Current() != nil {
-		planTitle = "On " + cur.Name
-	} else if p.campaign.IsAdrift() {
-		planTitle = "Adrift"
-	}
-	mlge_text.Draw(screen, planTitle, 14, 610, lblY, lbl)
-
 	p.locList.Draw(screen)
-	p.shipList.Draw(screen)
-	p.planList.Draw(screen)
 	p.locateBtn.Draw(screen)
-	p.travelBtn.Draw(screen)
-	p.scanBtn.Draw(screen)
+	if observerMode() {
+		p.viewBtn.Draw(screen)
+	}
 	p.pauseBtn.Draw(screen)
-	p.beamDownBtn.Draw(screen)
-	p.beamUpBtn.Draw(screen)
+	if observerRun() {
+		p.drawExpedition(screen, 340, lblY)
+	} else {
+		mlge_text.Draw(screen, "On Ship", 14, 340, lblY, lbl)
+		planTitle := "Planetside"
+		if cur != nil && p.wm.Current() != nil {
+			planTitle = "On " + cur.Name
+		} else if p.campaign.IsAdrift() {
+			planTitle = "Adrift"
+		}
+		mlge_text.Draw(screen, planTitle, 14, 610, lblY, lbl)
+		p.shipList.Draw(screen)
+		p.planList.Draw(screen)
+		p.travelBtn.Draw(screen)
+		p.scanBtn.Draw(screen)
+		p.beamDownBtn.Draw(screen)
+		p.beamUpBtn.Draw(screen)
+	}
 
 	// Selected-destination info (right of the crew columns).
 	infoX := 880
@@ -816,6 +879,18 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	if sel != nil {
 		mlge_text.Draw(screen, sel.Name, 16, infoX, lblY, color.RGBA{220, 230, 255, 255})
 		line := fmt.Sprintf("%s   ·   fuel %d / %d", sel.Kind, p.campaign.FuelCost(sel.ID), p.fuelAvailable())
+		if f := p.campaign.Expedition(); observerRun() && f != nil {
+			// The expedition's jump there, from where it is, and its tanks.
+			from := p.campaign.Locations[f.LandedID]
+			if from == nil {
+				from = p.campaign.Locations[f.ToID]
+			}
+			cost := 0
+			if from != nil {
+				cost = int(math.Round(math.Hypot(sel.X-from.X, sel.Y-from.Y)))
+			}
+			line = fmt.Sprintf("%s   ·   expedition jump %d / fuel %d", sel.Kind, cost, f.Presence.Fuel)
+		}
 		mlge_text.Draw(screen, line, 13, infoX, lblY+24, dashBodyColor)
 		y := lblY + 46
 		if p.travelLock != "" {
@@ -825,6 +900,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 			// The danger class, from charting like the summary: how bad, not
 			// which scenario, so nothing becomes pickable.
 			y = drawTierTag(screen, p.campaign.LocationTier(sel), infoX, y)
+			y = drawFactionTags(screen, p.campaign, sel, infoX, y)
+			y = p.drawInboundTags(screen, sel, infoX, y)
 			y = drawWrappedClip(screen, sel.Summary, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{150, 170, 195, 255}) + 6
 		}
 		if sel.Visited {
@@ -840,6 +917,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 
 	if p.status != "" {
 		mlge_text.Draw(screen, p.status, 13, 20, sh-30, color.RGBA{230, 160, 90, 255})
+	} else if observerRun() {
+		mlge_text.Draw(screen, "Observer run: no ship of yours. Select any planet and View it.", 13, 20, sh-30, color.RGBA{120, 220, 255, 255})
 	}
 
 	if p.scanOpen {
@@ -1071,4 +1150,384 @@ func drawTierTag(screen *ebiten.Image, tier string, x, y int) int {
 	vector.StrokeRect(screen, float32(x), float32(y-1), bw, bh, 1, col, false)
 	mlge_text.Draw(screen, tag.Label, size, x+5, y+1, col)
 	return y + int(bh) + 4
+}
+
+// ---- rival faction badges (enemy_factions_plan.md, Tier 3, Phase A) ----
+
+// factionBadgeColor is a doctrine's Star Map colour.
+func factionBadgeColor(d *campaign.Doctrine) color.RGBA {
+	return color.RGBA{d.Badge[0], d.Badge[1], d.Badge[2], 255}
+}
+
+// drawFactionBadges marks each presence the player has seen on a site's icon:
+// a diamond in the faction's colour left of the icon, with one pip per stage
+// reached beside it. Unseen presences draw nothing.
+func drawFactionBadges(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r float32) {
+	known := shownPresences(loc)
+	if len(known) == 0 {
+		return
+	}
+	fd := campaign.LoadFactionData()
+	// Left of the icon, clear of the selection ring; several stack downward.
+	const dr = 6
+	bx, by := sx-r-dr-7, sy-float32(len(known)-1)*7
+	for _, p := range known {
+		d := fd.Doctrine(p.Doctrine)
+		if d == nil {
+			continue
+		}
+		col := factionBadgeColor(d)
+		if d.BadgeShape == "square" {
+			// The autonz' chip (phase E): filled when awake, an outline
+			// while it is a dormant signal.
+			if p.Dormant {
+				vector.StrokeRect(canvas, bx-dr+1, by-dr+1, 2*dr-2, 2*dr-2, 1.5, col, true)
+			} else {
+				vector.DrawFilledRect(canvas, bx-dr+1, by-dr+1, 2*dr-2, 2*dr-2, col, true)
+			}
+		} else {
+			var path vector.Path
+			path.MoveTo(bx, by-dr)
+			path.LineTo(bx+dr, by)
+			path.LineTo(bx, by+dr)
+			path.LineTo(bx-dr, by)
+			path.Close()
+			vector.FillPath(canvas, &path, &vector.FillOptions{}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(col)})
+		}
+		for i := 0; i < p.Stage; i++ {
+			vector.DrawFilledCircle(canvas, bx-dr-4-float32(i)*5, by, 2, col, true)
+		}
+		by += 14
+	}
+}
+
+func colorScaleOf(c color.RGBA) ebiten.ColorScale {
+	var cs ebiten.ColorScale
+	cs.ScaleWithColor(c)
+	return cs
+}
+
+// factionListTag is the Destinations row's note for seen presences
+// ("[xeno nest]"), in the morph's name.
+func factionListTag(c *campaign.Campaign, loc *campaign.Location) string {
+	fd := campaign.LoadFactionData()
+	tag := ""
+	for _, f := range c.LandedFleets(loc.ID) {
+		if d := fd.Doctrine(f.Presence.Doctrine); d != nil && fleetShown(f) {
+			tag += fmt.Sprintf("  [%s%s]", d.MorphAt(loc).Singular, presenceCount(f.Presence.Population))
+		}
+	}
+	if ms := shownFleets(c); len(ms) > 0 {
+		for _, f := range ms {
+			if d := fd.Doctrine(f.Presence.Doctrine); d != nil && f.Mothership && f.ToID == loc.ID {
+				tag += fmt.Sprintf("  [%s mothership]", d.MorphAt(nil).Singular)
+			}
+		}
+	}
+	for _, p := range shownPresences(loc) {
+		if d := fd.Doctrine(p.Doctrine); d != nil {
+			if p.Dormant {
+				tag += fmt.Sprintf("  [%s signal]", presenceWord(d, loc))
+				continue
+			}
+			tag += fmt.Sprintf("  [%s %s%s]", presenceWord(d, loc), stageWord(d, p.Stage), presenceCount(p.Population))
+		}
+	}
+	return tag
+}
+
+// fleetMorph is the morph players would name a fleet by: the one at the site
+// that fired it (hidden identity: never the faction's name).
+func fleetMorph(c *campaign.Campaign, d *campaign.Doctrine, f *campaign.Fleet) campaign.DoctrineMorph {
+	return d.MorphAt(c.Locations[f.FromID])
+}
+
+// drawFleets draws every fleet the player has seen at its position now: an
+// egg in the faction's colour with a faint dashed line to where it will come
+// down.
+func (p *starMapPanel) drawFleets(canvas *ebiten.Image) {
+	fd := campaign.LoadFactionData()
+	now := p.campaign.StarTime()
+	for _, f := range shownFleets(p.campaign) {
+		d := fd.Doctrine(f.Presence.Doctrine)
+		if d == nil {
+			continue
+		}
+		col := factionBadgeColor(d)
+		fx, fy := f.Pos(now)
+		sx, sy := p.worldToScreen(fx, fy)
+		tx, ty := p.worldToScreen(f.ToX, f.ToY)
+		if f.Kind == campaign.FleetShip {
+			marker := ""
+			if d.Ships != nil {
+				marker = d.Ships.Marker
+			}
+			switch {
+			case f.Mothership:
+				// In orbit of its site, up and left of the icon, larger.
+				drawSaucerMarker(canvas, sx-24, sy-18, 1.8, col, true)
+			case f.Landed():
+				// Parked beside the site it holds, up and right of the icon.
+				drawFleetShip(canvas, marker, sx+22, sy-16, 1, 0, col)
+			case f.FromID == f.ToID:
+				// Waiting docked at its mothership.
+				drawFleetShip(canvas, marker, sx-6, sy-30, 1, 0, col)
+			default:
+				drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+				drawFleetShip(canvas, marker, sx, sy, tx-sx, ty-sy, col)
+			}
+			continue
+		}
+		drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+		// An egg: a tall oval with a dark rim.
+		var path vector.Path
+		path.MoveTo(sx, sy-5)
+		path.QuadTo(sx+4, sy-4, sx+4, sy+1)
+		path.QuadTo(sx+4, sy+5, sx, sy+5)
+		path.QuadTo(sx-4, sy+5, sx-4, sy+1)
+		path.QuadTo(sx-4, sy-4, sx, sy-5)
+		path.Close()
+		vector.FillPath(canvas, &path, &vector.FillOptions{}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(col)})
+		vector.StrokePath(canvas, &path, &vector.StrokeOptions{Width: 1}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(color.RGBA{col.R / 3, col.G / 3, col.B / 3, 255})})
+	}
+}
+
+// drawFleetShip draws a ship by its doctrine's marker: a saucer or (the
+// default) a dart.
+func drawFleetShip(canvas *ebiten.Image, marker string, sx, sy, dx, dy float32, col color.RGBA) {
+	if marker == "saucer" {
+		drawSaucerMarker(canvas, sx, sy, 1, col, false)
+		return
+	}
+	drawShipMarker(canvas, sx, sy, dx, dy, col)
+}
+
+// drawSaucerMarker is a saucer (greyish) on the Star Map: a flat ellipse with
+// a dome, k times the base size; a mothership adds a ring.
+func drawSaucerMarker(canvas *ebiten.Image, sx, sy, k float32, col color.RGBA, ring bool) {
+	dark := color.RGBA{col.R / 3, col.G / 3, col.B / 3, 255}
+	var hull vector.Path
+	w, h := 9*k, 3.5*k
+	hull.MoveTo(sx-w, sy)
+	hull.QuadTo(sx-w, sy-h, sx, sy-h)
+	hull.QuadTo(sx+w, sy-h, sx+w, sy)
+	hull.QuadTo(sx+w, sy+h, sx, sy+h)
+	hull.QuadTo(sx-w, sy+h, sx-w, sy)
+	hull.Close()
+	vector.FillPath(canvas, &hull, &vector.FillOptions{}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(col)})
+	vector.StrokePath(canvas, &hull, &vector.StrokeOptions{Width: 1}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(dark)})
+	vector.DrawFilledCircle(canvas, sx, sy-h, 3.5*k, dark, true)
+	vector.DrawFilledCircle(canvas, sx, sy-h, 2.5*k, col, true)
+	if ring {
+		vector.StrokeCircle(canvas, sx, sy, w+5, 1, color.RGBA{col.R, col.G, col.B, 160}, true)
+	}
+}
+
+// drawShipMarker is a faction ship on the Star Map: a dart in the faction's
+// colour pointing along (dx, dy), with a dark rim.
+func drawShipMarker(canvas *ebiten.Image, sx, sy, dx, dy float32, col color.RGBA) {
+	l := float32(math.Hypot(float64(dx), float64(dy)))
+	if l == 0 {
+		dx, dy, l = 1, 0, 1
+	}
+	ux, uy := dx/l, dy/l // forward
+	px, py := -uy, ux    // across
+	var path vector.Path
+	path.MoveTo(sx+ux*9, sy+uy*9)
+	path.LineTo(sx-ux*7+px*7, sy-uy*7+py*7)
+	path.LineTo(sx-ux*3, sy-uy*3)
+	path.LineTo(sx-ux*7-px*7, sy-uy*7-py*7)
+	path.Close()
+	vector.FillPath(canvas, &path, &vector.FillOptions{}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(col)})
+	vector.StrokePath(canvas, &path, &vector.StrokeOptions{Width: 1}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(color.RGBA{col.R / 3, col.G / 3, col.B / 3, 255})})
+}
+
+// drawInboundTags draws one outlined tag per seen egg bound for loc
+// ("XENO EGG INBOUND · 12 DAYS") and returns the y below them.
+func (p *starMapPanel) drawInboundTags(screen *ebiten.Image, loc *campaign.Location, x, y int) int {
+	fd := campaign.LoadFactionData()
+	for _, f := range shownFleets(p.campaign) {
+		d := fd.Doctrine(f.Presence.Doctrine)
+		if d == nil || f.ToID != loc.ID {
+			continue
+		}
+		if f.Landed() {
+			continue // drawn by drawFactionTags
+		}
+		days := int(f.ArriveDay - p.campaign.StarDate)
+		when := "LANDING"
+		if days > 0 {
+			when = fmt.Sprintf("%d DAYS", days)
+		}
+		label := fmt.Sprintf("%s EGG INBOUND · %s", strings.ToUpper(fleetMorph(p.campaign, d, f).Tag), when)
+		if f.Kind == campaign.FleetShip {
+			if f.Mothership || f.FromID == f.ToID {
+				continue // in orbit here: drawn by drawFactionTags
+			}
+			// A rival colony is openly a colony: its own name.
+			label = fmt.Sprintf("%s INBOUND · %s", fleetTag(d, f), when)
+		}
+		y = drawTag(screen, label, factionBadgeColor(d), x, y)
+	}
+	// Ships that left here and where they are heading.
+	for _, f := range shownFleets(p.campaign) {
+		d := fd.Doctrine(f.Presence.Doctrine)
+		if d == nil || f.Kind != campaign.FleetShip || f.Landed() || f.Mothership || f.FromID != loc.ID || f.ToID == loc.ID {
+			continue
+		}
+		dest := "DEEP SPACE"
+		if to := p.campaign.Locations[f.ToID]; to != nil {
+			dest = strings.ToUpper(to.Name)
+		}
+		days := int(f.ArriveDay - p.campaign.StarDate)
+		label := fmt.Sprintf("%s BOUND FOR %s · %s", fleetTag(d, f), dest, plural(max(days, 0), "DAY"))
+		if f.Returning {
+			label = fmt.Sprintf("%s BOUND FOR ITS MOTHERSHIP · %s", fleetTag(d, f), plural(max(days, 0), "DAY"))
+		}
+		y = drawTag(screen, label, factionBadgeColor(d), x, y)
+	}
+	return y
+}
+
+// fleetTag names a ship for its tags: the faction as players know it and
+// its class ("GREY SCOUT", "GREY MOTHERSHIP"; a doctrine without tiers,
+// "RIVAL COLONY SHIP").
+func fleetTag(d *campaign.Doctrine, f *campaign.Fleet) string {
+	base := strings.ToUpper(d.MorphAt(nil).Tag)
+	switch {
+	case f.Mothership:
+		return base + " MOTHERSHIP"
+	case d.TierName(f.ShipTier) != "":
+		return base + " " + strings.ToUpper(d.TierName(f.ShipTier))
+	}
+	return base + " SHIP"
+}
+
+func plural(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("1 %s", word)
+	}
+	return fmt.Sprintf("%d %sS", n, word)
+}
+
+// drawTag draws one outlined tag in col and returns the y below it.
+func drawTag(screen *ebiten.Image, label string, col color.RGBA, x, y int) int {
+	const size = 12
+	w, _ := mlge_text.Measure(label, size)
+	bw, bh := float32(w)+10, float32(17)
+	vector.DrawFilledRect(screen, float32(x), float32(y-1), bw, bh, color.RGBA{col.R / 5, col.G / 5, col.B / 5, 220}, false)
+	vector.StrokeRect(screen, float32(x), float32(y-1), bw, bh, 1, col, false)
+	mlge_text.Draw(screen, label, size, x+5, y+1, col)
+	return y + int(bh) + 4
+}
+
+// drawFactionTags draws one outlined tag per seen presence ("XENO NEST"),
+// like the tier tag, and returns the y below them.
+func drawFactionTags(screen *ebiten.Image, c *campaign.Campaign, loc *campaign.Location, x, y int) int {
+	fd := campaign.LoadFactionData()
+	// A known ship in orbit here (a mothership, or one docked at it): its
+	// class and stance.
+	for _, f := range shownFleets(c) {
+		d := fd.Doctrine(f.Presence.Doctrine)
+		if d == nil || f.Kind != campaign.FleetShip || f.Landed() || f.ToID != loc.ID || !(f.Mothership || f.FromID == f.ToID) {
+			continue
+		}
+		y = drawTag(screen, fleetTag(d, f)+" IN ORBIT · "+strings.ToUpper(c.Stance(f.Presence.Faction)), factionBadgeColor(d), x, y)
+	}
+	// A known ship landed here: the rival colony by name, with its stance
+	// (and its class, for a doctrine with tiers).
+	for _, f := range c.LandedFleets(loc.ID) {
+		d := fd.Doctrine(f.Presence.Doctrine)
+		if d == nil || !fleetShown(f) {
+			continue
+		}
+		col := factionBadgeColor(d)
+		label := strings.ToUpper(d.MorphAt(loc).Tag + " · " + c.Stance(f.Presence.Faction))
+		if len(d.ShipTiers()) > 0 {
+			label = fleetTag(d, f) + " · " + strings.ToUpper(c.Stance(f.Presence.Faction))
+		}
+		const size = 12
+		w, _ := mlge_text.Measure(label, size)
+		bw, bh := float32(w)+10, float32(17)
+		vector.DrawFilledRect(screen, float32(x), float32(y-1), bw, bh, color.RGBA{col.R / 5, col.G / 5, col.B / 5, 220}, false)
+		vector.StrokeRect(screen, float32(x), float32(y-1), bw, bh, 1, col, false)
+		mlge_text.Draw(screen, label, size, x+5, y+1, col)
+		y += int(bh) + 4
+	}
+	for _, p := range shownPresences(loc) {
+		d := fd.Doctrine(p.Doctrine)
+		if d == nil {
+			continue
+		}
+		col := factionBadgeColor(d)
+		// The morph's word, never the faction's, while its identity is
+		// hidden (an observer run names both, with the population).
+		label := strings.ToUpper(d.MorphAt(loc).Tag + " " + stageWord(d, p.Stage))
+		if observerRun() {
+			label = strings.ToUpper(presenceWord(d, loc)+" "+stageWord(d, p.Stage)) + presenceCount(p.Population)
+		}
+		if p.Dormant {
+			label = c.SignalNote(d, loc, p) // phase E: the autonz signal marker
+		}
+		const size = 12
+		w, _ := mlge_text.Measure(label, size)
+		bw, bh := float32(w)+10, float32(17)
+		vector.DrawFilledRect(screen, float32(x), float32(y-1), bw, bh, color.RGBA{col.R / 5, col.G / 5, col.B / 5, 220}, false)
+		vector.StrokeRect(screen, float32(x), float32(y-1), bw, bh, 1, col, false)
+		mlge_text.Draw(screen, label, size, x+5, y+1, col)
+		y += int(bh) + 4
+	}
+	return y
+}
+
+// drawExpedition is the observer run's panel where the crew lists stand in
+// a normal run: where the expedition fleet is, its crew, fuel, hold and
+// why it last lifted off (campaign/observer.go).
+func (p *starMapPanel) drawExpedition(screen *ebiten.Image, x, y int) {
+	lbl := color.RGBA{160, 185, 215, 255}
+	mlge_text.Draw(screen, "Expedition", 14, x, y, lbl)
+	f := p.campaign.Expedition()
+	if f == nil {
+		mlge_text.Draw(screen, "Lost.", 13, x, y+24, dashBodyColor)
+		return
+	}
+	where := "in flight to " + p.locName(f.ToID)
+	if f.Landed() {
+		where = "landed on " + p.locName(f.LandedID)
+	}
+	lines := []string{
+		where,
+		fmt.Sprintf("crew %d   fuel %d", f.Presence.Population, f.Presence.Fuel),
+		"hold " + holdLine(f.Presence.Stockpile),
+	}
+	if f.LastMove != "" {
+		lines = append(lines, "last lift-off: "+f.LastMove)
+	}
+	for i, l := range lines {
+		mlge_text.Draw(screen, l, 13, x, y+24+i*20, dashBodyColor)
+	}
+}
+
+func (p *starMapPanel) locName(id string) string {
+	if loc := p.campaign.Locations[id]; loc != nil {
+		return loc.Name
+	}
+	return id
+}
+
+// holdLine is a stockpile as "metal_ore 100, crystal 100, ..." (by name).
+func holdLine(stock map[string]int) string {
+	keys := make([]string, 0, len(stock))
+	for k := range stock {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s %d", k, stock[k]))
+	}
+	if len(parts) == 0 {
+		return "empty"
+	}
+	return strings.Join(parts, ", ")
 }

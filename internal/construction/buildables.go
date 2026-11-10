@@ -24,26 +24,88 @@ type Buildable struct {
 	// menu by editing build.json alone, no Go change required.
 	Category string `json:"category,omitempty"`
 	Order    int    `json:"order,omitempty"`
+	// RequiredFloor: every tile of the footprint must have one of these
+	// floors (the hive's structures stand on resin, the autonz' on wire;
+	// a string or a list in the file). Checked by the build order path the
+	// player's cursor and every director share, and by the director's site
+	// pick.
+	RequiredFloor FloorList `json:"required_floor,omitempty"`
+	// DeployOnly: never ordered built; a unit deploys into it (the autonz'
+	// relay pylon: a relay drone; autonz_plan.md). The build order path
+	// refuses it.
+	DeployOnly bool `json:"deploy_only,omitempty"`
+}
+
+// FloorList is a required floor: one tile name or a list of them.
+type FloorList []string
+
+// UnmarshalJSON reads a string or a list.
+func (f *FloorList) UnmarshalJSON(b []byte) error {
+	var one string
+	if err := json.Unmarshal(b, &one); err == nil {
+		*f = nil
+		if one != "" {
+			*f = FloorList{one}
+		}
+		return nil
+	}
+	var many []string
+	if err := json.Unmarshal(b, &many); err != nil {
+		return err
+	}
+	*f = many
+	return nil
+}
+
+// Has reports whether name is one of the floors.
+func (f FloorList) Has(name string) bool {
+	for _, v := range f {
+		if v == name {
+			return true
+		}
+	}
+	return false
+}
+
+// FloorOK reports whether a build of b covering tiles may go there: b has no
+// RequiredFloor, or floorAt names one of them on every tile.
+func (b Buildable) FloorOK(tiles [][2]int, floorAt func(x, y int) string) bool {
+	if len(b.RequiredFloor) == 0 {
+		return true
+	}
+	for _, t := range tiles {
+		if !b.RequiredFloor.Has(floorAt(t[0], t[1])) {
+			return false
+		}
+	}
+	return true
 }
 
 var buildables map[string]Buildable
 
 func init() {
+	if err := Load("data/build.json"); err != nil {
+		log.Print("Failed to load build.json:", err)
+	}
+}
+
+// Load replaces the buildable table with path's (empty when it cannot be
+// read; Load("") clears it). init loads data/build.json relative to the cwd.
+func Load(path string) error {
 	buildables = make(map[string]Buildable)
-	file, err := os.OpenFile("data/build.json", os.O_RDONLY, 0644)
+	if path == "" {
+		return nil
+	}
+	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
-		log.Print("Failed to open build.json:", err)
-		return
+		return err
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		log.Print("Failed to read build.json:", err)
-		return
+		return err
 	}
-	if err := json.Unmarshal(data, &buildables); err != nil {
-		log.Print("Failed to unmarshal build.json:", err)
-	}
+	return json.Unmarshal(data, &buildables)
 }
 
 func GetBuildable(key string) Buildable {
@@ -70,7 +132,7 @@ func BuildableTypesInCategory(category string) []string {
 	}
 	var in []entry
 	for key, b := range buildables {
-		if b.Hidden || b.Category != category {
+		if b.Hidden || b.DeployOnly || b.Category != category {
 			continue
 		}
 		in = append(in, entry{key: key, order: b.Order, name: b.Name})
@@ -97,7 +159,7 @@ func ListBuildablesForTechs(knownTechs []string) []Buildable {
 	}
 	var result []Buildable
 	for _, b := range buildables {
-		if b.Hidden {
+		if b.Hidden || b.DeployOnly {
 			continue
 		}
 		if b.RequiredTech != "" && !techSet[b.RequiredTech] {

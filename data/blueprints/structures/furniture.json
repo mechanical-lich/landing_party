@@ -92,7 +92,12 @@
         "Solid": {},
         "Storage": {
             "Capacity": 32,
-            "AllowedTags": ["metal", "crystal", "stone", "mineral"]
+            "AllowedTags": [
+                "metal",
+                "crystal",
+                "stone",
+                "mineral"
+            ]
         }
     },
     "fuel_tank": {
@@ -112,7 +117,10 @@
         "Solid": {},
         "Storage": {
             "Capacity": 16,
-            "AllowedTags": ["fuel", "energy"]
+            "AllowedTags": [
+                "fuel",
+                "energy"
+            ]
         }
     },
     "bio_silo": {
@@ -132,7 +140,11 @@
         "Solid": {},
         "Storage": {
             "Capacity": 24,
-            "AllowedTags": ["biomass", "organic", "food"]
+            "AllowedTags": [
+                "biomass",
+                "organic",
+                "food"
+            ]
         }
     },
     "hazmat_vault": {
@@ -152,7 +164,9 @@
         "Solid": {},
         "Storage": {
             "Capacity": 12,
-            "AllowedTags": ["radioactive"]
+            "AllowedTags": [
+                "radioactive"
+            ]
         }
     },
     "work_light": {
@@ -274,5 +288,28 @@
         },
         "Inanimate": {},
         "Solid": {}
+    },
+    "biomass_pool": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": false,
+            "Resource": "scifi_entities",
+            "SpriteX": 720,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Biomass Pool",
+            "Faction": "",
+            "LongDescription": "DRAFT. A violet pool of half-digested matter, skinned over."
+        },
+        "Solid": {},
+        "Storage": {
+            "Capacity": 6,
+            "AllowedTags": [
+                "biomass"
+            ]
+        }
     }
 }

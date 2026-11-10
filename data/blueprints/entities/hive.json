@@ -1,0 +1,670 @@
+{
+    "xeno_egg": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 144,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Wild Xeno Egg",
+            "Faction": "hive",
+            "Species": "xeno",
+            "Classification": "egg"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 20,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/egg.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "xeno_egg_cracked": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Cracked Egg",
+            "Faction": "hive",
+            "Species": "xeno",
+            "Classification": "cracked egg"
+        },
+        "Inanimate": {},
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "xeno_hatchling": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Wild Xeno Hatchling",
+            "Faction": "hive",
+            "Species": "xeno",
+            "Classification": "hatchling"
+        },
+        "Health": {
+            "MaxHealth": 6
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/hatchling.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 5,
+            "Int": 2,
+            "Dex": 16,
+            "AC": 5,
+            "BasicAttackDice": "1d4"
+        },
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "xeno_stage2": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Wild Xeno",
+            "Faction": "hive",
+            "Species": "xeno"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/stage2.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 4,
+            "Dex": 14,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "xeno_stage3": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Wild Xeno Adult",
+            "Faction": "hive",
+            "Species": "xeno",
+            "Classification": "adult"
+        },
+        "Health": {
+            "MaxHealth": 32
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/stage3.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Solid": {},
+        "Stats": {
+            "Str": 16,
+            "Int": 6,
+            "Dex": 12,
+            "AC": 12,
+            "BasicAttackDice": "2d6"
+        },
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "troid_egg": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 768
+        },
+        "Description": {
+            "Name": "Wild Troid Egg",
+            "Faction": "hive",
+            "Species": "troid",
+            "Classification": "egg"
+        },
+        "Health": {
+            "MaxHealth": 8
+        },
+        "Initiative": {
+            "DefaultValue": 20,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/egg.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "troid_egg_cracked": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 768
+        },
+        "Description": {
+            "Name": "Cracked Egg",
+            "Faction": "hive",
+            "Species": "troid",
+            "Classification": "cracked egg"
+        },
+        "Inanimate": {},
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "troid_hatchling": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Wild Troid Hatchling",
+            "Faction": "hive",
+            "Species": "troid",
+            "Classification": "hatchling"
+        },
+        "Health": {
+            "MaxHealth": 6
+        },
+        "Initiative": {
+            "DefaultValue": 6,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/hatchling.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "spacefaring",
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 5,
+            "Int": 2,
+            "Dex": 16,
+            "AC": 5,
+            "BasicAttackDice": "1d4"
+        },
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "troid_stage2": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Wild Troid",
+            "Faction": "hive",
+            "Species": "troid"
+        },
+        "Health": {
+            "MaxHealth": 16
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/stage2.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "spacefaring",
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 10,
+            "Int": 4,
+            "Dex": 14,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        },
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "troid_stage3": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 96,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Wild Troid Adult",
+            "Faction": "hive",
+            "Species": "troid",
+            "Classification": "adult"
+        },
+        "Health": {
+            "MaxHealth": 32
+        },
+        "Initiative": {
+            "DefaultValue": 14,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/stage3.basic"
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "spacefaring",
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 16,
+            "Int": 6,
+            "Dex": 12,
+            "AC": 12,
+            "BasicAttackDice": "2d6"
+        },
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "egg_launcher": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 384,
+            "SpriteY": 552
+        },
+        "Description": {
+            "Name": "Resin Spire",
+            "Faction": "hive",
+            "Species": "resin_spire",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A cluster of violet resin spines grown taller than a person, hollow at the core and warm to the touch. Something inside it hums."
+        },
+        "Health": {
+            "MaxHealth": 60
+        },
+        "Initiative": {
+            "DefaultValue": 40,
+            "Ticks": 1
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/hive/launcher.basic"
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 6,
+            "BasicAttackDice": "1d1"
+        },
+        "Kin": {
+            "Morph": "structure"
+        },
+        "Solid": {}
+    },
+    "xeno_crew": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 696
+        },
+        "Description": {
+            "Name": "Xeno",
+            "Faction": "hive",
+            "Species": "xeno",
+            "Classification": "brood",
+            "LongDescription": "DRAFT. One of a brood's working adults."
+        },
+        "Health": {
+            "MaxHealth": 14
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": []
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        },
+        "Needs": {
+            "MaxExhaustion": 1000000,
+            "Hunger": 0,
+            "MaxHunger": 100,
+            "HungerThreshold": 60,
+            "StarveThreshold": 90,
+            "HungerRate": 8
+        },
+        "Kin": {
+            "Morph": "crawler"
+        }
+    },
+    "troid_crew": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Bounces": true,
+            "Resource": "scifi_entities",
+            "SpriteX": 48,
+            "SpriteY": 720
+        },
+        "Description": {
+            "Name": "Troid",
+            "Faction": "hive",
+            "Species": "troid",
+            "Classification": "brood",
+            "LongDescription": "DRAFT. One of a brood's working adults."
+        },
+        "Health": {
+            "MaxHealth": 14
+        },
+        "Initiative": {
+            "DefaultValue": 10,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": []
+        },
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "spacefaring",
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 6,
+            "BasicAttackDice": "1d4"
+        },
+        "Needs": {
+            "MaxExhaustion": 1000000,
+            "Hunger": 0,
+            "MaxHunger": 100,
+            "HungerThreshold": 60,
+            "StarveThreshold": 90,
+            "HungerRate": 8
+        },
+        "Kin": {
+            "Morph": "flier"
+        }
+    },
+    "hive_larva": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 0,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Grey Egg",
+            "Faction": "hive",
+            "Species": "larva",
+            "Classification": "larva",
+            "LongDescription": "DRAFT. A pale, soft egg. Nothing moves inside it yet."
+        },
+        "Health": {
+            "MaxHealth": 4
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 4,
+            "BasicAttackDice": "1d1"
+        },
+        "CraftingStation": {
+            "StationID": "hive_larva"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "larva"
+        },
+        "Skills": {
+            "Skills": [
+                "radiation_resist"
+            ]
+        }
+    },
+    "hive_heart": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 576,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Brood Heart",
+            "Faction": "hive",
+            "Species": "brood_heart",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A green mass of resin and slow-moving flesh. Pale eggs gather around it."
+        },
+        "Health": {
+            "MaxHealth": 80
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 6,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    },
+    "egg_cluster": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 624,
+            "SpriteY": 744
+        },
+        "Description": {
+            "Name": "Egg Cluster",
+            "Faction": "hive",
+            "Species": "egg_cluster",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A swollen magenta sac. More pale eggs collect beside it."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 6,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    },
+    "evolution_chamber": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_entities",
+            "SpriteX": 720,
+            "SpriteY": 768
+        },
+        "Description": {
+            "Name": "Evolution Chamber",
+            "Faction": "hive",
+            "Species": "evolution_chamber",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A crimson bladder that throbs when something works beside it."
+        },
+        "Health": {
+            "MaxHealth": 60
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 6,
+            "BasicAttackDice": "1d1"
+        },
+        "ResearchBuilding": {
+            "Type": "evolution_chamber"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    }
+}

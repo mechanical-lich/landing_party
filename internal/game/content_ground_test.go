@@ -154,3 +154,25 @@ func contentSnapshot(t *testing.T, script string, w, h int, params map[string]an
 	sort.Strings(ents)
 	return fmt.Sprint(out, ents)
 }
+
+// The hive presence's stage stamps build inside their footprints with no
+// doubled or lone wall and a named room; they spawn nothing themselves.
+func TestContentHiveStampsBuild(t *testing.T) {
+	loreLoadData(t)
+	for _, c := range []struct {
+		script string
+		sizes  [][2]int
+	}{{"hive_nest", [][2]int{{11, 11}, {13, 13}, {17, 17}}}, {"hive_core", [][2]int{{17, 17}, {21, 21}, {25, 25}}}} {
+		for _, size := range c.sizes {
+			for seed := int64(1); seed <= 4; seed++ {
+				level, _ := contentBuild(t, c.script, size[0], size[1], map[string]any{}, seed, "*")
+				if len(level.Rooms) == 0 {
+					t.Errorf("%s %v: no named room", c.script, size)
+				}
+				if n := len(level.Entities) + len(level.StaticEntities); n != 0 {
+					t.Errorf("%s %v: spawned %d entities", c.script, size, n)
+				}
+			}
+		}
+	}
+}

@@ -113,7 +113,7 @@ func TestLoreEveryScenarioReachable(t *testing.T) {
 		seen[s.Scenario] = true
 	}
 	for _, sc := range scenario.AllEnabled() {
-		if sc.ID != "tutorial" && !seen[sc.ID] {
+		if sc.ID != "tutorial" && !internalOnly(lib, sc) && !seen[sc.ID] {
 			t.Errorf("scenario %s never came up", sc.ID)
 		}
 	}

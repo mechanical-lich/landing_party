@@ -45,6 +45,9 @@ func (gm *GUIManager) Draw(screen *ebiten.Image) {
 }
 
 func (gm *GUIManager) ActiveSidebarTab() string { return gm.hud.ActiveSidebarTab() }
+
+// SetBuildMenu sets the build menu's categories (the player's doctrine's).
+func (gm *GUIManager) SetBuildMenu(cats []BuildMenuCategory) { gm.hud.SetBuildMenu(cats) }
 func (gm *GUIManager) RefreshPopulationTab(entries []PopulationEntry) {
 	gm.hud.RefreshPopulationTab(entries)
 }
@@ -73,6 +76,10 @@ func (gm *GUIManager) ToggleModal(name string) {
 
 func (gm *GUIManager) SetInputBlocked(blocked bool)    { gm.hud.SetInputBlocked(blocked) }
 func (gm *GUIManager) SetPauseIndicator(text string)   { gm.hud.SetPauseIndicator(text) }
+func (gm *GUIManager) SetObserverIndicator(on bool)    { gm.hud.SetObserverIndicator(on) }
+func (gm *GUIManager) ObserverIndicator() bool         { return gm.hud.ObserverIndicator() }
+func (gm *GUIManager) SetViewIndicator(text string)    { gm.hud.SetViewIndicator(text) }
+func (gm *GUIManager) ViewIndicator() string           { return gm.hud.ViewIndicator() }
 func (gm *GUIManager) PauseIndicator() (bool, string)  { return gm.hud.PauseIndicator() }
 func (gm *GUIManager) SetDetailsTopOffset(offset int)  { gm.hud.SetDetailsTopOffset(offset) }
 func (gm *GUIManager) GetInputFocused() bool           { return gm.hud.GetInputFocused() }
@@ -108,6 +115,9 @@ func (gm *GUIManager) SetKnownTechs(techs []string)         { gm.hud.SetKnownTec
 func (gm *GUIManager) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
 	gm.hud.ShowColonistModal(colonist, storageItems)
 }
+
+// CraftingRecipeIDs is the open crafting modal's rows' recipe IDs.
+func (gm *GUIManager) CraftingRecipeIDs() []string { return gm.hud.CraftingRecipeIDs() }
 
 func (gm *GUIManager) OpenCraftingModal(title string, recipes, lockedRecipes []crafting.Recipe, station *ecs.Entity) {
 	gm.hud.OpenCraftingModal(title, recipes, lockedRecipes, station)

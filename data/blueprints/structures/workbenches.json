@@ -75,6 +75,25 @@
         "Inanimate": {},
         "Solid": {}
     },
+    "autonz_fabricator": {
+        "Appearance": {
+            "R": 120,
+            "G": 190,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "CraftingStation": {
+            "StationID": "autonz_fabricator"
+        },
+        "Description": {
+            "Name": "Autonz Fabricator",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
     "fuel_refiner": {
         "Appearance": {
             "R": 255,
@@ -128,6 +147,25 @@
         },
         "Description": {
             "Name": "Gun Bench",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "foundry": {
+        "Appearance": {
+            "R": 220,
+            "G": 160,
+            "B": 90,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "CraftingStation": {
+            "StationID": "autonz_foundry"
+        },
+        "Description": {
+            "Name": "Autonz Foundry",
             "Faction": ""
         },
         "Inanimate": {},

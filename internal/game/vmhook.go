@@ -19,9 +19,11 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
 	"github.com/mechanical-lich/landing_party/internal/generation"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/tutorial"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
@@ -66,7 +68,7 @@ func vmState(cur state.StateInterface) map[string]any {
 	case *TitleState:
 		out["state"] = "title"
 		out["title_screen"] = titleScreenNames[s.screen]
-		out["title_fields"] = map[string]any{"name": s.nameInput.Text, "seed": s.seedInput.Text, "tutorial": s.tutorialToggle.IsOn()}
+		out["title_fields"] = map[string]any{"name": s.nameInput.Text, "seed": s.seedInput.Text, "tutorial": s.tutorialToggle.IsOn(), "factions": s.factions}
 		if s.errMsg != "" {
 			out["title_error"] = s.errMsg
 		}
@@ -98,7 +100,8 @@ func vmState(cur state.StateInterface) map[string]any {
 			}
 			if loc := p.selectedLocation(); loc != nil {
 				out["selected_location"] = map[string]any{"id": loc.ID, "name": loc.Name, "fuel_cost": s.campaign.FuelCost(loc.ID),
-					"summary": loc.Summary, "history_summary": vmHistorySummary(s.campaign, loc), "tier": s.campaign.LocationTier(loc)}
+					"summary": loc.Summary, "history_summary": vmHistorySummary(s.campaign, loc), "tier": s.campaign.LocationTier(loc),
+					"known_factions": len(loc.KnownPresences())}
 			}
 		}
 		out["paused"] = s.wm.ClockStopped()
@@ -143,6 +146,24 @@ func vmState(cur state.StateInterface) map[string]any {
 		if st := s.MainSettlement; st != nil {
 			out["settlement"] = map[string]any{"name": st.Name, "x": st.CenterX, "y": st.CenterY, "z": st.CenterZ}
 		}
+		if f := vmFaction(s); f != nil {
+			out["faction"] = f
+		}
+		if r := vmRival(s); r != nil {
+			out["rival"] = r
+		}
+		if a := vmAutonz(s); a != nil {
+			out["autonz"] = a
+		}
+		if s.level != nil {
+			out["settlement_stats"] = vmStats(s.settlementStats())
+			out["observer"] = observerMode()
+		}
+		out["location"] = s.locationID
+		if s.guiManager != nil {
+			out["view_label"] = s.guiManager.ViewIndicator()
+		}
+		out["context"] = map[string]any{"title": s.contextTitle, "body": s.contextBody}
 		if s.selectedEntity != nil {
 			out["selected"] = map[string]any{"blueprint": s.selectedEntity.Blueprint, "name": entityDisplayName(s.selectedEntity)}
 		}
@@ -154,6 +175,16 @@ func vmState(cur state.StateInterface) map[string]any {
 		}
 		if s.storageInspector != nil && s.storageInspector.Visible {
 			modals = append(modals, "inspector")
+		}
+		if s.inspectorUp() {
+			modals = append(modals, "entity_inspector")
+			ei := s.inspector
+			bp := ""
+			if ei.target != nil {
+				bp = ei.target.Blueprint
+			}
+			out["entity_inspector"] = map[string]any{"title": ei.Title, "blueprint": bp,
+				"lines": vmList(ei.Lines), "text": strings.Join(ei.Lines, "\n")}
 		}
 		if s.guiManager != nil {
 			for _, m := range []string{"mainMenu", "saveModal", "loadModal", "craftingModal", "researchModal", "colonistModal"} {
@@ -168,6 +199,9 @@ func vmState(cur state.StateInterface) map[string]any {
 	if wm := vmWorld(cur); wm != nil {
 		if wm.ActiveIncident() != nil {
 			modals = append(modals, "incident")
+		}
+		if wm.Campaign != nil && wm.Campaign.Encounter.Pending() {
+			modals = append(modals, "encounter")
 		}
 		vmWorldState(out, wm)
 	}
@@ -193,6 +227,12 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 		"name": c.Name, "seed": c.Seed, "location_id": c.CurrentLocationID,
 		"adrift": c.IsAdrift(), "in_orbit": wm.Current() != nil, "won": c.Won, "lost": c.Lost,
 		"day": c.Day(),
+		// Rival factions: the New Expedition count and every presence (known
+		// or not) as id -> population, for scripts that check seeding.
+		"faction_count": c.FactionCount, "presences": vmPresences(c),
+		"fleets": len(c.Fleets), "known_fleets": len(c.KnownFleets()),
+		"ships": vmShips(c), "diplomacy": vmDiplomacy(c), "ship_fleets": vmFleets(c),
+		"encounter": vmEncounter(c),
 	}
 	if loc != nil {
 		camp["location_name"] = loc.Name
@@ -207,11 +247,38 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 		camp["tier"] = c.LocationTier(loc)
 	}
 	camp["known_events"] = c.KnownEventCount()
-	techs := append([]string(nil), c.KnownTechs...)
+	techs := append([]string(nil), c.KnownTechs()...)
 	sort.Strings(techs)
 	camp["known_techs"] = vmList(techs)
 	out["campaign"] = camp
 	out["day"] = c.Day()
+	// Observer runs: the expedition fleet (where it is, landed on a site
+	// or not, crew, fuel, why it last lifted off), and the planet the viewer
+	// is on.
+	out["observer_run"] = c.Observer
+	// What the Star Map shows of the factions (faction_view.go): every
+	// presence and fleet in an observer run, the seen ones otherwise.
+	shownP := 0
+	for _, loc := range c.Locations {
+		shownP += len(shownPresences(loc))
+	}
+	out["shown_presences"] = shownP
+	out["shown_fleets"] = len(shownFleets(c))
+	if f := c.Expedition(); f != nil {
+		site := ""
+		if f.Landed() && c.Locations[f.LandedID].HasSite() {
+			site = f.LandedID
+		}
+		out["expedition"] = map[string]any{"landed": f.Landed(), "site": site, "to": f.ToID,
+			"crew": f.Presence.Population, "fuel": f.Presence.Fuel, "last_move": f.LastMove}
+	}
+	out["viewing"] = wm.viewedID
+	var loadedIDs []string
+	for id := range wm.loaded {
+		loadedIDs = append(loadedIDs, id)
+	}
+	sort.Strings(loadedIDs)
+	out["loaded"] = vmList(loadedIDs)
 
 	shipOwners := []string{wm.shipSettlementName()}
 	ship := storage.ShipProvider{Level: wm.ShipLevel()}
@@ -378,12 +445,36 @@ func vmTarget(cur state.StateInterface, name string) (guest.Rect, bool) {
 		r.Handle("tab", func(rest string) (guest.Rect, bool) { return minuitarget.Tab(s.tabBar, rest) })
 		r.Handle("row", func(rest string) (guest.Rect, bool) { return vmDashRow(s, rest) })
 		r.Handle("gi", func(rest string) (guest.Rect, bool) { return vmGITarget(s, rest) })
+		// factions:site:<location id> is the Factions tab's first row that
+		// selects that site.
+		r.Handle("factions", func(rest string) (guest.Rect, bool) {
+			id, ok := strings.CutPrefix(rest, "site:")
+			if !ok || s.active < 0 || s.active >= len(s.tabs) {
+				return guest.Rect{}, false
+			}
+			fp, isF := s.tabs[s.active].panel.(*factionsPanel)
+			if !isF {
+				return guest.Rect{}, false
+			}
+			return fp.rowRect(id)
+		})
+		// legends:chronicle is the chronicle text; legends:datapads the
+		// filter row that lists the datapads read.
 		r.Handle("legends", func(rest string) (guest.Rect, bool) {
-			if s.active < 0 || s.active >= len(s.tabs) || rest != "chronicle" {
+			if s.active < 0 || s.active >= len(s.tabs) {
 				return guest.Rect{}, false
 			}
 			lp, ok := s.tabs[s.active].panel.(*legendsPanel)
 			if !ok {
+				return guest.Rect{}, false
+			}
+			if rest == "datapads" {
+				if i := slices.Index(lp.keys, datapadsKey); i >= 0 {
+					return minuitarget.ListRow(lp.filters, i)
+				}
+				return guest.Rect{}, false
+			}
+			if rest != "chronicle" {
 				return guest.Rect{}, false
 			}
 			b := lp.text.GetBounds()
@@ -413,6 +504,22 @@ func vmTarget(cur state.StateInterface, name string) (guest.Rect, bool) {
 				return guest.Rect{}, false
 			}
 			return vmTileTarget(s, fmt.Sprintf("%d,%d,%d", st.CenterX+dx, st.CenterY+dy, s.camera.Z))
+		})
+		// inspect:close is the entity inspector's Close button.
+		r.Handle("inspect", func(rest string) (guest.Rect, bool) {
+			if rest != "close" || !s.inspectorUp() {
+				return guest.Rect{}, false
+			}
+			return minuitarget.Element(s.inspector.modal.FindChildByID("ei_close"))
+		})
+		// focused is the tile of the entity the last "focus" debug command
+		// centred the camera on, where it stands now.
+		r.Handle("focused", func(string) (guest.Rect, bool) {
+			pc, ok := entityPos(vmFocused)
+			if !ok {
+				return guest.Rect{}, false
+			}
+			return vmTileTarget(s, fmt.Sprintf("%d,%d,%d", pc.GetX(), pc.GetY(), pc.GetZ()))
 		})
 		r.Handle("btn", func(rest string) (guest.Rect, bool) {
 			if rest == "dashboard" && s.dashboardBtn != nil {
@@ -489,6 +596,10 @@ func vmTitleTarget(s *TitleState, name string) (guest.Rect, bool) {
 			el = s.seedInput
 		case "tutorial":
 			el = s.tutorialToggle
+		case "factions_minus":
+			el = s.factionsMinus
+		case "factions_plus":
+			el = s.factionsPlus
 		case "launch":
 			el = s.generateBtn
 		case "cancel":
@@ -615,6 +726,14 @@ func vmTutorialTarget(name string) (guest.Rect, bool) {
 }
 
 func vmPopupTarget(wm *WorldManager, name string) (guest.Rect, bool) {
+	// The Contact popup (phase D): popup:evade, popup:board, popup:parley.
+	if wm != nil && wm.encPopup != nil && wm.Campaign != nil && wm.Campaign.Encounter.Pending() {
+		id := map[string]string{"evade": "encounter_evade", "board": "encounter_board", "parley": "encounter_parley"}[name]
+		if id == "" {
+			return guest.Rect{}, false
+		}
+		return minuitarget.Element(wm.encPopup.modal.FindChildByID(id))
+	}
 	if wm == nil || wm.popup == nil || wm.ActiveIncident() == nil {
 		return guest.Rect{}, false
 	}
@@ -689,17 +808,18 @@ func vmTileTarget(s *MainState, rest string) (guest.Rect, bool) {
 func vmCandidates(cur state.StateInterface) []string {
 	names := []string{
 		"title:new", "title:load", "title:settings", "title:quit", "title:name", "title:seed",
-		"title:tutorial", "title:launch", "title:cancel", "title:load_confirm", "title:load_cancel",
+		"title:tutorial", "title:factions_minus", "title:factions_plus", "title:launch", "title:cancel", "title:load_confirm", "title:load_cancel",
 		"tab:starmap", "tab:crew", "tab:inventory", "tab:quests", "tab:encyclopedia",
 		"dash:returnSiteBtn", "dash:returnShipBtn", "dash:saveBtn", "dash:locList", "dash:locateBtn",
-		"dash:travelBtn", "dash:shipList", "dash:planList", "dash:beamDownBtn", "dash:beamUpBtn", "dash:scanBtn",
+		"dash:travelBtn", "dash:viewBtn", "dash:shipList", "dash:planList", "dash:beamDownBtn", "dash:beamUpBtn", "dash:scanBtn",
 		"star:" + tutorial.AtTutorial, "star:" + tutorial.AtNext,
 		"gi:beam_down", "gi:beam_up", "ship:hold", "btn:dashboard",
 		"inspector:beam", "inspector:list", "inspector:amount", "inspector:all", "inspector:close",
 		"menu:save", "menu:load", "menu:newgame", "menu:quit",
 		"modal:colonistModal:close", "modal:craftingModal:close", "modal:researchModal:close",
+		"inspect:close", "focused",
 		"tutorial:skip", "tutorial:manual", "tutorial:close", "tutorial:collapse",
-		"popup:pause", "popup:travel", "popup:ignore",
+		"popup:pause", "popup:travel", "popup:ignore", "popup:evade", "popup:board", "popup:parley",
 		"hud:cat_orders", "hud:cat_walls", "hud:cat_floors", "hud:cat_stairs", "hud:cat_structures", "hud:cat_doors",
 		"hud:order_dig", "hud:order_mine", "hud:build_storage_locker", "hud:build_bed",
 		"hud:build_basic_workbench", "hud:build_research_lab",
@@ -793,6 +913,172 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		wpc.SetPosition(best.GetX(), best.GetY(), best.GetZ())
 		s.camera.CenterOn(best.GetX(), best.GetY(), best.GetZ())
 		return fmt.Sprintf("%d,%d,%d", best.GetX(), best.GetY(), best.GetZ()), nil
+	case "focus":
+		// "focus <spec>" centres the camera on the first living entity on
+		// the level matching spec (a blueprint, kin:<unit type>, datapad,
+		// storage or structure), for a click on target "focused".
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil || rest == "" {
+			return "", fmt.Errorf("usage: focus <blueprint|kin:<type>|datapad|storage|structure> (needs a level on screen)")
+		}
+		e := vmFind(s.level, rest)
+		pc, found := entityPos(e)
+		if !found {
+			return "", fmt.Errorf("nothing matches %q", rest)
+		}
+		vmFocused = e
+		s.camera.CenterOn(pc.GetX(), pc.GetY(), pc.GetZ())
+		return fmt.Sprintf("%s %d,%d,%d", e.Blueprint, pc.GetX(), pc.GetY(), pc.GetZ()), nil
+	case "days":
+		// "days <n>" moves the star date on n days and steps the factions
+		// through them, as a jump would: a hive grows before the player
+		// arrives.
+		wm := vmWorld(cur)
+		n, err := strconv.Atoi(rest)
+		if wm == nil || err != nil || n < 0 {
+			return "", fmt.Errorf("usage: days <n> (needs a campaign)")
+		}
+		wm.Campaign.AdvanceDays(n)
+		wm.Campaign.StepFactions(wm.IsLoaded)
+		return fmt.Sprintf("day %d", wm.Campaign.Day()), nil
+	case "stance":
+		// "stance <faction> <neutral|hostile>" sets a faction's stance toward
+		// the player (a script watching a hive build without its guards on
+		// the landing party).
+		wm := vmWorld(cur)
+		f, st, ok := strings.Cut(rest, " ")
+		if wm == nil || !ok || (st != campaign.StanceNeutral && st != campaign.StanceHostile) {
+			return "", fmt.Errorf("usage: stance <faction> <neutral|hostile> (needs a campaign)")
+		}
+		wm.Campaign.SetStance(f, st, wm.Campaign.Locations[wm.currentID])
+		components.SetFactionHostile(f, st == campaign.StanceHostile)
+		return f + " " + st, nil
+	case "faction":
+		// "faction [walk]" frames the camera on the first faction presence
+		// of the site on screen (its centre: the nest, the launcher); "walk"
+		// also puts the first colonist beside it, so its field of view
+		// reveals it.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil || s.location() == nil || len(s.location().Factions) == 0 {
+			return "", fmt.Errorf("faction needs a site with a presence on screen")
+		}
+		p := s.location().Factions[0]
+		x, y, z, ok := generation.Origin(s.level, factionOriginKey(p.ID))
+		if !ok {
+			return "", fmt.Errorf("presence %s is not built on this level", p.ID)
+		}
+		s.camera.CenterOn(x, y, z)
+		if rest == "walk" {
+			for _, e := range s.level.Entities {
+				if !components.IsColonyWorker(e, s.colonyName()) {
+					continue
+				}
+				wx, wy, wz := freeLandingTile(s.level, x, y+8, z)
+				if pc, ok := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent); ok {
+					pc.SetPosition(wx, wy, wz)
+				}
+				break
+			}
+		}
+		return fmt.Sprintf("%s %d,%d,%d", p.ID, x, y, z), nil
+	case "tech":
+		// "tech <location id> <faction> <tech>": the faction's presence there
+		// knows the tech in its record (phase E3: its next spawns are at that
+		// tier; the cheat console's "faction tech" does the same on a live
+		// site).
+		wm := vmWorld(cur)
+		f := strings.Fields(rest)
+		if wm == nil || len(f) != 3 {
+			return "", fmt.Errorf("usage: tech <location id> <faction> <tech> (needs a campaign)")
+		}
+		loc := wm.Campaign.Locations[f[0]]
+		if loc == nil || loc.Presence(f[1]) == nil {
+			return "", fmt.Errorf("no %s presence on %s", f[1], f[0])
+		}
+		p := loc.Presence(f[1])
+		if !containsStr(p.KnownTechs, f[2]) {
+			p.KnownTechs = append(p.KnownTechs, f[2])
+		}
+		notePresenceTechs(p.ID, p.KnownTechs)
+		return fmt.Sprintf("%s on %s knows %s", f[1], f[0], f[2]), nil
+	case "autonz":
+		// "autonz [dx dy]" frames the camera on the autonz settlement of the
+		// site on screen (phase E3), offset by dx, dy tiles.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil || s.location() == nil {
+			return "", fmt.Errorf("autonz needs a site on screen")
+		}
+		p := s.location().Presence("autonz")
+		if p == nil {
+			return "", fmt.Errorf("no autonz presence on this site")
+		}
+		x, y, z, ok := originOf(s.level, p.ID)
+		if !ok {
+			return "", fmt.Errorf("presence %s is not built on this level", p.ID)
+		}
+		var dx, dy int
+		fmt.Sscanf(rest, "%d %d", &dx, &dy)
+		s.camera.CenterOn(x+dx, y+dy, z)
+		return fmt.Sprintf("%s %d,%d,%d", p.ID, x, y, z), nil
+	case "rival":
+		// "rival [walk]" frames the camera on the first faction settlement
+		// on the site on screen (its camp); "walk" also puts the first
+		// colonist south of it, so its field of view reveals the camp.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil || s.location() == nil {
+			return "", fmt.Errorf("rival needs a site on screen")
+		}
+		ps, _ := settlementPresences(s.campaign, s.location())
+		if len(ps) == 0 {
+			return "", fmt.Errorf("no faction settlement on this site")
+		}
+		st := settlement.Settlements[factionSettlementName(ps[0], s.location().ID)]
+		if st == nil {
+			return "", fmt.Errorf("faction settlement not built on this level")
+		}
+		x, y, z := st.CenterX, st.CenterY, st.CenterZ
+		s.camera.CenterOn(x, y, z)
+		if rest == "walk" {
+			for _, e := range s.level.Entities {
+				if !components.IsColonyWorker(e, s.colonyName()) {
+					continue
+				}
+				wx, wy, wz := freeLandingTile(s.level, x, y+8, z)
+				if pc, ok := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent); ok {
+					pc.SetPosition(wx, wy, wz)
+				}
+				break
+			}
+		}
+		return fmt.Sprintf("%s %d,%d,%d", st.Name, x, y, z), nil
+	case "boarding":
+		// "boarding [walk]" frames the camera on a boarded ship's hull (the
+		// encounter level's boarding_ship region); "walk" also puts the
+		// first colonist beside it, so its field of view shows the hull and
+		// the crew (phase D).
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil || s.location() == nil || s.location().Boarding == nil {
+			return "", fmt.Errorf("boarding needs a boarded ship's deck on screen")
+		}
+		pts := s.level.Regions["boarding_ship"]
+		if len(pts) == 0 {
+			return "", fmt.Errorf("no boarding_ship region")
+		}
+		x, y, z := pts[0][0], pts[0][1], pts[0][2]
+		s.camera.CenterOn(x-2, y, z)
+		if rest == "walk" {
+			for _, e := range s.level.Entities {
+				if !components.IsColonyWorker(e, s.colonyName()) {
+					continue
+				}
+				wx, wy, wz := freeLandingTile(s.level, x-6, y, z)
+				if pc, ok := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent); ok {
+					pc.SetPosition(wx, wy, wz)
+				}
+				break
+			}
+		}
+		return fmt.Sprintf("boarding %d,%d,%d", x, y, z), nil
 	case "origin":
 		// Frame the camera on the site chapter's resolved origin; "origin
 		// walk" also moves the first colonist there to see it; "origin walk
@@ -945,4 +1231,291 @@ func vmHistorySummary(c *campaign.Campaign, loc *campaign.Location) bool {
 		return false
 	}
 	return loc.Summary != "" && loc.Summary == c.History.Summary(lib, site)
+}
+
+// vmFaction describes the first faction presence of the site on screen as
+// built on its level: bodies by morph and life stage, its tier, whether its
+// launcher stands. nil without one.
+func vmFaction(s *MainState) map[string]any {
+	loc := s.location()
+	if loc == nil || len(loc.Factions) == 0 {
+		return nil
+	}
+	p := loc.Factions[0]
+	out := map[string]any{"id": p.ID, "stage": p.Stage, "population": p.Population,
+		"launcher": presenceLauncher(s.level, p.ID) != nil}
+	bodies := presenceBodies(s.level, p.ID)
+	out["bodies"] = len(bodies)
+	morphs, types := map[string]any{}, map[string]any{}
+	for _, e := range bodies {
+		k := components.KinOf(e)
+		n, _ := morphs[k.Morph].(int)
+		morphs[k.Morph] = n + 1
+		if k.Type != "" {
+			n, _ := types[k.Type].(int)
+			types[k.Type] = n + 1
+		}
+	}
+	out["morphs"] = morphs
+	out["types"] = types
+	// A typed settlement (the hive, phase E2): its bodies by type (eggs and
+	// young as their type), larvae, resin share, pools' biomass, structures
+	// and director orders.
+	if d := campaign.LoadFactionData().Doctrine(p.Doctrine); d != nil && isHiveDoctrine(d) {
+		name := factionSettlementName(&p, loc.ID)
+		units, eggs := map[string]any{}, map[string]any{}
+		for _, e := range hiveBodies(s.level, p.ID, name) {
+			t := bodyType(d, e)
+			n, _ := units[t].(int)
+			units[t] = n + 1
+			if hasSuffix(e.Blueprint, "_egg") {
+				n, _ := eggs[t].(int)
+				eggs[t] = n + 1
+			}
+		}
+		out["units"], out["eggs"] = units, eggs
+		out["bodies"] = len(hiveBodies(s.level, p.ID, name))
+		out["launcher"] = hiveLauncher(s.level, d, &p) != nil
+		out["larvae"] = len(hiveLarvae(s.level, name))
+		q := p
+		reconcileConversion(s.level, d, &q)
+		out["resin"] = q.Conversion
+		out["biomass"] = storage.Summarize(storage.LevelProvider{Level: s.level}, []string{name})["biomass"]
+		if cx, cy, cz, ok := generation.Origin(s.level, factionOriginKey(p.ID)); ok {
+			built := map[string]any{}
+			for _, bp := range []string{"hive_heart", "biomass_pool", "egg_cluster", "evolution_chamber", "egg_launcher", "resin_bloom"} {
+				built[bp] = len(hiveStructures(s.level, bp, cx, cy, cz, hiveRadius(d)+2))
+			}
+			out["built"] = built
+		}
+		if dir := s.factionDirectors[name]; dir != nil {
+			out["ordered"] = dir.Ordered
+		}
+	}
+	return out
+}
+
+// vmAutonz is the autonz settlement on the site on screen (phase E3): its
+// stage, units by type and by tier ("enforcer bronze"), the structures
+// standing, its converted share, techs and the director's orders. nil
+// without one built.
+func vmAutonz(s *MainState) map[string]any {
+	loc := s.location()
+	if loc == nil || s.level == nil {
+		return nil
+	}
+	p := loc.Presence("autonz")
+	if p == nil || !p.Materialized || p.Dormant {
+		return nil
+	}
+	d := campaign.LoadFactionData().Doctrine(p.Doctrine)
+	if d == nil || !isAutonzDoctrine(d) {
+		return nil
+	}
+	name := factionSettlementName(p, loc.ID)
+	units, tiers := map[string]any{}, map[string]any{}
+	for _, e := range settlementWorkers(s.level, name) {
+		k := components.KinOf(e)
+		if k == nil {
+			continue
+		}
+		n, _ := units[k.Type].(int)
+		units[k.Type] = n + 1
+		key := k.Type + " " + k.Tier
+		m, _ := tiers[key].(int)
+		tiers[key] = m + 1
+	}
+	out := map[string]any{"id": p.ID, "stage": p.Stage, "units": units, "tiers": tiers, "techs": p.KnownTechs}
+	if st := settlement.Settlements[name]; st != nil {
+		out["techs"] = st.KnownTechs
+	}
+	if cx, cy, cz, ok := originOf(s.level, p.ID); ok {
+		built := map[string]any{}
+		for k, v := range autonzBuilt(s.level, d, cx, cy, cz) {
+			built[k] = v
+		}
+		out["built"] = built
+		out["centre"] = fmt.Sprintf("%d,%d,%d", cx, cy, cz)
+	}
+	q := *p
+	reconcileConversion(s.level, d, &q)
+	out["conversion"] = q.Conversion
+	if dir := s.factionDirectors[name]; dir != nil {
+		out["ordered"] = dir.Ordered
+	}
+	return out
+}
+
+// vmRival is the first faction settlement on the site: its name, stance,
+// workers, the director's orders and what stands within 12 of its centre.
+func vmRival(s *MainState) map[string]any {
+	loc := s.location()
+	if loc == nil || s.level == nil {
+		return nil
+	}
+	ps, _ := settlementPresences(s.campaign, loc)
+	if len(ps) == 0 {
+		return nil
+	}
+	p := ps[0]
+	name := factionSettlementName(p, loc.ID)
+	out := map[string]any{"name": name, "faction": p.Faction, "stance": s.campaign.Stance(p.Faction),
+		"workers": len(settlementWorkers(s.level, name)), "stage": p.Stage, "level_stage": p.LevelStage}
+	// The converted share of its patch (phase E, the autonz), read live.
+	if d := campaign.LoadFactionData().Doctrine(p.Doctrine); d != nil && d.Conversion.Tile != "" {
+		if x, y, z, ok := generation.Origin(s.level, factionOriginKey(p.ID)); ok {
+			out["conversion"] = generation.ConversionShare(s.level, x, y, z, d.Conversion.Radius, d.Conversion.Tile)
+		}
+	}
+	st := settlement.Settlements[name]
+	if st == nil {
+		return out
+	}
+	built := map[string]any{}
+	for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
+		for _, e := range list {
+			if pc, ok := entityPos(e); ok && e.Blueprint != "" && !e.HasComponent(rlcomponents.Item) && !e.HasComponent(components.Worker) &&
+				absI(pc.GetX()-st.CenterX) <= 12 && absI(pc.GetY()-st.CenterY) <= 12 && pc.GetZ() == st.CenterZ {
+				n, _ := built[e.Blueprint].(int)
+				built[e.Blueprint] = n + 1
+			}
+		}
+	}
+	out["built"] = built
+	ordered := map[string]any{}
+	if d := s.factionDirectors[name]; d != nil {
+		for k, v := range d.Ordered {
+			ordered[k] = v
+		}
+	}
+	out["ordered"] = ordered
+	return out
+}
+
+// vmShips maps each faction ship's ID to the site it is landed on ("" in
+// flight).
+func vmShips(c *campaign.Campaign) map[string]any {
+	out := map[string]any{}
+	for _, f := range c.Fleets {
+		if f.Kind == campaign.FleetShip {
+			out[f.ID] = f.LandedID
+		}
+	}
+	return out
+}
+
+// vmFleets is every ship (phase D): kind, doctrine, tier, where it is
+// landed or bound, whether it is a mothership, returning, boarded or known.
+func vmFleets(c *campaign.Campaign) map[string]any {
+	out := map[string]any{}
+	for _, f := range c.Fleets {
+		if f.Kind != campaign.FleetShip {
+			continue
+		}
+		out[f.ID] = map[string]any{"doctrine": f.Presence.Doctrine, "tier": f.ShipTier, "landed": f.LandedID,
+			"to": f.ToID, "mothership": f.Mothership, "returning": f.Returning, "boarded": f.BoardedAt,
+			"known": f.Known, "crew": f.Presence.Population}
+	}
+	return out
+}
+
+// vmDiplomacy is each settlement faction's stance toward the player.
+func vmDiplomacy(c *campaign.Campaign) map[string]any {
+	out := map[string]any{}
+	for key, d := range campaign.LoadFactionData().Doctrines {
+		if d.Settlement != nil && key != campaign.DefaultPlayerDoctrine {
+			out[key] = c.Stance(key)
+		}
+	}
+	return out
+}
+
+// vmPresences counts presences per location ID (known or not).
+func vmPresences(c *campaign.Campaign) map[string]any {
+	out := map[string]any{}
+	for id, loc := range c.Locations {
+		if len(loc.Factions) > 0 {
+			pop := 0
+			for _, p := range loc.Factions {
+				pop += p.Population
+			}
+			out[id] = pop
+		}
+	}
+	return out
+}
+
+// vmStats is SettlementStats as the sidecar's JSON-shaped map.
+func vmStats(st SettlementStats) map[string]any {
+	built := map[string]any{}
+	for k, v := range st.Built {
+		built[k] = v
+	}
+	ordered := map[string]any{}
+	for k, v := range st.Ordered {
+		ordered[k] = v
+	}
+	return map[string]any{
+		"alive": st.Alive, "dead": st.Dead, "beds": st.Beds, "lockers": st.Lockers,
+		"food": st.Food, "build_queue": st.BuildQueue, "tasks": st.Tasks,
+		"research": st.Research, "techs": st.Techs, "day": st.Day, "tick": st.Tick,
+		"built": built, "ordered": ordered, "cancelled": st.Cancelled,
+	}
+}
+
+// vmEncounter is the pending or last encounter (phase D), nil for none.
+func vmEncounter(c *campaign.Campaign) any {
+	e := c.Encounter
+	if e == nil {
+		return nil
+	}
+	return map[string]any{"fleet": e.FleetID, "doctrine": e.Doctrine, "at": e.At, "pending": e.Pending(),
+		"answer": e.Answer, "outcome": e.Outcome, "fuel_cost": e.FuelCost, "boarding": e.BoardingID}
+}
+
+// rowRect is the screen rectangle of the first visible row selecting id,
+// for vmtest targets.
+func (p *factionsPanel) rowRect(id string) (guest.Rect, bool) {
+	end := min(len(p.rows), p.scroll+p.visibleRows())
+	for i := p.scroll; i < end; i++ {
+		if p.rows[i].locID == id {
+			y := factionsTop + (i-p.scroll)*factionsRowH
+			return guest.Rect{X: 40, Y: float64(y), W: 400, H: factionsRowH}, true
+		}
+	}
+	return guest.Rect{}, false
+}
+
+// vmFocused is the entity the last "focus" debug command found.
+var vmFocused *ecs.Entity
+
+// vmFind is the first living entity on level matching spec: a blueprint,
+// kin:<unit type>, datapad, storage, or structure (a static entity with
+// health or storage). Live entities first, then static ones.
+func vmFind(level *world.Level, spec string) *ecs.Entity {
+	match := func(e *ecs.Entity, static bool) bool {
+		switch {
+		case strings.HasPrefix(spec, "kin:"):
+			k := components.KinOf(e)
+			return k != nil && k.Type == strings.TrimPrefix(spec, "kin:")
+		case spec == "datapad":
+			return e.HasComponent(components.Datapad)
+		case spec == "storage":
+			return e.HasComponent(components.Storage)
+		case spec == "structure":
+			return static && (e.HasComponent(rlcomponents.Health) || e.HasComponent(components.Storage))
+		}
+		return e.Blueprint == spec
+	}
+	for i, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
+		for _, e := range list {
+			if e == nil || e.HasComponent(rlcomponents.Dead) || !e.HasComponent(rlcomponents.Position) {
+				continue
+			}
+			if match(e, i == 1) {
+				return e
+			}
+		}
+	}
+	return nil
 }

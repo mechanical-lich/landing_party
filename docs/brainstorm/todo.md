@@ -11,13 +11,82 @@ alone and need a play-test or a judgment call.
 - Expanding enemy factions: two-tier model (abstract presence on the
   campaign, carried by a planet or a fleet; materialized into worker-driven
   faction settlements on loaded levels), data-driven doctrines. Order:
-  xenos → mirror colony → greyish → autonz. Xenos spread via a
+  hive (xenos + troids merged, two morphs, colour tiers, identity hidden
+  until discovered) → mirror colony → greyish → autonz. Hive spreads via a
   research-ranged egg launcher; doctrine-driven player settlement so races
   become playable later. Planned 2026-10-31, updated 2026-11-05.
-  Plan: [enemy_factions_plan.md](enemy_factions_plan.md).
-- Observer mode / self-play: a director that runs the player's own colony
-  (phase C1 of the factions plan), driven by vmtest for integration and
-  balance soak runs. Useful on its own before any enemy faction exists.
+  Plan: [enemy_factions_plan.md](enemy_factions_plan.md). Phase A (campaign
+  tier: presences, hive doctrine, daily step, Rival factions stepper, Star
+  Map badges, Legends events) and Phase B (hive morphs and tiers at spawn,
+  presences materialised on their level and reconciled on save/freeze, husks
+  and wipes, eggs as fleets on the Star Map, live hives launching) and
+  Phase C0 (the player's settlement reads its build menu, research tree,
+  printer units, recipes and crew from the `colony` doctrine; the player's
+  techs on its own presence, save version 4; `deploy_on_craft`) built
+  2026-11-08 on `claude/factions-a-a379f7`, not yet merged, and Phase C1
+  (the director on the player's settlement, observer mode, the soak) and
+  Phase C2 (the director digs to ore below, faction settlements on loaded
+  levels, the mirror colony on a ship, neutral until the player lands on its
+  site, hostility seeding, `ConvertAction`) and Phase D (raids and
+  hunting, ships with tiers and holds landing and lifting off live, the
+  greyish and their mothership, interception and boarding, ruins on
+  departure, Star Map ship tags) and Phase E (the autonz: planet-carried,
+  converting, spreading by signals that found dormant sleeper nodes; Rival
+  factions 4 brings them in) and Phase E2 (the hive as a settlement
+  faction: unit types instead of colour tiers, drones laying eggs on larvae,
+  resin creep, an evolve tree, the hive director, Tier 1 bookkeeping, the
+  hive soak; [hive_plan.md](hive_plan.md)) and Phase E3 (the autonz as a
+  settlement faction: unit types with steel and bronze print tiers, the
+  assimilation tree, structures on wire, relay pylons deployed by drones,
+  the transmit walk into the Signal Core, the autonz director, the parallel
+  soak harness; [autonz_plan.md](autonz_plan.md)); next is B+ (hidden identity:
+  `LoreLinks`, per-morph naming, the types' names) or F (playable races). Doc:
+  [factions.md](../developer/factions.md).
+- Start camps can open onto rock. Seed 2's start (a 7x7 bunker room from a
+  scenario setup script) was laid against an outcrop: its airlock (the
+  colony's own) opens onto solid rock, so the crew is sealed in. Found by the
+  observer soak, 2026-11-08. The camp scripts need a cleared approach outside
+  the airlock (or the site picker should keep the camp's door side open).
+- Rival colonists use the player's sprites (phase C2).
+- Phase D leftovers (factions): a grey scout has one soldier, below the raid
+  threshold (raids start at freighter tier; noted in the doctrine, left as
+  is); greys research only abstractly (no lab on the level); boarded decks
+  stay on the Star Map as destinations. (A ship crew dying on a loaded level
+  and boarded mirror crew with no AI were closed in phase E.)
+- Phase E leftovers (autonz): a stage reached on a loaded level is stamped
+  once a day by the live rule, not the moment it is reached; the autonz
+  research walk is abstract (no lab on the level), like the greys'; the
+  start-system soak sites are poor (capacity 4 to 7 at a third converted),
+  so the crew barely grows in 20,000 ticks, and seeds 2 and 7 never find ore
+  within the dig reach; autonz spread is 1 to 2 sites at day 100 and 6 to 9
+  by day 300 at Rival factions 4 (owner's call on pace); the player's
+  ConvertAction stays gated behind a `terraforming` tech no entry grants; the
+  boarded-mirror fight and an autonz raid were checked in Go tests only, not
+  played in the VM.
+- Phase E3 leftovers (autonz): the hive's crew bodies lack `NeverSleep`, so
+  every non-colonist worker stops at night (the autonz got it in E3; the
+  hive's evolve stall in E2 may be the same night stop, owner's call); the
+  harvester's "repairs" (no repair task), a pylon seeing the colony as
+  contact, and mine orders preferring harvesters were not built; materialise
+  places structures with the director's grid rule but not its reachability
+  check, so positions agree with a live build only where the first free
+  wired site is the same; a hostile autonz raid led by a warden and the
+  transmit walk ending in a live signal were checked in Go tests, not
+  played in the VM; balance questions in autonz_plan.md "As built" (live
+  conversion well above Phase E's now that the crew works nights and wires
+  at its cap; research is slow live: two or three entries in forty days, no
+  bronze yet at a hub started with the relay and foundry patterns; a node's
+  relay pylon comes 6 to 10 days after its pattern, not within 2).
+- Observer mode v2 leftovers: take over the expedition mid-run (an
+  observer run cannot be switched off yet); the expedition never scans for
+  new systems; a fleet does not refuel while its site is loaded; crew keep
+  the food they carry rather than sharing it with a starving crewmate
+  (worker AI); the owner's stray beam (three colonists on a planet the ship
+  had left) was not reproduced (beams pinned to the planet in orbit by a
+  test).
+- `protein_press` (biomass into a protein bar at the workbench) joined the
+  player's recipes with phase D's food rung: the game had no other renewable
+  food. Owner's call whether the player keeps it.
 
 ## Verify
 
@@ -35,6 +104,32 @@ alone and need a play-test or a judgment call.
 
 ## Done
 
+- Observer mode / self-play, 2026-11-08, on `claude/factions-a-a379f7` (not
+  yet merged; phase C1 of the factions plan): the director runs the
+  player's settlement under config `observerMode`, settlement stats in the
+  vmtest sidecar, the `observer` script and `make soak` (ten seeds, written
+  thresholds). Found and fixed: sized builds ate their materials when a
+  worker stood in the footprint. Found then: the director could not reach
+  ore below the surface (it digs since phase C2) and seed 2's start camp is
+  sealed (its airlock opens onto rock; open, above). See the plan's "Phase
+  C1 as built" and "Phase C2 as built".
+- Observer mode v2, 2026-11-08, on `claude/factions-a-a379f7` (not yet
+  merged): an observer run (observer mode on at New Expedition) has no
+  player ship; the expedition is a colony-doctrine fleet flown by the
+  expedition table, like the mirror's ship now is, its colony run by the
+  settlement director when viewed; the Star Map's View opens any planet;
+  `observer on|off` is the ground lock on a normal campaign; the run's
+  viewer sees every faction (a view-only reveal), and a Factions tab
+  (both modes, each with its own fog) lists what every faction holds. Tests no
+  longer read `data/config.local.json`. Fixed: `TestMirrorFedFortyDays`
+  starved crew because the food haul did not reach the hunt's kills. See
+  the plan's "Observer mode v2 as built".
+- Bio-printer fixed, 2026-11-08, on `claude/factions-a-a379f7` (not yet
+  merged): the crafting modal queued a recipe's output as its ID, so
+  printing a colonist (`print_colonist`, output `colonist`) never queued;
+  it sends the recipe key now. The Bio-Printer is in the Structures build
+  menu (it had no category, so it could not be placed). It needs no
+  research. See the plan's "Phase C0 as built".
 - Abandoned Station rebuilt from its history, 2026-11-07, on
   `claude/station-5b3f90` (not yet merged): stations built from modules on
   a spine, ring or cross frame, purposes from the founding event, origins

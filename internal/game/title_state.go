@@ -53,6 +53,13 @@ type TitleState struct {
 	// expedition. Its default comes from config (TutorialOffDefault).
 	tutorialToggle *minui.Toggle
 
+	// factions is the "Rival factions" stepper's value (campaign.GenOptions);
+	// default and maximum come from generation.json.
+	factions      int
+	factionsMax   int
+	factionsMinus *minui.Button
+	factionsPlus  *minui.Button
+
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
 
@@ -192,15 +199,36 @@ func (ts *TitleState) buildNewSettlementScreen() {
 	}
 
 	ts.tutorialToggle = minui.NewToggle("tutorial_toggle", "Guided first landing (tutorial)")
-	ts.tutorialToggle.On = !cfg.TutorialOffDefault
+	// Observer mode starts an observer run: no ship, nobody to teach, so
+	// the toggle starts off (and StartNewExpedition keeps a run tutorial-free).
+	ts.tutorialToggle.On = !cfg.TutorialOffDefault && !cfg.ObserverMode
 	ts.tutorialToggle.SetPosition(cx-150, 354)
 
+	// Rival factions: how many enemy presences are seeded (0 = none expand).
+	ts.factions, ts.factionsMax = campaign.FactionCountRange()
+	ts.factionsMinus = minui.NewButton("factions_minus", "-")
+	ts.factionsMinus.SetPosition(cx+80, 392)
+	ts.factionsMinus.SetSize(28, 28)
+	ts.factionsMinus.OnClick = func() {
+		if ts.factions > 0 {
+			ts.factions--
+		}
+	}
+	ts.factionsPlus = minui.NewButton("factions_plus", "+")
+	ts.factionsPlus.SetPosition(cx+132, 392)
+	ts.factionsPlus.SetSize(28, 28)
+	ts.factionsPlus.OnClick = func() {
+		if ts.factions < ts.factionsMax {
+			ts.factions++
+		}
+	}
+
 	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
-	ts.generateBtn.SetPosition(cx-80, 406)
+	ts.generateBtn.SetPosition(cx-80, 444)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 450)
+	ts.cancelBtn.SetPosition(cx-80, 488)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 }
@@ -219,7 +247,7 @@ func (ts *TitleState) startNewSettlement() {
 		seed = rand.Int63()
 	}
 
-	ms, err := StartNewExpedition(name, seed, ts.tutorialToggle.IsOn())
+	ms, err := StartNewExpedition(name, seed, ts.tutorialToggle.IsOn(), ts.factions)
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
 		return
@@ -232,18 +260,30 @@ func (ts *TitleState) startNewSettlement() {
 // nearby systems, a far-off visible Home) and opens the Star Map — the
 // colonists begin aboard the ship in space. With tutorial set, the Training
 // Ground is added beside the start system and the hold carries only the
-// tutorial's metal; the ship still parks at the generated start.
-func StartNewExpedition(name string, seed int64, tutorial bool) (state.StateInterface, error) {
-	c, wm, err := newExpedition(name, seed, tutorial)
+// tutorial's metal; the ship still parks at the generated start. factions is
+// the number of rival presences seeded.
+func StartNewExpedition(name string, seed int64, tutorial bool, factions int) (state.StateInterface, error) {
+	// Observer mode at New Expedition makes the whole run an observer run:
+	// no player ship, the expedition a fleet (campaign/observer.go).
+	observer := config.Global().ObserverMode
+	if observer {
+		tutorial = false // nobody to teach
+	}
+	c, wm, err := newExpeditionOpts(name, seed, tutorial, campaign.GenOptions{Factions: factions, Observer: observer})
 	if err != nil {
 		return nil, err
 	}
 	return NewDashboardState(c, wm), nil
 }
 
-// newExpedition is StartNewExpedition without the dashboard, for headless tests.
+// newExpedition is StartNewExpedition without the dashboard and with no rival
+// factions, for headless tests.
 func newExpedition(name string, seed int64, tutorial bool) (*campaign.Campaign, *WorldManager, error) {
-	c, err := campaign.GenerateCampaign(name, seed)
+	return newExpeditionOpts(name, seed, tutorial, campaign.GenOptions{})
+}
+
+func newExpeditionOpts(name string, seed int64, tutorial bool, opts campaign.GenOptions) (*campaign.Campaign, *WorldManager, error) {
+	c, err := campaign.GenerateCampaignOpts(name, seed, opts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate campaign: %w", err)
 	}
@@ -258,6 +298,18 @@ func newExpedition(name string, seed int64, tutorial bool) (*campaign.Campaign, 
 		hold = tutorialHoldStock()
 	}
 	c.BindQuests()
+	if c.Observer {
+		// An observer run: the crew, hold and fuel are the expedition
+		// fleet's, flown by the expedition table; the ship stays empty.
+		if hold == nil {
+			hold = defaultHoldStock()
+		}
+		if _, err := c.AddExpeditionFleet(cfg.StartColonists, hold, cfg.StartFuel); err != nil {
+			return nil, nil, err
+		}
+		wm := NewWorldManager(c)
+		return c, wm, nil
+	}
 	wm := NewWorldManager(c)
 	wm.SeedShipCrew(cfg.StartColonists)   // crew spawns aboard the ship
 	wm.StockShipLocker(cfg.StartFuel, hold) // and the hold is stocked
@@ -297,6 +349,8 @@ func (ts *TitleState) Update() state.StateInterface {
 		ts.seedInput.Update()
 		ts.randomSeedBtn.Update()
 		ts.tutorialToggle.Update()
+		ts.factionsMinus.Update()
+		ts.factionsPlus.Update()
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
 	case screenLoad:
@@ -345,6 +399,12 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		ts.seedInput.Draw(screen)
 		ts.randomSeedBtn.Draw(screen)
 		ts.tutorialToggle.Draw(screen)
+		mlge_text.Draw(screen, "Rival factions:", 14, lx, 398, lblCol)
+		ts.factionsMinus.Draw(screen)
+		ts.factionsPlus.Draw(screen)
+		val := strconv.Itoa(ts.factions)
+		vw, _ := mlge_text.Measure(val, 16)
+		mlge_text.Draw(screen, val, 16, cfg.ScreenWidth/2+120-int(vw)/2, 396, color.RGBA{220, 230, 255, 255})
 		ts.generateBtn.Draw(screen)
 		ts.cancelBtn.Draw(screen)
 	}

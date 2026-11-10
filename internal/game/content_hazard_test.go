@@ -40,7 +40,7 @@ func TestContentHazardSpawnsAtOrigin(t *testing.T) {
 		{"dormant_nest", "moon", []string{"xeno_egg"}},
 		{"hostile_fauna", "frozen_planet", []string{"yeti"}},
 		{"restless_graves", "desert_planet", []string{"zombie"}},
-		{"autonz_sleeper", "asteroid", []string{"enforcer"}},
+		{"autonz_sleeper", "asteroid", []string{"enforcer_dormant"}},
 		{"troid_clutch", "moon", []string{"troid_egg"}},
 	} {
 		feats, def := contentHazardEvidence(t, c.hazard)

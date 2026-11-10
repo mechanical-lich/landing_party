@@ -34,7 +34,9 @@
         "description": "Prints new colonists from biomass.",
         "build_time": 60,
         "is_entity": true,
-        "cost": { "metal_ore": 5, "crystal": 5 }
+        "cost": { "metal_ore": 5, "crystal": 5 },
+        "category": "structures",
+        "order": 15
     },
     "hull_floor": {
         "name": "Hull Floor",
@@ -267,5 +269,129 @@
         "is_entity": true,
         "hidden": true,
         "cost": { "machine_parts": 4, "fuel": 5 }
+    },
+    "biomass_pool": {
+        "name": "Biomass Pool",
+        "type": "biomass_pool",
+        "description": "DRAFT. A hive's store: holds biomass and nothing else. Grown on resin.",
+        "build_time": 10,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": "hive_resin",
+        "cost": { "biomass": 2 },
+        "category": "hive",
+        "order": 1
+    },
+    "egg_cluster": {
+        "name": "Egg Cluster",
+        "type": "egg_cluster",
+        "description": "DRAFT. More grey eggs, laid beside it. Grown on resin.",
+        "build_time": 30,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": "hive_resin",
+        "cost": { "biomass": 8 },
+        "category": "hive",
+        "order": 2
+    },
+    "evolution_chamber": {
+        "name": "Evolution Chamber",
+        "type": "evolution_chamber",
+        "description": "DRAFT. Where a hive evolves. Grown on resin.",
+        "build_time": 40,
+        "is_entity": true,
+        "required_floor": "hive_resin",
+        "cost": { "biomass": 12 },
+        "category": "hive",
+        "order": 3
+    },
+    "egg_launcher": {
+        "name": "Resin Spire",
+        "type": "egg_launcher",
+        "description": "DRAFT. A spire that throws eggs to other worlds. Grown on resin.",
+        "build_time": 60,
+        "is_entity": true,
+        "required_floor": "hive_resin",
+        "cost": { "biomass": 20 },
+        "category": "hive",
+        "order": 4
+    },
+    "cogitator": {
+        "name": "Cogitator",
+        "type": "cogitator",
+        "description": "DRAFT. The autonz research station: assimilation runs here. Stands on wire.",
+        "build_time": 30,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "cost": { "metal_ore": 12, "crystal": 2 },
+        "category": "autonz",
+        "order": 20
+    },
+    "foundry": {
+        "name": "Foundry",
+        "type": "foundry",
+        "description": "DRAFT. The autonz heavy printer: refines ferrite and prints the foundry units. Stands on wire.",
+        "build_time": 40,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "required_tech": "autonz_foundry_pattern",
+        "cost": { "metal_ore": 16, "crystal": 4 },
+        "category": "autonz",
+        "order": 21
+    },
+    "converter_node": {
+        "name": "Converter Node",
+        "type": "converter_node",
+        "description": "DRAFT. A second origin for the wire: placers near it lay wire in half the time. Stands on wire.",
+        "build_time": 30,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "required_tech": "autonz_converter_node",
+        "cost": { "metal_ore": 10, "ferrite": 2 },
+        "category": "autonz",
+        "order": 22
+    },
+    "defence_pylon": {
+        "name": "Defence Pylon",
+        "type": "defence_pylon",
+        "description": "DRAFT. A sentinel posts here. Stands on wire.",
+        "build_time": 30,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "required_tech": "autonz_sentinel_pattern",
+        "cost": { "metal_ore": 10, "ferrite": 2 },
+        "category": "autonz",
+        "order": 23
+    },
+    "signal_core": {
+        "name": "Signal Core",
+        "type": "signal_core",
+        "description": "DRAFT. The hub transmitter: signals are sent from it. Stands on wire.",
+        "build_time": 60,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "cost": { "metal_ore": 20, "crystal": 4 },
+        "category": "autonz",
+        "order": 24
+    },
+    "relay_pylon": {
+        "name": "Relay Pylon",
+        "type": "relay_pylon",
+        "description": "DRAFT. A deployed relay drone: lengthens the signal. Not built: a relay drone deploys into it.",
+        "build_time": 120,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_floor": ["blue_wires", "red_wires"],
+        "required_tech": "autonz_relay_pattern",
+        "deploy_only": true,
+        "hidden": true,
+        "cost": {},
+        "category": "autonz",
+        "order": 25
     }
 }

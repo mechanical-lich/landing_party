@@ -1,0 +1,28 @@
+# autonz_hub — a campaign autonz presence's hub stage (docs/developer/factions.md,
+# The autonz): a round wired hall with four ways out and a red-wired core
+# where the signal is sent from, and the Signal Core; the world manager claims a
+# locker, places the fabricator and spawns the crew afterwards. Footprint
+# 13x13 to 19x19.
+function generate(x, y, w, h)
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    r = int(w / 2) - 1
+    if int(h / 2) - 1 < r then
+        r = int(h / 2) - 1
+    endif
+    carve_round_room(cx, cy, sz, r, "advanced_wall", "blue_wires")
+    clear_middle(cx, cy - r, sz)
+    clear_middle(cx, cy + r, sz)
+    clear_middle(cx - r, cy, sz)
+    clear_middle(cx + r, cy, sz)
+    carve_rect(cx - 2, cy - 2, sz, 5, 5, "red_wires")
+    name_room(cx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, "Hub")
+    name_room(cx - 2, cy - 2, sz, 5, 5, "Signal Core")
+    # The Signal Core itself (Phase E3), on the red core north of the centre
+    # (the centre is the landing, kept open).
+    spawn_entity("signal_core", cx, cy - 1, sz)
+endfunction

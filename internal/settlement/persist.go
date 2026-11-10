@@ -30,7 +30,7 @@ type savedTask struct {
 // persistableData reports whether a task's Data can be restored from JSON alone.
 func persistableData(data any) bool {
 	switch d := data.(type) {
-	case nil, task_requests.BuildRequest, task_requests.DigRequest, task_requests.CraftRequest,
+	case nil, task_requests.BuildRequest, task_requests.DigRequest, task_requests.ConvertRequest, task_requests.CraftRequest,
 		*task_requests.ResearchRequest, *task_requests.SleepRequest:
 		return true
 	case task_requests.MineRequest:
@@ -196,6 +196,9 @@ func decodeTaskData(action task.TaskAction, raw json.RawMessage) (any, error) {
 		return d, json.Unmarshal(raw, &d)
 	case task_requests.DigAction:
 		var d task_requests.DigRequest
+		return d, json.Unmarshal(raw, &d)
+	case task_requests.ConvertAction:
+		var d task_requests.ConvertRequest
 		return d, json.Unmarshal(raw, &d)
 	case task_requests.MineAction:
 		var d task_requests.MineRequest

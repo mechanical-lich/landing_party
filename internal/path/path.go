@@ -181,6 +181,16 @@ func getPossiblePath(level *world.Level, faction string, vacuumResist bool, from
 		if !found {
 			continue
 		}
+		if crossesSolid(level, steps) {
+			// The level's heuristic (squared distance) outweighs a wall's cost
+			// over a long walk, so the search went through one: a worker
+			// cannot follow that. Search again with a step cost and a
+			// heuristic that agree (phase D: a raid party walking out of its
+			// camp to a colony 300 tiles away stood at its wall).
+			if again, _, ok := pathfinder.Path(steadyGraph{level}, fromTile.Idx, targetTile.(*world.Tile).Idx); ok {
+				steps = again
+			}
+		}
 
 		// Validate: correct stair use, no floating, no solid steps
 		_, _, fromZ := fromTile.Coords()
@@ -231,4 +241,39 @@ func getPossiblePath(level *world.Level, faction string, vacuumResist bool, from
 		return result
 	}
 	return nil
+}
+
+// crossesSolid reports whether a path steps through a solid tile on the way
+// (the ends may be solid: a mining target, a worker's own wall tile).
+func crossesSolid(level *world.Level, steps []int) bool {
+	for i := 1; i < len(steps)-1; i++ {
+		st := level.Level.GetTilePtrIndex(steps[i])
+		if !st.Middle.IsEmpty() && world.TileDefinitions[st.Middle.Type].Solid {
+			return true
+		}
+	}
+	return false
+}
+
+// steadyGraph is a level's graph with a step cost of 1 on top of the
+// level's costs and a Manhattan heuristic, which never overestimates: a
+// true shortest path, found by exploring more of the map than the level's
+// own greedy search. Used only when that search crossed a wall.
+type steadyGraph struct{ level *world.Level }
+
+func (g steadyGraph) PathNeighborIDs(id int, buf []int) []int {
+	return g.level.Level.PathNeighborIDs(id, buf)
+}
+func (g steadyGraph) PathCost(from, to int) float64 { return 1 + g.level.Level.PathCost(from, to) }
+func (g steadyGraph) PathEstimate(from, to int) float64 {
+	x1, y1, z1 := g.level.Level.GetTilePtrIndex(from).Coords()
+	x2, y2, z2 := g.level.Level.GetTilePtrIndex(to).Coords()
+	return float64(absInt(x2-x1) + absInt(y2-y1) + absInt(z2-z1))
+}
+
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }

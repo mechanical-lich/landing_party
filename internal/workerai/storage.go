@@ -177,10 +177,11 @@ func FindClosestStorageWithComponent(level *world.Level, settlementName string, 
 // FoodAvailable reports whether HandleFindFood would find something for this
 // worker: food in their own bag or in settlement storage.
 func FoodAvailable(level *world.Level, entity *ecs.Entity) bool {
+	diet := dietOf(entity)
 	if entity.HasComponent(rlcomponents.Inventory) {
 		inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
 		for _, item := range inv.Bag {
-			if item.HasComponent(rlcomponents.Food) {
+			if _, ok := edible(item, diet); ok {
 				return true
 			}
 		}
@@ -190,6 +191,9 @@ func FoodAvailable(level *world.Level, entity *ecs.Entity) bool {
 	}
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	if len(diet) > 0 {
+		return closestStorageWithDiet(level, sc.Name, diet, pc.GetX(), pc.GetY()) != nil
+	}
 	return FindClosestStorageWithComponent(level, sc.Name, rlcomponents.Food, pc.GetX(), pc.GetY(), pc.GetZ()) != nil
 }
 

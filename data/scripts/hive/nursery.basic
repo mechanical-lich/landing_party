@@ -1,0 +1,40 @@
+# A settled hatchling (hive_plan.md): a brood's juvenile stays within 4 tiles
+# of where it hatched and fights only when attacked, then grows into its
+# settlement's working adult through spawn_kin("stage2"). Wild hatchlings
+# keep hatchling.basic and hunt.
+function on_turn()
+    turns = get_var("turns") + 0
+    turns = turns + 1
+    set_var("turns", turns)
+
+    sx = get_self_x()
+    sy = get_self_y()
+    sz = get_self_z()
+    if turns = 1 then
+        set_var("home_x", sx)
+        set_var("home_y", sy)
+    endif
+
+    if turns >= 30 then
+        spawn_kin("stage2", sx, sy, sz)
+        despawn_self()
+        return
+    endif
+
+    if was_attacked() = 1 then
+        ax = get_attacker_x()
+        ay = get_attacker_y()
+        if dist(sx, sy, ax, ay) <= 1.5 then
+            attack_at(ax, ay, sz)
+            return
+        endif
+    endif
+
+    hx = get_var("home_x") + 0
+    hy = get_var("home_y") + 0
+    dx = rnd_int(3) - 1
+    dy = rnd_int(3) - 1
+    if dist(sx + dx, sy + dy, hx, hy) <= 4 then
+        move_by(dx, dy)
+    endif
+endfunction

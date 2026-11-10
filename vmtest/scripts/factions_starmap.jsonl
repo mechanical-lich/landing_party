@@ -1,0 +1,35 @@
+{"name":"factions_starmap","seed":777}
+# New Expedition seed 777 with Rival factions 3: three hive broods on the
+# opening map, none on the start system, all unseen (no badge, no Legends
+# line). Jump to Rust Tangle (sys_43, a seeded site): from orbit the presence
+# is revealed, the Star Map badges it under its morph's name (XENO BROOD, the
+# hive's identity is hidden) and its arrival reaches Legends as a xeno egg.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Rivals"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"assert","path":"title_fields.factions","eq":3}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"campaign.faction_count","eq":3}
+{"op":"assert","path":"campaign.presences.start","eq":null}
+{"op":"assert","path":"campaign.presences.sys_43","gte":3}
+{"op":"assert","path":"campaign.known_events","eq":0}
+{"op":"click","target":"row:locList:sys_43"}
+{"op":"assert","path":"selected_location.known_factions","eq":0}
+{"op":"screenshot","name":"unseen"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"selected_location.known_factions","eq":1}
+{"op":"assert","path":"campaign.known_events","gte":1}
+{"op":"screenshot","name":"badged"}
+{"op":"click","target":"tab:legends"}
+{"op":"assert","path":"dash_tab","eq":"legends"}
+{"op":"assert","path":"legends_text","contains":"a xeno egg came down on Rust Tangle"}
+{"op":"screenshot","name":"legends"}

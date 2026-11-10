@@ -49,6 +49,7 @@ func (s *ScriptedAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.
 	if ai.Script == "" {
 		return nil
 	}
+	ai.Script = legacyScript(ai.Script)
 	if s.cache == nil {
 		s.cache = make(map[string]string)
 	}
@@ -87,6 +88,17 @@ func (s *ScriptedAISystem) UpdateEntity(levelInterface interface{}, entity *ecs.
 		log.Printf("ScriptedAISystem: on_turn %s: %v", ai.Script, err)
 	}
 	return nil
+}
+
+// legacyScript maps a script path an older level save may hold to its current
+// one: the troid and xeno stage scripts merged into data/scripts/hive.
+func legacyScript(path string) string {
+	for _, old := range []string{"data/scripts/troid/", "data/scripts/xeno/"} {
+		if strings.HasPrefix(path, old) {
+			return "data/scripts/hive/" + strings.TrimPrefix(path, old)
+		}
+	}
+	return path
 }
 
 func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level *world.Level, ai *components.ScriptedAIComponent) {
@@ -308,7 +320,9 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 	interp.RegisterFunc("get_open_y", func(args ...any) (any, error) { return float64(lastOpenY), nil })
 
 	// --- entity search ---
-	// find_nearest_worker(radius) — finds nearest entity with a Worker component.
+	// find_nearest_worker(radius) — finds nearest entity with a Worker component
+	// not of the caller's own faction (a wild xeno never hunts the hive's
+	// drones; hive_plan.md).
 	// Every finder searches the square within radius tiles of the caller in
 	// each direction, inclusive (see closestWithin).
 	// find_nearest_blueprint(blueprint, radius) — finds nearest entity with matching blueprint.
@@ -330,7 +344,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		sx, sy, sz := pc.GetX(), pc.GetY(), pc.GetZ()
 
 		if cachedWorker != nil {
-			if !cachedWorker.HasComponent(rlcomponents.Dead) &&
+			if !cachedWorker.HasComponent(rlcomponents.Dead) && !sameFaction(entity, cachedWorker) &&
 				cachedWorker.HasComponent(components.Worker) &&
 				cachedWorker.HasComponent(rlcomponents.Position) {
 				cp := cachedWorker.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
@@ -349,7 +363,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 
 		found := closestWithin(level, sx, sy, sz, radius, entity,
 			func(c *ecs.Entity) bool {
-				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(components.Worker) {
+				if c.HasComponent(rlcomponents.Dead) || !c.HasComponent(components.Worker) || sameFaction(entity, c) {
 					return false
 				}
 				if !c.HasComponent(rlcomponents.Position) {
@@ -1185,6 +1199,29 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		level.AddEntity(e)
 		return nil, nil
 	})
+	// spawn_kin(stage, x, y, z) — spawn the life stage stage of this
+	// creature's own morph (its blueprint's prefix: xeno_egg → xeno_<stage>)
+	// with its tier and presence (factory.SpawnKin). The hive's shared stage
+	// scripts grow and lay through it.
+	interp.RegisterFunc("spawn_kin", func(args ...any) (any, error) {
+		if len(args) < 4 {
+			return float64(0), nil
+		}
+		e := factory.SpawnKin(entity, fmt.Sprint(args[0]),
+			int(toAIFloat(args[1])), int(toAIFloat(args[2])), int(toAIFloat(args[3])))
+		if e == nil {
+			return float64(0), nil
+		}
+		level.AddEntity(e)
+		return float64(1), nil
+	})
+	// get_self_name() — this creature's display name ("Xeno Egg").
+	interp.RegisterFunc("get_self_name", func(args ...any) (any, error) {
+		if entity.HasComponent(rlcomponents.Description) {
+			return entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name, nil
+		}
+		return "", nil
+	})
 	// despawn_self() — remove this entity from the world.
 	interp.RegisterFunc("despawn_self", func(args ...any) (any, error) {
 		entity.AddComponent(&rlcomponents.DeadComponent{})
@@ -1325,4 +1362,16 @@ func closestWithin(level *world.Level, x, y, z, r int, exclude *ecs.Entity, matc
 func withinSquare(x, y, tx, ty, r int) bool {
 	dx, dy := tx-x, ty-y
 	return dx >= -r && dx <= r && dy >= -r && dy <= r
+}
+
+// sameFaction reports whether a and b carry the same non-empty faction.
+func sameFaction(a, b *ecs.Entity) bool {
+	fa, fb := "", ""
+	if a.HasComponent(rlcomponents.Description) {
+		fa = a.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+	}
+	if b.HasComponent(rlcomponents.Description) {
+		fb = b.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+	}
+	return fa != "" && fa == fb
 }

@@ -173,7 +173,7 @@ type StatsData struct {
 
 // repoRelPath converts an absolute path to one relative to the project root
 // (the dir containing data/), matching the blueprint convention
-// (e.g. "data/scripts/xeno/egg.basic"). Falls back to the input on failure.
+// (e.g. "data/scripts/hive/egg.basic"). Falls back to the input on failure.
 func repoRelPath(abs string) string {
 	abs = filepath.Clean(abs)
 	if i := strings.LastIndex(abs, string(filepath.Separator)+"data"+string(filepath.Separator)); i >= 0 {

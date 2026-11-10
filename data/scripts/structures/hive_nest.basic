@@ -1,0 +1,20 @@
+# hive_nest — a campaign hive presence's nest stage (docs/developer/factions.md,
+# Tier 2): one resin chamber with a way in. It builds terrain only; the world
+# manager spawns the presence's eggs and creatures into it afterwards, so they
+# carry its tier and presence. Footprint 11x11 to 17x17.
+function generate(x, y, w, h)
+    mirror(x, y, w, h, rnd_int(2), rnd_int(2))
+    sz = get_surface_z(x + int(w / 2), y + int(h / 2))
+    if sz < 0 then
+        return
+    endif
+    cx = x + int(w / 2)
+    cy = y + int(h / 2)
+    r = int(w / 2) - 1
+    if int(h / 2) - 1 < r then
+        r = int(h / 2) - 1
+    endif
+    carve_round_room(cx, cy, sz, r, "eldritch_wall", "hive_resin")
+    clear_middle(cx, cy + r, sz)
+    name_room(cx - r, cy - r, sz, r * 2 + 1, r * 2 + 1, "Nest")
+endfunction

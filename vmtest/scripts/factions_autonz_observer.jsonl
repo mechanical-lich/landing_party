@@ -1,0 +1,41 @@
+{"name":"factions_autonz_observer","seed":65,"config":{"observerMode":true}}
+# The autonz as a settlement in an observer run (autonz_plan.md, phase E3):
+# New Expedition seed 65 with Rival factions 4, 120 days on (debug days).
+# The Factions tab lists Leaden Ridge's autonz hub with its units by type and
+# its structures. Before viewing it, debug tech grants the hub the Bronze
+# Enforcer entry, so the frame does not wait on the day: viewing it
+# materialises its enforcers bronze (one row down on the sheet) beside its
+# steel wire placers. Frames: the Factions tab, the hub viewed, and the hub a
+# day on.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Lattice Watch"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"65"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"observer_run","eq":true}
+{"op":"debug","cmd":"days 120"}
+{"op":"debug","cmd":"tech sys_5 autonz autonz_bronze_enforcer"}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}
+{"op":"click","target":"factions:site:sys_5"}
+{"op":"assert","path":"selected_location.id","eq":"sys_5"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"assert","path":"location","eq":"sys_5"}
+{"op":"assert","path":"autonz.stage","eq":1}
+{"op":"assert","path":"autonz.built.signal_core","eq":1}
+{"op":"assert","path":"autonz.tiers.enforcer bronze","gte":1}
+{"op":"assert","path":"autonz.tiers.wire_placer steel","gte":1}
+{"op":"debug","cmd":"autonz 0 -2"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"viewing_hub"}
+{"op":"wait","ticks":750}
+{"op":"debug","cmd":"autonz 0 -2"}
+{"op":"wait","ticks":10}
+{"op":"screenshot","name":"hub_a_day_on"}

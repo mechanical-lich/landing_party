@@ -36,7 +36,26 @@ func main() {
 	find := flag.String("find", "", "list New Expedition seeds (1..-findmax) whose opening Star Map has a site matching every comma-separated term: a tier (threat, hazard, quiet), a map, a location ID, or an event type on the site; for vmtest scripts")
 	findMax := flag.Int("findmax", 200, "highest seed -find scans")
 	stats := flag.Int("stats", 0, "seeds for the density table (events, origins, stamps, civs, span, tiers per map and per population) and pool-civ recurrence over a tenth as many charted campaigns; 0 skips it")
+	factions := flag.String("factions", "", "step the rival-faction tier for these Rival factions counts (\"0,1,2,3\") over -fdays for -fseeds and print presences over time; for balancing data/factions.json")
+	fseeds := flag.String("fseeds", "1-5", "seeds for -factions (\"1,2,7-9\")")
+	fdays := flag.Int("fdays", 100, "days -factions steps")
+	fevery := flag.Int("fevery", 10, "-factions prints a column every this many days")
+	fdetail := flag.Bool("fdetail", false, "-factions also lists each presence at the end")
+	fcols := flag.String("fcols", "", "-factions columns as explicit days (\"0,40,100,200,300\"), overriding -fevery")
 	flag.Parse()
+
+	if *factions != "" {
+		var counts []int
+		for _, n := range parseInts(*factions) {
+			counts = append(counts, int(n))
+		}
+		var cols []int
+		for _, d := range parseInts(*fcols) {
+			cols = append(cols, int(d))
+		}
+		printFactions(os.Stdout, parseInts(*fseeds), counts, *fdays, *fevery, cols, *fdetail)
+		return
+	}
 
 	if err := mapdef.Load("data/maps"); err != nil {
 		log.Fatal(err)

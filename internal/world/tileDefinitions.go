@@ -20,6 +20,10 @@ type TileDefinition struct {
 	// slot's material, dig/mine sounds read the Middle slot's. Empty means
 	// "unspecified" (callers fall back to a generic sound).
 	Material string `json:"material,omitempty"`
+	// Speed multiplies the initiative refill of a walking entity standing on
+	// the tile, by its faction, "*" for every other (hive resin: the hive's
+	// walkers quicker, everyone else slower; internal/game/resin_speed.go).
+	Speed map[string]float64 `json:"speed,omitempty"`
 }
 
 // FloorMaterialAt returns the Material of the Floor tile at (x,y,z) — the surface

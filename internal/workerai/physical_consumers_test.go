@@ -4,12 +4,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/crafting"
+	"github.com/mechanical-lich/landing_party/internal/lore"
 	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
+	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func fakeRecipe(t *testing.T, cost map[string]int) {
@@ -248,4 +254,66 @@ func TestTaskTotals_StartedResearchReadsAsPaid(t *testing.T) {
 func TestTaskTotals_NoCostTaskRequiresNothing(t *testing.T) {
 	_, required := TaskDeliveryTotals(&task.Task{Action: task_requests.DigAction})
 	assert.Equal(t, 0, required)
+}
+
+// craftOutput runs a free, one-step craft of recipe at the worker's side and
+// returns the worker.
+func craftOutput(t *testing.T, recipe crafting.Recipe) (*world.Level, *ecs.Entity) {
+	t.Helper()
+	prev := getRecipe
+	getRecipe = func(string) (crafting.Recipe, bool) { return recipe, true }
+	t.Cleanup(func() { getRecipe = prev })
+	lore.NamesPath = "../../data/names.json" // a colonist is named at creation
+	lvl := physicalLevel(t, 6, 3)
+	e, wc, _ := physicalWorker(lvl, 2, 1)
+	tk := craftTask(3, 1, 1)
+	wc.CurrentTask = tk
+	for i := 0; i < 5 && !tk.Completed; i++ {
+		HandleTaskState(lvl, e)
+	}
+	require.True(t, tk.Completed)
+	return lvl, e
+}
+
+// deploy_on_craft (finding 4): the output joins the crafter's settlement on
+// the level at the station; without it the output goes into the bag, as a
+// Robot Workbench robot does (it deploys when put down).
+func TestCraft_DeployOnCraft(t *testing.T) {
+	lvl, e := craftOutput(t, crafting.Recipe{Name: "Print", Output: "colonist", DeployOnCraft: true})
+	assert.Equal(t, 0, bagCount(e, "colonist"))
+	var printed *ecs.Entity
+	for _, x := range lvl.Entities {
+		if x.Blueprint == "colonist" {
+			printed = x
+		}
+	}
+	require.NotNil(t, printed, "the printed colonist is on the level")
+	assert.True(t, components.IsColonyWorker(printed, testColony))
+	pc := printed.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	assert.Equal(t, [2]int{3, 1}, [2]int{pc.GetX(), pc.GetY()}, "at the station")
+
+	lvl, e = craftOutput(t, crafting.Recipe{Name: "Hauler", Output: "hauler_robot"})
+	assert.Equal(t, 1, bagCount(e, "hauler_robot"), "no flag: into the crafter's bag")
+	for _, x := range lvl.Entities {
+		assert.NotEqual(t, "hauler_robot", x.Blueprint)
+	}
+}
+
+// The data: the bio-printer's colonist deploys, the workbench robots go into
+// the bag as before.
+func TestCraft_DeployOnCraftData(t *testing.T) {
+	require.NoError(t, crafting.Load("../../data/crafting_recipes.json"))
+	t.Cleanup(func() { _ = crafting.Load("") }) // as init left it here: no data/ under the package
+	// The units that walk off the printer: the colony's colonist and (phase
+	// D) the greyish bio-printer's crew, (phase E) the autonz fabricator's.
+	deploys := map[string]bool{"print_colonist": true, "print_greenish": true, "print_greyish": true,
+		"print_pinkish": true, "print_whitish": true, "print_wire_placer": true, "print_enforcer": true,
+		// (phase E2) the hive's eggs, laid on a grey egg in its place.
+		"hive_egg_drone": true, "hive_egg_scout": true, "hive_egg_warrior": true, "hive_egg_hunter": true,
+		"hive_egg_burrower": true, "hive_egg_spitter": true,
+		// (phase E3) the autonz' other prints, at the fabricator and foundry.
+		"print_relay_drone": true, "print_seeker": true, "print_harvester": true, "print_sentinel": true, "print_warden": true}
+	for _, r := range crafting.AllRecipes() {
+		assert.Equal(t, deploys[r.Key], r.DeployOnCraft, r.Key)
+	}
 }

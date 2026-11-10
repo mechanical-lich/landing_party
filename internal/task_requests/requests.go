@@ -19,6 +19,37 @@ type BuildRequest struct {
 	// Replace repairs: the Repairable entity at the tile gives way to the
 	// built one, and sets its flag (a station's generator).
 	Replace bool
+	// Waited is the turns the done work has waited on someone else standing
+	// in the footprint; past maxFootprintWait the builder lets the task go
+	// back to the queue (materials kept) rather than wait forever on a
+	// worker that never moves (a rival's sentry).
+	Waited int `json:",omitempty"`
+}
+
+// ConvertRequest turns the tile at X, Y, Z into Tile (a floor tile: the
+// conversion economy, wire_placer style) over Required ticks of work (phase
+// C2, ConvertAction). The worker stands on or beside it.
+type ConvertRequest struct {
+	X        int
+	Y        int
+	Z        int
+	Tile     string
+	Progress int
+	Required int
+}
+
+// DeployRequest replaces the worker with the As structure on X, Y, Z once
+// it has stood there Required work steps, when the tile's floor is one of
+// Floor (none: any). The autonz' relay drone deploying a relay pylon
+// (autonz_plan.md).
+type DeployRequest struct {
+	X        int
+	Y        int
+	Z        int
+	As       string
+	Floor    []string
+	Progress int
+	Required int
 }
 
 type DigRequest struct {
@@ -159,7 +190,18 @@ const (
 	SleepAction    task.TaskAction = "sleep"
 	PassoutAction  task.TaskAction = "passout"
 	RelocateAction task.TaskAction = "relocate"
+	ConvertAction  task.TaskAction = "convert"
+	// DeployAction: a unit becomes a structure where it stands
+	// (DeployRequest).
+	DeployAction task.TaskAction = "deploy"
+	// MoveAction walks a worker to the task's tile (the default handler):
+	// a director's post, patrol waypoint or the walk to the hive's spire.
+	MoveAction task.TaskAction = "move"
 )
+
+// HoldHere as a move task's Data: the worker stays on arrival until the task
+// is completed by whoever gave it.
+const HoldHere = "hold"
 
 // IsInterruptibleAction reports whether the NeedsSystem may preempt a task
 // with the given action when a colonist becomes too exhausted.

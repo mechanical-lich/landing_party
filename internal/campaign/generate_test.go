@@ -20,6 +20,7 @@ func useRepoData(t *testing.T) {
 	lore.NamesPath = "../../data/names.json"
 	history.DataDir = "../../data/history"
 	history.MapsDir = "../../data/maps"
+	FactionsPath = "../../data/factions.json"
 }
 
 func genCampaign(t *testing.T, seed int64) *Campaign {
