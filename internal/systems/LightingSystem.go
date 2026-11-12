@@ -32,6 +32,8 @@ const (
 	lightDecayFrames = 10
 	lightDecayAmount = 5
 	shadowRadius     = 3
+	// parallelMin is the fewest columns worth splitting across goroutines.
+	parallelMin = 512
 )
 
 type tileLightSource struct {
@@ -48,6 +50,15 @@ type LightingSystem struct {
 	heightMap    []int
 	cacheBuilt   bool
 	tileSources  []tileLightSource
+
+	// The sun pass writes a column's top tile only when its value can have
+	// changed (see UpdateSystem). sunIndex is each top tile's column,
+	// lastSun the intensity the tiles were last written at (sunValid once
+	// they have been), expired the tiles the last decay dropped.
+	sunIndex map[*world.Tile]int
+	lastSun  int
+	sunValid bool
+	expired  []*world.Tile
 }
 
 var lightingRequires = []ecs.ComponentType{rlcomponents.Light}
@@ -69,68 +80,125 @@ func (s *LightingSystem) UpdateSystem(data interface{}) error {
 
 	sunIntensity := level.EffectiveSunIntensity()
 
+	full := !s.sunValid || sunIntensity != s.lastSun
 	if !s.cacheBuilt {
 		s.buildFullCache(level)
 		level.DirtyColumns = level.DirtyColumns[:0]
+		full = true
 	}
 
+	var recalced []int
 	if len(level.DirtyColumns) > 0 {
-		s.updateDirtyColumns(level)
+		recalced = s.updateDirtyColumns(level)
 		level.DirtyColumns = level.DirtyColumns[:0]
 	}
 
-	mapSize := level.Width * level.Height
-	for i := 0; i < mapSize; i++ {
-		tile := s.sunTiles[i]
-		if tile == nil {
-			continue
+	// Every column's top tile is lit by the sun less its shadow. A top tile
+	// holds that value from the last pass unless a light raised it since
+	// (it is in litTiles, or the decay just dropped it), so with the sun
+	// unchanged only those tiles and the columns just recalculated are
+	// written: the same light levels as writing every column each pass,
+	// which a 128 by 128 site made the larger part of a headless tick.
+	if full {
+		mapSize := level.Width * level.Height
+		for i := 0; i < mapSize; i++ {
+			s.setSun(i, sunIntensity)
 		}
-		shadow := s.sunShadow[i]
-		effective := sunIntensity - shadow
-		if effective < 0 {
-			effective = 0
+	} else {
+		for _, idx := range recalced {
+			s.setSun(idx, sunIntensity)
 		}
-		tile.LightLevel = effective
+		for _, tile := range s.expired {
+			if idx, ok := s.sunIndex[tile]; ok {
+				s.setSun(idx, sunIntensity)
+			}
+		}
+		for tile := range s.litTiles {
+			if idx, ok := s.sunIndex[tile]; ok {
+				s.setSun(idx, sunIntensity)
+			}
+		}
 	}
+	s.expired = s.expired[:0]
+	s.lastSun, s.sunValid = sunIntensity, true
 
 	s.applyTileLights(level)
 
 	return nil
 }
 
+// setSun writes column idx's top tile: the sun less the column's shadow.
+func (s *LightingSystem) setSun(idx, sunIntensity int) {
+	tile := s.sunTiles[idx]
+	if tile == nil {
+		return
+	}
+	effective := sunIntensity - s.sunShadow[idx]
+	if effective < 0 {
+		effective = 0
+	}
+	tile.LightLevel = effective
+}
+
 func (s *LightingSystem) buildTileSourceCache(level *world.Level) {
 	s.tileSources = s.tileSources[:0]
-	for z := 0; z < level.Depth; z++ {
-		for y := 0; y < level.Height; y++ {
-			for x := 0; x < level.Width; x++ {
-				ti := level.GetTileAt(x, y, z)
-				if ti == nil {
-					continue
-				}
-				tile := ti.(*world.Tile)
-				// Light-emitting tiles can live in any slot; check Middle
-				// first (most common), fall back to Floor.
-				slot := tile.Middle
-				if slot.IsEmpty() {
-					slot = tile.Floor
-				}
-				if slot.IsEmpty() {
-					continue
-				}
-				def := world.TileDefinitions[slot.Type]
-				if def.LightLevel <= 0 {
-					continue
-				}
-				r := def.LightRange
-				if r <= 0 {
-					r = 3
-				}
-				s.tileSources = append(s.tileSources, tileLightSource{
-					tile: tile, x: x, y: y, z: z,
-					level: def.LightLevel, rng: r,
-				})
-			}
+	for y := 0; y < level.Height; y++ {
+		for x := 0; x < level.Width; x++ {
+			s.addColumnSources(level, x, y)
 		}
+	}
+}
+
+// refreshTileSources rescans only the dirty columns' light-emitting tiles
+// (a tile changes only in a column marked dirty), rather than the whole
+// level on every pass with a changed column. applyTileLights takes the
+// brightest source at each tile, so the order of the sources is free.
+func (s *LightingSystem) refreshTileSources(level *world.Level, dirty []int) {
+	cols := make(map[int]bool, len(dirty))
+	for _, idx := range dirty {
+		cols[idx] = true
+	}
+	kept := s.tileSources[:0]
+	for _, src := range s.tileSources {
+		if !cols[src.y*level.Width+src.x] {
+			kept = append(kept, src)
+		}
+	}
+	s.tileSources = kept
+	for idx := range cols {
+		s.addColumnSources(level, idx%level.Width, idx/level.Width)
+	}
+}
+
+// addColumnSources appends the light-emitting tiles of column (x, y).
+func (s *LightingSystem) addColumnSources(level *world.Level, x, y int) {
+	for z := 0; z < level.Depth; z++ {
+		ti := level.GetTileAt(x, y, z)
+		if ti == nil {
+			continue
+		}
+		tile := ti.(*world.Tile)
+		// Light-emitting tiles can live in any slot; check Middle
+		// first (most common), fall back to Floor.
+		slot := tile.Middle
+		if slot.IsEmpty() {
+			slot = tile.Floor
+		}
+		if slot.IsEmpty() {
+			continue
+		}
+		def := world.TileDefinitions[slot.Type]
+		if def.LightLevel <= 0 {
+			continue
+		}
+		r := def.LightRange
+		if r <= 0 {
+			r = 3
+		}
+		s.tileSources = append(s.tileSources, tileLightSource{
+			tile: tile, x: x, y: y, z: z,
+			level: def.LightLevel, rng: r,
+		})
 	}
 }
 
@@ -213,16 +281,35 @@ func (s *LightingSystem) buildFullCache(level *world.Level) {
 	}
 	wg.Wait()
 
+	s.sunIndex = make(map[*world.Tile]int, mapSize)
+	for i, tile := range s.sunTiles {
+		if tile != nil {
+			s.sunIndex[tile] = i
+		}
+	}
+
 	log.Println("LightingSystem: sun cache built")
 	s.buildTileSourceCache(level)
 	s.cacheBuilt = true
 }
 
-func (s *LightingSystem) updateDirtyColumns(level *world.Level) {
+// updateDirtyColumns refinds the dirty columns' top tiles and the shadows
+// around them, and returns the columns whose shadow it recalculated (the
+// dirty ones among them).
+func (s *LightingSystem) updateDirtyColumns(level *world.Level) []int {
 	dirty := level.DirtyColumns
 	numDirty := len(dirty)
 	numWorkers := runtime.NumCPU()
+	if numDirty < parallelMin {
+		numWorkers = 1 // a few columns: starting goroutines costs more
+	}
 	chunkSize := (numDirty + numWorkers - 1) / numWorkers
+
+	for _, idx := range dirty {
+		if old := s.sunTiles[idx]; old != nil && s.sunIndex[old] == idx {
+			delete(s.sunIndex, old)
+		}
+	}
 
 	var wg sync.WaitGroup
 	for w := 0; w < numWorkers; w++ {
@@ -255,6 +342,11 @@ func (s *LightingSystem) updateDirtyColumns(level *world.Level) {
 		}(start, end)
 	}
 	wg.Wait()
+	for _, idx := range dirty {
+		if tile := s.sunTiles[idx]; tile != nil {
+			s.sunIndex[tile] = idx
+		}
+	}
 
 	recalc := make(map[int]bool, numDirty*((2*shadowRadius+1)*(2*shadowRadius+1)))
 	for _, idx := range dirty {
@@ -275,6 +367,10 @@ func (s *LightingSystem) updateDirtyColumns(level *world.Level) {
 		recalcList = append(recalcList, idx)
 	}
 	numRecalc := len(recalcList)
+	numWorkers = runtime.NumCPU()
+	if numRecalc < parallelMin {
+		numWorkers = 1
+	}
 	chunkSize = (numRecalc + numWorkers - 1) / numWorkers
 
 	for w := 0; w < numWorkers; w++ {
@@ -295,7 +391,8 @@ func (s *LightingSystem) updateDirtyColumns(level *world.Level) {
 		}(start, end)
 	}
 	wg.Wait()
-	s.buildTileSourceCache(level)
+	s.refreshTileSources(level, dirty)
+	return recalcList
 }
 
 func (s *LightingSystem) recalcColumnShadow(level *world.Level, idx int) {
@@ -349,6 +446,7 @@ func (s *LightingSystem) decayLitTiles() {
 		if tile.LightLevel <= 0 {
 			tile.LightLevel = 0
 			delete(s.litTiles, tile)
+			s.expired = append(s.expired, tile)
 		}
 	}
 }

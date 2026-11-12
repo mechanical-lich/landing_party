@@ -1,7 +1,7 @@
 package systems
 
 import (
-	"math"
+	"slices"
 
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/view"
@@ -21,6 +21,54 @@ const DefaultSightRadius = 12
 // so callers that run FOV must keep it current.
 type FOVSystem struct {
 	Viewport view.Viewport
+
+	// blocked remembers blocksLOS for the cells one pass has looked at:
+	// nothing a pass does changes what blocks sight, and the workers of a
+	// colony stand close together, so their rays cross the same cells many
+	// times over. origins is the worker positions the pass has already
+	// cast from (several workers on one tile see the same).
+	blocked losMemo
+	origins []fovOrigin
+}
+
+type fovOrigin struct{ x, y, z, radius int }
+
+// losMemo is blocksLOS by cell, each z plane filled as it is first asked:
+// 0 not asked, 1 clear, 2 blocked.
+type losMemo struct {
+	width, height int
+	planes        map[int][]uint8
+}
+
+// reset empties the memo for a pass over level.
+func (m *losMemo) reset(level *world.Level) {
+	if m.planes == nil || m.width != level.Width || m.height != level.Height {
+		m.width, m.height = level.Width, level.Height
+		m.planes = map[int][]uint8{}
+		return
+	}
+	for _, plane := range m.planes {
+		clear(plane)
+	}
+}
+
+func (m *losMemo) blocks(level *world.Level, x, y, z int) bool {
+	if x < 0 || y < 0 || x >= m.width || y >= m.height {
+		return blocksLOS(level, x, y, z)
+	}
+	plane := m.planes[z]
+	if plane == nil {
+		plane = make([]uint8, m.width*m.height)
+		m.planes[z] = plane
+	}
+	i := y*m.width + x
+	if plane[i] == 0 {
+		plane[i] = 1
+		if blocksLOS(level, x, y, z) {
+			plane[i] = 2
+		}
+	}
+	return plane[i] == 2
 }
 
 // Requires returns no required components — UpdateSystem handles everything.
@@ -34,6 +82,8 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 	for k := range level.WorkerZLevels {
 		delete(level.WorkerZLevels, k)
 	}
+	s.blocked.reset(level)
+	s.origins = s.origins[:0]
 
 	for _, entity := range level.Entities {
 		if !entity.HasComponent(components.Worker) {
@@ -53,8 +103,11 @@ func (s *FOVSystem) UpdateSystem(data interface{}) error {
 			}
 		}
 
-		updateFOV(level, x, y, z, radius)
 		level.WorkerZLevels[z] = true
+		if o := (fovOrigin{x, y, z, radius}); !slices.Contains(s.origins, o) {
+			s.origins = append(s.origins, o)
+			updateFOV(level, &s.blocked, x, y, z, radius)
+		}
 	}
 	return nil
 }
@@ -65,7 +118,7 @@ func (s *FOVSystem) UpdateEntity(data interface{}, entity *ecs.Entity) error { r
 // they have line of sight to the origin. Uses Bresenham ray casting.
 // After marking each tile visible, propagates upward through open-air tiles
 // (no floor = no ceiling blocking the view from below).
-func updateFOV(level *world.Level, ox, oy, oz, radius int) {
+func updateFOV(level *world.Level, memo *losMemo, ox, oy, oz, radius int) {
 	r2 := radius * radius
 	for dy := -radius; dy <= radius; dy++ {
 		for dx := -radius; dx <= radius; dx++ {
@@ -76,7 +129,7 @@ func updateFOV(level *world.Level, ox, oy, oz, radius int) {
 			if !level.InBounds(tx, ty, oz) {
 				continue
 			}
-			if losCheck(level, ox, oy, tx, ty, oz) {
+			if losWalk(ox, oy, tx, ty, func(x, y int) bool { return memo.blocks(level, x, y, oz) }) {
 				level.SetVisible(tx, ty, oz)
 				level.SetSeen(tx, ty, oz, true)
 				propagateVisibilityUp(level, tx, ty, oz)
@@ -106,10 +159,21 @@ func propagateVisibilityUp(level *world.Level, x, y, z int) {
 // losCheck casts a Bresenham ray from (px,py) to (tx,ty) on z-level z.
 // Returns true if no solid tile or closed door blocks the line.
 func losCheck(level *world.Level, px, py, tx, ty, z int) bool {
+	return losWalk(px, py, tx, ty, func(x, y int) bool { return blocksLOS(level, x, y, z) })
+}
+
+// losWalk walks the Bresenham ray from (tx,ty) back to (px,py), asking
+// blocks of every cell between them; true when none blocks.
+func losWalk(px, py, tx, ty int, blocks func(x, y int) bool) bool {
 	dx := px - tx
 	dy := py - ty
-	adx := math.Abs(float64(dx))
-	ady := math.Abs(float64(dy))
+	adx, ady := dx, dy
+	if adx < 0 {
+		adx = -adx
+	}
+	if ady < 0 {
+		ady = -ady
+	}
 	sx := sign(float64(dx))
 	sy := sign(float64(dy))
 	cx, cy := tx, ty
@@ -126,7 +190,7 @@ func losCheck(level *world.Level, px, py, tx, ty, z int) bool {
 			if cx == px && cy == py {
 				return true
 			}
-			if blocksLOS(level, cx, cy, z) {
+			if blocks(cx, cy) {
 				return false
 			}
 		}
@@ -142,7 +206,7 @@ func losCheck(level *world.Level, px, py, tx, ty, z int) bool {
 		if cx == px && cy == py {
 			return true
 		}
-		if blocksLOS(level, cx, cy, z) {
+		if blocks(cx, cy) {
 			return false
 		}
 	}

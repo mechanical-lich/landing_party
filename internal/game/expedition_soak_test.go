@@ -96,8 +96,10 @@ func expSoakOne(t *testing.T, seed int64, ticks int) expSoakRow {
 			}
 		}
 	}
+	progress := soakProgress(fmt.Sprintf("expedition:%d", seed), ticks)
 	tick := 0
 	for ; tick < ticks; tick++ {
+		progress(tick)
 		flyDashboard(wm, 1, nil)
 		watch()
 		if f := c.Expedition(); f != nil && f.Landed() && c.Locations[f.LandedID].HasSite() {
@@ -113,7 +115,8 @@ func expSoakOne(t *testing.T, seed int64, ticks int) expSoakRow {
 		if err != nil {
 			t.Fatal(err)
 		}
-		stepLevel(ms, ticks-tick, func(int) { watch() })
+		done := tick
+		stepLevel(ms, ticks-tick, func(int) { watch(); done++; progress(done) })
 		r.alive = len(settlementWorkers(ms.level, name))
 		if dir := ms.factionDirectors[name]; dir != nil {
 			for k, v := range dir.Ordered {
@@ -136,6 +139,7 @@ func expSoakOne(t *testing.T, seed int64, ticks int) expSoakRow {
 		}
 	}
 	r.day = c.Day()
+	progress(ticks) // a run that never lands, or lands on no site
 	return r
 }
 

@@ -189,7 +189,9 @@ func hiveSoakOne(t *testing.T, seed int64, ticks int) hiveRow {
 	}
 	hunger := map[*ecs.Entity]int{}
 	fleets0 := len(c.Fleets)
+	progress := soakProgress(fmt.Sprintf("hive:%d", seed), ticks)
 	for tick := 1; tick <= ticks; tick++ {
+		progress(tick)
 		fspath.ResetFrameCounter()
 		ms.stepWorld()
 		wm.TickBackground(ms)

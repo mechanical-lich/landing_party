@@ -3,6 +3,9 @@ package campaign
 import (
 	"encoding/json"
 	"os"
+	"slices"
+	"sync"
+	"time"
 )
 
 // GenerationConfigPath is the data-driven tuning file for campaign
@@ -114,12 +117,51 @@ func defaultGenConfig() GenConfig {
 	}
 }
 
-// genConfig loads the tuning config fresh each call, layering the file over
-// defaults so partial files work. Deliberately uncached so edits to
-// data/generation.json take effect without a restart. Callers must NOT read it
-// on a hot path (e.g. per frame): read it once when the relevant state changes
-// and reuse the value.
+// genConfig is the tuning config, the file layered over defaults so partial
+// files work. Edits to data/generation.json still take effect without a
+// restart: the loaded config is kept, and the file is looked at again (its
+// modification time and size) at most once a second, and re-read when it has
+// changed. The faction directors read it every step (firstJump), so a call
+// between checks touches no file. The check is by wall clock, which reaches
+// only when an edited file is noticed, never what an unedited one gives.
 func genConfig() GenConfig {
+	genCache.Lock()
+	defer genCache.Unlock()
+	now := time.Now()
+	if !genCache.loaded || genCache.path != GenerationConfigPath || now.Sub(genCache.checked) >= genConfigRecheck {
+		var mod time.Time
+		size := int64(-1) // no file: the defaults
+		if fi, err := os.Stat(GenerationConfigPath); err == nil {
+			mod, size = fi.ModTime(), fi.Size()
+		}
+		if !genCache.loaded || genCache.path != GenerationConfigPath || !mod.Equal(genCache.mod) || size != genCache.size {
+			genCache.cfg = loadGenConfig()
+			genCache.path, genCache.mod, genCache.size, genCache.loaded = GenerationConfigPath, mod, size, true
+		}
+		genCache.checked = now
+	}
+	cfg := genCache.cfg
+	// The slices are the cache's own: a caller gets copies.
+	cfg.ScannerTiers = slices.Clone(cfg.ScannerTiers)
+	cfg.ScanFuelCosts = slices.Clone(cfg.ScanFuelCosts)
+	return cfg
+}
+
+// genConfigRecheck is how often genConfig looks at the file again.
+const genConfigRecheck = time.Second
+
+var genCache struct {
+	sync.Mutex
+	loaded  bool
+	path    string
+	mod     time.Time
+	size    int64
+	checked time.Time
+	cfg     GenConfig
+}
+
+// loadGenConfig reads the file over the defaults and clamps the values.
+func loadGenConfig() GenConfig {
 	cfg := defaultGenConfig()
 	if b, err := os.ReadFile(GenerationConfigPath); err == nil {
 		_ = json.Unmarshal(b, &cfg) // unmarshal overlays only present fields

@@ -24,8 +24,21 @@ cd internal/game
 # A failed seed is reported and the join still runs (it prints the rows the
 # other seeds wrote); the script then fails.
 failed=0
+# Each seed appends its progress lines (soakProgress) to one file, followed
+# here while the seeds run.
+export LP_SOAK_PROGRESS="$rows/progress"
+: > "$LP_SOAK_PROGRESS"
+echo "soak: $# runs of $test_name, $jobs at once; logs in $rows"
+tail -f "$LP_SOAK_PROGRESS" &
+tailpid=$!
+trap 'kill $tailpid 2>/dev/null' EXIT
 printf '%s\n' "$@" | xargs -P "$jobs" -I{} sh -c \
 	'LP_SOAK_ONLY={} "$0" -test.run "^$1\$" -test.count=1 -test.timeout 60m > "$2/{}.log" 2>&1 || { echo "soak run {} failed:"; tail -30 "$2/{}.log"; exit 1; }' \
 	"$bin" "$test_name" "$rows" || failed=1
+sleep 1 # let tail print the last lines
+kill $tailpid 2>/dev/null || true
+wait $tailpid 2>/dev/null || true
+trap - EXIT
+unset LP_SOAK_PROGRESS
 "$bin" -test.run "^$join\$" -test.v -test.count=1 || failed=1
 exit $failed

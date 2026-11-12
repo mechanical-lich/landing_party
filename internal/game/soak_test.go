@@ -128,7 +128,9 @@ func soakOne(t *testing.T, seed int64, ticks int) soakRow {
 	}
 	r := soakRow{seed: seed, bed: -1, locker: -1, bench: -1, lab: -1, res: -1, firstDeath: -1}
 	_ = c
+	progress := soakProgress(fmt.Sprintf("observer:%d", seed), ticks)
 	for tick := 1; tick <= ticks; tick++ {
+		progress(tick)
 		fspath.ResetFrameCounter() // the game's Update does this before each step
 		ms.stepWorld()
 		wm.TickBackground(ms)

@@ -2,10 +2,52 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
+
+// soakProgress reports how far one soak run is: the returned func, called
+// with the tick just stepped, prints a line at each tenth of the run (not
+// more often than every five seconds, so a short run prints only its last
+// line) with the time taken and an estimate of what is left. The lines go
+// to stderr, or are appended to the file LP_SOAK_PROGRESS names
+// (scripts/soak_par.sh follows that file, the seeds' own output being in
+// their logs). Wall time only reaches the output, never the simulation.
+func soakProgress(label string, ticks int) func(tick int) {
+	start := time.Now()
+	last := start
+	next := 1 // the next tenth to report
+	return func(tick int) {
+		if ticks <= 0 || tick*10 < next*ticks {
+			return
+		}
+		next = tick*10/ticks + 1
+		now := time.Now()
+		if tick < ticks && now.Sub(last) < 5*time.Second {
+			return
+		}
+		last = now
+		el := now.Sub(start)
+		line := fmt.Sprintf("soak %-14s %3d%%  %d/%d ticks  %s", label, tick*100/ticks, tick, ticks, el.Round(time.Second))
+		if tick < ticks {
+			left := time.Duration(float64(el) * float64(ticks-tick) / float64(tick))
+			line += fmt.Sprintf(", about %s left", left.Round(time.Second))
+		} else {
+			line += ", done"
+		}
+		if path := os.Getenv("LP_SOAK_PROGRESS"); path != "" {
+			if f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+				fmt.Fprintln(f, line)
+				f.Close()
+				return
+			}
+		}
+		fmt.Fprintln(os.Stderr, line)
+	}
+}
 
 // The parallel soak harness (make soak-autonz, make soak-hive): the soaks
 // share package globals (the settlement map, the path budget, the content

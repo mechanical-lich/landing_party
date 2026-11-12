@@ -240,7 +240,9 @@ func autonzSoakOne(t *testing.T, seed int64, start string, ticks int) autonzRow 
 	}
 	var lastSignal campaign.FactionPresence
 	lastSignal.LastShotDay = p.LastShotDay
+	progress := soakProgress(fmt.Sprintf("%s:%d", start, seed), ticks)
 	for tick := 1; tick <= ticks; tick++ {
+		progress(tick)
 		fspath.ResetFrameCounter()
 		ms.stepWorld()
 		wm.TickBackground(ms)
