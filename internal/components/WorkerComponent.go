@@ -39,6 +39,15 @@ type WorkerComponent struct {
 	// WorkMult multiplies the worker's work rate (an evolve upgrade: the
 	// hive's drone vigour); 0 is 1.
 	WorkMult float64 `json:",omitempty"`
+	// MineMult multiplies its mining work rate only (the greys' salvage rigs:
+	// a develop effect); 0 is 1.
+	MineMult float64 `json:",omitempty"`
+	// DigMult multiplies its digging work rate only (the greys' tunnelling;
+	// a type's dig); 0 is 1.
+	DigMult float64 `json:",omitempty"`
+	// Bore: a dig it finishes carries on Bore-1 tiles straight through rock
+	// (the greys' tunnelling bore; a type's bore); 0 or 1 is none.
+	Bore int `json:",omitempty"`
 	// DropOffItem is the specific inventory item to deposit when entering the
 	// "dropoff" state. Cleared after deposit.
 	DropOffItem *ecs.Entity

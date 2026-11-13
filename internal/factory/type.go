@@ -34,6 +34,7 @@ type UnitType struct {
 	HatchTurns int
 	Health     int
 	Str        int
+	Int        int
 	Dex        int
 	AC         int
 	Attack     string
@@ -49,8 +50,14 @@ type UnitType struct {
 	// Evolved draws a working adult in the morph's evolved (stage 3) frame:
 	// its type's second upgrade is known.
 	Evolved bool
-	// Work multiplies a worker's work speed (an upgrade).
+	// Work multiplies a worker's work speed (an upgrade); Mine its mining
+	// speed only (the greys' salvage rigs).
 	Work float64
+	Mine float64
+	// Dig multiplies its digging speed only; Bore carries a dig on that
+	// many tiles straight through rock (the greys).
+	Dig  float64
+	Bore int
 }
 
 // TypeSource returns a faction's unit type typ for a body of presence (whose
@@ -189,6 +196,9 @@ func ApplyType(e *ecs.Entity, typ, presence string) {
 		if t.Dex > 0 {
 			sc.Dex = t.Dex
 		}
+		if t.Int > 0 {
+			sc.Int = t.Int
+		}
 		if t.AC > 0 {
 			sc.AC = t.AC
 		}
@@ -208,6 +218,15 @@ func ApplyType(e *ecs.Entity, typ, presence string) {
 		}
 		if t.Work > 0 {
 			wc.WorkMult = t.Work
+		}
+		if t.Mine > 0 {
+			wc.MineMult = t.Mine
+		}
+		if t.Dig > 0 {
+			wc.DigMult = t.Dig
+		}
+		if t.Bore > 0 {
+			wc.Bore = t.Bore
 		}
 		if t.Tasks != nil {
 			wc.AvailableTasks = append([]task.TaskAction{}, t.Tasks...)
@@ -279,14 +298,26 @@ func Retype(e *ecs.Entity) {
 		}
 		hc.MaxHealth = t.Health
 	}
-	if e.HasComponent(rlcomponents.Stats) && t.Str > 0 {
-		e.GetComponent(rlcomponents.Stats).(*rlcomponents.StatsComponent).Str = t.Str
+	if e.HasComponent(rlcomponents.Stats) {
+		sc := e.GetComponent(rlcomponents.Stats).(*rlcomponents.StatsComponent)
+		if t.Str > 0 {
+			sc.Str = t.Str
+		}
+		if t.AC > 0 {
+			sc.AC = t.AC // a develop upgrade's armour (the greys' hull plating)
+		}
 	}
 	if e.HasComponent(rlcomponents.Initiative) && t.Initiative > 0 {
 		e.GetComponent(rlcomponents.Initiative).(*rlcomponents.InitiativeComponent).DefaultValue = t.Initiative
 	}
-	if e.HasComponent(components.Worker) && t.Work > 0 {
-		e.GetComponent(components.Worker).(*components.WorkerComponent).WorkMult = t.Work
+	if e.HasComponent(components.Worker) {
+		wc := e.GetComponent(components.Worker).(*components.WorkerComponent)
+		if t.Work > 0 {
+			wc.WorkMult = t.Work
+		}
+		if t.Mine > 0 {
+			wc.MineMult = t.Mine
+		}
 	}
 }
 

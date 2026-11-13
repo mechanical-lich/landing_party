@@ -1078,37 +1078,85 @@ as before. A table-flown ship from a save before v2 (no fuel, no
 
 ## The greyish
 
-Phase D. Doctrine `greyish` ("Greyish"; players meet them as Greys, morph
-`grey`): `seedable` from the third rival faction (`seed_from: 3`: at Rival
-factions 3 the bag is a hive, the mirror and the greyish), `diplomacy`
-hostile, `mobility.kind` fleet (range 50, speed 5, a 30-day stay), economy
-`ore`, a kit of 12 metal and 6 crystal, aggression 6, a three-entry
-research walk, and:
+Phase D, rebuilt in Phase E4 as the high-tech, expensive settlement faction
+(docs/brainstorm/greyish_plan.md and its "As built"). Doctrine `greyish`
+("Greyish"; players meet them as Greys, morph `grey`): `seedable` from the
+third rival faction (`seed_from: 3`), `diplomacy` hostile, `mobility.kind`
+fleet (range 50, speed 5, a 30-day stay), economy `ore`, a kit of 12 metal
+and 6 crystal, aggression 6, and:
 
 - **Ships**: tiers scout (crew 3), freighter (5; 40 metal, 15 crystal),
-  warship (8; 90 metal, 40 crystal); `hold_target` 30; yields by tag
-  (`ore` best); a mothership of crew 10 at least 60 from Home, a new ship
-  for 60 metal and 20 crystal, three at most.
-- **Crew**: `greenish_crew` (0.4, miner), `greyish_crew` (0.3, hauler),
-  `pinkish_crew` (0.2, soldier), `whitish_crew` (0.1, scientist), in
-  `data/blueprints/entities/greyish_crew.json`: the scenario greys
-  (`greyish.json`) without their scripted AI, so they work as the
-  settlement's workers. `needs` false (they do not eat).
-- **Bio-printer units**: `print_greenish` … `print_whitish`
-  (`crafting_recipes.json`, at the `bio_printer`, `deploy_on_craft`): the
-  grow rung (`"grow": true`) prints the type most under its crew share
-  until the crew reaches the ship's crew cap (`Site.CrewCap`, from its tier).
-  The colony lacks these recipes; the content tests accept a recipe another
-  doctrine owns.
-- **Camp** (`settlement.camp`): the landed saucer, `crashed_ship` with
-  `class: saucer` and `crew: dead` stamped 17×17 at the presence's centre;
-  the storage inside claimed by the settlement (the hold), its doors opened
-  to the faction, the bio-printer placed by the centre.
-- **Director**: grow, then mine (metal 200, crystal 80: always), a locker,
-  dig, raid (unarmed, soldiers only).
+  warship (8; 90 metal, 40 crystal); `hold_target` 30; yields by tag;
+  a mothership of crew 10 at least 60 from Home, a new ship for 60 metal and
+  20 crystal, three at most. Each tier lists its `modules` (below). The
+  mothership keeps a beam stock apart from its hoard (`mothership.beam`):
+  once a day a grey camp on a loaded level is topped up to the beam floor
+  from it, then from the hoard (Tier 1 never beams); it carries metal,
+  crystal and a little plastic. Beamed stock the camp
+  has not spent does not count toward the hold target
+  (`Fleet.HoldForHome`).
+- **Types** (`types`, E2's mechanism; `Broods()` is false for them because
+  their types name no morph, `ShipSettles()` true): worker (`greyish_crew`,
+  mine dig haul build craft, `dig` 4 and `bore` 4: it tunnels fast),
+  technician (`whitish_crew`, Int 16, the only researcher), soldier
+  (`pinkish_crew`), heavy (`greenish_crew`, after `grey_cloning`, tentacles),
+  skimmer and lancer (`skimmer_crew`, `lancer_crew`: flying constructs,
+  after their patterns). Printed at the `grey_vat` from metal, crystal,
+  `grey_alloy` and (the fliers) `specimen`; `print_*` recipes carry
+  `kin_type` and cost the type's `print_cost`. Every crew body has
+  `NeverSleep`; `needs` false.
+- **Items**: `grey_alloy` (refined at the armory, 3 metal + 2 crystal),
+  `plastic` (pressed at the armory, 2 biomass to 2: research, the array and
+  the emitters take most of their metal as plastic),
+  `specimen` (from a grey's kill of wildlife: `kill_drops`), the beam
+  pistol, rifle and disruptor, the field harness and cowl (each with a
+  `GearDrop` chance: a dead grey's gear usually breaks, now and then drops
+  intact), `grey_lance` and `grey_emitter_beam` (natural: never drop).
+- **Structures**: modules (carried by the hull tier, unpacked on landing,
+  packed on lift-off): `grey_vat` and `grey_console` (`module_only`: a
+  director never builds them), from the freighter the armory once the
+  armory module is known (a scout builds its own), and on the warship two
+  emitters once the field emitter is known. Ground structures
+  (`settlement.ground`): `grey_armory`, `grey_array` (the advanced research
+  building), `grey_emitter` (a turret, `grey_emitter.basic`, which holds its
+  fire while the greys are neutral: `hostile_to_player()`), each left as its
+  `wrecks` entry when the ship leaves.
+- **The storage pocket** (`settlement.storage_pocket`): every container the
+  settlement owns on a level is a door onto one inventory
+  (`StorageComponent.Pocket`, a runtime link `linkPockets` rebuilds; totals
+  count each door's own slice, `OwnCount`). A door destroyed moves its slice
+  into the others; the last spills the pocket round its tile, stored
+  `GearDrop` gear rolling its chance; a day later the ship re-places its
+  cockpit door (`DoorLostTick`) and `haul: "any"` brings the rest back. The
+  player cannot beam up from another's pocket door.
+- **The tree**: sixteen `tree: "greyish"` entries with a `develop` effect
+  block (`unlock`, `upgrade`, `craft`, `build`, `module`, `print_time`,
+  `salvage`, `intercept`, `boarding`): live or Tier 3 only, never a number
+  Tier 1 reads (a content test). Tier 1 walks the spine (`research`, three
+  entries) and a second walk (`second_walk`, by hull tier 0.5 / 1 / 1.5 a
+  day) while a ship is landed off a loaded site; `TestGreyishPaceRivalThree`
+  pins the pace.
+- **Materialise** (`materialiseGreyish`): the saucer, the tier's modules,
+  the ground structures (`Built`, else `Doctrine.ShipBuilt` for its tier,
+  techs and days down), the pocket, bodies by type (Phase D crew adopted:
+  `adopt`, else the crew entry's type, else `type_fallback`), and gear (the
+  record's `Gear`, else the doctrine's `gear_floor`). Reconcile reads units,
+  ground structures, gear, techs and the hold back.
+- **The director**: a lancer for each standing emitter (`grow` with `per`,
+  over the crew cap), grow at the vat (the stage mix, keeping a `reserve` of
+  a fifth of the hold target), mine, dig (above every build: ore lies deep
+  and far on most sites), a locker by the far mine (`near: "mines"`), haul
+  loose things, the armory (`stay_left` 8), research, alloy, weapons and
+  armour per soldier and heavy (`per_role`), the `arm` rung, guard,
+  emitters with lancers posted, the array (`stay_left` 12, `tier_min` 1),
+  specimen hunts, skimmer patrols, raids after contact led by a heavy. It
+  plans every 15 ticks. `raid_alert` is the greys' own line.
+- **Ruins**: a departure leaves a landing scar (below).
+- **Boarding**: the crew by the ship's units, armed from its gear, the
+  hull's emitters on deck (a mothership's from `grey_mothership_bulwark`).
 
-`CrewBlueprints` splits a crew by largest remainder, so three greys are a
-miner, a hauler and a soldier, not three miners.
+The greyish soak (`make soak-greyish`, `TestGreyishSoak`): ten scouts and
+five warships landing live on the nearest ore world, a 30-day stay each.
 
 **Seeding** puts the scout landed on its site and the mothership in orbit
 of a site at least `min_home_distance` from Home (else the farthest), from
@@ -1195,6 +1243,14 @@ clear of it; the footprints are saved with the level, so a presence first
 sited after a thaw keeps clear too, and a first siting also keeps clear of
 a box over what the player's colony owns, `colonyFootprint`); the departure event gets an origin at the camp; and a datapad
 there holds that Legends line.
+
+A ship settlement (the greys, phase E4) leaves a **landing scar** instead
+(`stampGreyScar`): the hull went with the ship, so its walls are cleared and
+its floor scorched (`crater_ground`); its modules are packed; each ground
+structure is replaced by its wreck in place (placed from the ruin's `Built`,
+or `ShipBuilt` for its tier, techs and days down, when the camp was never
+built); the cockpit's locker goes with the hull and outside lockers are left
+empty and unowned; the footprint, origin and datapad are as above.
 
 ## Star Map counterplay
 

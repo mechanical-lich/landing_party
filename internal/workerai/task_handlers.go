@@ -668,7 +668,7 @@ func handleMineTask(level *world.Level, entity *ecs.Entity, wc *components.Worke
 
 	if rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, 1, 1, 0) {
 		prevProgress := req.Progress
-		req.Progress += workStep(wc, entity, "Str")
+		req.Progress += mineStep(wc, entity)
 		wc.CurrentTask.Data = req
 
 		// Choppable entity branch — take it down and let CleanUpSystem fire
@@ -1132,7 +1132,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			aiMemory.State = "idle"
 			return
 		}
-		req.Progress += workStep(wc, entity, "Str")
+		req.Progress += digStep(wc, entity)
 		wc.CurrentTask.Data = req
 		if req.Progress >= req.Required {
 			level.EmitSoundClip(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z, digSoundLoudness, world.SoundTagBreak, components.MiningClipKey(level.MiddleMaterialAt(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)), entity)
@@ -1141,6 +1141,7 @@ func handleDigTask(level *world.Level, entity *ecs.Entity, wc *components.Worker
 			// was there.
 			level.ClearMiddle(wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			level.InvalidateSunColumn(wc.CurrentTask.X, wc.CurrentTask.Y)
+			boreOn(level, wc, pc.GetX(), pc.GetY(), wc.CurrentTask.X, wc.CurrentTask.Y, wc.CurrentTask.Z)
 			progression.AwardXP(entity, "Str", progression.XPPerTask)
 			CompleteTaskWithMessage(entity, wc.CurrentTask, "Cleared debris")
 			aiMemory.State = "idle"
@@ -1341,7 +1342,7 @@ func handleRelocateTask(level *world.Level, entity *ecs.Entity, wc *components.W
 // Material and non-Material entities both return false; the caller should
 // only reach this for items that are known to be present at all.
 func isNonStackableBlueprint(sc *components.StorageComponent, blueprint string) bool {
-	for _, it := range sc.Items {
+	for _, it := range sc.PocketItems() {
 		if it.Blueprint != blueprint {
 			continue
 		}

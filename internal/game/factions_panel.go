@@ -174,6 +174,11 @@ func (p *factionsPanel) rebuild() {
 			}
 		}
 		b.fleets = append(b.fleets, factionRow{text: text, col: factionBadgeColor(d), locID: at})
+		if f.Kind == campaign.FleetShip && !f.Mothership && d.ShipSettles() {
+			if line := greyShipLine(d, f); line != "" {
+				b.fleets = append(b.fleets, factionRow{text: "      " + line, col: dashBodyColor, locID: at})
+			}
+		}
 	}
 	keys := make([]string, 0, len(blocks))
 	for k := range blocks {
@@ -352,6 +357,44 @@ func autonzUnitsLine(d *campaign.Doctrine, p *campaign.FactionPresence) string {
 			line += "  ·  "
 		}
 		line += strings.Join(built, ", ")
+	}
+	return line
+}
+
+// greyShipLine is a ship settlement's crew by type and the modules its hull
+// carries, for its Factions tab row (phase E4, the greys; no hidden
+// identity): "2 workers, 1 technician, 1 soldier  ·  vat, console". ""
+// for none.
+func greyShipLine(d *campaign.Doctrine, f *campaign.Fleet) string {
+	var parts []string
+	for _, k := range d.TypeKeys() {
+		if n := f.Presence.Units[k]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", n, strings.ToLower(d.Types[k].Name)))
+		}
+	}
+	line := strings.Join(parts, ", ")
+	mods := d.ShipModules(f.ShipTier, f.Presence.KnownTechs)
+	keys := make([]string, 0, len(mods))
+	for k := range mods {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var names []string
+	for _, k := range keys {
+		name := strings.ToLower(construction.GetBuildable(k).Name)
+		if name == "" {
+			name = k
+		}
+		if mods[k] > 1 {
+			name = fmt.Sprintf("%d %s", mods[k], name)
+		}
+		names = append(names, name)
+	}
+	if len(names) > 0 {
+		if line != "" {
+			line += "  ·  "
+		}
+		line += strings.Join(names, ", ")
 	}
 	return line
 }

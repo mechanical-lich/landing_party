@@ -58,7 +58,11 @@ func materialiseFactions(c *campaign.Campaign, loc *campaign.Location, level *wo
 	}
 	ps, ds := settlementPresences(c, loc)
 	for i, p := range ps {
-		materialiseSettlement(level, loc, ds[i], p, c.Stance(p.Faction) == campaign.StanceHostile)
+		if isGreyishDoctrine(ds[i]) {
+			materialiseGreyish(c, level, loc, ds[i], p, c.Stance(p.Faction) == campaign.StanceHostile) // its ship's tier and days
+		} else {
+			materialiseSettlement(level, loc, ds[i], p, c.Stance(p.Faction) == campaign.StanceHostile)
+		}
 		applyPresenceConversion(level, loc, ds[i], p)
 	}
 	for i := range loc.Factions {
@@ -438,6 +442,8 @@ func reconcileFactions(c *campaign.Campaign, loc *campaign.Location, level *worl
 			launchers[p.ID] = hiveLauncher(level, ds[i], p) != nil
 		} else if isAutonzDoctrine(ds[i]) {
 			settled[p.ID] = reconcileAutonz(level, loc, ds[i], p)
+		} else if isGreyishDoctrine(ds[i]) {
+			settled[p.ID] = reconcileGreyish(c, level, loc, ds[i], p)
 		} else {
 			settled[p.ID] = reconcileSettlement(level, loc, p)
 		}

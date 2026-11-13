@@ -874,6 +874,11 @@ func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint stri
 		return fmt.Errorf("not a storage container")
 	}
 	sc := container.GetComponent(components.Storage).(*components.StorageComponent)
+	if pocketOwner(sc.OwnedBy) && sc.OwnedBy != campaignColonyName(wm.Campaign) && sc.OwnedBy != wm.shipSettlementName() {
+		// Another's storage pocket door (greyish_plan.md): beaming from it
+		// would hand over the whole pocket. Smash the lockers instead.
+		return fmt.Errorf("that locker is not yours") // DRAFT
+	}
 	have := sc.CountResource(blueprint)
 	if have < qty {
 		return fmt.Errorf("only %d %s here", have, blueprint)

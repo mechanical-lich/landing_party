@@ -34,6 +34,11 @@ type Buildable struct {
 	// relay pylon: a relay drone; autonz_plan.md). The build order path
 	// refuses it.
 	DeployOnly bool `json:"deploy_only,omitempty"`
+	// ModuleOnly: a rival never orders it built; it comes with a ship's hull
+	// tier (the greys' vat and console; greyish_plan.md, "Structures"). A
+	// faction director's build order path refuses it; the player's does not
+	// (phase F builds them for a grey player).
+	ModuleOnly bool `json:"module_only,omitempty"`
 }
 
 // FloorList is a required floor: one tile name or a list of them.

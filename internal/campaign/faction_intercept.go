@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
+	"github.com/mechanical-lich/landing_party/internal/research"
 )
 
 // Interception (phase D; the plan's Tier 3, "Interception";
@@ -121,7 +122,7 @@ func (c *Campaign) DetectInterception(fromID, toID string, day history.StarDate,
 			t := float64(day) + share*float64(max(days, 1))
 			px, py := from.X+(to.X-from.X)*share, from.Y+(to.Y-from.Y)*share
 			fx, fy := f.Pos(t)
-			if math.Hypot(fx-px, fy-py) <= r.Range {
+			if math.Hypot(fx-px, fy-py) <= max(r.Range+interceptRange(f.Presence.KnownTechs), 0) {
 				return c.encounterWith(f, "crossing", toID, fx, fy, day)
 			}
 		}
@@ -183,6 +184,7 @@ func (c *Campaign) AnswerEncounter(answer string) (*Encounter, error) {
 		if len(r.CatchChance) > 0 {
 			chance = r.CatchChance[e.ruleIndex(len(r.CatchChance))]
 		}
+		chance += interceptCatch(f.Presence.KnownTechs) // the greys' tractor lock
 		if rng.Float64() >= chance {
 			e.Outcome = "evaded"
 			c.recordFaction("faction_evaded", loc, nil, d, nil)
@@ -299,4 +301,28 @@ func (c *Campaign) RemoveFleet(id string) {
 	if len(c.Fleets) == 0 {
 		c.Fleets = nil
 	}
+}
+
+// interceptCatch is what a ship's known develop entries add to the player's
+// chance of being caught evading it (the greys' tractor lock; Tier 3 only).
+func interceptCatch(techs []string) float64 {
+	v := 0.0
+	for _, k := range techs {
+		if t, ok := research.GetTech(k); ok && t.Develop != nil && t.Develop.Intercept != nil {
+			v += t.Develop.Intercept.CatchChance
+		}
+	}
+	return v
+}
+
+// interceptRange is what a ship's known develop entries add to the range a
+// jump meets it in flight at (the greys' cloak: negative; Tier 3 only).
+func interceptRange(techs []string) float64 {
+	v := 0.0
+	for _, k := range techs {
+		if t, ok := research.GetTech(k); ok && t.Develop != nil && t.Develop.Intercept != nil {
+			v += t.Develop.Intercept.Range
+		}
+	}
+	return v
 }

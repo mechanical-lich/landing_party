@@ -458,5 +458,173 @@
             "Range": 6,
             "Ranged": true
         }
+    },
+    "grey_beam_pistol": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_items",
+            "SpriteX": 32,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Beam Pistol",
+            "Faction": "",
+            "LongDescription": "DRAFT. A grey sidearm. It usually burns out with its owner."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 5
+        },
+        "Weapon": {
+            "Display": "pistol",
+            "AttackBonus": 3,
+            "AttackDice": "1d8",
+            "DamageType": "energy",
+            "Range": 8,
+            "Ranged": true
+        },
+        "LaserBeam": {
+            "R": 120,
+            "G": 255,
+            "B": 160,
+            "Length": 1
+        },
+        "GearDrop": {
+            "Chance": 0.15
+        }
+    },
+    "grey_beam_rifle": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Beam Rifle",
+            "Faction": "",
+            "LongDescription": "DRAFT. A grey long arm that throws a green beam."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 7
+        },
+        "Weapon": {
+            "Display": "rifle",
+            "AttackBonus": 4,
+            "AttackDice": "2d6",
+            "DamageType": "energy",
+            "Range": 12,
+            "Ranged": true,
+            "TwoHanded": true
+        },
+        "LaserBeam": {
+            "R": 120,
+            "G": 255,
+            "B": 160,
+            "Length": 1
+        },
+        "GearDrop": {
+            "Chance": 0.1
+        }
+    },
+    "grey_disruptor": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_items",
+            "SpriteX": 64,
+            "SpriteY": 80,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Disruptor",
+            "Faction": "",
+            "LongDescription": "DRAFT. A heavy grey projector carried by their biggest bodies."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 10
+        },
+        "Weapon": {
+            "Display": "rocket_launcher",
+            "AttackBonus": 3,
+            "AttackDice": "3d8",
+            "DamageType": "energy",
+            "Range": 10,
+            "Ranged": true,
+            "TwoHanded": true
+        },
+        "LaserBeam": {
+            "R": 120,
+            "G": 255,
+            "B": 160,
+            "Length": 1
+        },
+        "GearDrop": {
+            "Chance": 0.05
+        }
+    },
+    "grey_lance": {
+        "Description": {
+            "Name": "Grey Lance",
+            "Faction": "",
+            "LongDescription": "DRAFT. The lancer's beam organ. Part of the construct that grew it."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 0
+        },
+        "Weapon": {
+            "Display": "laser",
+            "AttackBonus": 2,
+            "AttackDice": "2d6",
+            "DamageType": "energy",
+            "Range": 8,
+            "Ranged": true
+        },
+        "LaserBeam": {
+            "R": 120,
+            "G": 255,
+            "B": 160,
+            "Length": 1
+        }
+    },
+    "grey_emitter_beam": {
+        "Description": {
+            "Name": "Emitter Beam",
+            "Faction": "",
+            "LongDescription": "DRAFT. The beam head of a grey emitter. Part of the structure."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "hand",
+            "Value": 0
+        },
+        "Weapon": {
+            "Display": "laser",
+            "AttackBonus": 2,
+            "AttackDice": "1d10",
+            "DamageType": "energy",
+            "Range": 8,
+            "Ranged": true
+        },
+        "LaserBeam": {
+            "R": 120,
+            "G": 255,
+            "B": 160,
+            "Length": 1
+        }
     }
 }

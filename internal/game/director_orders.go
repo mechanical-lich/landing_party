@@ -136,6 +136,9 @@ func (o directorOrders) Attack(target *ecs.Entity) bool {
 func (o directorOrders) Equip(blueprint string, _ *ecs.Entity) bool {
 	return orderEquip(o.s.MainSettlement, o.s.level, blueprint)
 }
+func (o directorOrders) EquipWorker(worker *ecs.Entity, blueprint string) *task.Task {
+	return orderEquipWorker(worker, blueprint)
+}
 func (o directorOrders) Send(worker, target *ecs.Entity) *task.Task {
 	return orderSend(worker, target)
 }

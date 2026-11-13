@@ -128,6 +128,11 @@ func (o *fakeOrders) Equip(blueprint string, storage *ecs.Entity) bool {
 	return true
 }
 
+func (o *fakeOrders) EquipWorker(worker *ecs.Entity, blueprint string) *task.Task {
+	o.log = append(o.log, "equip-worker:"+blueprint)
+	return &task.Task{Action: task_requests.EquipAction, Data: task_requests.EquipRequest{ItemBlueprint: blueprint}}
+}
+
 func (o *fakeOrders) Move(worker *ecs.Entity, x, y, z int) *task.Task {
 	o.log = append(o.log, fmt.Sprintf("move:%d,%d", x, y))
 	return &task.Task{Action: task_requests.MoveAction, X: x, Y: y, Z: z}

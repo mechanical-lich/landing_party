@@ -140,5 +140,78 @@
             "Tags": ["ferrite", "metal", "salvage", "raw_material"],
             "MaxStack": 100
         }
+    },
+    "grey_alloy": {
+        "Appearance": {
+            "R": 110,
+            "G": 230,
+            "B": 220,
+            "Resource": "scifi_items",
+            "SpriteX": 320,
+            "SpriteY": 16,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Grey Alloy",
+            "Faction": "",
+            "LongDescription": "DRAFT. A teal-sheened plate the greys refine from ore and crystal. Nothing the colony makes uses it yet."
+        },
+        "Item": {},
+        "Material": {
+            "Tags": [
+                "raw_material",
+                "alloy",
+                "grey"
+            ],
+            "MaxStack": 100
+        }
+    },
+    "specimen": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 32,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Specimen",
+            "Faction": "",
+            "LongDescription": "DRAFT. A sealed sample of some creature's tissue, taken by the greys."
+        },
+        "Item": {},
+        "Material": {
+            "Tags": [
+                "organic",
+                "specimen"
+            ],
+            "MaxStack": 50
+        }
+    },
+    "plastic": {
+        "Appearance": {
+            "R": 235,
+            "G": 235,
+            "B": 245,
+            "Resource": "scifi_items",
+            "SpriteX": 48,
+            "SpriteY": 48,
+            "SpriteSize": 16
+        },
+        "Description": {
+            "Name": "Plastic",
+            "Faction": "",
+            "LongDescription": "DRAFT. Light, tough sheet pressed from biomass. Nothing the colony makes uses it yet."
+        },
+        "Item": {},
+        "Material": {
+            "Tags": [
+                "raw_material",
+                "plastic"
+            ],
+            "MaxStack": 100
+        }
     }
 }

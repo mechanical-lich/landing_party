@@ -356,6 +356,17 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 			if !entity.HasComponent(components.Choppable) {
 				grantKillDrops(level, entity) // the hive's corpses as biomass
 			}
+			if entity.HasComponent(components.Storage) {
+				pocketDoorLost(level, entity) // a grey locker: its slice to the others, or the spill
+			}
+			if entity.HasComponent(rlcomponents.Inventory) && entity.HasComponent(rlcomponents.Position) {
+				// Rare intact gear (greyish_plan.md, GearDrop): only items
+				// carrying a chance roll; everything else is lost as before.
+				gp := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				if hasGearDrop(entity) {
+					dropSurvivingGear(level, entity, findAdjacentWorker(level, s.colonyName(), gp.GetX(), gp.GetY(), gp.GetZ()))
+				}
+			}
 			if entity.HasComponent(components.Drops) {
 				dropsC := entity.GetComponent(components.Drops).(*components.DropsComponent)
 				pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)

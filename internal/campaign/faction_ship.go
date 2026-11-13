@@ -145,6 +145,11 @@ func (c *Campaign) stepShip(rng *rand.Rand, fd *FactionData, f *Fleet, day histo
 			p.Growth--
 		}
 	}
+	// A typed crew's bodies by type (the greyish, phase E4): the growth
+	// rule's bookkeeping, read by materialise; nothing reads it back here.
+	if d.HasTypes() {
+		d.NormalizeUnits(p, loc)
+	}
 	// Dig into the hold, by the site's tags.
 	if d.Ships != nil && len(d.Ships.Yield) > 0 {
 		c.shipYield(d, f, loc)
@@ -160,6 +165,16 @@ func (c *Campaign) stepShip(rng *rand.Rand, fd *FactionData, f *Fleet, day histo
 		p.ResearchPts += d.ResearchPerDay
 		if p.ResearchPts >= next.Cost {
 			p.ResearchPts -= next.Cost
+			p.KnownTechs = append(p.KnownTechs, next.ID)
+		}
+	}
+	// The second walk (phase E4, the greys): on the same landed days, its
+	// own points per day by hull tier. Nothing it learns moves a Tier 1
+	// number, so the pace is the spine's alone.
+	if next := nextUnknown(d.Assimilation, p.KnownTechs); next != nil && len(d.AssimilationPerDay) > 0 {
+		p.AssimPoints += d.AssimilationPerDay[min(max(f.ShipTier, 0), len(d.AssimilationPerDay)-1)]
+		if p.AssimPoints >= next.Cost {
+			p.AssimPoints -= next.Cost
 			p.KnownTechs = append(p.KnownTechs, next.ID)
 		}
 	}
@@ -401,10 +416,23 @@ func (c *Campaign) liftOff(d *Doctrine, f *Fleet, to *Location, day history.Star
 	ev := c.recordFaction("faction_departed", from, &f.Presence, d, map[string]string{"to": to.Name})
 	// Its camp stays behind as a ruin (phase D4): ruined live by the world
 	// manager on a loaded level, else on the level's next build.
-	from.addRuin(FactionRuin{
+	r := FactionRuin{
 		Presence: f.Presence.ID, Faction: f.Presence.Faction, Doctrine: f.Presence.Doctrine,
 		Day: day, Seed: f.Presence.Seed, EventID: ev, CampBuilt: f.Presence.Materialized || f.Presence.Camped,
-	})
+	}
+	if d.ShipSettles() {
+		// The scar's wrecks (phase E4): what stood, or what would have.
+		r.Tier, r.DaysLanded = f.ShipTier, int(day-f.LandedDay)
+		r.Techs = append([]string(nil), f.Presence.KnownTechs...)
+		if f.Presence.Built != nil {
+			r.Built = map[string]int{}
+			for k, v := range f.Presence.Built {
+				r.Built[k] = v
+			}
+		}
+		f.Presence.Built = nil
+	}
+	from.addRuin(r)
 	f.Presence.Camped = false
 	c.setOut(d, f, from, to, day)
 }
@@ -418,6 +446,7 @@ func (loc *Location) addRuin(r FactionRuin) {
 		if o := &loc.Ruins[i]; !o.Stamped && o.Presence == r.Presence {
 			o.Day, o.EventID, o.Seed = r.Day, r.EventID, r.Seed
 			o.CampBuilt = o.CampBuilt || r.CampBuilt
+			o.Built, o.Tier, o.Techs, o.DaysLanded = r.Built, r.Tier, r.Techs, r.DaysLanded
 			return
 		}
 	}

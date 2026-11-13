@@ -63,13 +63,12 @@ func FindClosestStorageWith(level *world.Level, settlementName, itemName string,
 	var closest *ecs.Entity
 	minDist := 99999
 	for _, e := range level.Entities {
-		if !e.HasComponent(components.Storage) {
+		if e == nil || !e.HasComponent(components.Storage) {
 			continue
 		}
 		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
 		if sc.OwnedBy == settlementName && sc.HasItem(itemName) {
-			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			d := storageDist(e, sc, x, y, z)
 			if closest == nil || d < minDist {
 				closest = e
 				minDist = d
@@ -94,8 +93,7 @@ func FindClosestStorageWithAny(level *world.Level, settlementName string, list m
 			if sc.OwnedBy != settlementName || !storageHoldsAny(sc, list) {
 				continue
 			}
-			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			d := storageDist(e, sc, x, y, z)
 			if closest == nil || d < minDist {
 				closest = e
 				minDist = d
@@ -108,7 +106,7 @@ func FindClosestStorageWithAny(level *world.Level, settlementName string, list m
 // findClosestStorageWithRoomFor returns the nearest colony container that accepts
 // item and has a free slot. A full container is skipped even if it could merge part
 // of a stack, since AddItem refuses whatever doesn't fit in a slot.
-func findClosestStorageWithRoomFor(level *world.Level, settlementName string, item *ecs.Entity, x, y int) *ecs.Entity {
+func findClosestStorageWithRoomFor(level *world.Level, settlementName string, item *ecs.Entity, x, y, z int) *ecs.Entity {
 	var closest *ecs.Entity
 	minDist := 99999
 	for _, src := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
@@ -117,11 +115,10 @@ func findClosestStorageWithRoomFor(level *world.Level, settlementName string, it
 				continue
 			}
 			sc := e.GetComponent(components.Storage).(*components.StorageComponent)
-			if sc.OwnedBy != settlementName || !sc.Accepts(item) || (sc.Capacity > 0 && len(sc.Items) >= sc.Capacity) {
+			if sc.OwnedBy != settlementName || !sc.Accepts(item) || !sc.HasRoom() {
 				continue
 			}
-			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			d := storageDist(e, sc, x, y, z)
 			if closest == nil || d < minDist {
 				closest = e
 				minDist = d
@@ -163,8 +160,7 @@ func FindClosestStorageWithComponent(level *world.Level, settlementName string, 
 		}
 		sc := e.GetComponent(components.Storage).(*components.StorageComponent)
 		if sc.OwnedBy == settlementName && sc.HasItemWithComponent(compType) {
-			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-			d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+			d := storageDist(e, sc, x, y, z)
 			if closest == nil || d < minDist {
 				closest = e
 				minDist = d
@@ -209,4 +205,20 @@ func checkSettlementStorageForCraft(level *world.Level, settlementName string, c
 func deductFromSettlementStorage(level *world.Level, settlementName string, cost map[string]int) {
 	p, owners := StorageProviderFor(level, settlementName)
 	storage.Deduct(p, owners, cost)
+}
+
+// pocketOtherLevel is what a pocket door on another level than the worker
+// adds to its distance: any door of a pocket will do, so one on the
+// worker's own level wins over one straight below in a far mine (the greys'
+// door by their deep mine). An ordinary container is measured as before.
+const pocketOtherLevel = 1000
+
+// storageDist is a container's distance from (x, y, z) for the finders.
+func storageDist(e *ecs.Entity, sc *components.StorageComponent, x, y, z int) int {
+	pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+	d := utility.Distance(pc.GetX(), pc.GetY(), x, y)
+	if sc.Pocket != nil && pc.GetZ() != z {
+		d += pocketOtherLevel
+	}
+	return d
 }

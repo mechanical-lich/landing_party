@@ -416,6 +416,18 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 		dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
 		return dc.Faction, nil
 	})
+	// hostile_to_player() — 1 when the caller's faction is hostile to the
+	// player now (its stance, live), else 0: a faction's turret holds its fire
+	// while its faction is neutral (the greys' emitter; greyish_plan.md).
+	interp.RegisterFunc("hostile_to_player", func(args ...any) (any, error) {
+		if !entity.HasComponent(rlcomponents.Description) {
+			return float64(0), nil
+		}
+		if components.IsFactionHostile(entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction) {
+			return float64(1), nil
+		}
+		return float64(0), nil
+	})
 	// find_nearest_enemy(radius) — finds the nearest entity not in this entity's
 	// faction and not in the "ignored_factions" var (comma-separated list).
 	// Returns 1 on success and populates get_nearest_x/y/z.

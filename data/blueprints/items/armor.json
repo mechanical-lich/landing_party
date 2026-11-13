@@ -1109,5 +1109,67 @@
             "Slot": "torso",
             "Value": 3
         }
+    },
+    "grey_field_harness": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_items",
+            "SpriteX": 16,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 6,
+            "StoppingPower": 6,
+            "Tags": [
+                "grey_field"
+            ]
+        },
+        "Description": {
+            "Name": "Field Harness",
+            "Faction": "",
+            "LongDescription": "DRAFT. A grey harness that throws a faint field around its wearer."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "torso",
+            "Value": 6
+        },
+        "GearDrop": {
+            "Chance": 0.1
+        }
+    },
+    "grey_field_cowl": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_items",
+            "SpriteX": 0,
+            "SpriteY": 96,
+            "SpriteSize": 16
+        },
+        "Armor": {
+            "DefenseBonus": 3,
+            "StoppingPower": 3,
+            "Tags": [
+                "grey_field"
+            ]
+        },
+        "Description": {
+            "Name": "Field Cowl",
+            "Faction": "",
+            "LongDescription": "DRAFT. A grey cowl with a field emitter at the brow."
+        },
+        "Inanimate": {},
+        "Item": {
+            "Slot": "head",
+            "Value": 4
+        },
+        "GearDrop": {
+            "Chance": 0.15
+        }
     }
 }

@@ -1,0 +1,66 @@
+{"name":"factions_greyish_warship","seed":55}
+# Phase E4: a landed grey warship at work. New Expedition seed 55 with Rival
+# factions 3 (as factions_greyish): the greyish scout fl1 is landed on Ember
+# Pit (sys_20). Before the jump, debug ship makes it a warship (its hold
+# emptied, so the trip's digging does not send it home) of eight that
+# knows the armory module, field emitter, beam weapons, cloning and the
+# research array, so it lands with its modules (vat, console, armory, two
+# emitters), its array built on the ground, three workers, two technicians,
+# two soldiers with beam rifles and a heavy. Beam one colonist down, set the
+# greys neutral (the landing's contact turns them hostile; the emitters
+# would shoot the colonist) and look: the camp, then a day of work (mining,
+# digging, research). Then end its stay: it lifts off and leaves a landing
+# scar (no hull, no modules) with its array as a wreck.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Warship"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"55"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_20"}
+{"op":"debug","cmd":"ship fl1 tier 2"}
+{"op":"debug","cmd":"ship fl1 tech grey_hull_plating"}
+{"op":"debug","cmd":"ship fl1 tech grey_beam_weapons"}
+{"op":"debug","cmd":"ship fl1 tech grey_cloning"}
+{"op":"debug","cmd":"ship fl1 tech grey_armory_module"}
+{"op":"debug","cmd":"ship fl1 tech grey_field_emitter"}
+{"op":"debug","cmd":"ship fl1 tech grey_research_array"}
+{"op":"debug","cmd":"ship fl1 pop 8"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.tier","eq":2}
+{"op":"debug","cmd":"ship fl1 hold 0"}
+{"op":"click","target":"row:locList:sys_20"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_20"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_20"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.crew","eq":8}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"stance greyish neutral"}
+{"op":"assert","path":"rival.workers","eq":8}
+{"op":"assert","path":"rival.built.grey_vat","eq":1}
+{"op":"assert","path":"rival.built.grey_console","eq":1}
+{"op":"assert","path":"rival.built.grey_armory","eq":1}
+{"op":"assert","path":"rival.built.grey_emitter","eq":2}
+{"op":"assert","path":"rival.built.grey_array","eq":1}
+{"op":"wait","ticks":60}
+{"op":"debug","cmd":"rival walk"}
+{"op":"wait","ticks":20}
+{"op":"screenshot","name":"warship_camp"}
+{"op":"wait","ticks":750}
+{"op":"screenshot","name":"a_day_on"}
+{"op":"debug","cmd":"ship fl1 leave"}
+{"op":"wait_until","path":"campaign.ship_fleets.fl1.landed","eq":"","max_ticks":1600}
+{"op":"wait","ticks":10}
+{"op":"screenshot","name":"scar"}
+{"op":"debug","cmd":"focus grey_array_wreck"}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"array_wreck"}

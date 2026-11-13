@@ -6,7 +6,8 @@
 # scout is seen, drawn on the Star Map as a saucer beside the site, tagged
 # GREY SCOUT · HOSTILE. Beam one colonist down and land: the greys' landed
 # saucer is built onto the level (the stamped hull, a locker of their own
-# with the hold, a bio-printer) and three grey crew work it. Let the
+# with the hold, the scout's modules: a grey vat and a console; phase E4)
+# and three typed grey crew work it. Let the
 # director print and mine a while, then frame the camp and look.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
@@ -38,7 +39,8 @@
 {"op":"click","target":"dash:returnSiteBtn"}
 {"op":"wait_until","path":"state","eq":"site","max_ticks":60}
 {"op":"assert","path":"rival.workers","eq":3}
-{"op":"assert","path":"rival.built.bio_printer","eq":1}
+{"op":"assert","path":"rival.built.grey_vat","eq":1}
+{"op":"assert","path":"rival.built.grey_console","eq":1}
 {"op":"wait","ticks":900}
 {"op":"debug","cmd":"rival walk"}
 {"op":"wait","ticks":20}

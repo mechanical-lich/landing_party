@@ -122,7 +122,7 @@ func startReturningMaterials(level *world.Level, entity *ecs.Entity, wc *compone
 			continue
 		}
 		carrying = true
-		dest := findClosestStorageWithRoomFor(level, settlementName, item, pc.GetX(), pc.GetY())
+		dest := findClosestStorageWithRoomFor(level, settlementName, item, pc.GetX(), pc.GetY(), pc.GetZ())
 		if dest == nil {
 			continue
 		}
@@ -582,7 +582,7 @@ func loadFromStorage(entity *ecs.Entity, storageC *components.StorageComponent, 
 }
 
 func storageIsStackable(storageC *components.StorageComponent, blueprint string) bool {
-	for _, item := range storageC.Items {
+	for _, item := range storageC.PocketItems() {
 		if item.Blueprint == blueprint && item.HasComponent(components.Material) {
 			return true
 		}

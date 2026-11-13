@@ -98,8 +98,11 @@ func (d *Director) hunt(s *Site, cfg *campaign.DoctrineDirector, snap *snapshot,
 	// carried.
 	have := snap.food
 	prey := d.dropsFood
-	if p.Hunt == "biomass" {
-		have = snap.stock["biomass"] + snap.carried["biomass"]
+	if p.Hunt != "food" {
+		// A kill-drop item (the hive's biomass, the greys' specimens): any
+		// creature not of its own faction, against that item stored and
+		// carried.
+		have = snap.stock[p.Hunt] + snap.carried[p.Hunt]
 		own := ""
 		if i := strings.IndexByte(s.Colony, ':'); i > 0 {
 			own = s.Colony[:i]

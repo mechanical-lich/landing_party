@@ -615,26 +615,304 @@
     },
     "grey_hull_plating": {
         "name": "Hull Plating",
-        "description": "_draft. The greyish' Tier 1 walk (data/factions.json): counted as a tech, no effect yet.",
+        "description": "_draft",
         "tree": "greyish",
         "duration": 600,
-        "cost": {},
-        "required_int": 0
+        "cost": {
+            "metal_ore": 2,
+            "plastic": 4,
+            "crystal": 4,
+            "grey_alloy": 1
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "upgrade": [
+                {
+                    "type": "grey_soldier",
+                    "ac": 2
+                },
+                {
+                    "type": "grey_heavy",
+                    "ac": 2
+                },
+                {
+                    "type": "grey_lancer",
+                    "ac": 2
+                }
+            ]
+        }
     },
     "grey_beam_weapons": {
         "name": "Beam Weapons",
-        "description": "_draft. The greyish' Tier 1 walk (data/factions.json): counted as a tech, no effect yet.",
+        "description": "_draft",
         "tree": "greyish",
         "duration": 900,
-        "cost": {},
-        "required_int": 0
+        "cost": {
+            "metal_ore": 3,
+            "plastic": 5,
+            "crystal": 6,
+            "grey_alloy": 2
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "craft": "grey_beam_rifle"
+        }
     },
     "grey_cloning": {
         "name": "Cloning",
-        "description": "_draft. The greyish' Tier 1 walk (data/factions.json): counted as a tech, no effect yet.",
+        "description": "_draft",
         "tree": "greyish",
         "duration": 1200,
-        "cost": {},
-        "required_int": 0
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 6,
+            "crystal": 8,
+            "grey_alloy": 3
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "unlock": "grey_heavy"
+        }
+    },
+    "grey_salvage_rigs": {
+        "name": "Salvage Rigs",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 500,
+        "cost": {
+            "metal_ore": 2,
+            "plastic": 4,
+            "crystal": 2
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "salvage": 0.75
+        }
+    },
+    "grey_armory_module": {
+        "name": "Armory Module",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 700,
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 6,
+            "crystal": 4,
+            "grey_alloy": 2
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "module": "grey_armory"
+        }
+    },
+    "grey_field_armour": {
+        "name": "Field Armour",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 700,
+        "cost": {
+            "metal_ore": 2,
+            "plastic": 4,
+            "crystal": 4,
+            "grey_alloy": 2
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "requires_tech": "grey_hull_plating",
+        "develop": {
+            "craft": "grey_field_harness"
+        }
+    },
+    "grey_skimmer_pattern": {
+        "name": "Skimmer Pattern",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 600,
+        "cost": {
+            "crystal": 4,
+            "grey_alloy": 2,
+            "specimen": 2
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "unlock": "grey_skimmer"
+        }
+    },
+    "grey_field_emitter": {
+        "name": "Field Emitter",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 800,
+        "cost": {
+            "metal_ore": 3,
+            "plastic": 5,
+            "crystal": 6,
+            "grey_alloy": 3
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "requires_tech": "grey_beam_weapons",
+        "develop": {
+            "build": "grey_emitter",
+            "module": "grey_emitter"
+        }
+    },
+    "grey_research_array": {
+        "name": "Research Array",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 900,
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 6,
+            "crystal": 8,
+            "grey_alloy": 3
+        },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "develop": {
+            "build": "grey_array"
+        }
+    },
+    "grey_disruptor": {
+        "name": "Disruptor",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 1000,
+        "cost": {
+            "metal_ore": 3,
+            "plastic": 5,
+            "crystal": 10,
+            "grey_alloy": 4
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_beam_weapons",
+        "develop": {
+            "craft": "grey_disruptor"
+        }
+    },
+    "grey_print_refinement": {
+        "name": "Print Refinement",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 900,
+        "cost": {
+            "metal_ore": 3,
+            "plastic": 5,
+            "crystal": 8,
+            "grey_alloy": 4
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_cloning",
+        "develop": {
+            "print_time": 0.75
+        }
+    },
+    "grey_tractor_lock": {
+        "name": "Tractor Lock",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 900,
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 6,
+            "crystal": 8,
+            "grey_alloy": 3
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "develop": {
+            "intercept": {
+                "catch_chance": 0.1
+            }
+        }
+    },
+    "grey_lancer_pattern": {
+        "name": "Lancer Pattern",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 1200,
+        "cost": {
+            "crystal": 8,
+            "grey_alloy": 4,
+            "specimen": 4
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_skimmer_pattern",
+        "develop": {
+            "unlock": "grey_lancer"
+        }
+    },
+    "grey_heavy_frame": {
+        "name": "Heavy Frame",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 1000,
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 8,
+            "crystal": 8,
+            "grey_alloy": 4
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_cloning",
+        "develop": {
+            "upgrade": [
+                {
+                    "type": "grey_heavy",
+                    "health": 1.25
+                }
+            ]
+        }
+    },
+    "grey_cloak": {
+        "name": "Cloak",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 1200,
+        "cost": {
+            "metal_ore": 4,
+            "plastic": 6,
+            "crystal": 12,
+            "grey_alloy": 5
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_tractor_lock",
+        "develop": {
+            "intercept": {
+                "range": -2
+            }
+        }
+    },
+    "grey_mothership_bulwark": {
+        "name": "Mothership Bulwark",
+        "description": "_draft",
+        "tree": "greyish",
+        "duration": 1200,
+        "cost": {
+            "metal_ore": 5,
+            "plastic": 9,
+            "crystal": 10,
+            "grey_alloy": 6
+        },
+        "required_building": "grey_array",
+        "required_int": 12,
+        "requires_tech": "grey_field_emitter",
+        "develop": {
+            "boarding": {
+                "turrets": 2
+            }
+        }
     }
 }

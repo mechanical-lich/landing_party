@@ -39,8 +39,16 @@ type DoctrineType struct {
 	Blueprint string         `json:"blueprint,omitempty"`
 	PrintCost map[string]int `json:"print_cost,omitempty"`
 	// Absolute adult stats.
-	Health     int    `json:"health,omitempty"`
-	Str        int    `json:"str,omitempty"`
+	Health int `json:"health,omitempty"`
+	Str    int `json:"str,omitempty"`
+	// Int is the body's Int (the greyish technicians research at Int 12+).
+	Int int `json:"int,omitempty"`
+	// Dig multiplies its dig work rate (the greys tunnel fast: their tech;
+	// phase E4).
+	Dig float64 `json:"dig,omitempty"`
+	// Bore: a dig it finishes carries on this many tiles in all straight
+	// through rock (the greys' tunnelling bore).
+	Bore       int    `json:"bore,omitempty"`
 	Dex        int    `json:"dex,omitempty"`
 	AC         int    `json:"ac,omitempty"`
 	Attack     string `json:"attack,omitempty"`
@@ -115,8 +123,30 @@ func (d *Doctrine) TierOfType(typ string, techs []string) string {
 func (d *Doctrine) HasTypes() bool { return d != nil && len(d.Types) > 0 }
 
 // Broods reports whether d's typed bodies have morphs and life stages (the
-// hive: eggs, larvae and the biomass tally), as the autonz' prints do not.
-func (d *Doctrine) Broods() bool { return d.HasTypes() && len(d.Morphs) > 0 }
+// hive: eggs, larvae and the biomass tally), as the autonz' and greyish
+// prints do not: a type names its morph. (The greyish have a morph for
+// their names, but their types name none.)
+func (d *Doctrine) Broods() bool {
+	if !d.HasTypes() || len(d.Morphs) == 0 {
+		return false
+	}
+	for _, t := range d.Types {
+		if t.Morph != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// Flies reports whether d's presences ride ships (the greyish, the mirror).
+func (d *Doctrine) Flies() bool { return d != nil && d.Mobility.Kind == MobilityFleet }
+
+// ShipSettles reports whether d is a typed settlement doctrine whose
+// presence rides a ship (the greyish, phase E4): its settlement is the
+// landed ship, with modules by hull tier (greyish_plan.md).
+func (d *Doctrine) ShipSettles() bool {
+	return d.HasTypes() && !d.Broods() && d.Settlement != nil && d.Flies()
+}
 
 // TypeKeys is d's type keys, sorted.
 func (d *Doctrine) TypeKeys() []string {
@@ -430,7 +460,9 @@ func sortedUnitKeys(m map[string]int) []string {
 
 // Builds reports whether d's settlement builds its stage's structures with
 // typed prints (the autonz): its presences keep Built.
-func (d *Doctrine) Builds() bool { return d.HasTypes() && !d.Broods() && d.Settlement != nil }
+func (d *Doctrine) Builds() bool {
+	return d.HasTypes() && !d.Broods() && d.Settlement != nil && !d.Flies()
+}
 
 // StageBuilt is the structures a settlement of d at stage knowing techs
 // stands: the stage's structures whose buildable's required tech is known

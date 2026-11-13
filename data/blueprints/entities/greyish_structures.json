@@ -1,0 +1,302 @@
+{
+    "grey_vat": {
+        "Appearance": {
+            "R": 255,
+            "G": 255,
+            "B": 255,
+            "Resource": "scifi_world",
+            "SpriteX": 744,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Grey Vat",
+            "Faction": "greyish",
+            "Species": "grey_vat",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A glass pod of green fluid: the greys print their bodies here."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "CraftingStation": {
+            "StationID": "grey_vat"
+        }
+    },
+    "grey_console": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_world",
+            "SpriteX": 552,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Grey Console",
+            "Faction": "greyish",
+            "Species": "grey_console",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A grey research console humming with patterns."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "ResearchBuilding": {
+            "Type": "grey_console"
+        }
+    },
+    "grey_armory": {
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Grey Armory",
+            "Faction": "greyish",
+            "Species": "grey_armory",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A grey workbench for alloy, beam weapons and field armour."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "CraftingStation": {
+            "StationID": "grey_armory"
+        }
+    },
+    "grey_array": {
+        "Appearance": {
+            "R": 110,
+            "G": 230,
+            "B": 220,
+            "Resource": "scifi_world",
+            "SpriteX": 624,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Research Array",
+            "Faction": "greyish",
+            "Species": "research_array",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A grey research array, raised only for a long stay."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "ResearchBuilding": {
+            "Type": "grey_array"
+        }
+    },
+    "grey_armory_wreck": {
+        "Appearance": {
+            "R": 110,
+            "G": 140,
+            "B": 120,
+            "Resource": "scifi_world",
+            "SpriteX": 168,
+            "SpriteY": 120
+        },
+        "Description": {
+            "Name": "Wrecked Armory",
+            "Faction": "greyish",
+            "Species": "wrecked_armory",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. What the greys left of their workbench. There is alloy in it."
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "Drops": {
+            "Items": [
+                "grey_alloy",
+                "crystal"
+            ]
+        }
+    },
+    "grey_array_wreck": {
+        "Appearance": {
+            "R": 180,
+            "G": 200,
+            "B": 200,
+            "Resource": "scifi_world",
+            "SpriteX": 768,
+            "SpriteY": 48
+        },
+        "Description": {
+            "Name": "Wrecked Array",
+            "Faction": "greyish",
+            "Species": "wrecked_array",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A cracked grey pod. There is alloy in it."
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "Drops": {
+            "Items": [
+                "grey_alloy",
+                "grey_alloy",
+                "crystal",
+                "crystal"
+            ]
+        }
+    },
+    "grey_emitter_wreck": {
+        "Appearance": {
+            "R": 110,
+            "G": 140,
+            "B": 120,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "Wrecked Emitter",
+            "Faction": "greyish",
+            "Species": "wrecked_emitter",
+            "Classification": "structure",
+            "LongDescription": "DRAFT. A dead grey emitter. There is alloy in it."
+        },
+        "Health": {
+            "MaxHealth": 20
+        },
+        "Stats": {
+            "Str": 1,
+            "Int": 1,
+            "Dex": 1,
+            "AC": 8,
+            "BasicAttackDice": "1d1"
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        },
+        "Drops": {
+            "Items": [
+                "grey_alloy",
+                "crystal"
+            ]
+        }
+    },
+    "grey_emitter": {
+        "AIMemory": {},
+        "Appearance": {
+            "R": 150,
+            "G": 255,
+            "B": 170,
+            "Resource": "scifi_entities",
+            "SpriteX": 240,
+            "SpriteY": 936
+        },
+        "Description": {
+            "Name": "Field Emitter",
+            "Faction": "greyish",
+            "Species": "grey_emitter",
+            "Classification": "machine",
+            "LongDescription": "DRAFT. A grey turret. It fires at anything hostile that walks into its sights."
+        },
+        "Health": {
+            "MaxHealth": 40
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {
+            "StartingInventory": [
+                "grey_emitter_beam"
+            ]
+        },
+        "ScriptedAI": {
+            "script": "data/scripts/ai/grey_emitter.basic"
+        },
+        "Stats": {
+            "Str": 6,
+            "Int": 2,
+            "Dex": 14,
+            "AC": 14,
+            "BasicAttackDice": "1d4"
+        },
+        "Solid": {},
+        "Kin": {
+            "Morph": "structure"
+        }
+    }
+}

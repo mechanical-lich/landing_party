@@ -84,7 +84,7 @@ func eachStorage(p Provider, owners []string, fn func(*components.StorageCompone
 func CountResource(p Provider, owners []string, blueprint string) int {
 	total := 0
 	eachStorage(p, owners, func(sc *components.StorageComponent) {
-		total += sc.CountResource(blueprint)
+		total += sc.OwnCount(blueprint) // a pocket's doors each once
 	})
 	return total
 }
@@ -94,7 +94,7 @@ func CountAll(p Provider, owners []string, names []string) map[string]int {
 	totals := make(map[string]int, len(names))
 	eachStorage(p, owners, func(sc *components.StorageComponent) {
 		for _, n := range names {
-			totals[n] += sc.CountResource(n)
+			totals[n] += sc.OwnCount(n)
 		}
 	})
 	return totals
@@ -105,7 +105,7 @@ func Check(p Provider, owners []string, cost map[string]int) bool {
 	totals := make(map[string]int, len(cost))
 	eachStorage(p, owners, func(sc *components.StorageComponent) {
 		for name := range cost {
-			totals[name] += sc.CountResource(name)
+			totals[name] += sc.OwnCount(name)
 		}
 	})
 	for name, required := range cost {
@@ -174,7 +174,7 @@ func Deduct(p Provider, owners []string, cost map[string]int) {
 			if needed <= 0 {
 				continue
 			}
-			have := sc.CountResource(name)
+			have := sc.OwnCount(name)
 			if have <= 0 {
 				continue
 			}
@@ -182,7 +182,7 @@ func Deduct(p Provider, owners []string, cost map[string]int) {
 			if have < d {
 				d = have
 			}
-			sc.DeductResource(name, d)
+			sc.OwnDeduct(name, d)
 			remaining[name] -= d
 		}
 	})

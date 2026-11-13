@@ -2,6 +2,7 @@ package workerai
 
 import (
 	"github.com/mechanical-lich/landing_party/internal/components"
+	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 )
@@ -115,4 +116,59 @@ func workStep(wc *components.WorkerComponent, entity *ecs.Entity, stat string) i
 	steps := int(wc.WorkCarry)
 	wc.WorkCarry -= float64(steps)
 	return steps
+}
+
+// mineStep is workStep for mining: the worker's MineMult on top (the greys'
+// salvage rigs speed their mine work, live only).
+func mineStep(wc *components.WorkerComponent, entity *ecs.Entity) int {
+	return multStep(wc, entity, wc.MineMult)
+}
+
+// digStep is workStep for digging: the worker's DigMult on top (the greys'
+// tunnelling, from their type).
+func digStep(wc *components.WorkerComponent, entity *ecs.Entity) int {
+	return multStep(wc, entity, wc.DigMult)
+}
+
+// multStep is a Str workStep with an extra multiplier m (0 or 1: none).
+func multStep(wc *components.WorkerComponent, entity *ecs.Entity, m float64) int {
+	if m <= 0 || m == 1 {
+		return workStep(wc, entity, "Str")
+	}
+	rate := workRate(entity, "Str") * m
+	if wc.WorkMult > 0 {
+		rate *= wc.WorkMult
+	}
+	wc.WorkCarry += rate
+	steps := int(wc.WorkCarry)
+	wc.WorkCarry -= float64(steps)
+	return steps
+}
+
+// boreOn is a boring worker's dig carried on (the greys' tunnelling bore: a
+// type's bore): after (tx, ty, tz) is dug from (wx, wy), up to Bore-1 more
+// tiles straight on in the same direction are cleared, while each is solid
+// rock: never ore (the mine work takes that), a structure or open ground.
+func boreOn(level *world.Level, wc *components.WorkerComponent, wx, wy, tx, ty, tz int) {
+	if wc.Bore <= 1 {
+		return
+	}
+	dx, dy := tx-wx, ty-wy
+	if dx < -1 || dx > 1 || dy < -1 || dy > 1 || dx == 0 && dy == 0 || dx != 0 && dy != 0 {
+		return // only straight on from an orthogonal neighbour
+	}
+	x, y := tx, ty
+	for i := 1; i < wc.Bore; i++ {
+		x, y = x+dx, y+dy
+		t := level.GetTilePtr(x, y, tz)
+		if t == nil || t.Middle.IsEmpty() || world.DepositDrop(world.TileDefinitions[t.Middle.Type].Name) != "" {
+			return
+		}
+		if level.GetEntityAt(x, y, tz) != nil {
+			return
+		}
+		clearTileRadiation(t)
+		level.ClearMiddle(x, y, tz)
+		level.InvalidateSunColumn(x, y)
+	}
 }

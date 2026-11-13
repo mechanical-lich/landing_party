@@ -1001,6 +1001,67 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		}
 		notePresenceTechs(p.ID, p.KnownTechs)
 		return fmt.Sprintf("%s on %s knows %s", f[1], f[0], f[2]), nil
+	case "ship":
+		// "ship <fleet id> tier <n> | pop <n> | hold <n> | tech <tech> | leave": a
+		// faction ship's hull tier, crew, a tech, or its stay ended so it
+		// lifts off at the next day (phase E4: a warship to look at without
+		// waiting on the hoard). Set before landing to see it materialise.
+		wm := vmWorld(cur)
+		f := strings.Fields(rest)
+		if wm == nil || len(f) < 2 {
+			return "", fmt.Errorf("usage: ship <fleet id> tier <n>|pop <n>|hold <n>|tech <tech>|leave (needs a campaign)")
+		}
+		var fl *campaign.Fleet
+		for i := range wm.Campaign.Fleets {
+			if wm.Campaign.Fleets[i].ID == f[0] {
+				fl = &wm.Campaign.Fleets[i]
+			}
+		}
+		if fl == nil || fl.Kind != campaign.FleetShip {
+			return "", fmt.Errorf("no ship %s", f[0])
+		}
+		p := &fl.Presence
+		switch {
+		case f[1] == "leave":
+			if d := campaign.LoadFactionData().Doctrine(p.Doctrine); d != nil {
+				fl.LandedDay = wm.Campaign.FactionDay - history.StarDate(d.Mobility.StayDays)
+			}
+			return fmt.Sprintf("%s stay over", fl.ID), nil
+		case len(f) == 3 && f[1] == "tier":
+			n, err := strconv.Atoi(f[2])
+			if err != nil {
+				return "", err
+			}
+			fl.ShipTier = n
+		case len(f) == 3 && f[1] == "pop":
+			n, err := strconv.Atoi(f[2])
+			if err != nil {
+				return "", err
+			}
+			p.Population, p.Units = n, nil
+			if d := campaign.LoadFactionData().Doctrine(p.Doctrine); d != nil && d.HasTypes() {
+				d.AddUnits(p, wm.Campaign.Locations[fl.LandedID], n)
+			}
+		case len(f) == 3 && f[1] == "hold":
+			// The hold emptied to n metal (so a trip's digging does not
+			// fill it and send the ship home).
+			n, err := strconv.Atoi(f[2])
+			if err != nil {
+				return "", err
+			}
+			p.Stockpile, p.YieldFrac = nil, nil
+			if n > 0 {
+				p.Stockpile = map[string]int{"metal_ore": n}
+			}
+		case len(f) == 3 && f[1] == "tech":
+			if !containsStr(p.KnownTechs, f[2]) {
+				p.KnownTechs = append(p.KnownTechs, f[2])
+			}
+			notePresenceTechs(p.ID, p.KnownTechs)
+		default:
+			return "", fmt.Errorf("usage: ship <fleet id> tier <n>|pop <n>|hold <n>|tech <tech>|leave")
+		}
+		return fmt.Sprintf("%s tier %d crew %d techs %v", fl.ID, fl.ShipTier, p.Population, p.KnownTechs), nil
 	case "autonz":
 		// "autonz [dx dy]" frames the camera on the autonz settlement of the
 		// site on screen (phase E3), offset by dx, dy tiles.

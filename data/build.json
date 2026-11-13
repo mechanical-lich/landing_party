@@ -393,5 +393,86 @@
         "cost": {},
         "category": "autonz",
         "order": 25
+    },
+
+    "grey_vat": {
+        "name": "Grey Vat",
+        "type": "grey_vat",
+        "description": "DRAFT. The greys' bio-printer: every grey body is printed here. Carried aboard a grey ship.",
+        "build_time": 60,
+        "is_entity": true,
+        "allow_multiple": true,
+        "module_only": true,
+        "cost": {
+            "metal_ore": 12,
+            "crystal": 6,
+            "grey_alloy": 4
+        },
+        "category": "greyish",
+        "order": 40
+    },
+    "grey_console": {
+        "name": "Grey Console",
+        "type": "grey_console",
+        "description": "DRAFT. The greys' research console. Carried aboard a grey ship.",
+        "build_time": 50,
+        "is_entity": true,
+        "allow_multiple": true,
+        "module_only": true,
+        "cost": {
+            "metal_ore": 10,
+            "crystal": 6,
+            "grey_alloy": 2
+        },
+        "category": "greyish",
+        "order": 41
+    },
+    "grey_armory": {
+        "name": "Grey Armory",
+        "type": "grey_armory",
+        "description": "DRAFT. The greys' workbench: refines grey alloy and makes beam weapons and field armour.",
+        "build_time": 50,
+        "is_entity": true,
+        "allow_multiple": true,
+        "cost": {
+            "metal_ore": 10,
+            "crystal": 4
+        },
+        "category": "greyish",
+        "order": 42
+    },
+    "grey_array": {
+        "name": "Research Array",
+        "type": "grey_array",
+        "description": "DRAFT. A grey research array: the advanced entries are worked here.",
+        "build_time": 80,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_tech": "grey_research_array",
+        "cost": {
+            "metal_ore": 6,
+            "plastic": 10,
+            "crystal": 8,
+            "grey_alloy": 4
+        },
+        "category": "greyish",
+        "order": 43
+    },
+    "grey_emitter": {
+        "name": "Field Emitter",
+        "type": "grey_emitter",
+        "description": "DRAFT. A grey turret that throws a beam at anything hostile in its sights.",
+        "build_time": 60,
+        "is_entity": true,
+        "allow_multiple": true,
+        "required_tech": "grey_field_emitter",
+        "cost": {
+            "metal_ore": 3,
+            "plastic": 5,
+            "crystal": 6,
+            "grey_alloy": 3
+        },
+        "category": "greyish",
+        "order": 44
     }
 }

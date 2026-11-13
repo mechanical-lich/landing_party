@@ -1,0 +1,28 @@
+# grey_emitter — a grey field emitter (greyish_plan.md, "Structures"): the
+# sentry turret's watch under the greys' faction. While the greys are hostile
+# to the player it fires its beam at the nearest worker of another faction in
+# its line of sight within 8 (find_nearest_worker never picks a grey), and
+# strikes one beside it. It never moves, and holds its fire while the greys
+# are neutral.
+function on_turn()
+    if hostile_to_player() = 0 then
+        return
+    endif
+    if find_nearest_worker(9) = 0 then
+        return
+    endif
+    if dist(get_self_x(), get_self_y(), get_nearest_x(), get_nearest_y()) > 8 then
+        return
+    endif
+    tx = get_nearest_x()
+    ty = get_nearest_y()
+    tz = get_nearest_z()
+    if has_ranged_weapon() = 1 then
+        if ranged_attack_at(tx, ty, tz) = 1 then
+            return
+        endif
+    endif
+    if dist(get_self_x(), get_self_y(), tx, ty) <= 1 then
+        attack_at(tx, ty, tz)
+    endif
+endfunction

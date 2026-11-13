@@ -3,6 +3,8 @@ package campaign
 import (
 	"encoding/json"
 	"math"
+
+	"github.com/mechanical-lich/landing_party/internal/construction"
 )
 
 // The player's settlement reads from a doctrine too (phase C0,
@@ -51,6 +53,33 @@ type DoctrineSettlement struct {
 	// Bloom is a choppable that grows on the settlement's floor (the
 	// hive's resin bloom: open question 7's farm), nil for none.
 	Bloom *DoctrineBloom `json:"bloom,omitempty"`
+	// StoragePocket: every container the settlement owns on a level is a
+	// door onto one shared inventory (the greys; greyish_plan.md, "The
+	// storage pocket"); the last door destroyed spills it.
+	StoragePocket bool `json:"storage_pocket,omitempty"`
+	// Ground is the structures a ship settlement builds on the ground (the
+	// greys' armory, array and emitters; greyish_plan.md, "Structures"):
+	// Built counts them, ShipBuilt predicts them, and on lift-off each is
+	// replaced by its Wrecks entry. Modules (the hull tier's) are packed.
+	Ground []string          `json:"ground,omitempty"`
+	Wrecks map[string]string `json:"wrecks,omitempty"`
+	// GearFloor is the gear an abstract ship's bodies are assumed to hold
+	// (the autonz' stock floor precedent; greyish_plan.md, open question
+	// 12): used when the record has no Gear.
+	GearFloor []DoctrineGear `json:"gear_floor,omitempty"`
+	// Adopt maps an old body's blueprint (a Phase D crew member with no
+	// type) to the type it is replaced by, once; a crew entry's blueprint
+	// is its type, else TypeFallback.
+	Adopt map[string]string `json:"adopt,omitempty"`
+}
+
+// DoctrineGear: one Item per body of Types, once RequiresTech is known (""
+// always) and while UnlessTech is not.
+type DoctrineGear struct {
+	Types        []string `json:"types"`
+	Item         string   `json:"item"`
+	RequiresTech string   `json:"requires_tech,omitempty"`
+	UnlessTech   string   `json:"unless_tech,omitempty"`
 }
 
 // DoctrineBloom: every EveryTicks a Blueprint grows on an open tile of the
@@ -90,6 +119,9 @@ type DoctrineCamp struct {
 	// Storage is the blueprint a staged camp places when its stamp holds no
 	// storage (the hive's biomass pool; default a storage locker).
 	Storage string `json:"storage,omitempty"`
+	// Modules: the camp's stations are the landed ship's hull-tier modules
+	// (phase E4, the greys), not Station.
+	Modules bool `json:"modules,omitempty"`
 }
 
 // DoctrineDirector is a settlement director's table. Priorities are walked
@@ -278,6 +310,40 @@ type DirectorPriority struct {
 	// StageMin: the rung runs only once the presence has reached this stage
 	// (the hive's chamber at the nest, its spire at the launcher stage).
 	StageMin int `json:"stage_min,omitempty"`
+	// StayLeft: the rung runs only while a landed ship has at least this
+	// many days of its stay left (phase E4, the greys' ground structures);
+	// TierMin only from this hull tier.
+	StayLeft int `json:"stay_left,omitempty"`
+	TierMin  int `json:"tier_min,omitempty"`
+	// UnlessTech: the rung stops once the settlement knows this tech (the
+	// greys' pistols once rifles are known).
+	UnlessTech string `json:"unless_tech,omitempty"`
+	// Near "mines": a build rung of a storage container wants one standing
+	// within 8 tiles of the open mine orders on ore (their nearest; below
+	// the camp or beyond its radius; never a plant), and builds it
+	// on open ground there that is no corridor (the greys' pocket doors by
+	// their far, deep mines, so haulers drop ore at the nearest door).
+	Near string `json:"near,omitempty"`
+	// Reserve: a spending rung (grow, build, craft) orders only from what
+	// is above this share of a ship's hold target (the greys go home with
+	// something; greyish_plan.md, "Economy").
+	Reserve float64 `json:"reserve,omitempty"`
+	// PerRole: a craft rung's want is this many per living body of each
+	// role (held, worn, carried and stored items all count), in place of
+	// Min + PerColonist.
+	PerRole map[string]int `json:"per_role,omitempty"`
+	// Arm: see DirectorArm.
+	Arm *DirectorArm `json:"arm,omitempty"`
+}
+
+// DirectorArm: each worker of Roles with no weapon in hand takes the best
+// stored weapon (by expected damage), with Best one better than what it
+// holds, and with Armour stored armour for each empty armour slot (the
+// greys' armed soldiers; greyish_plan.md, "The director table").
+type DirectorArm struct {
+	Roles  []string `json:"roles"`
+	Armour bool     `json:"armour,omitempty"`
+	Best   bool     `json:"best,omitempty"`
 }
 
 // Want is how many the entry wants for a settlement of colonists.
@@ -296,6 +362,11 @@ type DirectorGrow struct {
 	// Reserve is the stock per body an egg must leave behind (a hungry hive
 	// feeds before it breeds); in the economy's resource.
 	Reserve float64 `json:"reserve,omitempty"`
+	// Per: with Type, one of the type for each standing structure of this
+	// blueprint within the radius (the greys' lancer at each emitter), in
+	// place of Min + Share, printed over the crew cap (the crew is at its
+	// cap long before the posts stand).
+	Per string `json:"per,omitempty"`
 }
 
 // UnmarshalJSON reads `true` (grow to the cap), `false` (no rung) or an
@@ -505,4 +576,68 @@ func (s *DoctrineSettlement) ShareOf(blueprint string) float64 {
 		return 0
 	}
 	return mine / total
+}
+
+// GearFloorFor is the gear a ship's bodies (units by type) knowing techs
+// are assumed to hold, by item: the doctrine's gear floor.
+func (d *Doctrine) GearFloorFor(units map[string]int, techs []string) map[string]int {
+	if d == nil || d.Settlement == nil {
+		return nil
+	}
+	var out map[string]int
+	for _, g := range d.Settlement.GearFloor {
+		if g.RequiresTech != "" && !d.KnowsTech(techs, g.RequiresTech) {
+			continue
+		}
+		if g.UnlessTech != "" && d.KnowsTech(techs, g.UnlessTech) {
+			continue
+		}
+		n := 0
+		for _, t := range g.Types {
+			n += units[t]
+		}
+		if n > 0 {
+			if out == nil {
+				out = map[string]int{}
+			}
+			out[g.Item] += n
+		}
+	}
+	return out
+}
+
+// IsGround reports whether key is one of the settlement's ground structures.
+func (s *DoctrineSettlement) IsGround(key string) bool { return s != nil && contains(s.Ground, key) }
+
+// ShipBuilt is the ground structures a landed ship of tier knowing techs
+// would have built by days on the ground (greyish_plan.md, "Tier 1: two
+// walks", built): the director's build rungs for ground structures in
+// order, each wanting its min less what the tier carries as modules, one
+// structure a day from the landing, each only if its buildable's tech is
+// known, the tier is at its tier_min, and on the day it would go up the
+// stay has its stay_left still to run. Bookkeeping: nothing blocks on it.
+func (d *Doctrine) ShipBuilt(tier int, techs []string, days int) map[string]int {
+	out := map[string]int{}
+	if d == nil || d.Settlement == nil || d.Settlement.Director == nil {
+		return out
+	}
+	carried := d.ShipModules(tier, techs)
+	all := construction.ListBuildables()
+	day := 0
+	for _, p := range d.Settlement.Director.Priorities {
+		if p.Build == "" || !d.Settlement.IsGround(p.Build) || tier < p.TierMin {
+			continue
+		}
+		if b, ok := all[p.Build]; ok && b.RequiredTech != "" && !d.KnowsTech(techs, b.RequiredTech) {
+			continue
+		}
+		for n := carried[p.Build] + out[p.Build]; n < p.Min; n++ {
+			day++
+			if day > days || d.Mobility.StayDays > 0 && d.Mobility.StayDays-day < p.StayLeft {
+				break
+			}
+			out[p.Build]++
+		}
+	}
+	return out
 }

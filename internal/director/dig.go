@@ -247,23 +247,32 @@ func (d *Director) dig(s *Site, cfg *campaign.DoctrineDirector, snap *snapshot, 
 		d.note("dig:stairs", fmt.Sprintf("stairs down at %d,%d,%d toward %s", next[0], next[1], next[2], res), tick)
 	default:
 		levels = 0
-		next, ok := d.stepToward(s, from, ore, false)
-		if !ok {
-			d.avoid[ore] = true
-			return
-		}
-		if yields(s.Level, next[0], next[1], next[2]) != "" {
-			if !s.Orders.Mine(next[0], next[1], next[2]) {
-				d.avoid[next] = true
+		// One tile toward the ore: through open ground already dug (or a
+		// cave) to the next solid tile, rather than giving the ore up.
+		for walked := 0; walked < 4*digReach(cfg); walked++ {
+			next, solid, ok := d.tunnelStep(s, from, ore)
+			if !ok {
+				d.avoid[ore] = true
 				return
 			}
-			d.note("dig:tunnel", fmt.Sprintf("tunnel (mine) at %d,%d,%d toward %s", next[0], next[1], next[2], res), tick)
-		} else {
-			if !s.Orders.Dig(next[0], next[1], next[2]) {
-				d.avoid[next] = true
-				return
+			from = next
+			if !solid || snap.taskAt[next] {
+				continue
 			}
-			d.note("dig:tunnel", fmt.Sprintf("tunnel at %d,%d,%d toward %s", next[0], next[1], next[2], res), tick)
+			if yields(s.Level, next[0], next[1], next[2]) != "" {
+				if !s.Orders.Mine(next[0], next[1], next[2]) {
+					d.avoid[next] = true
+					return
+				}
+				d.note("dig:tunnel", fmt.Sprintf("tunnel (mine) at %d,%d,%d toward %s", next[0], next[1], next[2], res), tick)
+			} else {
+				if !s.Orders.Dig(next[0], next[1], next[2]) {
+					d.avoid[next] = true
+					return
+				}
+				d.note("dig:tunnel", fmt.Sprintf("tunnel at %d,%d,%d toward %s", next[0], next[1], next[2], res), tick)
+			}
+			break
 		}
 	}
 	snap.digging = true
@@ -346,6 +355,31 @@ func (d *Director) stepToward(s *Site, from, to [3]int, descend bool) ([3]int, b
 		}
 	}
 	return [3]int{}, false
+}
+
+// tunnelStep is stepToward for a tunnel that may also pass open ground: the
+// tile beside from toward to that is solid (to dig) or open (already dug, or
+// a cave: walked through, nothing ordered), the longer axis first. ok false
+// when neither way is either.
+func (d *Director) tunnelStep(s *Site, from, to [3]int) (next [3]int, solid, ok bool) {
+	if n, ok := d.stepToward(s, from, to, false); ok {
+		return n, true, true
+	}
+	dx, dy := sign(to[0]-from[0]), sign(to[1]-from[1])
+	steps := [][2]int{{dx, 0}, {0, dy}}
+	if abs(to[1]-from[1]) > abs(to[0]-from[0]) {
+		steps = [][2]int{{0, dy}, {dx, 0}}
+	}
+	for _, st := range steps {
+		if st == [2]int{0, 0} {
+			continue
+		}
+		n := [3]int{from[0] + st[0], from[1] + st[1], from[2]}
+		if s.Level.InBounds(n[0], n[1], n[2]) && !d.avoid[n] && open(s.Level, n[0], n[1], n[2]) {
+			return n, false, true
+		}
+	}
+	return [3]int{}, false, false
 }
 
 func sign(a int) int {

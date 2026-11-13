@@ -22,6 +22,34 @@ type StorageComponent struct {
 	OwnedBy     string        `json:"OwnedBy"`
 	AllowedTags []string      `json:"AllowedTags,omitempty"`
 	FilterTags  []string      `json:"FilterTags,omitempty"`
+	// Pocket links a door onto a storage pocket (greyish_plan.md, "The
+	// storage pocket"): every container one owner has on one level is a door
+	// onto the same inventory. Items stay in whichever door's slice they were
+	// put in; a door's takes, puts, counts and room look through every door.
+	// Runtime only (the game relinks it), never saved: totals over an owner's
+	// containers count each door's own slice (OwnCount), so they are the same
+	// with or without it. nil: an ordinary container.
+	Pocket *StoragePocket `json:"-"`
+}
+
+// StoragePocket is the doors of one storage pocket, in level order.
+type StoragePocket struct {
+	Doors []*StorageComponent
+}
+
+// doors is s first, then the other doors of its pocket.
+func (s *StorageComponent) doors() []*StorageComponent {
+	if s.Pocket == nil {
+		return []*StorageComponent{s}
+	}
+	out := make([]*StorageComponent, 0, len(s.Pocket.Doors))
+	out = append(out, s)
+	for _, d := range s.Pocket.Doors {
+		if d != s {
+			out = append(out, d)
+		}
+	}
+	return out
 }
 
 func (s *StorageComponent) GetType() ecs.ComponentType { return Storage }
@@ -69,6 +97,19 @@ func (s *StorageComponent) AcceptsTags(materialTags []string) bool {
 // stackable materials. Returns false if the item was rejected by the tag
 // filter or the container is at capacity; the item is not added in that case.
 func (s *StorageComponent) AddItem(item *ecs.Entity) bool {
+	if s.Pocket == nil {
+		return s.addOwn(item)
+	}
+	for _, d := range s.doors() {
+		if d.addOwn(item) {
+			return true
+		}
+	}
+	return false
+}
+
+// addOwn is AddItem into this container's own slice.
+func (s *StorageComponent) addOwn(item *ecs.Entity) bool {
 	if !s.Accepts(item) {
 		return false
 	}
@@ -120,12 +161,26 @@ func (s *StorageComponent) full() bool {
 	return s.Capacity > 0 && len(s.Items) >= s.Capacity
 }
 
-// TakeOne removes and returns the first item matching blueprint.
+// HasRoom reports whether a new slot fits: in this container, or for a
+// door in any door of its pocket.
+func (s *StorageComponent) HasRoom() bool {
+	for _, d := range s.doors() {
+		if !d.full() {
+			return true
+		}
+	}
+	return false
+}
+
+// TakeOne removes and returns the first item matching blueprint (a door:
+// from its own slice first, then the pocket's other doors).
 func (s *StorageComponent) TakeOne(name string) *ecs.Entity {
-	for i, item := range s.Items {
-		if item.Blueprint == name {
-			s.Items = append(s.Items[:i], s.Items[i+1:]...)
-			return item
+	for _, d := range s.doors() {
+		for i, item := range d.Items {
+			if item.Blueprint == name {
+				d.Items = append(d.Items[:i], d.Items[i+1:]...)
+				return item
+			}
 		}
 	}
 	return nil
@@ -133,18 +188,30 @@ func (s *StorageComponent) TakeOne(name string) *ecs.Entity {
 
 // TakeResourceStack removes and returns the first material stack for blueprint.
 func (s *StorageComponent) TakeResourceStack(blueprint string) *ecs.Entity {
-	for i, item := range s.Items {
-		if item.Blueprint == blueprint && item.HasComponent(Material) {
-			s.Items = append(s.Items[:i], s.Items[i+1:]...)
-			return item
+	for _, d := range s.doors() {
+		for i, item := range d.Items {
+			if item.Blueprint == blueprint && item.HasComponent(Material) {
+				d.Items = append(d.Items[:i], d.Items[i+1:]...)
+				return item
+			}
 		}
 	}
 	return nil
 }
 
 // CountResource returns the total quantity of blueprint across all stacks,
-// or the item count for non-material entities.
+// or the item count for non-material entities (a door: its whole pocket's).
 func (s *StorageComponent) CountResource(blueprint string) int {
+	count := 0
+	for _, d := range s.doors() {
+		count += d.OwnCount(blueprint)
+	}
+	return count
+}
+
+// OwnCount is CountResource over this container's own slice only: what
+// totals over an owner's containers add, so a pocket is counted once.
+func (s *StorageComponent) OwnCount(blueprint string) int {
 	count := 0
 	for _, item := range s.Items {
 		if item.Blueprint != blueprint {
@@ -166,6 +233,29 @@ func (s *StorageComponent) DeductResource(blueprint string, amount int) bool {
 	if s.CountResource(blueprint) < amount {
 		return false
 	}
+	remaining := amount
+	for _, d := range s.doors() {
+		take := min(remaining, d.OwnCount(blueprint))
+		if take > 0 {
+			d.ownDeduct(blueprint, take)
+			remaining -= take
+		}
+	}
+	return remaining == 0
+}
+
+// OwnDeduct is DeductResource from this container's own slice only (totals
+// draining an owner's containers one by one).
+func (s *StorageComponent) OwnDeduct(blueprint string, amount int) bool {
+	if s.OwnCount(blueprint) < amount {
+		return false
+	}
+	s.ownDeduct(blueprint, amount)
+	return true
+}
+
+// ownDeduct takes amount (which the own slice holds) from the own slice.
+func (s *StorageComponent) ownDeduct(blueprint string, amount int) {
 	remaining := amount
 	i := 0
 	for remaining > 0 && i < len(s.Items) {
@@ -189,27 +279,43 @@ func (s *StorageComponent) DeductResource(blueprint string, amount int) bool {
 			s.Items = append(s.Items[:i], s.Items[i+1:]...)
 		}
 	}
-	return true
 }
 
 func (s *StorageComponent) HasItem(name string) bool  { return s.CountResource(name) > 0 }
 func (s *StorageComponent) CountItem(name string) int { return s.CountResource(name) }
 
 func (s *StorageComponent) HasItemWithComponent(compType ecs.ComponentType) bool {
-	for _, item := range s.Items {
-		if item.HasComponent(compType) {
-			return true
+	for _, d := range s.doors() {
+		for _, item := range d.Items {
+			if item.HasComponent(compType) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
 func (s *StorageComponent) TakeOneWithComponent(compType ecs.ComponentType) *ecs.Entity {
-	for i, item := range s.Items {
-		if item.HasComponent(compType) {
-			s.Items = append(s.Items[:i], s.Items[i+1:]...)
-			return item
+	for _, d := range s.doors() {
+		for i, item := range d.Items {
+			if item.HasComponent(compType) {
+				d.Items = append(d.Items[:i], d.Items[i+1:]...)
+				return item
+			}
 		}
 	}
 	return nil
+}
+
+// PocketItems is every item a door's pocket holds (its own slice first; an
+// ordinary container's own Items).
+func (s *StorageComponent) PocketItems() []*ecs.Entity {
+	if s.Pocket == nil {
+		return s.Items
+	}
+	var out []*ecs.Entity
+	for _, d := range s.doors() {
+		out = append(out, d.Items...)
+	}
+	return out
 }

@@ -78,6 +78,10 @@ func materialiseSettlement(level *world.Level, loc *campaign.Location, d *campai
 		materialiseAutonz(level, loc, d, p, hostile) // faction_autonz_settle.go
 		return
 	}
+	if isGreyishDoctrine(d) {
+		materialiseGreyish(nil, level, loc, d, p, hostile) // no campaign: a scout's modules, nothing built
+		return
+	}
 	cx, cy, cz, ok := presenceCentre(level, loc, d, p)
 	if !ok {
 		log.Printf("[faction] %s on %s: no room for a settlement", p.ID, loc.Name)
@@ -126,6 +130,9 @@ func materialiseSettlement(level *world.Level, loc *campaign.Location, d *campai
 		for _, e := range live[:-n] {
 			level.RemoveEntity(e)
 		}
+	}
+	if d.Settlement.StoragePocket {
+		linkPockets(level) // its lockers are doors onto one pocket
 	}
 	if first {
 		fillFactionStock(level, name, p.Stockpile, cx, cy, cz)
@@ -311,9 +318,13 @@ func fillFactionStock(level *world.Level, name string, stock map[string]int, cx,
 			} else {
 				q-- // one item each (rations)
 			}
+			if box != nil && !box.AddItem(it) {
+				// The locker (or its pocket) is full: the rest on the ground.
+				box = nil
+				ground = groundNear(level, cx, cy, cz, 6)
+			}
 			switch {
 			case box != nil:
-				box.AddItem(it)
 			case len(ground) > 0:
 				t := ground[0]
 				ground = ground[1:]
@@ -414,6 +425,9 @@ func (s *MainState) stepFactionDirectors() {
 			dir = director.New(factionDirectorSeed(s.campaign, name, p))
 			s.factionDirectors[name] = dir
 		}
+		if d.Settlement.StoragePocket && (s.tick%30 == 0 || dir.LastPlan < 0) {
+			linkPockets(s.level) // a locker built since is a door too
+		}
 		raids := dir.Ordered["raids"]
 		hostile := s.campaign.Stance(p.Faction) == campaign.StanceHostile
 		site := &director.Site{}
@@ -424,6 +438,9 @@ func (s *MainState) stepFactionDirectors() {
 		}
 		if isAutonzDoctrine(d) {
 			autonzSiteFields(s, loc, d, p, st, site)
+		}
+		if isGreyishDoctrine(d) {
+			greyishSiteFields(s, loc, d, p, st, site) // faction_greyish_settle.go
 		}
 		site.Level, site.Colony = s.level, name
 		site.CX, site.CY, site.CZ = st.CenterX, st.CenterY, st.CenterZ

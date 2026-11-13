@@ -1,8 +1,10 @@
 package campaign
 
 import (
+	"encoding/json"
 	"math"
 	"math/rand"
+	"sort"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
 )
@@ -35,6 +37,48 @@ type ShipTierDef struct {
 	Name string         `json:"name"`
 	Crew int            `json:"crew"`
 	Cost map[string]int `json:"cost,omitempty"`
+	// Modules are the structures a ship of the tier carries and unpacks
+	// when it lands (the greys' vat and console; greyish_plan.md,
+	// "Structures"): packed again on lift-off, never ruined.
+	Modules []ShipModule `json:"modules,omitempty"`
+}
+
+// ShipModule is one carried structure: its buildable, carried once
+// RequiresTech is known ("" always). The same key twice is two of it.
+type ShipModule struct {
+	Key          string `json:"key"`
+	RequiresTech string `json:"requires_tech,omitempty"`
+}
+
+// UnmarshalJSON reads a bare key ("grey_vat") or an object.
+func (m *ShipModule) UnmarshalJSON(b []byte) error {
+	var key string
+	if err := json.Unmarshal(b, &key); err == nil {
+		*m = ShipModule{Key: key}
+		return nil
+	}
+	type plain ShipModule
+	return json.Unmarshal(b, (*plain)(m))
+}
+
+// ShipModules is what a ship of tier knowing techs carries, by key and
+// count (nil for none).
+func (d *Doctrine) ShipModules(tier int, techs []string) map[string]int {
+	ts := d.ShipTiers()
+	if len(ts) == 0 {
+		return nil
+	}
+	var out map[string]int
+	for _, m := range ts[min(max(tier, 0), len(ts)-1)].Modules {
+		if m.RequiresTech != "" && !d.KnowsTech(techs, m.RequiresTech) {
+			continue
+		}
+		if out == nil {
+			out = map[string]int{}
+		}
+		out[m.Key]++
+	}
+	return out
 }
 
 // DoctrineMothership is a faction's mothership: its crew (the boarding
@@ -47,6 +91,81 @@ type DoctrineMothership struct {
 	// ships (the mothership aside) it keeps.
 	ShipCost map[string]int `json:"ship_cost,omitempty"`
 	MaxShips int            `json:"max_ships,omitempty"`
+	// Beam: what the mothership beams down to its ships' camps on loaded
+	// levels (phase E4, the greys; the owner's call, 2026-11-12: as the
+	// colonists beam from their ship); nil for none.
+	Beam *DoctrineBeam `json:"beam,omitempty"`
+}
+
+// DoctrineBeam is a mothership's beam-down: it starts with Stock aboard
+// (apart from its hoard, which pays for hulls and ships), and once a day a
+// camp of its faction on a loaded level is topped up to Floor of each
+// resource, from that stock first and then the hoard. Tier 1 never beams
+// (no level is loaded), so the pace does not move.
+type DoctrineBeam struct {
+	Stock map[string]int `json:"stock,omitempty"`
+	Floor map[string]int `json:"floor,omitempty"`
+}
+
+// HoldForHome is the hold a ship's hold target is measured against: its
+// stockpile less what its mothership beamed down to its camp and the camp
+// has not spent (the owner's call, 2026-11-12: beamed stock does not send
+// a ship home). Tier 1 never beams, so off a loaded level it is the whole
+// hold.
+func (f *Fleet) HoldForHome() int {
+	return max(holdUnits(f.Presence.Stockpile)-f.Presence.Beamed, 0)
+}
+
+// NoteBeamed books n units beamed down to a landed ship's camp whose
+// storage holds hold units now: what the camp spent since the last beam
+// comes off the beamed units first (the camp spends what came down before
+// what it mined), then n is added.
+func (f *Fleet) NoteBeamed(hold, n int) {
+	p := &f.Presence
+	if p.BeamLastHold > hold {
+		p.Beamed = max(p.Beamed-(p.BeamLastHold-hold), 0)
+	}
+	p.Beamed += n
+	p.BeamLastHold = hold + n
+}
+
+// BeamFromMothership takes up to want from faction's mothership for a camp
+// on a loaded level: its beam stock first, then its hoard. It returns what
+// was taken (nil with no mothership: destroyed, or none).
+func (c *Campaign) BeamFromMothership(faction string, want map[string]int) map[string]int {
+	ms := c.Mothership(faction)
+	if ms == nil {
+		return nil
+	}
+	p := &ms.Presence
+	keys := make([]string, 0, len(want))
+	for k := range want {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var got map[string]int
+	for _, k := range keys {
+		n := want[k]
+		for _, src := range []map[string]int{p.BeamStock, p.Stockpile} {
+			if n <= 0 || src == nil {
+				continue
+			}
+			take := min(n, src[k])
+			if take <= 0 {
+				continue
+			}
+			src[k] -= take
+			if src[k] <= 0 {
+				delete(src, k)
+			}
+			n -= take
+			if got == nil {
+				got = map[string]int{}
+			}
+			got[k] += take
+		}
+	}
+	return got
 }
 
 // ShipTiers is the doctrine's tiers (none without a ships block).
@@ -115,6 +234,10 @@ func (c *Campaign) LandShip(f *Fleet, day history.StarDate) *Location {
 	f.Returning = false
 	p := &f.Presence
 	p.Materialized, p.LevelStage = false, 0
+	if d != nil && d.ShipSettles() {
+		p.Built = nil // its ground structures stayed on the last site, as wrecks
+	}
+	p.Beamed, p.BeamLastHold = 0, 0 // a new landing's camp starts with nothing beamed
 	if d != nil {
 		c.recordFaction("faction_landed", loc, p, d, nil)
 	}
@@ -128,7 +251,7 @@ func (c *Campaign) ShipLeaving(f *Fleet, day history.StarDate) bool {
 	if d == nil || !f.Landed() {
 		return false
 	}
-	if d.Ships != nil && d.Ships.HoldTarget > 0 && holdUnits(f.Presence.Stockpile) >= d.Ships.HoldTarget {
+	if d.Ships != nil && d.Ships.HoldTarget > 0 && f.HoldForHome() >= d.Ships.HoldTarget {
 		return true
 	}
 	if t := d.Expedition; t != nil {
@@ -252,7 +375,7 @@ func (c *Campaign) DepartShip(f *Fleet, day history.StarDate, loaded func(string
 	}
 	isLoaded := func(id string) bool { return loaded != nil && loaded(id) }
 	if ms := c.Mothership(f.Presence.Faction); ms != nil && d.Ships != nil && d.Ships.HoldTarget > 0 &&
-		holdUnits(f.Presence.Stockpile) >= d.Ships.HoldTarget {
+		f.HoldForHome() >= d.Ships.HoldTarget {
 		if to := c.Locations[ms.ToID]; to != nil {
 			c.liftOff(d, f, to, day)
 			f.Returning = true
@@ -380,6 +503,12 @@ func (c *Campaign) newMothership(key string, d *Doctrine, taken map[string]bool)
 	f := c.newShip(key, d, loc, max(m.Crew, 1), false)
 	f.LandedID = "" // in orbit, never landed
 	f.Mothership = true
+	if m.Beam != nil && len(m.Beam.Stock) > 0 {
+		f.Presence.BeamStock = map[string]int{}
+		for k, v := range m.Beam.Stock {
+			f.Presence.BeamStock[k] = v
+		}
+	}
 	f.ShipTier = max(len(d.ShipTiers())-1, 0)
 	return f
 }
@@ -468,6 +597,23 @@ type FactionRuin struct {
 	// CampBuilt: the camp stood on the level when the ship left.
 	CampBuilt bool `json:"camp_built,omitempty"`
 	Stamped   bool `json:"stamped,omitempty"`
+	// Built is the ground structures that stood when it left (phase E4:
+	// the scar's wrecks), nil unknown (then ShipBuilt from Tier, Techs and
+	// DaysLanded).
+	Built      map[string]int `json:"built,omitempty"`
+	Tier       int            `json:"tier,omitempty"`
+	Techs      []string       `json:"techs,omitempty"`
+	DaysLanded int            `json:"days_landed,omitempty"`
+}
+
+// RuinBuilt is the ground structures a ruin's scar shows: what stood when
+// the ship left, else what a ship of its tier and techs would have built
+// in the days it was landed.
+func (d *Doctrine) RuinBuilt(r *FactionRuin) map[string]int {
+	if r.Built != nil {
+		return r.Built
+	}
+	return d.ShipBuilt(r.Tier, r.Techs, r.DaysLanded)
 }
 
 // WipeShip drops a landed ship whose whole crew died on its loaded level

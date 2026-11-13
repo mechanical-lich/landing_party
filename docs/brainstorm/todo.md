@@ -48,11 +48,20 @@ alone and need a play-test or a judgment call.
   observer soak, 2026-11-08. The camp scripts need a cleared approach outside
   the airlock (or the site picker should keep the camp's door side open).
 - Rival colonists use the player's sprites (phase C2).
-- Phase D leftovers (factions): a grey scout has one soldier, below the raid
-  threshold (raids start at freighter tier; noted in the doctrine, left as
-  is); greys research only abstractly (no lab on the level); boarded decks
-  stay on the Star Map as destinations. (A ship crew dying on a loaded level
-  and boarded mirror crew with no AI were closed in phase E.)
+- Phase D leftovers (factions): boarded decks stay on the Star Map as
+  destinations. (A ship crew dying on a loaded level and boarded mirror crew
+  with no AI were closed in phase E; the greys' live research and their
+  scout's single soldier were taken up by phase E4.)
+- Phase E4 leftovers (greyish, branch claude/greyish-build-571417; see
+  greyish_plan.md "As built"): mining metal is scarce on today's maps (ore
+  2-5 levels down and far off); the mothership's beam-down carries the
+  camps (owner's call, 2026-11-12); beamed stock does not count toward the
+  hold target; research takes plastic pressed from biomass (scouts learn
+  1-2 entries a stay): balance questions in "As built". Not built: Phase F's grey player,
+  growing saucer and the player's side of linked lockers; research progress
+  carried across a lift-off; research-modal effect lines. Checked in Go
+  tests only, not played: lancers posted at emitters, a heavy-led raid,
+  colonists smashing every grey locker.
 - Phase E leftovers (autonz): a stage reached on a loaded level is stamped
   once a day by the live rule, not the moment it is reached; the autonz
   research walk is abstract (no lab on the level), like the greys'; the

@@ -7,6 +7,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/generation"
 	"github.com/mechanical-lich/landing_party/internal/history"
+	"github.com/mechanical-lich/mlge/ecs"
 )
 
 // A ship lifting off live leaves its camp as a ruin at once: one ruin
@@ -51,8 +52,8 @@ func TestRuinLeftOnLiveDeparture(t *testing.T) {
 }
 
 // A ship that landed and left while its site was frozen (never built
-// there) leaves a ruin the level builds on its next build: the camp
-// stamped and ruined, with the datapad.
+// there) leaves a ruin the level builds on its next build: the landing
+// scar (phase E4: no hull, no modules), with the datapad.
 func TestRuinBuiltAfterAFrozenDeparture(t *testing.T) {
 	useContentTables(t)
 	useRealCosts(t)
@@ -100,16 +101,27 @@ func TestRuinBuiltAfterAFrozenDeparture(t *testing.T) {
 	if !ok {
 		t.Fatal("no origin for the departure")
 	}
-	hull := 0
+	// Phase E4: the hull went with the ship; the ruin is a landing scar.
+	hull, scar := 0, 0
 	for dy := -8; dy <= 8; dy++ {
 		for dx := -8; dx <= 8; dx++ {
 			if tileMiddleIs(ms, x+dx, y+dy, z, "hull_wall") {
 				hull++
 			}
+			if floorNameAt(ms.level, x+dx, y+dy, z) == greyScarFloor {
+				scar++
+			}
 		}
 	}
-	if hull == 0 {
-		t.Error("no hull left of the saucer at the ruin")
+	if hull != 0 || scar < 100 {
+		t.Errorf("the ruin: %d hull wall tiles, %d scorched: want the landing scar, no hull", hull, scar)
+	}
+	for _, list := range [][]*ecs.Entity{ms.level.Entities, ms.level.StaticEntities} {
+		for _, e := range list {
+			if e != nil && (e.Blueprint == "grey_vat" || e.Blueprint == "grey_console") {
+				t.Errorf("a %s was left at the scar: modules go aboard", e.Blueprint)
+			}
+		}
 	}
 	again, err := wm.buildParked(site.ID)
 	if err != nil {

@@ -12,6 +12,7 @@ const (
 	Choppable           ecs.ComponentType = "Choppable"
 	Damage              ecs.ComponentType = "Damage"
 	Drops               ecs.ComponentType = "Drops"
+	GearDrop            ecs.ComponentType = "GearDrop"
 	FX                  ecs.ComponentType = "FX"
 	Selected            ecs.ComponentType = "Selected"
 	Settlement          ecs.ComponentType = "Settlement"

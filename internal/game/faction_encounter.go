@@ -182,7 +182,13 @@ func materialiseBoarding(c *campaign.Campaign, loc *campaign.Location, level *wo
 	if f != nil {
 		presenceID = f.Presence.ID
 	}
+	if isGreyishDoctrine(d) && f != nil {
+		boardGreyCrew(level, d, f, b, presenceID, cx, cy, cz)
+	}
 	for i, bp := range boardingCrew(d, b.Crew) {
+		if isGreyishDoctrine(d) && f != nil {
+			break // typed above
+		}
 		x, y, z := freeLandingTile(level, cx+(i%3)-1, cy+(i/3)%3-1, cz)
 		e, err := factory.Create(bp, x, y, z)
 		if err != nil {

@@ -76,7 +76,10 @@ endif
 # 30,000) and the hive soak (HIVETICKS, 30,000: forty days); prints every
 # table. make soak SOAKSEEDS=3 SOAKTICKS=6000 for a shorter run.
 #
-# make soak-autonz and make soak-hive run one soak alone, its seeds as
+# The greyish soak (phase E4: ten scout seeds and five warship seeds,
+# GREYTICKS, 22,500: one 30-day stay; a row ends at lift-off).
+#
+# make soak-autonz, make soak-hive and make soak-greyish run one soak alone, its seeds as
 # separate processes side by side (SOAKJOBS at once, scripts/soak_par.sh),
 # joined into the same table and thresholds. make soak-autonz SOAKSEEDS=3
 # AUTONZTICKS=9000 for a quick tuning round (HUBSEEDS: the hub seeds,
@@ -85,15 +88,17 @@ SOAKSEEDS ?= 10
 SOAKTICKS ?= 20000
 HIVETICKS ?= 30000
 AUTONZTICKS ?= 30000
+GREYTICKS ?= 22500
 HUBSEEDS ?= $(shell echo $$(( ($(SOAKSEEDS) + 1) / 2 )))
 SOAKJOBS ?= 10
 # upto lists 1..N, none for 0 (BSD seq 1 0 counts down: "1 0").
 upto = $(shell i=1; while [ $$i -le $(1) ]; do echo $$i; i=$$((i+1)); done)
-.PHONY: soak soak-autonz soak-hive
+.PHONY: soak soak-autonz soak-hive soak-greyish
 soak:
 	LP_SOAK=1 LP_SOAK_SEEDS=$(SOAKSEEDS) LP_SOAK_TICKS=$(SOAKTICKS) go test ./internal/game -run "TestObserverSoak|TestExpeditionSoak" -v -count=1 -timeout 30m
 	$(MAKE) soak-autonz
 	$(MAKE) soak-hive
+	$(MAKE) soak-greyish
 
 soak-autonz:
 	LP_SOAK_AUTONZ_TICKS=$(AUTONZTICKS) sh scripts/soak_par.sh TestAutonzSoak TestAutonzSoakJoin $(SOAKJOBS) \
@@ -102,6 +107,10 @@ soak-autonz:
 soak-hive:
 	LP_SOAK_HIVE_TICKS=$(HIVETICKS) sh scripts/soak_par.sh TestHiveSoak TestHiveSoakJoin $(SOAKJOBS) \
 		$(addprefix hive:,$(call upto,$(SOAKSEEDS)))
+
+soak-greyish:
+	LP_SOAK_GREY_TICKS=$(GREYTICKS) sh scripts/soak_par.sh TestGreyishSoak TestGreyishSoakJoin $(SOAKJOBS) \
+		$(addprefix scout:,$(call upto,$(SOAKSEEDS))) $(addprefix warship:,$(call upto,$(HUBSEEDS)))
 
 # ---- VM play-testing (docs/developer/vmtest.md; the host is mlge's cmd/vmtest,
 # a go.mod tool, so it is built against this module's Ebiten) ----

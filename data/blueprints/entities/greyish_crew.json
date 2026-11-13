@@ -1,6 +1,7 @@
 {
     "greenish_crew": {
         "AIMemory": {},
+        "NeverSleep": {},
         "Description": {
             "Name": "<greyish>",
             "Faction": "greyish",
@@ -27,11 +28,7 @@
             "DefaultValue": 12,
             "Ticks": 1
         },
-        "Inventory": {
-            "StartingInventory": [
-                "tentacles"
-            ]
-        },
+        "Inventory": {},
         "Hearing": {
             "sensitivity": 1.0
         },
@@ -52,6 +49,7 @@
     },
     "greyish_crew": {
         "AIMemory": {},
+        "NeverSleep": {},
         "Description": {
             "Name": "<greyish>",
             "Faction": "greyish",
@@ -97,6 +95,7 @@
     },
     "pinkish_crew": {
         "AIMemory": {},
+        "NeverSleep": {},
         "Description": {
             "Name": "<greyish>",
             "Faction": "greyish",
@@ -123,11 +122,7 @@
             "DefaultValue": 12,
             "Ticks": 1
         },
-        "Inventory": {
-            "StartingInventory": [
-                "tentacles"
-            ]
-        },
+        "Inventory": {},
         "Hearing": {
             "sensitivity": 1.0
         },
@@ -148,6 +143,7 @@
     },
     "whitish_crew": {
         "AIMemory": {},
+        "NeverSleep": {},
         "Description": {
             "Name": "<greyish>",
             "Faction": "greyish",
@@ -181,6 +177,104 @@
         "Skills": {
             "Skills": [
                 "radiation_heal"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "skimmer_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Description": {
+            "Name": "Skimmer",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "skimmer",
+            "LongDescription": "DRAFT. A green-winged construct the greys print to fly their errands."
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 480,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 1,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal",
+                "flying"
+            ]
+        },
+        "Solid": {},
+        "Stats": {
+            "Str": 8,
+            "Int": 4,
+            "Dex": 12,
+            "AC": 8,
+            "BasicAttackDice": "1d6"
+        }
+    },
+    "lancer_crew": {
+        "AIMemory": {},
+        "NeverSleep": {},
+        "Description": {
+            "Name": "Lancer",
+            "Faction": "greyish",
+            "Species": "greyish",
+            "Classification": "lancer",
+            "LongDescription": "DRAFT. A purple-winged construct the greys print to fight from the air."
+        },
+        "EquipmentAppearance": {
+            "Resource": "scifi_entities",
+            "SpriteSize": 24,
+            "BlockOriginX": 624,
+            "BlockOriginY": 408,
+            "AnimationFrames": 2,
+            "DefaultWeaponColumn": 1,
+            "DefaultArmorRow": 0,
+            "WeaponColumns": {
+                "*": 2
+            }
+        },
+        "Health": {
+            "MaxHealth": 12
+        },
+        "Initiative": {
+            "DefaultValue": 12,
+            "Ticks": 1
+        },
+        "Inventory": {},
+        "Hearing": {
+            "sensitivity": 1.0
+        },
+        "Emote": {},
+        "Skills": {
+            "Skills": [
+                "radiation_heal",
+                "flying"
             ]
         },
         "Solid": {},

@@ -50,6 +50,11 @@ type FactionPresence struct {
 	// set); an empty map is nothing standing (razed), kept across a save, so
 	// the field has no omitempty. Tier 1 rebuilds one missing structure a day.
 	Built map[string]int `json:"built"`
+	// Gear is a ship settlement's weapons and armour held or worn by its
+	// bodies, by blueprint (the greys, phase E4): reconcile counts them,
+	// materialise hands them out; nil is unknown (materialise uses the
+	// doctrine's gear floor for the units and techs).
+	Gear map[string]int `json:"gear,omitempty"`
 	// Larvae is a hive's unassigned larvae (grey eggs), not counted in
 	// Population; Tier 1 accrues them, the level holds them as hive_larva.
 	Larvae int `json:"larvae,omitempty"`
@@ -112,6 +117,19 @@ type FactionPresence struct {
 	// level it is a single sleeper node.
 	Dormant bool             `json:"dormant,omitempty"`
 	WakeDay history.StarDate `json:"wake_day,omitempty"`
+	// DoorLostTick is the level tick a ship settlement's last storage door
+	// fell (live only; 0 while a door stands): a day later the ship
+	// re-places its cockpit door (greyish_plan.md, "The storage pocket").
+	DoorLostTick int `json:"door_lost_tick,omitempty"`
+	// BeamStock is a mothership's stock for beaming down to its ships'
+	// camps (DoctrineBeam), apart from its hoard (Stockpile).
+	BeamStock map[string]int `json:"beam_stock,omitempty"`
+	// Beamed is the units a landed ship's camp holds that its mothership
+	// beamed down (not yet spent; Fleet.NoteBeamed), left out of its hold
+	// target (Fleet.HoldForHome); BeamLastHold its storage after the last
+	// beam. Live only: Tier 1 never beams.
+	Beamed       int `json:"beamed,omitempty"`
+	BeamLastHold int `json:"beam_last_hold,omitempty"`
 }
 
 // FactionHusk is what an exhausted presence leaves on its site: the level
@@ -279,8 +297,17 @@ type Doctrine struct {
 	// entries have no range or rate.
 	AssimilationPerDay []float64      `json:"assimilation_per_day,omitempty"`
 	Assimilation       []DoctrineTech `json:"assimilation,omitempty"`
+	// SecondWalk and SecondWalkPerDay are the neutral names of the same
+	// walk (phase E4): read into Assimilation when it is not set. For a
+	// ship the per-day list is by hull tier (greyish_plan.md, "Tier 1: two
+	// walks"), for a planet presence by stage.
+	SecondWalkPerDay []float64      `json:"second_walk_per_day,omitempty"`
+	SecondWalk       []DoctrineTech `json:"second_walk,omitempty"`
 	// Aggression seeds the hostility of materialised units (Phase C).
 	Aggression int `json:"aggression"`
+	// RaidAlertText is the doctrine's own raid alert ({name}, {place});
+	// "" for the default lines (RaidAlert).
+	RaidAlertText string `json:"raid_alert,omitempty"`
 	// Types are the unit types the factory applies at spawn (sprite colour
 	// block, stats, role; doctrine_types.go); MorphFallback the type a
 	// locked type's share goes to, per morph; TechAliases map an old tech
@@ -507,6 +534,9 @@ func LoadFactionData() *FactionData {
 		fd.Doctrines = map[string]*Doctrine{}
 	}
 	for _, d := range fd.Doctrines {
+		if len(d.Assimilation) == 0 && len(d.SecondWalk) > 0 {
+			d.Assimilation, d.AssimilationPerDay = d.SecondWalk, d.SecondWalkPerDay
+		}
 		if d.Expedition == nil && d.ExpeditionFrom != "" {
 			if src := fd.Doctrines[d.ExpeditionFrom]; src != nil && src.Expedition != nil {
 				cp := *src.Expedition
@@ -659,6 +689,11 @@ func (d *Doctrine) LaunchAlert(loc *Location) string {
 // against the player on loc (phase D). Named as the doctrine names itself
 // to the player: a rival colony is openly one.
 func (d *Doctrine) RaidAlert(loc *Location) string {
+	if d.RaidAlertText != "" {
+		// The doctrine's own line (the greys, phase E4): {name} is the morph
+		// seen there, {place} the site.
+		return strings.NewReplacer("{name}", d.MorphAt(loc).Name, "{place}", loc.Name).Replace(d.RaidAlertText)
+	}
 	if len(d.Morphs) > 0 {
 		// Hidden identity: a swarm is named by the morph seen there.
 		return fmt.Sprintf("%s are swarming toward your colony on %s.", d.MorphAt(loc).Name, loc.Name)

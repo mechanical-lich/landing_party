@@ -153,8 +153,61 @@ func printPresences(w io.Writer, c *campaign.Campaign, fd *campaign.FactionData)
 			}
 		}
 	}
-	for _, e := range c.Fleets {
-		fmt.Fprintf(w, "    egg %s %s -> %s, lands day %d\n", e.ID, e.FromID, e.ToID, e.ArriveDay)
+	for i := range c.Fleets {
+		e := &c.Fleets[i]
+		if e.Kind != campaign.FleetShip {
+			fmt.Fprintf(w, "    egg %s %s -> %s, lands day %d\n", e.ID, e.FromID, e.ToID, e.ArriveDay)
+		}
+	}
+	// Ships as ships (greyish_plan.md, step 0): per faction, its mothership
+	// and hoard, then each ship's tier, state, crew, hold and techs.
+	seenFaction := map[string]bool{}
+	for i := range c.Fleets {
+		e := &c.Fleets[i]
+		if e.Kind != campaign.FleetShip || seenFaction[e.Presence.Faction] {
+			continue
+		}
+		seenFaction[e.Presence.Faction] = true
+		d := fd.Doctrine(e.Presence.Doctrine)
+		if d == nil {
+			continue
+		}
+		for _, f := range c.ShipFleets(e.Presence.Faction) {
+			where := f.LandedID
+			switch {
+			case f.Mothership:
+				where = "over " + f.ToID
+			case where == "":
+				where = f.FromID + " -> " + f.ToID
+			}
+			fmt.Fprintf(w, "    ship %-5s %-10s %-22s %s; techs %s\n", f.ID, e.Presence.Doctrine, where,
+				c.ShipLine(d, f), strings.Join(f.Presence.KnownTechs, ","))
+			if d.ShipSettles() && !f.Mothership {
+				// The greys' Tier 1 bookkeeping (phase E4): units by type,
+				// the ground structures a landed ship would stand by now
+				// (ShipBuilt), the gear floor, the second walk's techs.
+				var units, walk []string
+				for _, k := range d.TypeKeys() {
+					if n := f.Presence.Units[k]; n > 0 {
+						units = append(units, fmt.Sprintf("%s %d", strings.TrimPrefix(k, "grey_"), n))
+					}
+				}
+				for _, a := range d.Assimilation {
+					for _, k := range f.Presence.KnownTechs {
+						if k == a.ID {
+							walk = append(walk, strings.TrimPrefix(k, "grey_"))
+						}
+					}
+				}
+				built := map[string]int{}
+				if f.Landed() {
+					built = d.ShipBuilt(f.ShipTier, f.Presence.KnownTechs, int(c.FactionDay-f.LandedDay))
+				}
+				fmt.Fprintf(w, "             units %s; built %s; gear %s; second walk %s (%.1f pts)\n",
+					strings.Join(units, ", "), countLine(built), countLine(d.GearFloorFor(f.Presence.Units, f.Presence.KnownTechs)),
+					strings.Join(walk, ","), f.Presence.AssimPoints)
+			}
+		}
 	}
 	// Live history the step wrote, for reading the Legends lines.
 	n := 0
@@ -244,4 +297,23 @@ func firstShots(c *campaign.Campaign) string {
 		return fmt.Sprintf("none fired / %d sites", len(arrived))
 	}
 	return fmt.Sprintf("%d (%d-%d) %d fired / %d sites", sum/n, lo, hi, n, len(arrived))
+}
+
+// countLine is a count map as "k n, k n" in key order ("-" for none).
+func countLine(m map[string]int) string {
+	keys := make([]string, 0, len(m))
+	for k, v := range m {
+		if v > 0 {
+			keys = append(keys, k)
+		}
+	}
+	if len(keys) == 0 {
+		return "-"
+	}
+	sort.Strings(keys)
+	parts := make([]string, len(keys))
+	for i, k := range keys {
+		parts[i] = fmt.Sprintf("%s %d", k, m[k])
+	}
+	return strings.Join(parts, ", ")
 }

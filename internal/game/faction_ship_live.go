@@ -8,6 +8,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
+	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/message"
@@ -50,7 +51,11 @@ func (wm *WorldManager) stepLiveShips() []string {
 				continue
 			}
 			hostile := c.Stance(f.Presence.Faction) == campaign.StanceHostile
-			materialiseSettlement(ms.level, loc, d, &f.Presence, hostile)
+			if isGreyishDoctrine(d) {
+				materialiseGreyish(c, ms.level, loc, d, &f.Presence, hostile)
+			} else {
+				materialiseSettlement(ms.level, loc, d, &f.Presence, hostile)
+			}
 			c.MakeFleetKnown(f, loc)
 			log.Printf("[faction] %s landed live on %s", f.ID, loc.Name)
 			alerts = append(alerts, wm.shipAlert(loc, shipLandAlert(d, loc)))
@@ -65,7 +70,7 @@ func (wm *WorldManager) stepLiveShips() []string {
 			// The record first: crew, hold and techs leave with the ship.
 			// Nothing comes off the level until it is going: one that
 			// cannot leave (no site, no fuel) stays exactly as it is.
-			reconcileSettlement(ms.level, loc, &f.Presence)
+			reconcileSettlementOf(c, ms.level, loc, &f.Presence)
 			to := c.DepartShip(f, day, wm.IsLoaded)
 			if to == nil {
 				continue
@@ -74,6 +79,16 @@ func (wm *WorldManager) stepLiveShips() []string {
 			stampRuins(c, loc, ms.level) // its camp, ruined as the player watches
 			log.Printf("[faction] %s lifted off live from %s for %s", f.ID, loc.Name, to.Name)
 			alerts = append(alerts, wm.shipAlert(loc, shipLeaveAlert(d, loc)))
+		}
+	}
+	// The greys' mothership beams materials down to its camps (phase E4).
+	for i := range c.Fleets {
+		f := &c.Fleets[i]
+		if f.Kind != campaign.FleetShip || f.Mothership || !f.Landed() || !wm.IsLoaded(f.LandedID) || !f.Presence.Materialized {
+			continue
+		}
+		if d := fd.Doctrine(f.Presence.Doctrine); d != nil && d.Settlement != nil {
+			wm.beamDownToCamp(f, d)
 		}
 	}
 	for _, id := range dead {
@@ -126,7 +141,7 @@ func (wm *WorldManager) wipeShipLive(id string) string {
 func liveHold(wm *WorldManager, f *campaign.Fleet) bool {
 	loc, ms := wm.Campaign.Locations[f.LandedID], wm.loaded[f.LandedID]
 	if loc != nil && ms != nil && ms.level != nil && f.Presence.Materialized {
-		reconcileSettlement(ms.level, loc, &f.Presence)
+		reconcileSettlementOf(wm.Campaign, ms.level, loc, &f.Presence)
 	}
 	return true
 }
@@ -198,4 +213,49 @@ func (wm *WorldManager) liveShipsByLevel() map[string][]string {
 		sort.Strings(out[k])
 	}
 	return out
+}
+
+// beamDownToCamp tops a landed ship's camp on a loaded level up to its
+// mothership's beam floor (DoctrineBeam: the greys, phase E4), from the
+// mothership's beam stock, then its hoard, into the camp's storage. It
+// reports what came down.
+func (wm *WorldManager) beamDownToCamp(f *campaign.Fleet, d *campaign.Doctrine) map[string]int {
+	if d.Ships == nil || d.Ships.Mothership == nil || d.Ships.Mothership.Beam == nil {
+		return nil
+	}
+	loc, ms := wm.Campaign.Locations[f.LandedID], wm.loaded[f.LandedID]
+	if loc == nil || ms == nil || ms.level == nil {
+		return nil
+	}
+	name := factionSettlementName(&f.Presence, loc.ID)
+	st := settlement.Settlements[name]
+	if st == nil {
+		return nil
+	}
+	have := storage.Summarize(storage.LevelProvider{Level: ms.level}, []string{name})
+	hold := 0
+	for _, v := range have {
+		hold += v
+	}
+	want := map[string]int{}
+	for k, v := range d.Ships.Mothership.Beam.Floor {
+		if n := v - have[k]; n > 0 {
+			want[k] = n
+		}
+	}
+	if len(want) == 0 {
+		f.NoteBeamed(hold, 0) // what it spent comes off the beamed units
+		return nil
+	}
+	got := wm.Campaign.BeamFromMothership(f.Presence.Faction, want)
+	n := 0
+	for _, v := range got {
+		n += v
+	}
+	f.NoteBeamed(hold, n) // left out of its hold target
+	if len(got) > 0 {
+		fillFactionStock(ms.level, name, got, st.CenterX, st.CenterY, st.CenterZ)
+		log.Printf("[faction] %s: the mothership beamed down %v", f.ID, got)
+	}
+	return got
 }

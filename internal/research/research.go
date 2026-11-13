@@ -25,6 +25,51 @@ type Tech struct {
 	// Assimilate is an autonz entry's effect (autonz_plan.md, "The
 	// assimilation tree").
 	Assimilate *Assimilate `json:"assimilate,omitempty"`
+	// Develop is a greyish entry's effect (greyish_plan.md, "The tree"):
+	// live-only or Tier 3-only, never a number Tier 1 reads.
+	Develop *Develop `json:"develop,omitempty"`
+}
+
+// Develop is a develop entry's effect. Unlock names the type the entry
+// unlocks (the type's own unlock gates it); Upgrade changes living and new
+// bodies of a type; Craft, Build and Module name what the entry opens (the
+// recipe's requires_tech, the buildable's required_tech and the hull
+// tier's module list gate them; these are for the effect line); PrintTime
+// multiplies a print's work at the vat; Salvage multiplies mine work time
+// (0.75: a quarter faster); Intercept and Boarding act in Tier 3 only.
+type Develop struct {
+	Unlock    string            `json:"unlock,omitempty"`
+	Upgrade   []DevelopUpgrade  `json:"upgrade,omitempty"`
+	Craft     string            `json:"craft,omitempty"`
+	Build     string            `json:"build,omitempty"`
+	Module    string            `json:"module,omitempty"`
+	PrintTime float64           `json:"print_time,omitempty"`
+	Salvage   float64           `json:"salvage,omitempty"`
+	Intercept *DevelopIntercept `json:"intercept,omitempty"`
+	Boarding  *DevelopBoarding  `json:"boarding,omitempty"`
+}
+
+// DevelopUpgrade: Type's bodies get Health, Str and Initiative multiplied
+// and AC added.
+type DevelopUpgrade struct {
+	Type       string  `json:"type"`
+	Health     float64 `json:"health,omitempty"`
+	Str        float64 `json:"str,omitempty"`
+	Initiative float64 `json:"initiative,omitempty"`
+	AC         int     `json:"ac,omitempty"`
+}
+
+// DevelopIntercept: the player's evade roll against the faction's ships
+// gains CatchChance; a jump meets one in flight Range closer (negative:
+// harder to meet).
+type DevelopIntercept struct {
+	CatchChance float64 `json:"catch_chance,omitempty"`
+	Range       float64 `json:"range,omitempty"`
+}
+
+// DevelopBoarding: a boarded mothership's deck holds Turrets emitters.
+type DevelopBoarding struct {
+	Turrets int `json:"turrets,omitempty"`
 }
 
 // Assimilate is an assimilation entry's effect: Unlock a unit type, Tier a

@@ -231,11 +231,27 @@ func orderCraft(st *settlement.Settlement, ds *campaign.DoctrineSettlement, know
 			WorkbenchX: wbPC.GetX(),
 			WorkbenchY: wbPC.GetY(),
 			WorkbenchZ: wbPC.GetZ(),
-			Required:   recipe.BuildTime,
+			Required:   printTime(st, recipe),
 		},
 		X: wbPC.GetX(), Y: wbPC.GetY(), Z: wbPC.GetZ(),
 	})
 	return true
+}
+
+// printTime is a craft's work: a print's (a recipe making a typed unit)
+// shortened by every develop print_time factor the settlement knows (the
+// greys' print refinement), at least 1.
+func printTime(st *settlement.Settlement, recipe crafting.Recipe) int {
+	t := float64(recipe.BuildTime)
+	if recipe.KinType == "" || st == nil {
+		return recipe.BuildTime
+	}
+	for _, k := range st.KnownTechs {
+		if r, ok := research.GetTech(k); ok && r.Develop != nil && r.Develop.PrintTime > 0 {
+			t *= r.Develop.PrintTime
+		}
+	}
+	return max(1, int(t+0.5))
 }
 
 // cancelOrder is the Cancel Task order on one of a settlement's tasks.
@@ -255,6 +271,9 @@ type settlementOrders struct {
 }
 
 func (o settlementOrders) Build(kind string, x, y, z int) bool {
+	if construction.GetBuildable(kind).ModuleOnly {
+		return false // a ship's module: carried, never built by a director
+	}
 	return orderBuild(o.st, o.level, kind, x, y, z)
 }
 func (o settlementOrders) Mine(x, y, z int) bool { return orderMine(o.st, o.level, x, y, z) }
@@ -349,6 +368,31 @@ func orderEquip(st *settlement.Settlement, level *world.Level, blueprint string)
 		return true
 	}
 	return false
+}
+
+// orderEquipWorker sets worker to take blueprint out of storage and wear or
+// hold it now (the arm rung), whatever it was doing back in the queue.
+func orderEquipWorker(worker *ecs.Entity, blueprint string) *task.Task {
+	if worker == nil || !worker.HasComponent(components.Worker) || blueprint == "" {
+		return nil
+	}
+	wc := worker.GetComponent(components.Worker).(*components.WorkerComponent)
+	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
+		if wc.CurrentTask.Data == task_requests.HoldHere {
+			wc.CurrentTask.Complete() // a post: the guard rung posts it again
+		} else {
+			wc.CurrentTask.ReQueue()
+		}
+	}
+	wc.CurrentTask = &task.Task{
+		Action: task_requests.EquipAction, Escalated: true,
+		Data: task_requests.EquipRequest{ItemBlueprint: blueprint},
+	}
+	return wc.CurrentTask
+}
+
+func (o settlementOrders) EquipWorker(worker *ecs.Entity, blueprint string) *task.Task {
+	return orderEquipWorker(worker, blueprint)
 }
 
 func (o settlementOrders) Attack(target *ecs.Entity) bool { return orderAttack(o.st, target) }

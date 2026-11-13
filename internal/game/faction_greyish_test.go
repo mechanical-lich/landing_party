@@ -11,7 +11,8 @@ import (
 )
 
 // greyOnStart lands a greyish scout of pop on the start system of a fresh
-// expedition and enters it with one colonist beamed down far off.
+// expedition (its hold the kit plus 2 grey alloy: a print costs alloy since
+// phase E4) and enters it with one colonist beamed down far off.
 func greyOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState, *campaign.Location, *campaign.Fleet) {
 	t.Helper()
 	useContentTables(t)
@@ -31,7 +32,7 @@ func greyOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState, 
 		ID: "flg", Kind: campaign.FleetShip, FromID: loc.ID, ToID: loc.ID,
 		FromX: loc.X, FromY: loc.Y, ToX: loc.X, ToY: loc.Y, LandedID: loc.ID,
 		Presence: campaign.FactionPresence{ID: "fpg", Faction: "greyish", Doctrine: "greyish", Population: pop,
-			Stockpile: map[string]int{"metal_ore": 12, "crystal": 6}, Seed: seed*17 + 3, LastShotDay: campaign.NeverFired},
+			Stockpile: map[string]int{"metal_ore": 12, "crystal": 6, "grey_alloy": 2}, Seed: seed*17 + 3, LastShotDay: campaign.NeverFired},
 	})
 	if err := wm.Travel(loc.ID); err != nil {
 		t.Fatal(err)
@@ -47,7 +48,7 @@ func greyOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState, 
 }
 
 // A landed greyish scout is its saucer on the level: the hull stamped, the
-// hold in a locker its settlement owns, a bio-printer, and grey crew working
+// hold in a locker its settlement owns, a grey vat, and grey crew working
 // as the settlement's workers (never the player's, hostile from the start).
 // The director prints crew up to the scout's crew cap, the type most under
 // its share first, and mines into the hold.
@@ -69,6 +70,9 @@ func TestGreyishCampOnTheLevel(t *testing.T) {
 		if components.IsColonyWorker(e, ms.colonyName()) || !components.IsAttackTarget(e) {
 			t.Error("a grey is the player's, or not hostile")
 		}
+		if k := components.KinOf(e); k == nil || k.Type == "" {
+			t.Errorf("crew %s has no type (phase E4: every grey is typed)", e.Blueprint)
+		}
 	}
 	printer, locker := false, false
 	for _, e := range append(append(ms.level.Entities[:0:0], ms.level.Entities...), ms.level.StaticEntities...) {
@@ -76,7 +80,7 @@ func TestGreyishCampOnTheLevel(t *testing.T) {
 		if !ok || absI(pc.GetX()-st.CenterX) > 12 || absI(pc.GetY()-st.CenterY) > 12 {
 			continue
 		}
-		if e.Blueprint == "bio_printer" {
+		if e.Blueprint == "grey_vat" {
 			printer = true
 		}
 		if e.HasComponent(components.Storage) && e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy == name {
@@ -98,7 +102,7 @@ func TestGreyishCampOnTheLevel(t *testing.T) {
 		t.Errorf("only %d hull wall tiles: no saucer stamped", hull)
 	}
 
-	stepLevel(ms, 3000, nil)
+	stepLevel(ms, 8000, nil) // a print is 450-1,200 work steps since phase E4
 	dir := ms.factionDirectors[name]
 	grew := 0
 	for k, v := range dir.Ordered {

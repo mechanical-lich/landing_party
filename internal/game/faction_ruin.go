@@ -55,6 +55,13 @@ func stampRuin(c *campaign.Campaign, level *world.Level, loc *campaign.Location,
 	}
 	name := factionSettlementName(p, loc.ID)
 	w, h := campSize(d)
+	if isGreyishDoctrine(d) {
+		// The hull went with the ship: a landing scar, its modules packed
+		// and its ground structures wrecked (phase E4).
+		stampGreyScar(level, d, r, p, name, cx, cy, cz)
+		finishRuin(level, r, cx, cy, cz, w, h)
+		return
+	}
 	if !r.CampBuilt {
 		if d.Settlement.Camp != nil {
 			buildStampedCamp(level, d, p, name, cx, cy, cz)
@@ -78,6 +85,15 @@ func stampRuin(c *campaign.Campaign, level *world.Level, loc *campaign.Location,
 	if err := runGenStructure(ctx, "ruin_pass", x0, y0, w, h); err != nil {
 		log.Printf("[faction] ruin_pass for %s: %v", r.Presence, err)
 	}
+	finishRuin(level, r, cx, cy, cz, w, h)
+	log.Printf("[faction] %s's camp on %s left as a ruin", r.Presence, loc.Name)
+}
+
+// finishRuin records a ruin's footprint (the lore budget keeps clear of
+// it) and puts the departure's origin and a datapad holding it at the
+// centre.
+func finishRuin(level *world.Level, r *campaign.FactionRuin, cx, cy, cz, w, h int) {
+	x0, y0 := cx-w/2, cy-h/2
 	level.StampFootprints = append(level.StampFootprints, [6]int{x0, y0, w, h, cx, cy})
 	if r.EventID != "" {
 		generation.SetOrigin(level, r.EventID, cx, cy, cz)
@@ -87,7 +103,6 @@ func stampRuin(c *campaign.Campaign, level *world.Level, loc *campaign.Location,
 			level.AddEntity(pad)
 		}
 	}
-	log.Printf("[faction] %s's camp on %s left as a ruin", r.Presence, loc.Name)
 }
 
 // campSize is a doctrine's camp footprint: its camp block's, else the

@@ -128,6 +128,9 @@ func (d *Director) growTyped(s *Site, snap *snapshot, g campaign.DirectorGrow, t
 	}
 	if typ != "" {
 		want := g.Min + int(math.Ceil(g.Share*float64(bodies)))
+		if g.Per != "" {
+			want = snap.built[g.Per] // one for each (the greys' lancer per emitter)
+		}
 		if count[typ] >= want {
 			return false
 		}
@@ -167,7 +170,9 @@ func (d *Director) growTyped(s *Site, snap *snapshot, g campaign.DirectorGrow, t
 		}
 		station = larvae[0]
 	} else {
-		if s.CrewCap <= 0 || bodies >= s.CrewCap || printing(snap, r.Station) {
+		// A post's unit (Per: the greys' lancer at an emitter) is printed
+		// over the crew cap, one for each post: the crew fills its cap first.
+		if s.CrewCap <= 0 || bodies >= s.CrewCap && g.Per == "" || printing(snap, r.Station) {
 			return false
 		}
 		if station = snap.stations[r.Station]; station == nil {

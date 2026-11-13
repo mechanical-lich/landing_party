@@ -54,39 +54,60 @@
         "kin_type": "enforcer"
     },
     "print_greenish": {
-        "name": "Print Greenish",
-        "description": "Grow a greenish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "name": "Print Heavy",
+        "description": "_draft",
         "output": "greenish_crew",
-        "build_time": 120,
-        "cost": { "metal_ore": 6, "crystal": 1 },
-        "station": "bio_printer",
-        "deploy_on_craft": true
+        "kin_type": "grey_heavy",
+        "build_time": 900,
+        "cost": {
+            "metal_ore": 14,
+            "crystal": 6,
+            "grey_alloy": 5
+        },
+        "station": "grey_vat",
+        "deploy_on_craft": true,
+        "requires_tech": "grey_cloning"
     },
     "print_greyish": {
-        "name": "Print Greyish",
-        "description": "Grow a greyish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "name": "Print Worker",
+        "description": "_draft",
         "output": "greyish_crew",
-        "build_time": 120,
-        "cost": { "metal_ore": 6, "crystal": 2 },
-        "station": "bio_printer",
+        "kin_type": "grey_worker",
+        "build_time": 450,
+        "cost": {
+            "metal_ore": 8,
+            "crystal": 3,
+            "grey_alloy": 1
+        },
+        "station": "grey_vat",
         "deploy_on_craft": true
     },
     "print_pinkish": {
-        "name": "Print Pinkish",
-        "description": "Grow a pinkish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "name": "Print Soldier",
+        "description": "_draft",
         "output": "pinkish_crew",
-        "build_time": 120,
-        "cost": { "metal_ore": 8, "crystal": 2 },
-        "station": "bio_printer",
+        "kin_type": "grey_soldier",
+        "build_time": 600,
+        "cost": {
+            "metal_ore": 10,
+            "crystal": 4,
+            "grey_alloy": 3
+        },
+        "station": "grey_vat",
         "deploy_on_craft": true
     },
     "print_whitish": {
-        "name": "Print Whitish",
-        "description": "Grow a whitish crew member in the greyish bio-printer. The greyish doctrine's unit (docs/developer/factions.md, The greyish).",
+        "name": "Print Technician",
+        "description": "_draft",
         "output": "whitish_crew",
-        "build_time": 120,
-        "cost": { "metal_ore": 6, "crystal": 4 },
-        "station": "bio_printer",
+        "kin_type": "grey_technician",
+        "build_time": 600,
+        "cost": {
+            "metal_ore": 6,
+            "crystal": 5,
+            "grey_alloy": 2
+        },
+        "station": "grey_vat",
         "deploy_on_craft": true
     },
     "protein_press": {
@@ -733,5 +754,123 @@
         "cost": { "metal_ore": 4, "crystal": 1 },
         "station": "autonz_foundry",
         "requires_tech": "autonz_foundry_pattern"
+    },
+
+    "print_skimmer": {
+        "name": "Print Skimmer",
+        "description": "_draft",
+        "output": "skimmer_crew",
+        "kin_type": "grey_skimmer",
+        "build_time": 600,
+        "cost": {
+            "metal_ore": 6,
+            "crystal": 4,
+            "grey_alloy": 2,
+            "specimen": 1
+        },
+        "station": "grey_vat",
+        "deploy_on_craft": true,
+        "requires_tech": "grey_skimmer_pattern"
+    },
+    "print_lancer": {
+        "name": "Print Lancer",
+        "description": "_draft",
+        "output": "lancer_crew",
+        "kin_type": "grey_lancer",
+        "build_time": 1200,
+        "cost": {
+            "metal_ore": 12,
+            "crystal": 8,
+            "grey_alloy": 6,
+            "specimen": 2
+        },
+        "station": "grey_vat",
+        "deploy_on_craft": true,
+        "requires_tech": "grey_lancer_pattern"
+    },
+    "refine_alloy": {
+        "name": "Refine Alloy",
+        "description": "_draft",
+        "output": "grey_alloy",
+        "build_time": 180,
+        "cost": {
+            "metal_ore": 3,
+            "crystal": 2
+        },
+        "station": "grey_armory"
+    },
+    "grey_beam_pistol": {
+        "name": "Beam Pistol",
+        "description": "_draft",
+        "output": "grey_beam_pistol",
+        "build_time": 60,
+        "cost": {
+            "crystal": 2,
+            "grey_alloy": 1
+        },
+        "station": "grey_armory"
+    },
+    "grey_beam_rifle": {
+        "name": "Beam Rifle",
+        "description": "_draft",
+        "output": "grey_beam_rifle",
+        "build_time": 120,
+        "cost": {
+            "metal_ore": 2,
+            "crystal": 3,
+            "grey_alloy": 2
+        },
+        "station": "grey_armory",
+        "requires_tech": "grey_beam_weapons"
+    },
+    "grey_disruptor": {
+        "name": "Disruptor",
+        "description": "_draft",
+        "output": "grey_disruptor",
+        "build_time": 240,
+        "cost": {
+            "metal_ore": 4,
+            "crystal": 8,
+            "grey_alloy": 4
+        },
+        "station": "grey_armory",
+        "requires_tech": "grey_disruptor"
+    },
+    "grey_field_harness": {
+        "name": "Field Harness",
+        "description": "_draft",
+        "output": "grey_field_harness",
+        "build_time": 160,
+        "cost": {
+            "metal_ore": 4,
+            "crystal": 2,
+            "grey_alloy": 3
+        },
+        "station": "grey_armory",
+        "requires_tech": "grey_field_armour"
+    },
+    "grey_field_cowl": {
+        "name": "Field Cowl",
+        "description": "_draft",
+        "output": "grey_field_cowl",
+        "build_time": 100,
+        "cost": {
+            "metal_ore": 2,
+            "crystal": 1,
+            "grey_alloy": 2
+        },
+        "station": "grey_armory",
+        "requires_tech": "grey_field_armour"
+    },
+    "refine_plastic": {
+        "name": "Press Plastic",
+        "description": "_draft",
+        "output": "plastic",
+        "build_time": 120,
+        "cost": {
+            "biomass": 2
+        },
+        "station": "grey_armory",
+        "count": 2
     }
 }

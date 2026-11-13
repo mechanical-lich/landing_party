@@ -312,7 +312,9 @@ func TestCraft_DeployOnCraftData(t *testing.T) {
 		"hive_egg_drone": true, "hive_egg_scout": true, "hive_egg_warrior": true, "hive_egg_hunter": true,
 		"hive_egg_burrower": true, "hive_egg_spitter": true,
 		// (phase E3) the autonz' other prints, at the fabricator and foundry.
-		"print_relay_drone": true, "print_seeker": true, "print_harvester": true, "print_sentinel": true, "print_warden": true}
+		"print_relay_drone": true, "print_seeker": true, "print_harvester": true, "print_sentinel": true, "print_warden": true,
+		// (phase E4) the greys' fliers, at the grey vat.
+		"print_skimmer": true, "print_lancer": true}
 	for _, r := range crafting.AllRecipes() {
 		assert.Equal(t, deploys[r.Key], r.DeployOnCraft, r.Key)
 	}

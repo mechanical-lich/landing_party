@@ -67,12 +67,34 @@ func doctrineType(faction, typ, presence string) *factory.UnitType {
 // flier speed, and the evolved frame once an upgrade marked evolved is known.
 func upgradedType(d *campaign.Doctrine, typ string, techs []string) *factory.UnitType {
 	t := d.Types[typ]
-	hp, str, init, work := 1.0, 1.0, 1.0, 1.0
+	hp, str, init, work, mine := 1.0, 1.0, 1.0, 1.0, 1.0
+	ac := 0
 	evolved := false
 	keys := append([]string(nil), techs...)
 	sort.Strings(keys)
 	for _, k := range keys {
 		r, ok := research.GetTech(k)
+		if ok && r.Develop != nil {
+			// The greys' develop upgrades (greyish_plan.md, "The tree").
+			for _, u := range r.Develop.Upgrade {
+				if u.Type != typ {
+					continue
+				}
+				if u.Health > 0 {
+					hp *= u.Health
+				}
+				if u.Str > 0 {
+					str *= u.Str
+				}
+				if u.Initiative > 0 {
+					init *= u.Initiative
+				}
+				ac += u.AC
+			}
+			if r.Develop.Salvage > 0 && hasTaskName(t.Tasks, "mine") {
+				mine /= r.Develop.Salvage // salvage 0.75: mine work in three quarters of the time
+			}
+		}
 		if !ok || r.Evolve == nil {
 			continue
 		}
@@ -117,7 +139,7 @@ func upgradedType(d *campaign.Doctrine, typ string, techs []string) *factory.Uni
 	}
 	ut := &factory.UnitType{
 		ID: typ, Morph: t.Morph, SpriteDX: t.SpriteDX, SpriteDY: dy, Tier: tierID, SeenName: t.SeenName, HatchTurns: t.HatchTurns,
-		Health: scale(t.Health, hp), Str: scale(t.Str, str), Dex: t.Dex, AC: t.AC, Attack: t.Attack,
+		Health: scale(t.Health, hp), Str: scale(t.Str, str), Dex: t.Dex, Int: t.Int, AC: t.AC + ac, Attack: t.Attack,
 		Initiative: scale(t.Initiative, init),
 		Role:       t.Role, Tasks: factory.TaskActions(t.Tasks), Skills: t.Skills, Equip: t.Equip,
 		BodySkills: d.BodySkills, Evolved: evolved,
@@ -125,7 +147,20 @@ func upgradedType(d *campaign.Doctrine, typ string, techs []string) *factory.Uni
 	if work != 1 {
 		ut.Work = work
 	}
+	if mine != 1 {
+		ut.Mine = mine
+	}
+	ut.Dig, ut.Bore = t.Dig, t.Bore
 	return ut
+}
+
+func hasTaskName(tasks []string, k string) bool {
+	for _, v := range tasks {
+		if v == k {
+			return true
+		}
+	}
+	return false
 }
 
 // retypeSettlement re-applies the type of every living adult of settlement
@@ -133,7 +168,12 @@ func upgradedType(d *campaign.Doctrine, typ string, techs []string) *factory.Uni
 // type's multipliers or the fliers' speed): upgrades reach living units.
 func retypeSettlement(level *world.Level, name, tech string) {
 	r, ok := research.GetTech(tech)
-	if level == nil || !ok || r.Evolve == nil || (r.Evolve.Type == "" && r.Evolve.FlierSpeed == 0) {
+	if level == nil || !ok {
+		return
+	}
+	evolves := r.Evolve != nil && (r.Evolve.Type != "" || r.Evolve.FlierSpeed != 0)
+	develops := r.Develop != nil && (len(r.Develop.Upgrade) > 0 || r.Develop.Salvage > 0)
+	if !evolves && !develops {
 		return
 	}
 	for _, e := range level.Entities {

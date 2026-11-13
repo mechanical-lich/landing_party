@@ -52,6 +52,9 @@ type Orders interface {
 	Send(worker, target *ecs.Entity) *task.Task
 	// Equip has a worker take blueprint out of storage and hold it.
 	Equip(blueprint string, storage *ecs.Entity) bool
+	// EquipWorker has worker take blueprint out of storage and wear or hold
+	// it now, dropping what it was doing (the arm rung); the task, or nil.
+	EquipWorker(worker *ecs.Entity, blueprint string) *task.Task
 	// Move walks worker to (x, y, z) now, dropping what it was doing (a
 	// guard's post, a scout's waypoint, the walk to the spire); the task it
 	// gets, or nil.
@@ -86,6 +89,15 @@ type Site struct {
 	CrewCap int
 	// Stage is the presence's stage (a rung's StageMin gates on it).
 	Stage int
+	// Ship: the settlement is a landed ship (phase E4, the greys): Tier is
+	// its hull tier (a rung's TierMin), StayLeft the days of its stay left
+	// (0 once it is leaving; a rung's StayLeft).
+	Ship     bool
+	Tier     int
+	StayLeft int
+	// HoldTarget is a ship's hold target (units): a rung's Reserve is a
+	// share of it.
+	HoldTarget int
 	// TypeMix is a typed doctrine's share of bodies per unlocked type at
 	// its stage (the hive; nil for an untyped one): the grow rung lays the
 	// egg of the type most under it.
@@ -204,6 +216,9 @@ type snapshot struct {
 	// free is the stock and carried materials not yet promised to an open
 	// order (its cost less what has been delivered to it).
 	free map[string]int
+	// reserve is the free units the rung being walked must leave (its
+	// Reserve share of a ship's hold target); 0 for none.
+	reserve int
 	// reach is the tiles on the centre's level the colonists can walk to
 	// (within Reach of the centre): open ground through nothing solid but
 	// workers and doors their faction may pass.
@@ -243,6 +258,9 @@ func (snap *snapshot) afford(cost map[string]int) bool {
 			return false
 		}
 	}
+	if snap.reserve > 0 && sum(snap.free)-sum(cost) < snap.reserve {
+		return false // a ship keeps its reserve for the trip home
+	}
 	for k, v := range cost {
 		snap.free[k] -= v
 	}
@@ -267,6 +285,19 @@ func (d *Director) Plan(s *Site, tick int) {
 	for _, p := range cfg.Priorities {
 		if p.StageMin > s.Stage {
 			continue // not at this stage yet (the hive's chamber, its spire)
+		}
+		if p.TierMin > s.Tier || s.Ship && p.StayLeft > 0 && s.StayLeft < p.StayLeft {
+			continue // a ship's hull too small, or too short a stay left for it
+		}
+		if p.UnlessTech != "" && has(s.Known, p.UnlessTech) {
+			continue // outgrown (pistols once rifles are known)
+		}
+		snap.reserve = 0
+		if p.Reserve > 0 && s.HoldTarget > 0 {
+			snap.reserve = int(p.Reserve * float64(s.HoldTarget))
+		}
+		if p.Arm != nil {
+			d.armRung(s, snap, p.Arm, tick)
 		}
 		if p.Guard != nil && p.Grow == nil {
 			d.guard(s, snap, p.Guard, tick) // a structure's guards (the autonz' sentries)
@@ -327,6 +358,10 @@ func (d *Director) Plan(s *Site, tick int) {
 			}
 			for _, res := range snap.short {
 				d.dig(s, cfg, snap, res, tick)
+			}
+		case p.Build != "" && p.Near == "mines":
+			if budget > 0 && d.buildNearMines(s, snap, p.Build, tick) {
+				budget--
 			}
 		case p.Build != "":
 			if budget <= 0 {
@@ -647,7 +682,16 @@ func (d *Director) craft(s *Site, snap *snapshot, p campaign.DirectorPriority, t
 	if station == nil || snap.openCraft[p.Craft] > 0 {
 		return false
 	}
-	if snap.stock[r.Output]+snap.carried[r.Output] >= p.Want(len(snap.colonists)) || !snap.afford(r.Cost) {
+	want, have := p.Want(len(snap.colonists)), snap.stock[r.Output]+snap.carried[r.Output]
+	if len(p.PerRole) > 0 {
+		// One per living body of a role: what they hold and wear counts too.
+		want = 0
+		for _, e := range snap.colonists {
+			want += p.PerRole[roleOf(s, e)]
+			have += wornCount(e, r.Output)
+		}
+	}
+	if have >= want || !snap.afford(r.Cost) {
 		return false
 	}
 	before := len(s.Tasks.GetTasks())
@@ -722,28 +766,42 @@ func (d *Director) haul(s *Site, cfg *campaign.DoctrineDirector, snap *snapshot,
 	if p.Haul == "food" {
 		reach = max(reach, cfg.HuntReach)
 	}
+	if p.Haul == "any" && cfg.Radius > 0 {
+		reach = cfg.Radius // the camp's own ground (a spilled pocket lies within 6 of its door)
+	}
 	type cand struct {
 		e    *ecs.Entity
 		dist int
 	}
 	var cands []cand
-	for _, e := range s.Level.Entities {
-		if e == nil || !e.HasComponent(rlcomponents.Item) || snap.hauls[e] {
-			continue
-		}
-		if p.Haul == "food" {
-			if !e.HasComponent(rlcomponents.Food) {
+	lists := [][]*ecs.Entity{s.Level.Entities}
+	if p.Haul == "any" {
+		lists = append(lists, s.Level.StaticEntities) // gear lies static
+	}
+	for _, list := range lists {
+		for _, e := range list {
+			if e == nil || !e.HasComponent(rlcomponents.Item) || snap.hauls[e] {
 				continue
 			}
-		} else if e.Blueprint != p.Haul {
-			continue
-		}
-		x, y, z, ok := pos(e)
-		if !ok || z != s.CZ || d.avoid[[3]int{x, y, z}] {
-			continue
-		}
-		if dist := cheb(x-s.CX, y-s.CY); dist <= reach && (dist > cfg.Reach || snap.reach[[2]int{x, y}]) {
-			cands = append(cands, cand{e, dist})
+			switch p.Haul {
+			case "food":
+				if !e.HasComponent(rlcomponents.Food) {
+					continue
+				}
+			case "any":
+				// Loose things of any kind (the greys' spilled pocket).
+			default:
+				if e.Blueprint != p.Haul {
+					continue
+				}
+			}
+			x, y, z, ok := pos(e)
+			if !ok || z != s.CZ || d.avoid[[3]int{x, y, z}] {
+				continue
+			}
+			if dist := cheb(x-s.CX, y-s.CY); dist <= reach && (dist > cfg.Reach || snap.reach[[2]int{x, y}]) {
+				cands = append(cands, cand{e, dist})
+			}
 		}
 	}
 	sort.SliceStable(cands, func(i, j int) bool {
@@ -1120,3 +1178,87 @@ func abs(a int) int {
 }
 
 func cheb(dx, dy int) int { return max(abs(dx), abs(dy)) }
+
+// buildNearMines builds kind (a storage container) by the open mine orders
+// when none of the settlement's containers stands within nearMine of their
+// nearest one: on a free open tile with three or more open neighbours (no
+// corridor it would block), reachable, nearest that order.
+func (d *Director) buildNearMines(s *Site, snap *snapshot, kind string, tick int) bool {
+	const nearMine = 8
+	b := construction.GetBuildable(kind)
+	if b.Name == "" || !s.Doctrine.CanBuild(kind) || snap.openBuild[kind] > 0 {
+		return false
+	}
+	var mines [][3]int
+	for _, t := range s.Tasks.GetTasks() {
+		// An ore face (no target: a deposit tile), below or far off; never a
+		// plant chopped for biomass, whose one unit is carried home anyway.
+		if mr, ok := t.Data.(task_requests.MineRequest); ok && !t.Completed && mr.Target == nil {
+			if cheb(t.X-s.CX, t.Y-s.CY) > d.radius(s) || t.Z != s.CZ {
+				mines = append(mines, [3]int{t.X, t.Y, t.Z})
+			}
+		}
+	}
+	if len(mines) == 0 {
+		return false
+	}
+	sort.Slice(mines, func(i, j int) bool { return lessPos(mines[i], mines[j]) })
+	m := mines[0]
+	for _, list := range [][]*ecs.Entity{s.Level.Entities, s.Level.StaticEntities} {
+		for _, e := range list {
+			if e == nil || !e.HasComponent(components.Storage) {
+				continue
+			}
+			if e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy != s.Colony {
+				continue
+			}
+			if x, y, z, ok := pos(e); ok && z == m[2] && cheb(x-m[0], y-m[1]) <= nearMine {
+				return false // a door stands by the mine already
+			}
+		}
+	}
+	best, bestD, found := [3]int{}, 1<<30, false
+	consider := func(p [3]int) {
+		if snap.taskAt[p] || s.Level.GetEntityAt(p[0], p[1], p[2]) != nil || !open(s.Level, p[0], p[1], p[2]) {
+			return
+		}
+		if up, down := stairs(s.Level, p[0], p[1], p[2]); up || down {
+			return
+		}
+		n := 0
+		for _, dd := range [][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}} {
+			if open(s.Level, p[0]+dd[0], p[1]+dd[1], p[2]) {
+				n++
+			}
+		}
+		if n < 3 {
+			return
+		}
+		dist := cheb(p[0]-m[0], p[1]-m[1])
+		if dist > nearMine {
+			return
+		}
+		if dist < bestD || dist == bestD && lessPos(p, best) {
+			best, bestD, found = p, dist, true
+		}
+	}
+	for p := range snap.under {
+		consider(p)
+	}
+	for k := range snap.reach {
+		consider([3]int{k[0], k[1], s.CZ})
+	}
+	if !found || !snap.afford(b.Cost) {
+		return false
+	}
+	before := len(s.Tasks.GetTasks())
+	if !s.Orders.Build(kind, best[0], best[1], best[2]) {
+		return false
+	}
+	snap.openBuild[kind]++
+	snap.consuming++
+	snap.taskAt[best] = true
+	d.watchNew(s, before, tick)
+	d.note("build:"+kind, fmt.Sprintf("build %s by the mine at %d,%d,%d", kind, best[0], best[1], best[2]), tick)
+	return true
+}
