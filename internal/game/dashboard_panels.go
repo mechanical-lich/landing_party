@@ -526,11 +526,8 @@ func (p *encyclopediaPanel) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, label+": "+val, 13, titleX, subY, color.RGBA{170, 200, 240, 255})
 		subY += 18
 	}
-	if desc != nil {
-		attr("Species", desc.Species)
-		attr("Class", desc.Classification)
-		attr("Faction", desc.Faction)
-		attr("Tags", strings.Join(desc.Tags, ", "))
+	for _, a := range encyclopediaAttrs(desc) {
+		attr(a[0], a[1])
 	}
 
 	// Body: a synthesized summary always, then any authored lore beneath it.
@@ -543,7 +540,9 @@ func (p *encyclopediaPanel) Draw(screen *ebiten.Image) {
 		drawWrapped(screen, desc.LongDescription, 14, detailX, bodyY, detailW, 22, color.RGBA{180, 205, 230, 255})
 	}
 
-	mlge_text.Draw(screen, "id: "+bp, 11, detailX, cfg.ScreenHeight-40, color.RGBA{90, 110, 130, 200})
+	if id := encyclopediaID(bp, desc); id != "" {
+		mlge_text.Draw(screen, "id: "+id, 11, detailX, cfg.ScreenHeight-40, color.RGBA{90, 110, 130, 200})
+	}
 }
 
 func (p *encyclopediaPanel) Transition() state.StateInterface { return nil }

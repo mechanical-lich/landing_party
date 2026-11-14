@@ -66,6 +66,11 @@ const CursorModeDeploy CursorModeType = "deploy"
 // (the player in the director's guard rung's place).
 const CursorModePost CursorModeType = "post"
 
+// CursorModeTakeOver is no cursor mode: the take_over order opens the
+// world's panel (the doctrine's interface.world_panel, the take-over
+// switches) and the cursor returns to the default.
+const CursorModeTakeOver CursorModeType = "take_over"
+
 // CursorModeExpandHull grows the clicked deck of a saucer to its next ring;
 // CursorModeAddDeck adds a deck above its top one (phase F step 6d, the
 // greys).
@@ -85,6 +90,7 @@ var orderRegistry = func() map[string]hudBuildOrderItem {
 	m["convert"] = hudBuildOrderItem{id: "convert", label: "Convert", description: "Click ground to convert it.", mode: CursorModeConvert}
 	m["post"] = hudBuildOrderItem{id: "post", label: "Post Guard", description: "Click ground to post the nearest idle guard there.", mode: CursorModePost}
 	m["deploy"] = hudBuildOrderItem{id: "deploy", label: "Deploy", description: "Click ground to deploy a unit there.", mode: CursorModeDeploy}
+	m["take_over"] = hudBuildOrderItem{id: "take_over", label: "Take Over", description: "Choose what you run on this world yourself.", mode: CursorModeTakeOver} // DRAFT
 	m["expand_hull"] = hudBuildOrderItem{id: "expand_hull", label: "Expand Hull", description: "Click a deck to grow its hull to the next ring.", mode: CursorModeExpandHull} // DRAFT
 	m["add_deck"] = hudBuildOrderItem{id: "add_deck", label: "Add Deck", description: "Click to add a deck above the top one.", mode: CursorModeAddDeck}                      // DRAFT
 	return m

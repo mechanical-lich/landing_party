@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/research"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	shippkg "github.com/mechanical-lich/landing_party/internal/ship"
@@ -421,5 +422,39 @@ func TestFilteredColonistTakesMoveHere(t *testing.T) {
 	}
 	if !tk.Completed {
 		t.Fatal("no filtered colonist took the Move Here order")
+	}
+}
+
+// A grey player's research screen leaves out the entries that act only for
+// a rival grey ship (interface.hidden_research: Tractor Lock, Cloak,
+// Mothership Bulwark, Armory Module), even once their prerequisites are
+// known; the shared tree a rival walks keeps them.
+func TestGreyRunHidesRivalOnlyResearch(t *testing.T) {
+	_, wm := greyRun(t, 7, 0)
+	ms := wm.shipLevel
+	ui := ms.doctrineSettlement().UI()
+	hidden := []string{"grey_tractor_lock", "grey_cloak", "grey_mothership_bulwark", "grey_armory_module"}
+	for _, k := range hidden {
+		if !ui.ResearchHidden(k) || !ms.doctrineSettlement().CanResearch(k) {
+			t.Errorf("%s: hidden %v, in the shared tree %v", k, ui.ResearchHidden(k), ms.doctrineSettlement().CanResearch(k))
+		}
+	}
+	// The hidden entries' prerequisites known (Tractor Lock's too, so Cloak
+	// would be available).
+	for _, k := range []string{"grey_beam_weapons", "grey_field_emitter", "grey_tractor_lock"} {
+		ms.unlockTech(k)
+	}
+	available, locked, _, _, _ := ms.researchSnapshot()
+	shown := 0
+	for _, list := range [][]research.Tech{available, locked} {
+		for _, tech := range list {
+			shown++
+			if contains(hidden, tech.Key) {
+				t.Errorf("%s (%s) is on the research screen", tech.Name, tech.Key)
+			}
+		}
+	}
+	if shown == 0 {
+		t.Fatal("fixture: an empty research screen")
 	}
 }

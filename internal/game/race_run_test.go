@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/gui"
@@ -307,5 +308,156 @@ func TestHandBackOnLeaving(t *testing.T) {
 	wm.EndView()
 	if len(pr.TakenOver) != 0 || pr.LaunchTarget != "somewhere" {
 		t.Errorf("after leaving: taken over %v, aim %q", pr.TakenOver, pr.LaunchTarget)
+	}
+}
+
+// The player's people are named by the race's data (interface units_label),
+// never by the hive's word in another race's run: a day of losses in a hive
+// run reads "the brood", in an autonz run "the units" (the contact alert
+// takes the same word).
+func TestRaceRunPeopleWord(t *testing.T) {
+	lib, err := history.DefaultLibrary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for race, want := range map[string]string{"hive": "brood", "autonz": "units"} {
+		c, wm, _ := raceRun(t, race, 7, 0)
+		if got := playerPeopleWord(c); got != want {
+			t.Errorf("%s: people word %q, want %q", race, got, want)
+		}
+		loc := c.Locations[campaign.StartLocationID]
+		for i := 0; i < broodLossThreshold; i++ {
+			wm.noteBroodLoss(loc.ID)
+		}
+		wm.recordBroodLosses()
+		ev := &c.History.Events[len(c.History.Events)-1]
+		text := c.History.Render(lib, ev, "")
+		if ev.Type != "brood_losses" || !strings.Contains(text, "the "+want+" on") || strings.Contains(text, "{") {
+			t.Errorf("%s: losses read %q", race, text)
+		}
+		if race != "hive" && strings.Contains(strings.ToLower(text), "brood") {
+			t.Errorf("%s: losses use the hive's word: %q", race, text)
+		}
+	}
+}
+
+// The take-over switches are on every world the player holds, whatever
+// stands there: the take_over order opens the world's panel (the doctrine's
+// interface.world_panel) on an autonz node with no Signal Core and on a hive
+// world whose Brood Heart is gone, and its switches take groups over.
+func TestTakeOverOnAnyWorld(t *testing.T) {
+	for race, group := range map[string]string{"autonz": "printing", "hive": "breeding"} {
+		_, _, ms := raceRun(t, race, 7, 0)
+		gm := ms.guiManager
+		if !contains(gm.OrderIDs(), "take_over") {
+			t.Errorf("%s: no take_over order in %v", race, gm.OrderIDs())
+		}
+		for _, list := range [][]*ecs.Entity{ms.level.Entities, ms.level.StaticEntities} {
+			for _, e := range list {
+				if e != nil && (e.Blueprint == "hive_heart" || e.Blueprint == "signal_core") {
+					ms.level.RemoveEntity(e) // no structure carrying the switches
+				}
+			}
+		}
+		if err := ms.HandleEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeTakeOver}); err != nil {
+			t.Fatal(err)
+		}
+		if ms.CursorMode == gui.CursorModeTakeOver {
+			t.Errorf("%s: take_over became a cursor mode", race)
+		}
+		if got := gm.StructurePanelShown(); !gm.StructurePanelVisible() || !reflect.DeepEqual(got, []string{"world_toggle", "text", "group_toggles"}) {
+			t.Fatalf("%s: world panel %q %v", race, gm.StructurePanelTitle(), got)
+		}
+		ms.panelToggle(group, true)
+		if pr := ms.playerPresenceHere(); pr == nil || !pr.Manual(group) {
+			t.Errorf("%s: %s not taken over", race, group)
+		}
+		if !gm.StructurePanelVisible() || gm.StructurePanelTitle() != "This World" {
+			t.Errorf("%s: the toggle did not redraw the world panel (%q)", race, gm.StructurePanelTitle())
+		}
+		ms.panelToggle(worldToggle, true)
+		for _, g := range ms.doctrineSettlement().UI().Groups {
+			if !ms.playerPresenceHere().Manual(g.ID) {
+				t.Errorf("%s: I run this world left %s", race, g.ID)
+			}
+		}
+	}
+}
+
+// A conversion-rate entry acts live as in the abstract step: a convert
+// order posted by a settlement carries its doctrine's ConversionRate over
+// the settlement's known techs (Resin Flow and Resin Surge for the hive,
+// Lattice Weave I and II for the autonz), the multiplier convertWork reads.
+func TestLiveConvertReadsRateTechs(t *testing.T) {
+	for race, techs := range map[string][]string{
+		"hive":   {"hive_resin_flow_1", "hive_resin_flow_2"},
+		"autonz": {"conversion_rate_1", "conversion_rate_2"},
+	} {
+		_, _, ms := raceRun(t, race, 7, 0)
+		st := ms.MainSettlement
+		d := campaign.LoadFactionData().Doctrine(race)
+		if got := convertRate(st); got != 1 {
+			t.Errorf("%s: rate %v before the entries", race, got)
+		}
+		st.KnownTechs = append(st.KnownTechs, techs...)
+		want := d.ConversionRate(st.KnownTechs)
+		if want <= 1 {
+			t.Fatalf("%s: the abstract rate with %v is %v", race, techs, want)
+		}
+		x, y, z := st.CenterX+3, st.CenterY+3, st.CenterZ
+		for dx := 0; dx < 6 && !ms.queueConvert(x+dx, y, z, ms.convertTile()); dx++ {
+		}
+		var got float64
+		for _, tk := range st.Tasks.GetTasks() {
+			if r, ok := tk.Data.(task_requests.ConvertRequest); ok {
+				got = r.Rate
+			}
+		}
+		if got != want {
+			t.Errorf("%s: live convert rate %v, abstract %v", race, got, want)
+		}
+	}
+}
+
+// Only the stage's relay pylons add signal range (autonz_plan.md, Signals:
+// one at the hub), so the player's Deploy stops there as the director's
+// deploy rung does: a second drone sent while the first is on its way, or
+// once the pylon stands, is refused.
+func TestAutonzDeployCappedAtTheStageCount(t *testing.T) {
+	_, _, ms := raceRun(t, "autonz", 7, 0)
+	d := campaign.LoadFactionData().Doctrine("autonz")
+	n, capped := deployCap(d, campaign.PylonKey)
+	hub := 0
+	for _, st := range d.Stages {
+		hub = max(hub, st.Structures[campaign.PylonKey])
+	}
+	if !capped || n != hub || n < 1 {
+		t.Fatalf("pylon cap %d (%v), the stages count %d", n, capped, hub)
+	}
+	if d.SignalRange(len(d.Stages)-1, nil, n+1) != d.SignalRange(len(d.Stages)-1, nil, n) {
+		t.Fatal("fixture: a pylon past the cap adds range; the cap is wrong")
+	}
+	st := ms.MainSettlement
+	z := st.CenterZ
+	var drones []*ecs.Entity
+	for i := 0; i < n+1; i++ {
+		e, err := spawnFactionWorker(ms.level, "relay_drone_crew", st.Name, campaign.PlayerFaction, st.CenterX, st.CenterY, z)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if k := components.KinOf(e); k != nil {
+			k.Type = "relay_drone"
+		} else {
+			e.AddComponent(&components.KinComponent{Type: "relay_drone", Settlement: st.Name})
+		}
+		drones = append(drones, e)
+	}
+	for i := 0; i < n; i++ {
+		if !ms.deployAt(st.CenterX+1+i, st.CenterY+1, z) {
+			t.Fatalf("deploy %d refused under the cap", i+1)
+		}
+	}
+	if ms.deployAt(st.CenterX+1+n, st.CenterY+1, z) {
+		t.Errorf("deploy %d sent past the stage count %d", n+1, n)
 	}
 }

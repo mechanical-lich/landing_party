@@ -4199,11 +4199,12 @@
     {
       "id": "brood_losses",
       "live": true,
-      "_text": "DRAFT: phase F, a race run's day of heavy losses on one world (its bodies are counted, not named).",
+      "_text": "DRAFT: phase F, a race run's day of heavy losses on one world (its bodies are counted, not named). {people} is the race's interface units_label, lower case (the brood, units).",
       "fills": [
-        "count"
+        "count",
+        "people"
       ],
-      "text": "{date}: the brood on {site} lost {count} of its own."
+      "text": "{date}: the {people} on {site} lost {count} of their own."
     },
     {
       "id": "colonist_died",

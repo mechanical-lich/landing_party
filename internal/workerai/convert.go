@@ -37,7 +37,7 @@ func handleConvertTask(level *world.Level, entity *ecs.Entity, wc *components.Wo
 		aiMemory.State = "idle"
 		return
 	}
-	req.Progress += workStep(wc, entity, "Str")
+	req.Progress += multStep(wc, entity, req.Rate)
 	t.Data = req
 	if req.Progress < ConvertWork(level, req.X, req.Y, req.Z, req.Required) {
 		return

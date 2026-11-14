@@ -379,3 +379,20 @@ func TestLoadTheSpire(t *testing.T) {
 		t.Errorf("%d holding by the Spire, want the shot of %d", held, d.Mobility.ShotPop)
 	}
 }
+
+// The take_over order needs a world_panel to open, and a world panel holds
+// no action on a structure (it stands for none).
+func TestWorldPanelValidation(t *testing.T) {
+	ui := &campaign.DoctrineInterface{Orders: []campaign.InterfaceOrder{{ID: "take_over"}}}
+	if validateInterface(ui) == nil {
+		t.Error("take_over with no world_panel passed")
+	}
+	ui.WorldPanel = &campaign.InterfacePanel{Rows: []campaign.PanelRow{{Kind: "world_toggle"}, {Kind: "group_toggles"}}}
+	if err := validateInterface(ui); err != nil {
+		t.Errorf("a world panel of toggles: %v", err)
+	}
+	ui.WorldPanel.Rows = append(ui.WorldPanel.Rows, campaign.PanelRow{Kind: "action", Action: "load_launcher"})
+	if validateInterface(ui) == nil {
+		t.Error("a world panel loading a launcher passed")
+	}
+}

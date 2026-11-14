@@ -192,8 +192,10 @@ type MainState struct {
 	wm                *WorldManager
 	// observerReveal: RevealAll was set for observer mode (view.go).
 	observerReveal bool
-	// panelStructure is the structure whose panel is open (structure_panel.go).
+	// panelStructure is the structure whose panel is open (structure_panel.go);
+	// panelWorld, that the open panel is the world's (interface.world_panel).
 	panelStructure *ecs.Entity
+	panelWorld     bool
 	dashboardBtn      *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
@@ -1106,6 +1108,12 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.buildMode = "hull_wall"
 		}
 	case gui.CursorModeChangedEvent:
+		if ev.Mode == gui.CursorModeTakeOver {
+			// Not a mode: the world's take-over panel, the cursor unchanged.
+			s.openWorldPanel()
+			event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
+			break
+		}
 		if s.CursorMode == gui.CursorModeFollow {
 			s.cancelFollowMode()
 		}
@@ -1311,13 +1319,18 @@ func (s *MainState) researchSnapshot() (available, locked, completed, inProgress
 	}
 
 	st := s.doctrineSettlement()
+	ui := st.UI()
 	for _, t := range availableResearch(st, s.knownTechs()) {
-		if inProgressSet[t.Key] {
+		if inProgressSet[t.Key] || ui.ResearchHidden(t.Key) {
 			continue
 		}
 		available = append(available, t)
 	}
-	locked = lockedResearch(st, s.knownTechs())
+	for _, t := range lockedResearch(st, s.knownTechs()) {
+		if !ui.ResearchHidden(t.Key) {
+			locked = append(locked, t)
+		}
+	}
 	return
 }
 

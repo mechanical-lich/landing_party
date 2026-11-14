@@ -136,3 +136,32 @@ func TestCraft_TypedPrintTakesTheCraftersFaction(t *testing.T) {
 	}
 	t.Fatal("no seeker printed")
 }
+
+// convertTurns is how many worker turns a convert of Required 8 at Rate
+// takes, the worker standing beside the tile.
+func convertTurns(t *testing.T, rate float64) int {
+	t.Helper()
+	colony(t)
+	lvl := physicalLevel(t, 8, 3)
+	e, wc, _ := physicalWorker(lvl, 3, 1)
+	tk := &task.Task{Action: task_requests.ConvertAction, X: 4, Y: 1, InProgress: true,
+		Data: task_requests.ConvertRequest{X: 4, Y: 1, Tile: "blue_wires", Required: 8, Rate: rate}}
+	wc.CurrentTask = tk
+	t.Cleanup(fspath.ResetFrameCounter)
+	n := 0
+	for ; n < 200 && !tk.Completed; n++ {
+		fspath.ResetFrameCounter()
+		HandleTaskState(lvl, e)
+	}
+	require.True(t, tk.Completed)
+	return n
+}
+
+// A convert's Rate (its settlement's conversion-rate techs, Resin Flow or
+// Lattice Weave) speeds the work: rate 2 takes about half the turns of 1.
+func TestConvert_RateSpeedsWork(t *testing.T) {
+	one, two := convertTurns(t, 1), convertTurns(t, 2)
+	assert.Equal(t, one, convertTurns(t, 0), "no rate is rate 1")
+	assert.Less(t, two, one)
+	assert.LessOrEqual(t, two, one/2+1)
+}

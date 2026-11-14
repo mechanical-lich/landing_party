@@ -195,6 +195,11 @@ func validateInterfaces() error {
 		if err := validateInterface(d.Settlement.Interface); err != nil {
 			return fmt.Errorf("%s: %s interface: %w", campaign.FactionsPath, k, err)
 		}
+		for _, key := range d.Settlement.Interface.HiddenResearch {
+			if !d.Settlement.CanResearch(key) {
+				return fmt.Errorf("%s: %s interface: hidden_research %q is not in its research", campaign.FactionsPath, k, key)
+			}
+		}
 		if err := validateRungGroups(d.Settlement); err != nil {
 			return fmt.Errorf("%s: %s director: %w", campaign.FactionsPath, k, err)
 		}
@@ -231,6 +236,14 @@ func validateInterface(ui *campaign.DoctrineInterface) error {
 		if err := validatePanel(ui.Panels[b]); err != nil {
 			return fmt.Errorf("panel %q: %w", b, err)
 		}
+	}
+	if ui.WorldPanel != nil {
+		if err := validateWorldPanel(ui.WorldPanel); err != nil {
+			return fmt.Errorf("world_panel: %w", err)
+		}
+	}
+	if ui.Order("take_over") != nil && ui.WorldPanel == nil {
+		return fmt.Errorf("order take_over: no world_panel to open")
 	}
 	return nil
 }

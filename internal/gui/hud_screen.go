@@ -1377,7 +1377,7 @@ func (h *HUDScreen) OpenCraftingModal(title string, recipes, lockedRecipes []cra
 		}
 		h.craftingOutputs = append(h.craftingOutputs, r.Output)
 		items = append(items, label)
-		h.craftTooltipDescs = append(h.craftTooltipDescs, r.Description)
+		h.craftTooltipDescs = append(h.craftTooltipDescs, shownDescription(r.Description))
 	}
 
 	for _, r := range recipes {
@@ -1450,6 +1450,17 @@ func costText(cost map[string]int) string {
 	return strings.Join(parts, ", ")
 }
 
+// shownDescription is a research entry's or recipe's description as a
+// tooltip shows it: a placeholder ("_draft", or any text starting with "_",
+// the data's mark for a note or a line the owner has yet to write) shows as
+// nothing, so the tooltip is not drawn. No entry has an effect line yet.
+func shownDescription(s string) string {
+	if strings.HasPrefix(strings.TrimSpace(s), "_") {
+		return ""
+	}
+	return s
+}
+
 func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) {
 	items := make([]string, 0, len(available)+len(locked))
 	keys := make([]string, 0, len(available)+len(locked))
@@ -1464,7 +1475,7 @@ func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) 
 		items = append(items, label)
 		keys = append(keys, t.Key)
 		colors = append(colors, nil)
-		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
+		h.researchTooltipDescs = append(h.researchTooltipDescs, shownDescription(t.Description))
 	}
 	for _, t := range locked {
 		prereqName := t.RequiresTech
@@ -1474,7 +1485,7 @@ func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) 
 		items = append(items, fmt.Sprintf("%s  [requires: %s]", t.Name, prereqName))
 		keys = append(keys, "") // empty key = not selectable
 		colors = append(colors, color.RGBA{120, 120, 120, 255})
-		h.researchTooltipDescs = append(h.researchTooltipDescs, t.Description)
+		h.researchTooltipDescs = append(h.researchTooltipDescs, shownDescription(t.Description))
 	}
 	if len(items) == 0 {
 		items = append(items, "No research available.")

@@ -1,0 +1,44 @@
+{"name":"encyclopedia_hidden","seed":777,"config":{"rivalsByCount":true}}
+# Hidden identity in the Encyclopedia: as factions_hive, a colony lands on
+# Rust Tangle (sys_43) beside a grown hive; the cursor rests on the Brood
+# Heart (catalogued on hover), then the Encyclopedia tab shows its card:
+# no "Faction: hive" line or sentence and no "id: hive_heart" footer.
+# Frames: the heart hovered, its Encyclopedia card (its row clicked by
+# position: the catalogue list has no named rows).
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Swarm"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
+{"op":"debug","cmd":"days 36"}
+{"op":"assert","path":"campaign.presences.sys_43","gte":12}
+{"op":"click","target":"row:locList:sys_43"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"selected_location.known_factions","eq":1}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"debug","cmd":"stance hive neutral"}
+{"op":"key","key":"Space"}
+{"op":"debug","cmd":"focus hive_heart"}
+{"op":"wait","ticks":5}
+{"op":"move","target":"focused"}
+{"op":"wait","ticks":10}
+{"op":"screenshot","name":"heart_hovered"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:encyclopedia"}
+{"op":"wait","ticks":5}
+{"op":"click","at":[150,389]}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"heart_card"}

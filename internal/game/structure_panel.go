@@ -31,6 +31,20 @@ var panelSources = map[string]map[string]bool{
 // panelActions is every action an action row may run.
 var panelActions = map[string]bool{"launch_at": true, "transmit_to": true, "load_launcher": true}
 
+// validateWorldPanel checks the world's panel: a panel's rows, none of
+// them an action on the structure it stands for (it stands for none).
+func validateWorldPanel(p *campaign.InterfacePanel) error {
+	if err := validatePanel(p); err != nil {
+		return err
+	}
+	for i, r := range p.Rows {
+		if r.Kind == "action" && r.Action == "load_launcher" {
+			return fmt.Errorf("row %d: %q needs a structure", i, r.Action)
+		}
+	}
+	return nil
+}
+
 // validatePanel checks one panel's rows against the registries.
 func validatePanel(p *campaign.InterfacePanel) error {
 	if p == nil {
@@ -78,14 +92,35 @@ func (s *MainState) openStructurePanel(ent *ecs.Entity) {
 	if p == nil || s.guiManager == nil {
 		return
 	}
-	s.panelStructure = ent
+	s.panelStructure, s.panelWorld = ent, false
+	s.guiManager.OpenStructurePanel(s.panelView(p))
+}
+
+// openWorldPanel opens the world's own panel (interface.world_panel: the
+// take_over order), on a world the player gives orders on.
+func (s *MainState) openWorldPanel() {
+	p := s.doctrineSettlement().UI().WorldPanel
+	if p == nil || s.guiManager == nil {
+		return
+	}
+	if !s.ordersHere() || s.playerPresenceHere() == nil {
+		message.PostMessage("Orders", "Nothing of yours to run here.") // DRAFT
+		return
+	}
+	s.panelStructure, s.panelWorld = nil, true
 	s.guiManager.OpenStructurePanel(s.panelView(p))
 }
 
 // refreshStructurePanel redraws the open panel (after an action or a
 // toggle).
 func (s *MainState) refreshStructurePanel() {
-	if s.panelStructure != nil && s.guiManager != nil && s.guiManager.StructurePanelVisible() {
+	if s.guiManager == nil || !s.guiManager.StructurePanelVisible() {
+		return
+	}
+	switch {
+	case s.panelWorld:
+		s.openWorldPanel()
+	case s.panelStructure != nil:
 		s.openStructurePanel(s.panelStructure)
 	}
 }

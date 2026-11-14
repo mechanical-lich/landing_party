@@ -44,10 +44,44 @@ func synthDescription(blueprint string, desc *rlcomponents.DescriptionComponent)
 		article = "An"
 	}
 	s := article + " " + subject + "."
-	if desc.Faction != "" {
-		s += " Faction: " + desc.Faction + "."
+	if f := encyclopediaFaction(desc.Faction); f != "" {
+		s += " Faction: " + f + "."
 	}
 	return s
+}
+
+// encyclopediaFaction is an entry's faction as the Encyclopedia names it:
+// the HUD's and the inspector's hidden-identity rule (hiddenFaction), so a
+// hive creature's card never says "hive" outside an observer run.
+func encyclopediaFaction(faction string) string {
+	if hiddenFaction(faction) {
+		return ""
+	}
+	return faction
+}
+
+// encyclopediaAttrs is an entry's structured attribute lines (label,
+// value), in card order; an empty value is not drawn.
+func encyclopediaAttrs(desc *rlcomponents.DescriptionComponent) [][2]string {
+	if desc == nil {
+		return nil
+	}
+	return [][2]string{
+		{"Species", desc.Species},
+		{"Class", desc.Classification},
+		{"Faction", encyclopediaFaction(desc.Faction)},
+		{"Tags", strings.Join(desc.Tags, ", ")},
+	}
+}
+
+// encyclopediaID is the card's "id:" footer: the blueprint, "" for a
+// hidden-identity faction's entry (its key names it: "hive_heart"), as the
+// inspector leaves out its Blueprint line.
+func encyclopediaID(blueprint string, desc *rlcomponents.DescriptionComponent) string {
+	if desc != nil && hiddenFaction(desc.Faction) {
+		return ""
+	}
+	return blueprint
 }
 
 // drawWrapped renders text wrapping on word boundaries to fit maxW pixels per

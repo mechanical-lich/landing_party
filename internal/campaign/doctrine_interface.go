@@ -29,6 +29,18 @@ type DoctrineInterface struct {
 	// Panels is a structure blueprint's panel: a click on one of the
 	// player's opens it (step 3).
 	Panels map[string]*InterfacePanel `json:"panels,omitempty"`
+	// WorldPanel is the world's own panel, tied to no structure: the
+	// take_over order opens it on any world the player holds (the
+	// take-over switches where the race may have no structure standing
+	// that carries them: an autonz node without a Signal Core, a hive
+	// that lost its Brood Heart).
+	WorldPanel *InterfacePanel `json:"world_panel,omitempty"`
+	// HiddenResearch is the research entries the player's research screen
+	// leaves out: entries of the doctrine's shared tree that act only for a
+	// rival (the greys' Tractor Lock, Cloak, Mothership Bulwark and Armory
+	// Module), so a player of the race could research nothing by them.
+	// Rival walks are untouched.
+	HiddenResearch []string `json:"hidden_research,omitempty"`
 	// Groups names the director's rung groups the player may take over
 	// (step 3), in panel order.
 	Groups []InterfaceGroup `json:"groups,omitempty"`
@@ -93,3 +105,6 @@ func (s *DoctrineSettlement) UI() *DoctrineInterface {
 	}
 	return s.Interface
 }
+
+// ResearchHidden reports whether the player's research screen leaves key out.
+func (ui *DoctrineInterface) ResearchHidden(key string) bool { return contains(ui.HiddenResearch, key) }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"sort"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
@@ -252,7 +253,7 @@ func (wm *WorldManager) raceContacts() {
 			}
 			if met(mine, settlementWorkers(ms.level, factionSettlementName(p, id))) && c.RaceContact(p.Faction, loc) {
 				turned[p.Faction] = true
-				message.PostMessage("Alert", fmt.Sprintf("Your brood has been seen on %s. They are hostile now.", loc.Name)) // DRAFT
+				message.PostMessage("Alert", fmt.Sprintf("Your %s have been seen on %s. They are hostile now.", playerPeopleWord(c), loc.Name)) // DRAFT
 			}
 		}
 	}
@@ -297,6 +298,18 @@ func (wm *WorldManager) chartRaceRange() {
 	}
 }
 
+// playerPeopleWord is the player's people in a race run's alert or Legends
+// line ("brood", "units"): the race's interface units_label in lower case
+// (data, draft), "colonists" for a doctrine without one.
+func playerPeopleWord(c *campaign.Campaign) string {
+	if d := campaign.PlayerDoctrine(c); d != nil {
+		if w := d.Settlement.UI().UnitsLabel; w != "" {
+			return strings.ToLower(w)
+		}
+	}
+	return "colonists"
+}
+
 // broodLossThreshold is how many of a world's bodies must die in a day for
 // the day's losses to make one Legends event.
 const broodLossThreshold = 5
@@ -320,7 +333,7 @@ func (wm *WorldManager) recordBroodLosses() {
 	sort.Strings(ids)
 	for _, id := range ids {
 		if n := wm.broodLosses[id]; n >= broodLossThreshold {
-			c.RecordLive("brood_losses", c.Locations[id], map[string]string{"count": fmt.Sprint(n)})
+			c.RecordLive("brood_losses", c.Locations[id], map[string]string{"count": fmt.Sprint(n), "people": playerPeopleWord(c)})
 		}
 	}
 	wm.broodLosses = nil
@@ -359,11 +372,55 @@ func (s *MainState) deployAt(x, y, z int) bool {
 		message.PostMessage("Orders", "No idle unit to deploy.") // DRAFT
 		return false
 	}
+	if n, capped := deployCap(d, dep.As); capped && s.deployedCount(dep.As) >= n {
+		message.PostMessage("Orders", "No more of those would add anything here.") // DRAFT
+		return false
+	}
 	if orderDeploy(s.level, best, x, y, z, dep.As, dep.Floor, dep.Ticks) == nil {
 		message.PostMessage("Orders", "It cannot deploy there.") // DRAFT
 		return false
 	}
 	return true
+}
+
+// deployCap is the most of structure as the doctrine's stages ever count
+// (the relay pylon: SignalRange counts at most the stage's relay_pylon, 1 at
+// the hub; autonz_plan.md "Signals"), and whether a stage counts it at all.
+// The director deploys only up to the stage's count; the player may deploy
+// the hub's one ahead of the hub, never past it.
+func deployCap(d *campaign.Doctrine, as string) (int, bool) {
+	n, capped := 0, false
+	for _, st := range d.Stages {
+		if v, ok := st.Structures[as]; ok {
+			n, capped = max(n, v), true
+		}
+	}
+	return n, capped
+}
+
+// deployedCount is how many of structure as the player's settlement here
+// has standing or on its way (a unit holding a deploy task for it).
+func (s *MainState) deployedCount(as string) int {
+	name := s.colonyName()
+	n := 0
+	for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
+		for _, e := range list {
+			if e != nil && e.Blueprint == as && !e.HasComponent(rlcomponents.Dead) {
+				if k := components.KinOf(e); k != nil && k.Settlement == name {
+					n++
+				}
+			}
+		}
+	}
+	for _, e := range settlementWorkers(s.level, name) {
+		wc := e.GetComponent(components.Worker).(*components.WorkerComponent)
+		if t := wc.CurrentTask; t != nil && !t.Completed {
+			if r, ok := t.Data.(task_requests.DeployRequest); ok && r.As == as {
+				n++
+			}
+		}
+	}
+	return n
 }
 
 // dropDeadPlayerWorlds removes the record of a player presence whose loaded

@@ -36,6 +36,11 @@ type ConvertRequest struct {
 	Tile     string
 	Progress int
 	Required int
+	// Rate multiplies the worker's work on it (0 or 1: none): the
+	// settlement's doctrine's conversion rate from its known techs (the
+	// hive's Resin Flow, the autonz' Lattice Weave), as the abstract step
+	// reads it.
+	Rate float64 `json:",omitempty"`
 }
 
 // DeployRequest replaces the worker with the As structure on X, Y, Z once

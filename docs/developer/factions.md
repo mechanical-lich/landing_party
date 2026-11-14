@@ -979,8 +979,8 @@ units' deaths are counted, not named: a world losing five or more in a day
 records one `brood_losses` event (draft).
 
 **The autonz run** (step 5) is the same machinery over the signal: the
-autonz' `race` block (the autonz soak's node start: three wire placers, an
-enforcer, 20 metal ore, 4 crystal), its interface (metal, crystal, ferrite
+autonz' `race` block (a node start: four wire placers, two enforcers, 30
+metal ore, 6 crystal), its interface (metal, crystal, ferrite
 and the conversion share; Lay Wire and **Deploy Relay**, the `deploy` order:
 the nearest idle unit whose type deploys walks to the clicked wired tile and
 folds into its structure, `MainState.deployAt`; Assimilation; a unit modal
@@ -1072,10 +1072,12 @@ sources, type lines, crew grouping, validation),
 | `resources` | the HUD resource bar's slots, in order; `id` names the slot | `source`: `storage` (the ID as a blueprint in storage), `food` (edible items), `larvae` (the player's larvae on the level), `conversion` (the converted share of the patch, percent); none: the colony's rule (food by edibles, the rest by blueprint). A race run counts only its own settlement's storage; the colony counts every storage on the level, as it did |
 | `unit_label`, `units_label` | one of the player's people (the unit modal's title, a fallback name), many (the population tab, the hover hints: "Send brood to this location.") | words, draft |
 | `research_label` | the research modal's title | words, draft |
-| `orders` | the build menu's Orders category, in order; `label` and `description` override the defaults | `default`, `dig`, `mine`, `store`, `drop`, `cancel`, `attack`, `sleep`, `convert` (lays the doctrine's `conversion.tile` where clicked: the order is open to a doctrine with one, so the colony's stays gated on `terraforming`), `deploy` (the nearest idle unit whose type deploys folds into its structure there), `post` (the nearest idle unit with one of the entry's `roles` walks to the tile and holds it: the player's guard post) |
+| `orders` | the build menu's Orders category, in order; `label` and `description` override the defaults | `default`, `dig`, `mine`, `store`, `drop`, `cancel`, `attack`, `sleep`, `convert` (lays the doctrine's `conversion.tile` where clicked: the order is open to a doctrine with one, so the colony's stays gated on `terraforming`), `deploy` (the nearest idle unit whose type deploys folds into its structure there), `post` (the nearest idle unit with one of the entry's `roles` walks to the tile and holds it: the player's guard post), `take_over` (no cursor mode: opens the `world_panel`) |
 | `unit_modal` | the unit modal's sections; the crew panel's detail follows `needs`, `stats` and `equipment` too | `identity` (name, Take Control), `type_tier` (the type's name and print tier), `stats`, `needs` (an exhaustion limit out of reach is not drawn), `equipment` (the six slots and the storage column), `task_filters`, `inventory` (Carrying and Pickup) |
 | `crew_group` | the crew panel's grouping key; a race run's crew panel lists every loaded world's bodies and a row per frozen world | `""` (none: the colony), `type`, `type_tier` |
 | `panels` | a structure blueprint's panel (step 3): a click on one of the player's opens it | row `kind`: `readiness`, `target_list`, `action`, `text`, `group_toggles` (one toggle per group), `world_toggle` (one switch taking every group over: "I run this world"); `source`: `launcher`, `signal` (readiness), `launch_targets`, `signal_targets` (target_list); `action`: `launch_at`, `transmit_to`, `load_launcher` (the shot of the player's units, the launch rung's roles first, walks to hold round the structure: the launch rung's walk by hand) |
+| `world_panel` | the world's own panel, tied to no structure: the `take_over` order opens it on any world the player gives orders on, so the take-over switches do not depend on a structure standing (an autonz node has no Signal Core and its fabricator is a crafting station; a lost Brood Heart cannot be rebuilt). The hive and the autonz declare one: `world_toggle`, a `text` row and `group_toggles` | the `panels` row kinds, less `load_launcher` (it acts on the panel's structure); `take_over` without a `world_panel` is refused |
+| `hidden_research` | research entries of the doctrine's shared tree the player's research screen leaves out: they act only for a rival (the greys' Tractor Lock, Cloak, Mothership Bulwark and Armory Module); rival walks keep them | ids in the settlement's `research` |
 | `groups` | the director's rung groups the player may take over (step 3); rungs carry `group`, and every rung of a playable race has one, so the player can take the director's place entirely | ids and labels |
 
 **Validation.** `validateInterfaces` (run by `ValidateData` at start-up and
@@ -1537,6 +1539,13 @@ enforcers (the same faction string, `autonz`, so they never fight).
 | `tags` | added to the rate by site tag: ore 0.5, salvage and radioactive 0.25 (ore feeds it) |
 | `cap` | the most of the patch it converts (0.85) |
 | `floor` | the share of the site's capacity it carries with nothing converted (0.35) |
+
+Live, the same rate techs act on the work: `orderConvert` stamps each
+`ConvertRequest` with `Rate`, the settlement's `Doctrine.ConversionRate`
+over its known techs (`convertRate`), and the worker's convert work is
+multiplied by it (`multStep`), so Resin Flow and Surge, and Lattice Weave I
+and II, speed the resin and the wire on a loaded level as they do the
+abstract `per_day`.
 
 `Doctrine.ConvertCap(loc, p)` is the capacity under conversion:
 `ceil(capacity × (floor + (1 − floor) × min(conversion / cap, 1)))`, at least

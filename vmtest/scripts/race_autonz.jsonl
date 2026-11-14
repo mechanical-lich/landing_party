@@ -1,7 +1,7 @@
 {"name":"race_autonz","seed":777,"config":{"rivalsByCount":true}}
 # An autonz run (phase F step 5): New Expedition seed 777, the Race row
 # stepped twice to the autonz. No ship; the run opens viewing the node on
-# the start system (three wire placers and an enforcer, the cursor bound).
+# the start system (four wire placers and two enforcers, the cursor bound).
 # The HUD is the autonz's (metal, crystal, ferrite, conversion; Lay Wire and
 # Deploy Relay; Assimilation), a wire placer's unit modal shows its type and
 # tier and no needs, a Lay Wire click queues a convert order, a Signal Core

@@ -317,7 +317,7 @@ func orderConvert(st *settlement.Settlement, level *world.Level, x, y, z int, ti
 	}
 	st.Tasks.AddTask(&task.Task{
 		Action: task_requests.ConvertAction,
-		Data:   task_requests.ConvertRequest{X: x, Y: y, Z: z, Tile: tile, Required: convertTicks},
+		Data:   task_requests.ConvertRequest{X: x, Y: y, Z: z, Tile: tile, Required: convertTicks, Rate: convertRate(st)},
 		X:      x, Y: y, Z: z,
 	})
 	return true
@@ -325,6 +325,17 @@ func orderConvert(st *settlement.Settlement, level *world.Level, x, y, z int, ti
 
 // convertTicks is a ConvertAction's work.
 const convertTicks = 8
+
+// convertRate is st's live conversion rate: its doctrine's ConversionRate
+// over the settlement's known techs, the multiplier the abstract step's
+// convertWork reads (1 for a doctrine without rate techs, or the colony).
+func convertRate(st *settlement.Settlement) float64 {
+	d := campaign.LoadFactionData().Doctrine(doctrineOfSettlement(st.Name))
+	if d == nil {
+		return 1
+	}
+	return d.ConversionRate(st.KnownTechs)
+}
 
 func (o settlementOrders) Convert(x, y, z int, tile string) bool {
 	return orderConvert(o.st, o.level, x, y, z, tile)

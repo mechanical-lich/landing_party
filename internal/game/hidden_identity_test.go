@@ -1,11 +1,14 @@
 package game
 
 import (
+	"encoding/json"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/campaign"
+	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/history"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
@@ -127,5 +130,54 @@ func TestHiveNeverNamedInANormalCampaign(t *testing.T) {
 	t.Logf("%d faction events, %d rooms, %d hive entities scanned", faction, len(seen), inspected)
 	for _, l := range leaks {
 		t.Error(l)
+	}
+}
+
+// The Encyclopedia names a hive creature as the HUD and the inspector do:
+// no "Faction: hive" attribute or summary, no "id: hive_..." footer, for
+// every blueprint of the hive's (data/blueprints/entities/hive.json); an
+// observer run names it.
+func TestEncyclopediaNeverNamesTheHive(t *testing.T) {
+	observerRunActive = false
+	defer func() { observerRunActive = false }()
+	raw, err := os.ReadFile("data/blueprints/entities/hive.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bps map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &bps); err != nil {
+		t.Fatal(err)
+	}
+	card := func(bp string) string {
+		desc := factory.GetDescription(bp)
+		var parts []string
+		for _, a := range encyclopediaAttrs(desc) {
+			if a[1] != "" {
+				parts = append(parts, a[0]+": "+a[1])
+			}
+		}
+		parts = append(parts, displayName(bp, desc), synthDescription(bp, desc))
+		if id := encyclopediaID(bp, desc); id != "" {
+			parts = append(parts, "id: "+id)
+		}
+		return strings.Join(parts, "\n")
+	}
+	n := 0
+	for bp := range bps {
+		desc := factory.GetDescription(bp)
+		if desc == nil || desc.Faction != "hive" {
+			continue
+		}
+		n++
+		if s := card(bp); hiveWord.MatchString(s) {
+			t.Errorf("%s card names the hive:\n%s", bp, s)
+		}
+	}
+	if n == 0 {
+		t.Fatal("fixture: no hive blueprint")
+	}
+	observerRunActive = true
+	if s := card("hive_heart"); !strings.Contains(s, "Faction: hive") || !strings.Contains(s, "id: hive_heart") {
+		t.Errorf("observer run: the card should name the hive:\n%s", s)
 	}
 }

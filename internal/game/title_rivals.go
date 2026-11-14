@@ -84,15 +84,24 @@ func (ts *TitleState) updateRivalRows() {
 	}
 }
 
-// rivalPickName is a box's shown choice: Random, or the doctrine's name
-// (the colony's rival view by the colony's own name).
+// rivalPickName is a box's shown choice: Random, or the doctrine's name as
+// the rival is named everywhere else (the colony's rival view by its rival
+// name, "Rival Colony").
 func (ts *TitleState) rivalPickName(pick int) string {
 	if pick <= 0 || pick > len(ts.rivalChoices) {
 		return "Random" // DRAFT
 	}
-	k := ts.rivalChoices[pick-1]
-	if d := campaign.LoadFactionData().Doctrine(campaign.BaseDoctrine(k)); d != nil {
-		return d.Name
+	return rivalChoiceName(ts.rivalChoices[pick-1])
+}
+
+// rivalChoiceName is a rival choice's name: its view's (the rival block's
+// name), else its base doctrine's, else the key.
+func rivalChoiceName(k string) string {
+	fd := campaign.LoadFactionData()
+	for _, key := range []string{k, campaign.BaseDoctrine(k)} {
+		if d := fd.Doctrine(key); d != nil && d.Name != "" {
+			return d.Name
+		}
 	}
 	return k
 }

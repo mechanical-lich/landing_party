@@ -1,0 +1,38 @@
+{"name":"race_autonz_takeover","seed":777,"config":{"rivalsByCount":true}}
+# The take-over switches on an autonz node with no Signal Core: the Orders
+# menu's Take Over opens the world's panel (interface.world_panel: I run
+# this world, the rung-group toggles); taking printing over is recorded on
+# the presence. Then the cogitator's research modal with the cursor on an
+# entry whose description is the "_draft" placeholder: no tooltip is drawn.
+# Frames: the world panel, printing taken over, the research modal hovered.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Node"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"assert","path":"race","eq":"autonz"}
+{"op":"assert","path":"hud.orders","contains":"take_over"}
+{"op":"wait","ticks":30}
+{"op":"key","key":"Space"}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"click","target":"hud:order_take_over"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","contains":"structurePanel"}
+{"op":"assert","path":"panel.title","eq":"This World"}
+{"op":"assert","path":"panel.rows","eq":["world_toggle","text","group_toggles"]}
+{"op":"screenshot","name":"world_panel"}
+{"op":"click","target":"modal:structurePanel:panel_group_printing"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"taken_over","contains":"printing"}
+{"op":"screenshot","name":"printing_taken"}
+{"op":"click","target":"modal:structurePanel:close"}
+{"op":"click","target":"entity:cogitator"}
+{"op":"assert","path":"modal","contains":"researchModal"}
+{"op":"move","target":"modal:researchModal:row:researchTechList:0"}
+{"op":"wait","ticks":10}
+{"op":"screenshot","name":"research_hovered"}
