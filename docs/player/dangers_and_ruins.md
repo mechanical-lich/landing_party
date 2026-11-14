@@ -17,6 +17,9 @@ A charted world's summary on the [Star Map](star_map.md) starts with a tag:
 The tag tells you how bad, not what; the line after it hints at what is
 going on. The first worlds near the Wreck Site are never threats.
 
+The tag is the world's own story. Other [factions](factions.md) living there
+get a tag of their own under it.
+
 ## Hazards you can meet
 
 Hazards sit where they started, never right beside your landing.
@@ -52,3 +55,15 @@ some are rubble.
   blades from early peoples, machine parts and fission cores from industrial
   and atomic ones, tech fragments and alien alloy from those that crossed the
   stars.
+
+## What factions leave behind
+
+| What | Left by | What is there |
+|---|---|---|
+| **Husk** | a nest that died out on its own | an empty nest with cracked eggs ([Xenos and Troids](xenos_and_troids.md)) |
+| **Ruined camp** | a rival colony that lifted off | its camp, broken, with empty storage and a datapad saying where it went ([Rival Colonies](rival_colonies.md)) |
+| **Landing scar** | a grey ship that lifted off | scorched ground, empty unowned lockers, and wrecked armories, arrays and emitters to break for grey alloy and crystal ([Greys](greys.md)) |
+| **Dormant Node** | an autonz signal | a single dark machine that wakes 30 days after it landed; destroy it first and the world stays clean ([Autonz](autonz.md)) |
+| **Camp** | a rival colony or grey ship whose crew you killed | the camp stays as it stood |
+
+A faction's datapad adds its line to [Legends](legends.md) when picked up.

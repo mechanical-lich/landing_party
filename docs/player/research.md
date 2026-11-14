@@ -14,6 +14,14 @@ Research unlocks new buildings and capabilities. Assign colonists to a research 
 
 Some technologies require a **prerequisite** to be researched first.
 
+Hover an entry for its description. An entry with no description written
+yet shows no tooltip; the same goes for crafting recipes.
+
+This is the colony's tree. The other races research their own: the hive's
+evolve tree ([Xenos and Troids](xenos_and_troids.md#the-evolve-tree)), the
+autonz' assimilation tree ([Autonz](autonz.md#the-assimilation-tree)) and the
+greys' tree ([Greys](greys.md#research)). A rival colony researches this one.
+
 ---
 
 ## Tech Tree

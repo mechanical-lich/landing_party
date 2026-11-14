@@ -17,6 +17,11 @@ Welcome to Landing Party. Build a colony. Keep your colonists alive. Try not to 
 - [Legends](legends.md) — the chronicle of each world's history and your expedition's
 - [Dangers, Ruins and Relics](dangers_and_ruins.md) — Calm / Hazard / Threat tags, hazards, old structures, relics
 - [Scenarios](scenarios.md) — the world types a location can use
+- [Factions](factions.md) — the other factions on the map, groups, the New Expedition options, and playing another race
+  - [Xenos and Troids](xenos_and_troids.md) — nests that fire eggs at other worlds (the second half is a spoiler)
+  - [Autonz](autonz.md) — machines that wire a world and signal the next
+  - [Greys](greys.md) — saucers, a mothership, and a crew you can play
+  - [Rival Colonies](rival_colonies.md) — another expedition like yours
 - [Quests](star_map.md#quests) — objectives, rewards, and unlocking new locations
 
 ---
@@ -44,7 +49,7 @@ way it always has. Colonists will:
 - Eat food when hungry, or starve if none is available
 - Defend themselves when attacked, but they are not fighters
 
-Hostile alien creatures will spawn outside and attempt to push into your colony. There is no per-planet "win" — your objectives come from [quests](star_map.md#quests) accepted at the ship. Keep your landing party alive; if everyone planetside dies you simply lose that party until you beam more down.
+Hostile alien creatures will spawn outside and attempt to push into your colony, and other [factions](factions.md) may already hold the world or land on it later. There is no per-planet "win" — your objectives come from [quests](star_map.md#quests) accepted at the ship. Keep your landing party alive; if everyone planetside dies you simply lose that party until you beam more down.
 
 ### The World
 

@@ -163,6 +163,11 @@ and filters.
 5. **Travel Here** to the next world, or back to a paused one.
 6. **Save Expedition** any time from the Star Map.
 
+Worlds other factions hold carry a badge and a tag, and their eggs and ships
+are drawn in flight; see [Factions](factions.md#on-the-star-map). A jump can
+also meet a faction ship on the way (see
+[Meeting ships in space](factions.md#meeting-ships-in-space)).
+
 Each world's summary on the Star Map comes from its history, after a
 **Calm**, **Hazard** or **Threat** tag that says how dangerous it is (see
 [Dangers, Ruins and Relics](dangers_and_ruins.md)); the
@@ -207,5 +212,9 @@ none in the ship roster, none on any established system). The only way to grow
 the crew is to build a **Bio-Printer** and print new colonists from biomass
 (see [Crafting](crafting.md)), so protect your starting crew until you can
 afford one.
+
+This is the colony's journey. A greys run flies it too; a hive or autonz run
+has no ship and wins by holding six worlds (see
+[Playing another race](factions.md#playing-another-race)).
 
 > Still planned: deeper authored lore on top of the generator.

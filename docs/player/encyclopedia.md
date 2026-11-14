@@ -20,6 +20,11 @@ Any entity with a `Description` component, the moment you hover it. That include
 
 Entities you never hover stay off the list, even if your colonists walk past them.
 
+Other factions' creatures, machines and structures are recorded the same way
+when you hover them. For what each one does, see [Factions](factions.md).
+A xeno or troid card, and the card of anything they build, shows no
+faction line and no id.
+
 ---
 
 ## Layout

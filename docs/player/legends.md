@@ -21,6 +21,11 @@ Your expedition's own story is written in as it happens: colonies founded and
 abandoned, colonists who died and who killed them, bosses slain, quests and
 contracts, threats wiped out.
 
+So is what the other [factions](factions.md) do: nests growing and firing
+eggs, ships landing and lifting off, signals sent and machines waking, a
+faction turning hostile, ships boarded and taken. What happens where you
+cannot see is kept back until you find the faction it belongs to.
+
 ## The tab
 
 The left list filters the chronicle: **All events**, or one **site**, one
@@ -35,7 +40,7 @@ everything since is dated in the [star date](star_map.md).
 - The **Star Map** describes each world by its history, and says what is
   going on there now.
 - A world's threat is the latest chapter of its story and grows from where it
-  started: the hive from the wreck it came out of, the plague from where the
+  started: the nest from the wreck it came out of, the plague from where the
   dead fell.
 - Some quests come from the history: recover a named engineer's log, the
   records of a vanished people, or find where a world's trouble began.
