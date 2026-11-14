@@ -46,6 +46,8 @@ func (s *MainState) stepWorld() {
 	}
 	s.stepDirector()
 	s.stepFactionDirectors()
+	s.linkPlayerPockets()
+	s.stepHull()
 	s.collectDatapads()
 	effect.GetEffectManager().Update()
 	// A quest target may have just died during cleanup — resolve immediately
@@ -88,6 +90,8 @@ func (s *MainState) stepBackground() {
 	}
 	s.stepDirector()
 	s.stepFactionDirectors()
+	s.linkPlayerPockets()
+	s.stepHull()
 	s.advanceClock()
 	if s.tick%30 == 0 {
 		s.purgeCompletedTasks()
@@ -207,7 +211,7 @@ func (s *MainState) rogueStepToward(tx, ty, tz int) {
 
 // enterRogueMode hands direct control of the given colonist to the player.
 func (s *MainState) enterRogueMode(ent *ecs.Entity) {
-	if observerMode() || !components.IsColonyWorker(ent, s.colonyName()) || !ent.HasComponent(rlcomponents.Position) {
+	if !s.ordersHere() || !components.IsColonyWorker(ent, s.colonyName()) || !ent.HasComponent(rlcomponents.Position) {
 		return
 	}
 	wc := ent.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -307,7 +311,7 @@ func (s *MainState) rogueAct(dx, dy int) bool {
 	tx, ty, tz := pc.GetX()+dx, pc.GetY()+dy, pc.GetZ()
 
 	// Bump to attack: hostile entity with health on the destination tile.
-	if target := s.level.GetEntityAt(tx, ty, tz); components.IsAttackTarget(target) {
+	if target := s.level.GetEntityAt(tx, ty, tz); components.IsDefaultAttackTarget(target) {
 		rlentity.Face(ent, dx, dy)
 		combat.MeleeAttack(s.level, ent, tx, ty, tz)
 		return true

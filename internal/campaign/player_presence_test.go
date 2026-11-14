@@ -108,8 +108,13 @@ func TestPlayerDoctrineSelection(t *testing.T) {
 	if h.Player.Doctrine != "hive" || PlayerDoctrine(h) != LoadFactionData().Doctrine("hive") {
 		t.Errorf("chosen doctrine: %+v", h.Player)
 	}
-	if PlayerDoctrine(h).Playable {
-		t.Error("the hive is not playable yet (phase F); its settlement block runs its rival hives (phase E2)")
+	// Phase F: the hive is playable, a spreading race (no ship); the
+	// colony stays a ship run and the default.
+	if !PlayerDoctrine(h).Playable || !h.SpreadRun() || c.SpreadRun() {
+		t.Errorf("hive playable %v, hive run spreads %v, colony run spreads %v", PlayerDoctrine(h).Playable, h.SpreadRun(), c.SpreadRun())
+	}
+	if got := PlayableDoctrines(); len(got) < 2 || got[0] != DefaultPlayerDoctrine {
+		t.Errorf("playable doctrines %v, want the colony first", got)
 	}
 	// The colony is never seeded as a rival.
 	for _, k := range LoadFactionData().seedable() {

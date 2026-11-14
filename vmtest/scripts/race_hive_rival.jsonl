@@ -1,0 +1,36 @@
+{"name":"race_hive_rival","seed":777,"config":{"rivalsByCount":true}}
+# The world from the hive's side (phase F step 4): a hive run on seed 777 at
+# Rival factions 2 is seeded the rival colony first and no rival hive. A
+# rival colony camp is put on the brood's world (debug presence) and the
+# world viewed again: both camps stand; the day the brood's bodies meet the
+# colony's workers the colony turns hostile. The Star Map tags the hive's own
+# world truly ("YOUR NEST") and the Factions tab has a "Your Hive" block.
+# Frames: the Star Map, the two camps, the Factions tab.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Brood"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"assert","path":"campaign.diplomacy.mirror","eq":"neutral"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"debug","cmd":"freeze start"}
+{"op":"debug","cmd":"presence start mirror 4"}
+{"op":"click","target":"row:locList:yours:0"}
+{"op":"screenshot","name":"starmap"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"debug","cmd":"rival walk"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"two_camps"}
+{"op":"wait_until","path":"campaign.diplomacy.mirror","eq":"hostile","max_ticks":1600}
+{"op":"screenshot","name":"hostile"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}

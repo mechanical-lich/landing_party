@@ -39,6 +39,9 @@ type GameMaster struct {
 	// block, read from the orbited scenario (scenario.Active), will be the opt-in
 	// path for deliberate boardings.
 	suppressSpawns bool
+	// player names the player's settlement on this level (MainState.colonyName);
+	// the player's own bodies never count as hostiles. nil: none.
+	player func() string
 }
 
 func (gm *GameMaster) Init(level *world.Level) {
@@ -52,13 +55,7 @@ func (gm *GameMaster) Update(sc *scenario.Scenario) {
 		return
 	}
 
-	hostileCount := 0
-	for _, e := range gm.level.Entities {
-		if !e.HasComponent(rlcomponents.Dead) &&
-			(e.HasComponent(components.FactionAI) || e.HasComponent(components.ScriptedAI) || hiveWorker(e)) {
-			hostileCount++ // every hive body, wild or settled, counts (hive_plan.md)
-		}
-	}
+	hostileCount := gm.hostiles()
 
 	hostileMax := sc.HostileMax
 	if hostileMax <= 0 {
@@ -126,4 +123,38 @@ func (gm *GameMaster) getFreeSpaceAtZ(z int) (int, int) {
 // GetFreeSpaceAtZ is exported for use during world setup.
 func (gm *GameMaster) GetFreeSpaceAtZ(z int) (int, int) {
 	return gm.getFreeSpaceAtZ(z)
+}
+
+// hostiles counts the level's hostile bodies toward hostile_max: every
+// scripted or faction creature and every settled hive body, wild or settled
+// (hive_plan.md), never the player's own (phase F: a player hive's drones
+// would otherwise throttle the scenario's waves).
+func (gm *GameMaster) hostiles() int {
+	n := 0
+	for _, e := range gm.level.Entities {
+		if !e.HasComponent(rlcomponents.Dead) &&
+			(e.HasComponent(components.FactionAI) || e.HasComponent(components.ScriptedAI) || hiveWorker(e)) &&
+			!gm.players(e) {
+			n++
+		}
+	}
+	return n
+}
+
+// players reports whether e is one of the player's own bodies.
+func (gm *GameMaster) players(e *ecs.Entity) bool {
+	return gm.player != nil && ownedBySettlement(e, gm.player())
+}
+
+// ownedBySettlement reports whether e belongs to settlement name: a worker of
+// it, or a kin body (egg, juvenile, larva) it laid. "" owns nothing.
+func ownedBySettlement(e *ecs.Entity, name string) bool {
+	if e == nil || name == "" {
+		return false
+	}
+	if e.HasComponent(components.Settlement) && e.GetComponent(components.Settlement).(*components.SettlementComponent).Name == name {
+		return true
+	}
+	k := components.KinOf(e)
+	return k != nil && k.Settlement == name
 }

@@ -39,6 +39,10 @@ type Buildable struct {
 	// faction director's build order path refuses it; the player's does not
 	// (phase F builds them for a grey player).
 	ModuleOnly bool `json:"module_only,omitempty"`
+	// ShipOnly: the player builds it only aboard the ship (the greys' vat,
+	// console and array: a grey player's planets get support structures
+	// only; greyish_plan.md, "The rest of the player's side").
+	ShipOnly bool `json:"ship_only,omitempty"`
 }
 
 // FloorList is a required floor: one tile name or a list of them.

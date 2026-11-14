@@ -1,4 +1,4 @@
-{"name":"lore_legends_long","seed":746}
+{"name":"lore_legends_long","seed":746,"config":{"rivalsByCount":true}}
 # A long chronicle in the Legends tab: every history event of seed 746 made
 # known (debug reveal all), the tab opens on the newest events, the mouse
 # wheel scrolls back to the oldest.

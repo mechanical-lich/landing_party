@@ -91,7 +91,7 @@ func expSoakOne(t *testing.T, seed int64, ticks int) expSoakRow {
 			if f.IsExpedition() && f.Presence.Fuel < reserve {
 				r.broke = true
 			}
-			if f.Presence.Doctrine == "mirror" {
+			if f.Presence.Doctrine == campaign.RivalColonyDoctrine {
 				r.mirror[f.LastMove]++
 			}
 		}

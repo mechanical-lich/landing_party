@@ -449,6 +449,9 @@ func (s *MainState) stepFactionDirectors() {
 		site.Orders = settlementOrders{st: st, level: s.level, ds: d.Settlement}
 		site.Hostile, site.Enemy, site.Aggression = hostile, s.colonyName(), d.Aggression
 		site.CrewCap, site.Stage = crewCap(s.campaign, loc, d, p), p.Stage
+		if p.Faction == campaign.PlayerFaction {
+			site.Skip = directorSkip(p) // the groups the player took over
+		}
 		dir.Update(site, s.tick)
 		if dir.Ordered["raids"] > raids && (s.wm == nil || s.wm.currentID == loc.ID) {
 			message.PostMessage("Alert", d.RaidAlert(loc))

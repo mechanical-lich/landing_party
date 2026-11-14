@@ -114,6 +114,7 @@ type HUDScreen struct {
 
 	// Research station modal
 	researchModal      *minui.Modal
+	researchHull       []string // the Hull section's lines (nil: none)
 	researchTechList   *minui.ListBox
 	researchQueueList  *minui.ListBox
 	researchTechKeys   []string
@@ -122,6 +123,18 @@ type HUDScreen struct {
 	// HUD elements
 	messagesTextArea *minui.ScrollingTextArea
 	resourceBar      *minui.ResourceBar
+	// iface is the player's doctrine's interface (interface.go).
+	iface InterfaceSpec
+	// unitShown is the sections the unit modal drew last (tests, the vmtest
+	// sidecar).
+	unitShown []string
+	// structurePanel is a structure's panel (structure_panel.go), built on
+	// first use; panelShown its row kinds.
+	structurePanel *minui.Modal
+	panelShown     []string
+	// colonistInvHdr, colonistStorageHdr head the unit modal's right column
+	// (the inventory and equipment sections hide them).
+	colonistInvHdr, colonistStorageHdr *minui.Label
 
 	// Main menu modal
 	mainMenuModal *minui.Modal
@@ -463,7 +476,7 @@ func (h *HUDScreen) rebuildBuildCategories() {
 		catCopy := cat
 		var items []hudBuildOrderItem
 		if cat.ID == OrdersCategory {
-			items = buildOrderItems
+			items = h.orderItems()
 		}
 		mi := minui.NewMenuItem("cat_"+cat.ID, cat.Label+" >")
 		mi.SetBounds(minui.Rect{X: 4, Y: y, Width: panelW - 8, Height: itemH})
@@ -899,6 +912,7 @@ func (h *HUDScreen) setupModals() {
 	invHdr := minui.NewLabel("colonistInvHdr", "Carrying")
 	invHdr.SetPosition(rX, 40)
 	h.colonistModal.AddChild(invHdr)
+	h.colonistInvHdr = invHdr
 
 	h.colonistInvScroll = newScrollingVBox("colonistInv", 4)
 	h.colonistInvScroll.SetBounds(minui.Rect{X: rX, Y: 58, Width: cColW, Height: 174})
@@ -912,6 +926,7 @@ func (h *HUDScreen) setupModals() {
 	storageHdr := minui.NewLabel("colonistStorageHdr", "Available in Storage")
 	storageHdr.SetPosition(rX, 268)
 	h.colonistModal.AddChild(storageHdr)
+	h.colonistStorageHdr = storageHdr
 
 	h.colonistStorageList = minui.NewListBox("colonistStorageList", nil)
 	h.colonistStorageList.SetBounds(minui.Rect{X: rX, Y: 286, Width: cColW, Height: 234})
@@ -978,7 +993,7 @@ func (h *HUDScreen) RefreshPopulationTab(entries []PopulationEntry) {
 		h.populationHeader.GetStyle().FontSize = &fontSize
 		h.populationVBox.AddChild(h.populationHeader)
 	}
-	h.populationHeader.Text = fmt.Sprintf("Colonists: %d", len(entries))
+	h.populationHeader.Text = fmt.Sprintf("%s: %d", h.unitsLabel(), len(entries))
 
 	// Grow items slice (name row + a Take Control row per colonist)
 	for len(h.populationItems) < len(entries) {
@@ -1022,8 +1037,29 @@ type StorageItemEntry struct {
 }
 
 func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []StorageItemEntry) {
-	if h.colonistModal == nil || colonist == nil {
+	h.ShowUnitModal(colonist, storageItems, "")
+}
+
+// ShowUnitModal is the unit modal for one of the player's people, drawn from
+// the doctrine's sections (interface.go); typeLine is the type_tier
+// section's line ("Warrior", "Enforcer · bronze"), "" for none.
+func (h *HUDScreen) ShowUnitModal(colonist *ecs.Entity, storageItems []StorageItemEntry, typeLine string) {
+	if h.colonistModal == nil || colonist == nil ||
+		!colonist.HasComponent(rlcomponents.Inventory) || !colonist.HasComponent(rlcomponents.Description) {
 		return
+	}
+	sec := h.unitSections()
+	h.unitShown = h.unitShown[:0]
+	for _, k := range UnitModalSections {
+		if sec[k] && (k != SectionTypeTier || typeLine != "") {
+			h.unitShown = append(h.unitShown, k)
+		}
+	}
+	for _, e := range []minui.Element{h.colonistInvHdr, h.colonistInvScroll, h.colonistPickupBtn} {
+		setShown(e, sec[SectionInventory])
+	}
+	for _, e := range []minui.Element{h.colonistStorageHdr, h.colonistStorageList} {
+		setShown(e, sec[SectionEquipment])
 	}
 
 	for _, child := range append([]minui.Element{}, h.colonistScroll.GetContent()...) {
@@ -1102,25 +1138,35 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 	fontSize := 13
 	smallSize := 11
 
-	nameLabel := minui.NewLabel("colonistName", dc.Name)
-	nameLabel.GetStyle().FontSize = &fontSize
-	h.colonistScroll.AddContent(nameLabel)
+	if sec[SectionIdentity] {
+		nameLabel := minui.NewLabel("colonistName", dc.Name)
+		nameLabel.GetStyle().FontSize = &fontSize
+		h.colonistScroll.AddContent(nameLabel)
 
-	rogueBtn := minui.NewMenuItem("colonistTakeControl", "[ Take Control (Rogue) ]")
-	rogueBtn.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
-	rogueBtn.OnClick = func() {
-		event.GetQueuedInstance().QueueEvent(EnterRogueModeEvent{Entity: capturedColonist})
-		h.colonistModal.SetVisible(false)
+		rogueBtn := minui.NewMenuItem("colonistTakeControl", "[ Take Control (Rogue) ]")
+		rogueBtn.SetBounds(minui.Rect{X: 0, Y: 0, Width: 290, Height: 22})
+		rogueBtn.OnClick = func() {
+			event.GetQueuedInstance().QueueEvent(EnterRogueModeEvent{Entity: capturedColonist})
+			h.colonistModal.SetVisible(false)
+		}
+		h.colonistScroll.AddContent(rogueBtn)
 	}
-	h.colonistScroll.AddContent(rogueBtn)
 
-	atk := inv.GetAttackModifier()
-	def := inv.GetDefenseModifier()
-	statsLabel := minui.NewLabel("colonistStats", fmt.Sprintf("ATK: %+d   DEF: %+d", atk, def))
-	statsLabel.GetStyle().FontSize = &smallSize
-	h.colonistScroll.AddContent(statsLabel)
+	if sec[SectionTypeTier] && typeLine != "" {
+		typeLabel := minui.NewLabel("colonistType", typeLine)
+		typeLabel.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(typeLabel)
+	}
 
-	if colonist.HasComponent(components.StatProgression) {
+	if sec[SectionStats] {
+		atk := inv.GetAttackModifier()
+		def := inv.GetDefenseModifier()
+		statsLabel := minui.NewLabel("colonistStats", fmt.Sprintf("ATK: %+d   DEF: %+d", atk, def))
+		statsLabel.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(statsLabel)
+	}
+
+	if sec[SectionStats] && colonist.HasComponent(components.StatProgression) {
 		prog := colonist.GetComponent(components.StatProgression).(*components.StatProgressionComponent)
 		levelStr := fmt.Sprintf("Str Lv.%d  Dex Lv.%d  Int Lv.%d  Con Lv.%d",
 			prog.Str.Level, prog.Dex.Level, prog.Int.Level, prog.Con.Level)
@@ -1129,7 +1175,7 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 		h.colonistScroll.AddContent(levelsLabel)
 	}
 
-	if colonist.HasComponent(components.Needs) {
+	if sec[SectionNeeds] && colonist.HasComponent(components.Needs) {
 		nc := colonist.GetComponent(components.Needs).(*components.NeedsComponent)
 		if nc.MaxHunger > 0 {
 			hungerStatus := "fed"
@@ -1142,99 +1188,105 @@ func (h *HUDScreen) ShowColonistModal(colonist *ecs.Entity, storageItems []Stora
 			hungerLabel.GetStyle().FontSize = &smallSize
 			h.colonistScroll.AddContent(hungerLabel)
 		}
-		exhaustionLabel := minui.NewLabel("colonistExhaustion", fmt.Sprintf("Exhaustion: %d / %d", nc.Exhaustion, nc.MaxExhaustion))
-		exhaustionLabel.GetStyle().FontSize = &smallSize
-		h.colonistScroll.AddContent(exhaustionLabel)
-	}
-
-	eqHdr := minui.NewLabel("eqHdr", "— Equipment —")
-	eqHdr.GetStyle().FontSize = &smallSize
-	h.colonistScroll.AddContent(eqHdr)
-
-	slotList := []struct {
-		label string
-		slot  rlcomponents.ItemSlot
-		item  *ecs.Entity
-	}{
-		{"Right Hand", rlcomponents.HandSlot, inv.RightHand},
-		{"Left Hand", rlcomponents.OffHandSlot, inv.LeftHand},
-		{"Head", rlcomponents.HeadSlot, inv.Head},
-		{"Torso", rlcomponents.TorsoSlot, inv.Torso},
-		{"Legs", rlcomponents.LegsSlot, inv.Legs},
-		{"Feet", rlcomponents.FeetSlot, inv.Feet},
-	}
-
-	const rowW, rowH = 300, 22
-	for _, sl := range slotList {
-		captured := sl
-		itemName := "(empty)"
-		if captured.item != nil && captured.item.HasComponent(rlcomponents.Description) {
-			itemName = captured.item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
-		}
-		rowText := fmt.Sprintf("%s: %s", captured.label, itemName)
-		if captured.item != nil {
-			mi := minui.NewMenuItem(fmt.Sprintf("unequip_%s", captured.label), rowText+"  [Unequip]")
-			mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: rowW, Height: rowH})
-			mi.OnClick = func() {
-				event.GetQueuedInstance().QueueEvent(UnequipItemRequestedEvent{
-					ColonistEntity: colonist,
-					Slot:           string(captured.slot),
-				})
-				h.colonistModal.SetVisible(false)
-			}
-			if ttTitle, ttDesc := itemTooltipText(captured.item); ttTitle != "" || ttDesc != "" {
-				h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(captured.item))
-				h.colonistTooltipTargets = append(h.colonistTooltipTargets, mi)
-			}
-			h.colonistScroll.AddContent(mi)
-		} else {
-			lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
-			lbl.GetStyle().FontSize = &smallSize
-			lbl.SetSize(rowW, rowH)
-			h.colonistScroll.AddContent(lbl)
+		if !NeverTires(nc) {
+			exhaustionLabel := minui.NewLabel("colonistExhaustion", fmt.Sprintf("Exhaustion: %d / %d", nc.Exhaustion, nc.MaxExhaustion))
+			exhaustionLabel.GetStyle().FontSize = &smallSize
+			h.colonistScroll.AddContent(exhaustionLabel)
 		}
 	}
 
-	// Task filter toggles
-	filterHdr := minui.NewLabel("filterHdr", "— Task Filters —")
-	filterHdr.GetStyle().FontSize = &smallSize
-	h.colonistScroll.AddContent(filterHdr)
+	if sec[SectionEquipment] {
+		eqHdr := minui.NewLabel("eqHdr", "— Equipment —")
+		eqHdr.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(eqHdr)
 
-	if colonist.HasComponent(components.Worker) {
-		wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
-		capturedColonistSD := colonist
-		sdToggle := minui.NewToggle("filter_self_defend", "Self-Defend")
-		tw, th := 280, 26
-		sdToggle.GetStyle().Width = &tw
-		sdToggle.GetStyle().Height = &th
-		sdToggle.On = wc.SelfDefend
-		sdToggle.OnChange = func(on bool) {
-			event.GetQueuedInstance().QueueEvent(SetSelfDefendEvent{
-				Colonist: capturedColonistSD,
-				Enabled:  on,
-			})
+		slotList := []struct {
+			label string
+			slot  rlcomponents.ItemSlot
+			item  *ecs.Entity
+		}{
+			{"Right Hand", rlcomponents.HandSlot, inv.RightHand},
+			{"Left Hand", rlcomponents.OffHandSlot, inv.LeftHand},
+			{"Head", rlcomponents.HeadSlot, inv.Head},
+			{"Torso", rlcomponents.TorsoSlot, inv.Torso},
+			{"Legs", rlcomponents.LegsSlot, inv.Legs},
+			{"Feet", rlcomponents.FeetSlot, inv.Feet},
 		}
-		h.colonistScroll.AddContent(sdToggle)
 
-		for _, fa := range task_requests.FilterableActions {
-			if !wc.IsTaskAvailable(fa.Action) {
-				continue
+		const rowW, rowH = 300, 22
+		for _, sl := range slotList {
+			captured := sl
+			itemName := "(empty)"
+			if captured.item != nil && captured.item.HasComponent(rlcomponents.Description) {
+				itemName = captured.item.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			capturedFA := fa
-			capturedColonist := colonist
-			toggle := minui.NewToggle(fmt.Sprintf("filter_%s", fa.Action), fa.Label)
+			rowText := fmt.Sprintf("%s: %s", captured.label, itemName)
+			if captured.item != nil {
+				mi := minui.NewMenuItem(fmt.Sprintf("unequip_%s", captured.label), rowText+"  [Unequip]")
+				mi.SetBounds(minui.Rect{X: 0, Y: 0, Width: rowW, Height: rowH})
+				mi.OnClick = func() {
+					event.GetQueuedInstance().QueueEvent(UnequipItemRequestedEvent{
+						ColonistEntity: colonist,
+						Slot:           string(captured.slot),
+					})
+					h.colonistModal.SetVisible(false)
+				}
+				if ttTitle, ttDesc := itemTooltipText(captured.item); ttTitle != "" || ttDesc != "" {
+					h.tooltipManager.Register(mi, ttTitle, ttDesc, itemTooltipIcon(captured.item))
+					h.colonistTooltipTargets = append(h.colonistTooltipTargets, mi)
+				}
+				h.colonistScroll.AddContent(mi)
+			} else {
+				lbl := minui.NewLabel(fmt.Sprintf("slot_%s", captured.label), rowText)
+				lbl.GetStyle().FontSize = &smallSize
+				lbl.SetSize(rowW, rowH)
+				h.colonistScroll.AddContent(lbl)
+			}
+		}
+	}
+
+	if sec[SectionTaskFilters] {
+		// Task filter toggles
+		filterHdr := minui.NewLabel("filterHdr", "— Task Filters —")
+		filterHdr.GetStyle().FontSize = &smallSize
+		h.colonistScroll.AddContent(filterHdr)
+
+		if colonist.HasComponent(components.Worker) {
+			wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
+			capturedColonistSD := colonist
+			sdToggle := minui.NewToggle("filter_self_defend", "Self-Defend")
 			tw, th := 280, 26
-			toggle.GetStyle().Width = &tw
-			toggle.GetStyle().Height = &th
-			toggle.On = colonistTaskEnabled(wc, fa)
-			toggle.OnChange = func(on bool) {
-				event.GetQueuedInstance().QueueEvent(SetTaskFilterEvent{
-					Colonist: capturedColonist,
-					Action:   string(capturedFA.Action),
+			sdToggle.GetStyle().Width = &tw
+			sdToggle.GetStyle().Height = &th
+			sdToggle.On = wc.SelfDefend
+			sdToggle.OnChange = func(on bool) {
+				event.GetQueuedInstance().QueueEvent(SetSelfDefendEvent{
+					Colonist: capturedColonistSD,
 					Enabled:  on,
 				})
 			}
-			h.colonistScroll.AddContent(toggle)
+			h.colonistScroll.AddContent(sdToggle)
+
+			for _, fa := range task_requests.FilterableActions {
+				if !wc.IsTaskAvailable(fa.Action) {
+					continue
+				}
+				capturedFA := fa
+				capturedColonist := colonist
+				toggle := minui.NewToggle(fmt.Sprintf("filter_%s", fa.Action), fa.Label)
+				tw, th := 280, 26
+				toggle.GetStyle().Width = &tw
+				toggle.GetStyle().Height = &th
+				toggle.On = colonistTaskEnabled(wc, fa)
+				toggle.OnChange = func(on bool) {
+					event.GetQueuedInstance().QueueEvent(SetTaskFilterEvent{
+						Colonist: capturedColonist,
+						Action:   string(capturedFA.Action),
+						Enabled:  on,
+					})
+				}
+				h.colonistScroll.AddContent(toggle)
+			}
 		}
 	}
 
@@ -1450,7 +1502,13 @@ func (h *HUDScreen) populateResearchTechList(available, locked []research.Tech) 
 
 // populateResearchQueueList shows active research at the top, completed below.
 func (h *HUDScreen) populateResearchQueueList(completed []research.Tech, queue []ResearchQueueEntry) {
-	items := make([]string, 0, len(queue)+len(completed))
+	items := make([]string, 0, len(queue)+len(completed)+len(h.researchHull)+2)
+	if len(h.researchHull) > 0 {
+		// The Hull section on top (a grey player's saucer: phase F step 6d).
+		items = append(items, "— Hull —") // DRAFT
+		items = append(items, h.researchHull...)
+		items = append(items, "")
+	}
 	for _, e := range queue {
 		items = append(items, queueRowText(e.Name, e.Progress, e.Delivered, e.Required))
 	}
@@ -1726,6 +1784,7 @@ func (h *HUDScreen) ModalElement(modal, id string) minui.Element {
 	m := map[string]*minui.Modal{
 		"mainMenu": h.mainMenuModal, "saveModal": h.saveModal, "loadModal": h.loadModal,
 		"craftingModal": h.craftingModal, "researchModal": h.researchModal, "colonistModal": h.colonistModal,
+		"structurePanel": h.structurePanel,
 	}[modal]
 	if m == nil || !m.IsVisible() {
 		return nil
@@ -1802,6 +1861,10 @@ func (h *HUDScreen) CloseModal(name string) {
 		h.craftingModal.SetVisible(false)
 	case "researchModal":
 		h.researchModal.SetVisible(false)
+	case "structurePanel":
+		if h.structurePanel != nil {
+			h.structurePanel.SetVisible(false)
+		}
 	}
 }
 
@@ -1814,7 +1877,7 @@ func (h *HUDScreen) ColonistModalVisible() bool {
 // crafting, research, colonist) is up.
 func (h *HUDScreen) AnyModalOpen() bool {
 	for _, m := range []*minui.Modal{h.mainMenuModal, h.saveModal, h.loadModal,
-		h.craftingModal, h.researchModal, h.colonistModal} {
+		h.craftingModal, h.researchModal, h.colonistModal, h.structurePanel} {
 		if m != nil && m.IsVisible() {
 			return true
 		}
@@ -1839,6 +1902,8 @@ func (h *HUDScreen) ModalOpen(name string) bool {
 		m = h.craftingModal
 	case "researchModal":
 		m = h.researchModal
+	case "structurePanel":
+		m = h.structurePanel
 	}
 	return m != nil && m.IsVisible()
 }
@@ -2199,3 +2264,12 @@ func factionLabel(faction string) string {
 	}
 	return faction
 }
+
+// SetResearchHull sets the research modal's Hull section (a grey player's
+// saucer: each deck's radius and the next ring and deck; nil hides it).
+func (h *HUDScreen) SetResearchHull(lines []string) { h.researchHull = lines }
+
+func (gm *GUIManager) SetResearchHull(lines []string) { gm.hud.SetResearchHull(lines) }
+
+// ResearchHull is the Hull section's lines (vmtest).
+func (gm *GUIManager) ResearchHull() []string { return gm.hud.researchHull }

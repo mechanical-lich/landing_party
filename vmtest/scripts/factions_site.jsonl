@@ -1,4 +1,4 @@
-{"name":"factions_site","seed":777}
+{"name":"factions_site","seed":777,"config":{"rivalsByCount":true}}
 # New Expedition seed 777 with Rival factions 3, then 36 days pass (debug
 # days) so the brood on Rust Tangle (sys_43) grows into a hive. Jump there,
 # beam one colonist down and land: the presence is built onto the level (the

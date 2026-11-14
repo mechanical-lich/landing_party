@@ -1,4 +1,4 @@
-{"name":"factions_greyish","seed":55}
+{"name":"factions_greyish","seed":55,"config":{"rivalsByCount":true}}
 # New Expedition seed 55 with Rival factions 3: a hive, a rival colony and
 # the greyish, whose scout (fl1) is seeded landed on Ember Pit (sys_20, 10
 # fuel from the Wreck Site) and whose mothership (fl2) is parked in orbit of

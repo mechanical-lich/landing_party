@@ -465,6 +465,22 @@ func handleCraftTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 					// settlement, by the station, before its type gives it
 					// its role and tasks.
 					deployWorker(out, sc.Name)
+					// It fights for the crafter's faction, not its
+					// blueprint's: a race player's print (faction
+					// "player") is never a rival's of the same kind.
+					if entity.HasComponent(rlcomponents.Description) && out.HasComponent(rlcomponents.Description) {
+						if f := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction; f != "" {
+							out.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction = f
+						}
+					}
+				}
+				if !recipe.DeployOnCraft && entity.HasComponent(rlcomponents.Description) && out.HasComponent(rlcomponents.Description) {
+					// A laid egg is its layer's faction too (a second hive's
+					// egg is that hive's), but a race player's eggs keep their
+					// blueprint's until they hatch and enrol, as before.
+					if f := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction; f != "" && f != "player" {
+						out.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction = f
+					}
 				}
 				factory.ApplyType(out, recipe.KinType, presence)
 				components.KinOf(out).Settlement = sc.Name

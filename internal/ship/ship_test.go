@@ -128,3 +128,52 @@ func TestBuildShipLevel_HoldInStartRoom(t *testing.T) {
 		t.Errorf("hold at (%d,%d) not inside start room [%d,%d)+%dx%d", pc.GetX(), pc.GetY(), ix, iy, roomW, roomH)
 	}
 }
+
+// A saucer (phase F step 6c) is a closed round hull of its radius at the
+// hull centre: floor on every disc cell, wall on its outline only, nothing
+// outside it, the hold inside, owned by the ship.
+func TestBuildSaucerLevel(t *testing.T) {
+
+	level := BuildSaucerLevel("ship", Saucer{Radius: 8, Decks: 1, Floor: "hull_floor", Wall: "hull_wall"})
+	cx, cy, z := HullCenter()
+	rr := world.NewRoundRoom(8)
+	floors, walls := 0, 0
+	for dy := -10; dy <= 10; dy++ {
+		for dx := -10; dx <= 10; dx++ {
+			tile := level.GetTilePtr(cx+dx, cy+dy, z)
+			in := rr.In(dx, dy)
+			if !in {
+				if !tile.Floor.IsEmpty() || !tile.Middle.IsEmpty() {
+					t.Fatalf("hull outside the disc at %d,%d", dx, dy)
+				}
+				continue
+			}
+			if tile.Floor.IsEmpty() {
+				t.Fatalf("no floor at %d,%d", dx, dy)
+			}
+			floors++
+			if !tile.Middle.IsEmpty() {
+				walls++
+				if !rr.Wall[[2]int{dx, dy}] {
+					t.Fatalf("a wall inside the hull at %d,%d", dx, dy)
+				}
+			}
+		}
+	}
+	if floors < 190 || floors > 230 || walls != len(rr.Wall) {
+		t.Errorf("floors %d (about 200), walls %d of %d", floors, walls, len(rr.Wall))
+	}
+	holds := 0
+	for _, e := range level.Entities {
+		if e != nil && e.HasComponent(components.Storage) {
+			holds++
+			pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+			if !rr.In(pc.GetX()-cx, pc.GetY()-cy) || rr.Wall[[2]int{pc.GetX() - cx, pc.GetY() - cy}] {
+				t.Errorf("the hold at %d,%d is not inside the hull", pc.GetX(), pc.GetY())
+			}
+		}
+	}
+	if holds != 1 {
+		t.Errorf("%d holds", holds)
+	}
+}

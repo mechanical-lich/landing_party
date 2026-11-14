@@ -145,7 +145,16 @@ func (AsteroidFieldPrimer) Prime(level *world.Level, params map[string]any, seed
 	for lab := range keep {
 		asts = append(asts, ast{lab, sizes[lab]})
 	}
-	sort.Slice(asts, func(i, j int) bool { return asts[i].size > asts[j].size })
+	// Largest first, ties by label (the flood fill's scan order): keep is a
+	// map, so without the tie-break two equal asteroids swapped places from
+	// run to run, and every feature sampling the "asteroid" region by index
+	// (ore veins, radiation pockets) landed on a different rock.
+	sort.Slice(asts, func(i, j int) bool {
+		if asts[i].size != asts[j].size {
+			return asts[i].size > asts[j].size
+		}
+		return asts[i].label < asts[j].label
+	})
 	for i, a := range asts {
 		c := centroids[a.label]
 		if i == 0 {

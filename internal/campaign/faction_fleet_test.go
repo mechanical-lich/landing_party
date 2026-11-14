@@ -16,7 +16,7 @@ func fleetTestCampaign(t *testing.T) (*Campaign, *Doctrine) {
 	c := factionTestCampaign(t, map[string]string{"hive": "earth_like", "far": "earth_like"})
 	c.Locations["far"].X, c.Locations["far"].Y = c.Locations["hive"].X+20, c.Locations["hive"].Y
 	d := hiveDoctrine(t)
-	c.newPresence("hive", d, c.Locations["hive"], d.CapacityAt(c.Locations["hive"]))
+	c.newPresence("hive", "hive", d, c.Locations["hive"], d.CapacityAt(c.Locations["hive"]))
 	return c, d
 }
 

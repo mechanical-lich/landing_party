@@ -9,7 +9,7 @@ import (
 // An exhausted presence leaves a husk for its level and a Legends event.
 func TestFactionExhaustionLeavesAHusk(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"blight": "crystalline_blight"})
-	p := c.newPresence("hive", hiveDoctrine(t), c.Locations["blight"], 3)
+	p := c.newPresence("hive", "hive", hiveDoctrine(t), c.Locations["blight"], 3)
 	id := p.ID
 	c.StarDate = 60
 	c.StepFactions(nil)
@@ -31,7 +31,7 @@ func TestFactionExhaustionLeavesAHusk(t *testing.T) {
 func TestFactionReconcile(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
 	loc := c.Locations["a"]
-	p := c.newPresence("hive", hiveDoctrine(t), loc, 4)
+	p := c.newPresence("hive", "hive", hiveDoctrine(t), loc, 4)
 	id := p.ID
 	if c.ReconcilePresence(loc, id, 0, false) || loc.Presence("hive") == nil {
 		t.Fatal("an unbuilt presence was reconciled")
@@ -78,7 +78,7 @@ func TestFactionLostLauncherRegrows(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
 	c.Locations["b"] = &Location{ID: "b", Name: "b", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"biomass"}, X: 110, Y: 1000, Discovered: true}
 	d := hiveDoctrine(t)
-	p := c.newPresence("hive", d, c.Locations["a"], 20)
+	p := c.newPresence("hive", "hive", d, c.Locations["a"], 20)
 	p.LauncherLost, p.LauncherLostDay = true, 0
 	c.StarDate = history.StarDate(d.Mobility.Cooldown - 1)
 	c.StepFactions(nil)

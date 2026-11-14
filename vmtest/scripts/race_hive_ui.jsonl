@@ -1,0 +1,45 @@
+{"name":"race_hive_ui","seed":777,"config":{"rivalsByCount":true}}
+# The hive's own interface (phase F step 2): the doctrine's interface block
+# draws the HUD. A hive run on seed 777: the resource bar is biomass and
+# larvae (the brood's own pools only), the Orders category has Lay Resin and
+# no Sleep, the unit modal (a drone) shows its type and no equipment, the
+# research modal is titled Evolve, a Lay Resin click queues a convert order,
+# and the Crew tab lists the brood grouped by type. Frames: the HUD, the
+# Orders menu, the unit modal, the resin order, the Crew tab.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Brood"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"wait","ticks":60}
+{"op":"assert","path":"hud.slots","eq":["biomass","larvae"]}
+{"op":"assert","path":"hud.resources.biomass","gte":1}
+{"op":"assert","path":"hud.resources.larvae","gte":1}
+{"op":"assert","path":"hud.research_title","eq":"Evolve"}
+{"op":"screenshot","name":"hud"}
+{"op":"key","key":"Space"}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"screenshot","name":"orders_menu"}
+{"op":"assert","path":"hud.orders","contains":"convert"}
+{"op":"click","target":"hud:sub_back"}
+{"op":"click","target":"entity:xeno_crew"}
+{"op":"assert","path":"modal","contains":"colonistModal"}
+{"op":"assert","path":"hud.unit_modal","contains":"type_tier"}
+{"op":"screenshot","name":"unit_modal"}
+{"op":"click","target":"modal:colonistModal:close"}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"click","target":"hud:order_convert"}
+{"op":"click","target":"settle:5,0"}
+{"op":"click","target":"settle:5,1"}
+{"op":"assert","path":"settlement_stats.tasks","gte":1}
+{"op":"key","key":"Space"}
+{"op":"wait","ticks":300}
+{"op":"screenshot","name":"resin_order"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:crew"}
+{"op":"screenshot","name":"crew_tab"}

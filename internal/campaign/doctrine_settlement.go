@@ -19,6 +19,9 @@ import (
 // race: buildables are data/build.json keys, research data/research.json
 // keys, units and recipes data/crafting_recipes.json keys.
 type DoctrineSettlement struct {
+	// Interface is what the player's HUD and modals show for this doctrine
+	// (phase F step 2; doctrine_interface.go). Absent: the colony's as it was.
+	Interface *DoctrineInterface `json:"interface,omitempty"`
 	// Crew is the starting crew's composition (SeedShipCrew).
 	Crew []DoctrineCrew `json:"crew"`
 	// Needs is whether the crew eats and sleeps (a race that does not skips
@@ -57,6 +60,9 @@ type DoctrineSettlement struct {
 	// door onto one shared inventory (the greys; greyish_plan.md, "The
 	// storage pocket"); the last door destroyed spills it.
 	StoragePocket bool `json:"storage_pocket,omitempty"`
+	// Ship is the player's ship's shape (phase F step 6c; greyish_plan.md,
+	// "The saucer"): nil or layout "grid" is the colony's grid of rooms.
+	Ship *DoctrineShip `json:"ship,omitempty"`
 	// Ground is the structures a ship settlement builds on the ground (the
 	// greys' armory, array and emitters; greyish_plan.md, "Structures"):
 	// Built counts them, ShipBuilt predicts them, and on lift-off each is
@@ -268,6 +274,9 @@ type DirectorExcavate struct {
 //     nearest the centre until Min + PerColonist * colonists tiles within
 //     Radius are it (the conversion economy; no doctrine uses it yet).
 type DirectorPriority struct {
+	// Group is the rung group a player may take over (interface.groups;
+	// phase F step 3): taken over, the director skips the rung.
+	Group    string         `json:"group,omitempty"`
 	ID       string         `json:"id"`
 	Build    string         `json:"build,omitempty"`
 	Research bool           `json:"research,omitempty"`
@@ -417,13 +426,15 @@ func PlayerDoctrineKey(c *Campaign) string {
 }
 
 // CampaignMode is the campaign shape the doctrine's mobility implies for a
-// player running it (plan, "Playable races"): "ship" (hold, roster, fuel,
-// travel) or "launcher" (no ship; phase F). Declared; nothing reads it yet.
+// player running it (playable_races_plan.md): ModeShip (hold, roster, fuel,
+// travel: the colony, a fleet doctrine) or ModeSpread (no ship; the player's
+// presences spread by launcher or signal: the hive, the autonz).
 func (d *Doctrine) CampaignMode() string {
-	if d.Mobility.Kind == "launcher" {
-		return "launcher"
+	switch d.Mobility.Kind {
+	case "launcher", MobilitySignal:
+		return ModeSpread
 	}
-	return "ship"
+	return ModeShip
 }
 
 // CanBuild reports whether the doctrine's settlement may build a build.json
@@ -640,4 +651,47 @@ func (d *Doctrine) ShipBuilt(tier int, techs []string, days int) map[string]int 
 		}
 	}
 	return out
+}
+
+// Ship layouts (DoctrineShip.Layout).
+const (
+	ShipGrid   = "grid"   // the colony's grid of rooms (the default)
+	ShipSaucer = "saucer" // a round hull grown in rings and decks (the greys)
+)
+
+// DoctrineShip is the player's ship's shape.
+type DoctrineShip struct {
+	Layout string      `json:"layout,omitempty"`
+	Saucer *SaucerSpec `json:"saucer,omitempty"`
+}
+
+// SaucerSpec is a saucer ship: its start, the rings and decks it grows by
+// (each step may need a tech; step 6d), and its hull tiles.
+type SaucerSpec struct {
+	Start SaucerStart  `json:"start"`
+	Rings []SaucerStep `json:"rings,omitempty"`
+	Decks []SaucerStep `json:"decks,omitempty"`
+	Floor string       `json:"floor"`
+	Wall  string       `json:"wall"`
+}
+
+// SaucerStart is the hull a run starts with: decks from 0, each of radius.
+type SaucerStart struct {
+	Radius int `json:"radius"`
+	Decks  int `json:"decks"`
+}
+
+// SaucerStep is one ring (Radius) or deck (Deck) the hull may grow to.
+type SaucerStep struct {
+	Radius       int    `json:"radius,omitempty"`
+	Deck         int    `json:"deck,omitempty"`
+	RequiresTech string `json:"requires_tech,omitempty"`
+}
+
+// SaucerShip is the settlement's saucer spec, nil for a grid ship.
+func (s *DoctrineSettlement) SaucerShip() *SaucerSpec {
+	if s == nil || s.Ship == nil || s.Ship.Layout != ShipSaucer || s.Ship.Saucer == nil {
+		return nil
+	}
+	return s.Ship.Saucer
 }

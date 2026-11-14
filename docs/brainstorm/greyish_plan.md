@@ -56,7 +56,8 @@ The owner's direction (2026-11-09), taken as given:
 - **Everything is data**: `data/factions.json`, `research.json`,
   blueprints, recipes and structure scripts, so that F's step 6 can hand
   the greys to the player with no new code path. The player's side is
-  described ("Phase F: what a greyish player will see") but not built.
+  described ("Phase F: what a greyish player will see") but not built here;
+  Phase F step 6 built it (playable_races_plan.md "As built", 2026-11-13).
 
 ### The owner's decisions (2026-11-09)
 

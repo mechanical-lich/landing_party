@@ -1,4 +1,4 @@
-{"name":"factions_autonz_hub","seed":65}
+{"name":"factions_autonz_hub","seed":65,"config":{"rivalsByCount":true}}
 # The autonz as a settlement (autonz_plan.md, phase E3): New Expedition seed
 # 65 with Rival factions 4, 120 days on (debug days): Leaden Ridge (sys_5)
 # holds an autonz hub that knows its relay and seeker patterns by Tier 1's

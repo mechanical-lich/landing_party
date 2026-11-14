@@ -176,6 +176,11 @@ func (d *DashboardState) Update() state.StateInterface {
 	tutorialFrameDash(d)
 	if d.wm != nil {
 		d.wm.TickBackground(nil)
+		if e := d.wm.takeEnd(); e != nil {
+			d.next = e
+			d.done = true
+			return d.next
+		}
 		if t := d.wm.updatePopup(); t != nil {
 			d.next = t
 			d.done = true
@@ -198,7 +203,7 @@ func (d *DashboardState) Update() state.StateInterface {
 			d.tabs[d.active].panel.Enter()
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && !observerRun() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && !shiplessRun() {
 		if d.wm.Current() != nil {
 			d.returnToSite()
 		} else {
@@ -208,7 +213,7 @@ func (d *DashboardState) Update() state.StateInterface {
 	}
 
 	d.tabBar.Update()
-	if !observerRun() {
+	if !shiplessRun() {
 		// An observer run has no ship to board or orbit: View is the way down.
 		d.returnSiteBtn.SetEnabled(d.wm.Current() != nil)
 		d.returnShipBtn.Update()
@@ -233,7 +238,7 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{6, 8, 16, 255})
 
 	d.tabBar.Draw(screen)
-	if !observerRun() {
+	if !shiplessRun() {
 		d.returnShipBtn.Draw(screen)
 		d.returnSiteBtn.Draw(screen)
 	}
@@ -248,6 +253,8 @@ func (d *DashboardState) Draw(screen *ebiten.Image) {
 	info := fmt.Sprintf("Fuel: %d      Star Date: %d      %s", d.fuelAvailable(), d.campaign.Day(), site)
 	if observerRun() {
 		info = fmt.Sprintf("OBSERVER      Star Date: %d      %s", d.campaign.Day(), expeditionLine(d.campaign))
+	} else if spreadRun() {
+		info = fmt.Sprintf("Star Date: %d      %s", d.campaign.Day(), raceLine(d.campaign)) // DRAFT
 	}
 	mlge_text.Draw(screen, info, 14, 20, 56, color.RGBA{160, 185, 215, 255})
 

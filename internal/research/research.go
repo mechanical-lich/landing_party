@@ -47,6 +47,10 @@ type Develop struct {
 	Salvage   float64           `json:"salvage,omitempty"`
 	Intercept *DevelopIntercept `json:"intercept,omitempty"`
 	Boarding  *DevelopBoarding  `json:"boarding,omitempty"`
+	// Hull is what the entry opens of a grey player's saucer (phase F step
+	// 6d: the rings and decks the ship block gates on it), for its effect
+	// line. The gate itself is the ship block's requires_tech.
+	Hull string `json:"hull,omitempty"`
 }
 
 // DevelopUpgrade: Type's bodies get Health, Str and Initiative multiplied

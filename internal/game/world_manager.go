@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/scenario"
 	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/ship"
+	"github.com/mechanical-lich/landing_party/internal/systems"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/workerai"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -54,6 +56,13 @@ func campaignRoot(name string) string {
 // current location to disk and activating (resuming or generating) another.
 type WorldManager struct {
 	Campaign *campaign.Campaign
+	// end is a spreading race's end screen, waiting for the state that is up
+	// (race_run.go).
+	end *CampaignEndState
+	// broodLosses is today's bodies lost per world in a race run.
+	broodLosses map[string]int
+	// contactTick paces raceContacts.
+	contactTick int
 	// loaded holds every location kept in memory, by location ID: the one in orbit
 	// plus staffed ones left behind. All are "parked" (level intact, global event
 	// listeners detached) until Resume re-attaches the one being entered.
@@ -246,6 +255,9 @@ func (wm *WorldManager) TotalColonists() int {
 
 func NewWorldManager(c *campaign.Campaign) *WorldManager {
 	observerRunActive = c != nil && c.Observer
+	spreadRunActive = c.SpreadRun()
+	systems.PlayerFaction = playerPeopleFaction(c)
+	setPlayerPocket(c)
 	observerLock = nil // the console's lock was the last campaign's
 	seedSimRand(c)
 	resetPresenceTechs()
@@ -257,7 +269,12 @@ func NewWorldManager(c *campaign.Campaign) *WorldManager {
 		owed:       map[string]int{},
 		lastDamage: map[string]int{},
 	}
+	if c != nil {
+		c.EnsureFactionTable()
+	}
+	setFactionRelation(c)
 	syncFactionHostility(c)
+	setFactionDoctrines(c)
 	if err := wm.buildShip(); err != nil {
 		log.Printf("buildShip: %v", err)
 	}
@@ -285,7 +302,7 @@ func (wm *WorldManager) buildShip() error {
 	// lookup; its storage is owned by that settlement. See the_ship.md.
 	level, err := loadLocationLevel(wm.shipSaveFile())
 	if err != nil || level == nil {
-		level = ship.BuildShipLevel(shipName)
+		level = buildShipLevelFor(c, shipName)
 	}
 	ms, err := newMainStateFromLevel(level, cfg)
 	if err != nil {
@@ -341,6 +358,11 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 	}
 	// One world frame is one tick of the campaign clock, wherever the player is.
 	wm.Campaign.TickStarDate()
+	// A race run meets the rival colony on its worlds (checked every 30
+	// ticks: a worker passing a camp is there for moments).
+	if wm.contactTick++; wm.contactTick%30 == 0 {
+		wm.raceContacts()
+	}
 	// Rival factions step once per new star-date day; loaded planets are
 	// simulated for real and skipped.
 	wm.Campaign.StepFactions(wm.IsLoaded)
@@ -348,6 +370,10 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 	if day := wm.Campaign.FactionDay; day != wm.liveFactionDay {
 		wm.liveFactionDay = day
 		wm.stepLiveFactions()
+		wm.syncPlayerTechs() // a race run's techs are one pool
+		wm.chartRaceRange()  // and learns the worlds in its reach
+		wm.recordBroodLosses()
+		wm.checkSpreadEnd()
 	}
 	if wm.shipLevel != nil && wm.shipLevel != live {
 		// The live level's Update reset the per-frame pathfinding budget for
@@ -664,7 +690,22 @@ func (wm *WorldManager) StockShipLocker(fuel int, stock map[string]int) {
 			wm.addToShipHold(bp, qty)
 		}
 	}
-	// Rations are Food items (one per slot), so add them individually.
+	// Then anything else a race's hold names (the greys' alloy), by key.
+	var rest []string
+	for bp := range stock {
+		if !slices.Contains(startingResources, bp) {
+			rest = append(rest, bp)
+		}
+	}
+	sort.Strings(rest)
+	for _, bp := range rest {
+		wm.addToShipHold(bp, stock[bp])
+	}
+	// Rations are Food items (one per slot), so add them individually. A
+	// crew without needs (the greys) carries none.
+	if st := playerSettlementOf(wm.Campaign); st != nil && !st.Needs {
+		return
+	}
 	if sc := wm.shipLocker(); sc != nil {
 		for i := 0; i < startingRations; i++ {
 			if e, err := factory.Create("ration_pack", 0, 0, 0); err == nil {
@@ -846,6 +887,7 @@ func (wm *WorldManager) BeamResourceDown(blueprint string, qty int) error {
 		return fmt.Errorf("no location loaded")
 	}
 	colony := wm.currentColonyName()
+	wm.relinkPlayerPockets()
 	p := storage.ShipProvider{Level: wm.ShipLevel()}
 	owners := []string{wm.shipSettlementName()}
 	if have := storage.CountResource(p, owners, blueprint); have < qty {
@@ -874,7 +916,8 @@ func (wm *WorldManager) BeamResourceUpFrom(container *ecs.Entity, blueprint stri
 		return fmt.Errorf("not a storage container")
 	}
 	sc := container.GetComponent(components.Storage).(*components.StorageComponent)
-	if pocketOwner(sc.OwnedBy) && sc.OwnedBy != campaignColonyName(wm.Campaign) && sc.OwnedBy != wm.shipSettlementName() {
+	wm.relinkPlayerPockets()
+	if pocketOwner(sc.OwnedBy) && !isPlayerSettlementName(wm.Campaign, sc.OwnedBy) {
 		// Another's storage pocket door (greyish_plan.md): beaming from it
 		// would hand over the whole pocket. Smash the lockers instead.
 		return fmt.Errorf("that locker is not yours") // DRAFT
@@ -1081,6 +1124,7 @@ func (wm *WorldManager) buildParked(locID string) (*MainState, error) {
 	// the fixtures: their stamps keep clear of both.
 	materialiseFactions(c, loc, ms.level, ms.scenario)
 	materialiseBoarding(c, loc, ms.level)
+	bindPlayerSettlement(c, loc, ms) // a spreading race: the cursor orders the player's presence
 	installCampaignStorageHook(c)
 	// Park it: detach listeners until the player Resumes.
 	ms.teardown()
@@ -1404,13 +1448,18 @@ func (wm *WorldManager) EnterCurrent() (*MainState, error) {
 }
 
 // PlanetColonists returns the colonist entities on the currently-loaded level.
+// In a spreading race's run (no ship, no orbit) it is the viewed planet's.
 func (wm *WorldManager) PlanetColonists() []*ecs.Entity {
-	if wm.Current() == nil || wm.Current().level == nil {
+	ms := wm.Current()
+	if spreadRun() {
+		ms = wm.loaded[wm.viewedID]
+	}
+	if ms == nil || ms.level == nil {
 		return nil
 	}
-	colony := wm.Current().colonyName()
+	colony := ms.colonyName()
 	var out []*ecs.Entity
-	for _, e := range wm.Current().level.Entities {
+	for _, e := range ms.level.Entities {
 		if components.IsColonyWorker(e, colony) {
 			out = append(out, e)
 		}
@@ -1458,6 +1507,10 @@ func (wm *WorldManager) SeedShipCrew(n int) {
 	lvl := wm.shipLevel.level
 	shipName := wm.shipSettlementName()
 	cx, cy, cz := ship.HullCenter()
+	if st := campaign.PlayerDoctrine(wm.Campaign).ShipStart(); st != nil {
+		wm.seedRaceCrew(lvl, st, shipName, cx, cy, cz)
+		return
+	}
 	// The crew's composition is the player doctrine's (SeedShipCrew's n split
 	// by share): n colonists for the colony.
 	for _, bp := range crewBlueprints(wm.Campaign, n) {

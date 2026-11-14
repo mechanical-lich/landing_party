@@ -241,6 +241,9 @@ func (c *Campaign) LandShip(f *Fleet, day history.StarDate) *Location {
 	if d != nil {
 		c.recordFaction("faction_landed", loc, p, d, nil)
 	}
+	if c.HoldsSite(loc) {
+		c.RaceContact(p.Faction, loc) // landed on a world a race run holds
+	}
 	return loc
 }
 

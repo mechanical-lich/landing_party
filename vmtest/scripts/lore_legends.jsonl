@@ -1,4 +1,4 @@
-{"name":"lore_legends","seed":1512}
+{"name":"lore_legends","seed":1512,"config":{"rivalsByCount":true}}
 # Land on the xeno wreck site of seed 1512, pick up a lore datapad, open the
 # dashboard's Legends tab: the datapad's event is in the chronicle.
 {"op":"wait","ticks":10}

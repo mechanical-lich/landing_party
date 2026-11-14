@@ -12,6 +12,9 @@ import (
 // structures against build.json.
 func ValidateData() error {
 	all := construction.ListBuildables()
+	if err := validateInterfaces(); err != nil {
+		return err
+	}
 	return campaign.ValidateFactionData(func(k string) bool {
 		if len(all) == 0 {
 			return true // build.json not loaded: nothing to check against

@@ -32,6 +32,7 @@ func (s *MainState) doctrineSettlement() *campaign.DoctrineSettlement {
 // is built and again when a campaign is attached.
 func (s *MainState) applyDoctrine() {
 	if s.guiManager != nil {
+		s.guiManager.SetInterface(interfaceSpec(s.doctrineSettlement()))
 		s.guiManager.SetBuildMenu(buildMenuOf(s.doctrineSettlement()))
 	}
 }

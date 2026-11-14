@@ -115,8 +115,14 @@ type FactionPresence struct {
 	// Dormant: founded by a signal (phase E, the autonz) and asleep until
 	// WakeDay: it neither grows, works, researches nor spreads, and on its
 	// level it is a single sleeper node.
-	Dormant bool             `json:"dormant,omitempty"`
-	WakeDay history.StarDate `json:"wake_day,omitempty"`
+	Dormant bool `json:"dormant,omitempty"`
+	// TakenOver is the director's rung groups the player took over on this
+	// presence (a race run, phase F step 3): its director skips them.
+	TakenOver []string `json:"taken_over,omitempty"`
+	// LaunchTarget is the site the player aimed its launcher or signal at
+	// (a race run with "launch" taken over); "" unarmed.
+	LaunchTarget string           `json:"launch_target,omitempty"`
+	WakeDay      history.StarDate `json:"wake_day,omitempty"`
 	// DoorLostTick is the level tick a ship settlement's last storage door
 	// fell (live only; 0 while a door stands): a day later the ship
 	// re-places its cockpit door (greyish_plan.md, "The storage pocket").
@@ -261,6 +267,9 @@ type FactionData struct {
 	Doctrines          map[string]*Doctrine `json:"doctrines"`
 	// Intercept is how ships met in space are resolved (phase D).
 	Intercept InterceptRules `json:"intercept"`
+	// aliases resolve a legacy doctrine key to its view (an old save's
+	// "mirror" is the colony's rival view).
+	aliases map[string]string
 }
 
 // Doctrine is one faction's data: how it grows, spreads and stages up.
@@ -278,11 +287,16 @@ type Doctrine struct {
 	MorphByScenario map[string]string         `json:"morph_by_scenario,omitempty"`
 	DefaultMorph    string                    `json:"default_morph,omitempty"`
 	// Badge is the Star Map colour.
-	Badge    [3]uint8         `json:"badge"`
-	Mobility DoctrineMobility `json:"mobility"`
-	Economy  string           `json:"economy"` // tag the faction prefers ("biomass")
-	Growth   DoctrineGrowth   `json:"growth"`
-	Capacity DoctrineCapacity `json:"capacity"`
+	Badge [3]uint8 `json:"badge"`
+	// InstanceNames name the second, third... faction of this doctrine in
+	// one campaign (rival_selection_plan.md, "Names"; draft text), in turn.
+	InstanceNames []string `json:"instance_names,omitempty"`
+	// SeedWeight is its weight in a Random rival box's roll (default 1).
+	SeedWeight float64          `json:"seed_weight,omitempty"`
+	Mobility   DoctrineMobility `json:"mobility"`
+	Economy    string           `json:"economy"` // tag the faction prefers ("biomass")
+	Growth     DoctrineGrowth   `json:"growth"`
+	Capacity   DoctrineCapacity `json:"capacity"`
 	// Hazard multiplies growth per scenario id: 0.5 grows at half speed, a
 	// negative value shrinks the presence every day until it dies out.
 	// Scenarios not listed are 1.
@@ -340,6 +354,9 @@ type Doctrine struct {
 	// them to become a playable race (phase F).
 	Playable   bool                `json:"playable,omitempty"`
 	Settlement *DoctrineSettlement `json:"settlement,omitempty"`
+	// Race is what playing it needs beyond the settlement: the title
+	// screen's blurb, a spreading race's start, win and loss (player_race.go).
+	Race *DoctrineRace `json:"race,omitempty"`
 	// Expedition is how the ship is flown when the game plays itself
 	// (observer mode v2; doctrine_expedition.go). The colony has it.
 	Expedition *DoctrineExpedition `json:"expedition,omitempty"`
@@ -352,6 +369,16 @@ type Doctrine struct {
 	// when it has none of its own (the mirror colony plays the colony's
 	// game). Resolved on load.
 	SettlementFrom string `json:"settlement_from,omitempty"`
+	// Rival is what differs when the doctrine is run by a rival faction
+	// rather than the player (rival_selection_plan.md, step 2: the colony's
+	// rival colony). The loader derives that view under <key>!rival.
+	Rival *DoctrineRival `json:"rival,omitempty"`
+	// ViewOf is a derived view's base doctrine key ("" for a doctrine of
+	// its own); LegacyKey the key the view had before it was folded into
+	// its base ("mirror"): its seeding place and its faction key in a
+	// count-seeded campaign, so a campaign seed seeds as it did.
+	ViewOf    string `json:"-"`
+	LegacyKey string `json:"-"`
 	// SeedFrom: seeding draws this doctrine only when the New Expedition
 	// faction count is at least this (0: always), so a lone rival is the
 	// hive and the second is drawn from a wider bag.
@@ -550,6 +577,21 @@ func LoadFactionData() *FactionData {
 			}
 		}
 	}
+	var bases []string
+	for k, d := range fd.Doctrines {
+		if d.Rival != nil {
+			bases = append(bases, k)
+		}
+	}
+	sort.Strings(bases)
+	fd.aliases = map[string]string{}
+	for _, k := range bases {
+		v := rivalViewOf(k, fd.Doctrines[k])
+		fd.Doctrines[k+RivalView] = v
+		if v.LegacyKey != "" {
+			fd.aliases[v.LegacyKey] = k + RivalView
+		}
+	}
 	factionDataCache, factionDataPath = fd, FactionsPath
 	return fd
 }
@@ -599,7 +641,13 @@ func (fd *FactionData) Doctrine(key string) *Doctrine {
 	if fd == nil {
 		return nil
 	}
-	return fd.Doctrines[key]
+	if d := fd.Doctrines[key]; d != nil {
+		return d
+	}
+	if a, ok := fd.aliases[key]; ok {
+		return fd.Doctrines[a]
+	}
+	return nil
 }
 
 // seedable is the sorted list of seedable doctrine keys.
@@ -610,7 +658,7 @@ func (fd *FactionData) seedable() []string {
 			out = append(out, k)
 		}
 	}
-	sort.Strings(out)
+	sort.Slice(out, func(i, j int) bool { return fd.seedSortKey(out[i]) < fd.seedSortKey(out[j]) })
 	return out
 }
 
@@ -794,6 +842,11 @@ type GenOptions struct {
 	// Observer makes the run an observer run (observer.go): set by the
 	// title screen from observer mode; the game adds the expedition fleet.
 	Observer bool
+	// Rivals are the rival boxes (rival_selection_plan.md step 3): when
+	// set, they replace Factions, one faction each; nil is the count path.
+	Rivals []RivalPick
+	// PlayerGroup is the player's group (0: PlayerGroup, 1).
+	PlayerGroup int
 }
 
 // FactionCountRange is the stepper's default and maximum, from
@@ -827,6 +880,10 @@ func (c *Campaign) seedFactions(n int) {
 	c.FactionCount = n
 	c.FactionDay = c.StarDate
 	if n <= 0 {
+		return
+	}
+	if c.SpreadRun() {
+		c.seedRaceFactions(n) // a spreading race's rivals (player_race.go)
 		return
 	}
 	fd := LoadFactionData()
@@ -865,7 +922,9 @@ func (c *Campaign) seedFactions(n int) {
 		}
 		return loc
 	}
-	place := func(key string, d *Doctrine, loc *Location) {
+	place := func(dkey string, d *Doctrine, loc *Location) {
+		key := fd.FactionKeyFor(dkey) // a faction instance of the doctrine (rival_selection_plan.md)
+		c.addFactionRow(key, dkey, 0, 0)
 		pop := d.SeedPopulation
 		if pop < 1 {
 			pop = 1
@@ -882,7 +941,7 @@ func (c *Campaign) seedFactions(n int) {
 			}
 			return
 		}
-		p := c.newPresence(key, d, loc, pop)
+		p := c.newPresence(key, dkey, d, loc, pop)
 		c.recordFaction(d.arrivalEvent(), loc, p, d, nil)
 	}
 	for i := 0; i < n; i++ {
@@ -913,11 +972,11 @@ func (c *Campaign) seedFactions(n int) {
 }
 
 // newPresence adds a fresh presence of doctrine key on loc.
-func (c *Campaign) newPresence(key string, d *Doctrine, loc *Location, pop int) *FactionPresence {
+func (c *Campaign) newPresence(faction, key string, d *Doctrine, loc *Location, pop int) *FactionPresence {
 	c.FactionSeq++
 	loc.Factions = append(loc.Factions, FactionPresence{
 		ID:          fmt.Sprintf("fp%d", c.FactionSeq),
-		Faction:     key,
+		Faction:     faction,
 		Doctrine:    key,
 		Population:  pop,
 		ArrivedDay:  c.FactionDay,
@@ -1134,15 +1193,21 @@ func (c *Campaign) stepPresence(rng *rand.Rand, fd *FactionData, d *Doctrine, lo
 		p.LauncherLost = false
 	}
 	// 4. Research: the spine's next unknown entry, and the second walk's
-	// (the autonz' assimilation) on its own points.
-	if next := nextUnknown(d.Research, p.KnownTechs); p.Stage > 0 && next != nil {
+	// (the autonz' assimilation) on its own points. A race run's techs are
+	// one pool (player_race.go): only the player's seat walks it, so a
+	// spread does not research faster for every world it holds.
+	if p.Faction == PlayerFaction && !c.playerSeat(loc) {
+		// not the seat: its techs come from the pool
+	} else if next := nextUnknown(d.Research, p.KnownTechs); p.Stage > 0 && next != nil {
 		p.ResearchPts += d.ResearchPerDay * float64(p.Stage)
 		if p.ResearchPts >= next.Cost {
 			p.ResearchPts -= next.Cost
 			p.KnownTechs = append(p.KnownTechs, next.ID)
 		}
 	}
-	if next := nextUnknown(d.Assimilation, p.KnownTechs); next != nil && len(d.AssimilationPerDay) > 0 {
+	if p.Faction == PlayerFaction && !c.playerSeat(loc) {
+		// not the seat
+	} else if next := nextUnknown(d.Assimilation, p.KnownTechs); next != nil && len(d.AssimilationPerDay) > 0 {
 		p.AssimPoints += d.AssimilationPerDay[min(max(p.Stage, 0), len(d.AssimilationPerDay)-1)]
 		if p.AssimPoints >= next.Cost {
 			p.AssimPoints -= next.Cost
@@ -1180,7 +1245,7 @@ func nextUnknown(walk []DoctrineTech, techs []string) *DoctrineTech {
 // is not spent.
 func (c *Campaign) tryLaunch(rng *rand.Rand, fd *FactionData, d *Doctrine, loc *Location, p *FactionPresence, day history.StarDate, isLoaded func(string) bool) bool {
 	m := d.Mobility
-	cands := c.launchCands(fd, d, loc, p, day, isLoaded)
+	cands := aimed(p, c.launchCands(fd, d, loc, p, day, isLoaded))
 	if cands == nil {
 		return false
 	}
@@ -1225,6 +1290,7 @@ func (c *Campaign) tryLaunch(rng *rand.Rand, fd *FactionData, d *Doctrine, loc *
 		// Seen leaving a hive the player knows.
 		Known: p.Known,
 	})
+	p.LaunchTarget = "" // the player's aim is spent (player_race.go)
 	c.recordFaction("faction_launched", loc, p, d, nil)
 	return true
 }
@@ -1258,7 +1324,7 @@ func (c *Campaign) launchCands(fd *FactionData, d *Doctrine, loc *Location, p *F
 	}
 	var cands []*Location
 	for _, t := range c.sortedLocations() {
-		if t == loc || inbound[t.ID] || isLoaded(t.ID) || !c.FactionSiteOK(t, false) || t.HasFaction(p.Faction) {
+		if t == loc || inbound[t.ID] || isLoaded(t.ID) || !c.FactionSiteOK(t, false) || c.HeldBySide(t, p.Faction) {
 			continue
 		}
 		if math.Hypot(t.X-loc.X, t.Y-loc.Y) <= rng2 {
@@ -1285,7 +1351,7 @@ func (c *Campaign) LaunchReady(loc *Location, id string, pop int, loaded func(st
 	q.Population = pop
 	q.Stage = d.stageFor(pop, q.Stage, d.CapacityAt(loc))
 	isLoaded := func(id string) bool { return loaded != nil && loaded(id) }
-	return len(c.launchCands(fd, d, loc, &q, c.FactionDay, isLoaded)) > 0
+	return len(aimed(&q, c.launchCands(fd, d, loc, &q, c.FactionDay, isLoaded))) > 0
 }
 
 // LiveLaunch is the launcher rule for a presence on a loaded level (live or
@@ -1335,9 +1401,9 @@ func (c *Campaign) landFleet(fd *FactionData, f Fleet) {
 		return
 	}
 	// A brood: built onto the level the next time it is (materialise).
-	p := c.newPresence(e.Faction, d, loc, e.Population)
+	p := c.newPresence(e.Faction, e.Doctrine, d, loc, e.Population)
 	p.KnownTechs = append([]string(nil), e.KnownTechs...)
-	if loc.ID == c.CurrentLocationID {
+	if loc.ID == c.CurrentLocationID || e.Faction == PlayerFaction {
 		p.Known = true // landed under the ship's nose
 	}
 	c.recordFaction("faction_arrived", loc, p, d, nil)
@@ -1483,6 +1549,14 @@ func (c *Campaign) recordFaction(typ string, loc *Location, p *FactionPresence, 
 	// Log lines name the morph, never the faction (hidden identity).
 	m := d.MorphAt(loc)
 	v := map[string]string{"faction": m.Name, "singular": m.Singular}
+	if p != nil && p.Faction == PlayerFaction {
+		// A race run's own events name it truly (hidden identity inverted).
+		v["faction"], v["singular"] = d.Name, d.Singular
+	}
+	if p != nil {
+		// A second faction of a doctrine is told apart by its number.
+		v["faction"] += c.FactionSuffix(p.Faction)
+	}
 	for k, val := range vars {
 		v[k] = val
 	}
@@ -1596,7 +1670,36 @@ func MigrateCampaign(c *Campaign) error {
 		c.Version = 4
 	}
 	c.migrateTechAliases()
+	c.migrateDoctrineAliases()
+	c.EnsureFactionTable()
 	return nil
+}
+
+// migrateDoctrineAliases rewrites a legacy doctrine key on every presence,
+// fleet and faction row to its view (an old save's "mirror" is the colony's
+// rival view, rival_selection_plan.md step 2), keeping each faction key:
+// unconditional and idempotent, so the version stays.
+func (c *Campaign) migrateDoctrineAliases() {
+	fd := LoadFactionData()
+	fix := func(k *string) {
+		if a, ok := fd.aliases[*k]; ok {
+			*k = a
+		}
+	}
+	for _, loc := range c.Locations {
+		for i := range loc.Factions {
+			fix(&loc.Factions[i].Doctrine)
+		}
+		for i := range loc.Husks {
+			fix(&loc.Husks[i].Doctrine)
+		}
+	}
+	for i := range c.Fleets {
+		fix(&c.Fleets[i].Presence.Doctrine)
+	}
+	for _, f := range c.FactionTable {
+		fix(&f.Doctrine)
+	}
 }
 
 // migrateTechAliases renames a doctrine's aliased techs on every presence and
@@ -1655,3 +1758,104 @@ func tier1Rebuild(built, want map[string]int) map[string]int {
 	}
 	return out
 }
+
+// DoctrineRival is a doctrine's rival view: the fields a rival faction of it
+// reads in place of the base's. Only set fields override.
+type DoctrineRival struct {
+	Name           string            `json:"name,omitempty"`
+	Singular       string            `json:"singular,omitempty"`
+	Badge          *[3]uint8         `json:"badge,omitempty"`
+	Economy        string            `json:"economy,omitempty"`
+	Mobility       *DoctrineMobility `json:"mobility,omitempty"`
+	Kit            map[string]int    `json:"kit,omitempty"`
+	SeedFrom       int               `json:"seed_from,omitempty"`
+	SeedPopulation int               `json:"seed_population,omitempty"`
+	LegacyKey      string            `json:"legacy_key,omitempty"`
+}
+
+// RivalView is the key suffix of a doctrine's rival view.
+const RivalView = "!rival"
+
+// RivalColonyDoctrine is the colony's rival view: a rival colony.
+const RivalColonyDoctrine = DefaultPlayerDoctrine + RivalView
+
+// BaseDoctrine is a doctrine key with any view stripped ("colony!rival" is
+// the colony).
+func BaseDoctrine(key string) string {
+	if i := strings.IndexByte(key, '!'); i > 0 {
+		return key[:i]
+	}
+	return key
+}
+
+// rivalViewOf derives d's rival view: a copy with the rival block's fields,
+// seedable, never playable, with no morphs (a rival colony is openly a
+// colony, named by its own name).
+func rivalViewOf(key string, d *Doctrine) *Doctrine {
+	r := d.Rival
+	v := *d
+	v.ViewOf, v.LegacyKey = key, r.LegacyKey
+	v.Rival = nil
+	v.Playable, v.Race = false, nil
+	v.Seedable = true
+	v.Morphs, v.DefaultMorph, v.MorphByScenario = nil, "", nil
+	if r.Name != "" {
+		v.Name = r.Name
+	}
+	if r.Singular != "" {
+		v.Singular = r.Singular
+	}
+	if r.Badge != nil {
+		v.Badge = *r.Badge
+	}
+	if r.Economy != "" {
+		v.Economy = r.Economy
+	}
+	if r.Mobility != nil {
+		v.Mobility = *r.Mobility
+	}
+	if r.Kit != nil {
+		v.Kit = r.Kit
+	}
+	if r.SeedFrom > 0 {
+		v.SeedFrom = r.SeedFrom
+	}
+	if r.SeedPopulation > 0 {
+		v.SeedPopulation = r.SeedPopulation
+	}
+	return &v
+}
+
+// seedSortKey is where a doctrine sorts among the seedable: its legacy key
+// when it has one (the rival colony stays where the mirror sorted).
+func (fd *FactionData) seedSortKey(k string) string {
+	if d := fd.Doctrines[k]; d != nil && d.LegacyKey != "" {
+		return d.LegacyKey
+	}
+	return k
+}
+
+// FactionKeyFor is the faction key a count-seeded faction of doctrine key
+// takes: the view's legacy key ("mirror"), else the doctrine key.
+func (fd *FactionData) FactionKeyFor(key string) string {
+	if d := fd.Doctrine(key); d != nil && d.LegacyKey != "" {
+		return d.LegacyKey
+	}
+	return key
+}
+
+// Resolve is a doctrine key's canonical form: a legacy alias's view
+// ("mirror" is "colony!rival"), else the key.
+func (fd *FactionData) Resolve(key string) string {
+	if fd != nil {
+		if _, ok := fd.Doctrines[key]; !ok {
+			if a, ok := fd.aliases[key]; ok {
+				return a
+			}
+		}
+	}
+	return key
+}
+
+// AddFactionRowFor gives a faction placed by hand (a debug command) its row.
+func (c *Campaign) AddFactionRowFor(key, doctrine string) { c.addFactionRow(key, doctrine, 0, 0) }

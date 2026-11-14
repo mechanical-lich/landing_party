@@ -123,7 +123,7 @@ func TestGreyishTreeHasNoTier1Effect(t *testing.T) {
 		t.Fatal(err)
 	}
 	allowed := map[string]bool{"unlock": true, "upgrade": true, "craft": true, "build": true, "module": true,
-		"print_time": true, "salvage": true, "intercept": true, "boarding": true}
+		"print_time": true, "salvage": true, "intercept": true, "boarding": true, "hull": true}
 	n := 0
 	for key, e := range all {
 		var tree string
@@ -148,8 +148,8 @@ func TestGreyishTreeHasNoTier1Effect(t *testing.T) {
 			}
 		}
 	}
-	if n != 16 {
-		t.Errorf("%d greyish entries, want 16", n)
+	if n != 18 { // 16, and phase F step 6d's two hull entries
+		t.Errorf("%d greyish entries, want 18", n)
 	}
 	d := greyDoctrine(t)
 	isGrey := func(id string) bool {
@@ -178,12 +178,17 @@ func TestGreyishTreeHasNoTier1Effect(t *testing.T) {
 			}
 		}
 	}
-	// Both walks together cover the settlement's live list.
+	// Both walks together cover the settlement's live list, less the hull
+	// entries: a grey player's saucer gates (phase F step 6d), which no
+	// rival reads, so Tier 1 never walks them.
 	walked := map[string]bool{}
 	for _, e := range append(append([]DoctrineTech(nil), d.Research...), d.Assimilation...) {
 		walked[e.ID] = true
 	}
 	for _, k := range d.Settlement.Research {
+		if tech, ok := research.GetTech(k); ok && tech.Develop != nil && tech.Develop.Hull != "" {
+			continue
+		}
 		if !walked[k] {
 			t.Errorf("%s is researched live but on neither Tier 1 walk", k)
 		}

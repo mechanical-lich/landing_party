@@ -26,12 +26,35 @@ import (
 func syncFactionHostility(c *campaign.Campaign) {
 	components.ResetFactionHostility()
 	fd := campaign.LoadFactionData()
-	player := campaign.DefaultPlayerDoctrine
-	if c != nil && c.Player != nil && c.Player.Doctrine != "" {
-		player = c.Player.Doctrine
-	}
+	player := playerFactionKey(c)
+	keys := map[string]bool{}
 	for key := range fd.Doctrines {
-		if key != player { // never the player's own
+		keys[key] = true
+	}
+	if c != nil {
+		for _, f := range c.Factions() { // every faction instance (rival_selection_plan.md)
+			keys[f.Key] = true
+		}
+		// and every faction the campaign holds or has a stance with, table or
+		// not (a faction's key is not its doctrine's: the rival colony is
+		// "mirror", running the colony's rival view)
+		for k := range c.Diplomacy {
+			keys[k] = true
+		}
+		for _, loc := range c.Locations {
+			for i := range loc.Factions {
+				keys[loc.Factions[i].Faction] = true
+			}
+		}
+		for i := range c.Fleets {
+			keys[c.Fleets[i].Presence.Faction] = true
+		}
+	}
+	for key := range keys {
+		// A rival's faction key is its doctrine's; only the player's own
+		// faction is skipped, never a rival that runs the player's doctrine
+		// (a hive player still meets rival hives).
+		if key != player {
 			components.SetFactionHostile(key, c.Stance(key) == campaign.StanceHostile)
 		}
 	}
@@ -76,7 +99,7 @@ func (wm *WorldManager) contactFactions(loc *campaign.Location) {
 		}
 		c.SetStance(f, campaign.StanceHostile, loc)
 		components.SetFactionHostile(f, true)
-		d := campaign.LoadFactionData().Doctrine(f)
+		d := campaign.LoadFactionData().Doctrine(c.DoctrineOf(f))
 		name := f
 		if d != nil {
 			name = d.MorphAt(loc).Singular
@@ -94,5 +117,40 @@ func (wm *WorldManager) contactFactions(loc *campaign.Location) {
 		}
 		log.Printf("[faction] %s turned hostile: the player landed on %s", f, loc.Name)
 		message.PostMessage("Alert", fmt.Sprintf("The %s on %s takes your landing as a threat. It is hostile now.", name, loc.Name))
+	}
+}
+
+// playerFactionKey is the faction key of the player's own people: the player
+// presence's faction (the colony's is its doctrine key, "colony"), else the
+// default doctrine's.
+// playerPeopleFaction is the faction the player's own people carry on a
+// level (systems.PlayerFaction): the player's faction key in a ship run
+// ("colony", or "player" for the greys); "colony" otherwise, so a spreading
+// race's bodies and an observer run open the doors they always did.
+func playerPeopleFaction(c *campaign.Campaign) string {
+	if c == nil || c.Observer || c.SpreadRun() {
+		return campaign.DefaultPlayerDoctrine
+	}
+	return playerFactionKey(c)
+}
+
+func playerFactionKey(c *campaign.Campaign) string {
+	if c != nil && c.Player != nil && c.Player.Faction != "" {
+		return c.Player.Faction
+	}
+	return campaign.DefaultPlayerDoctrine
+}
+
+// setFactionRelation points the bodies' faction relation at c's groups
+// (nil: any two different factions are hostile, as before groups).
+func setFactionRelation(c *campaign.Campaign) {
+	if c == nil {
+		components.FactionsHostile, components.FriendlyToPlayer = nil, nil
+		return
+	}
+	components.FactionsHostile = c.Hostile
+	components.FriendlyToPlayer = func(f string) bool {
+		// a rival faction in the player's group (never the player's own)
+		return c.Player != nil && f != c.Player.Faction && c.FactionOf(f) != nil && c.SameGroup(f, c.Player.Faction)
 	}
 }

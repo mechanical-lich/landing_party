@@ -158,6 +158,9 @@ func GenerateCampaignOpts(name string, seed int64, opts GenOptions) (*Campaign, 
 		History:   history.New(seed),
 		Player:    NewPlayerPresence(opts.Doctrine),
 	}
+	if c.Player.Faction == PlayerFaction {
+		c.Diplomacy = map[string]string{PlayerFaction: StanceNeutral} // a stray Stance lookup
+	}
 	rng := rand.New(rand.NewSource(seed))
 
 	// Home: far away, visible from day one; distance drives its (huge) cost.
@@ -209,7 +212,18 @@ func GenerateCampaignOpts(name string, seed int64, opts GenOptions) (*Campaign, 
 		c.QuestDefs = append(c.QuestDefs, *qd)
 	}
 
-	c.seedFactions(opts.Factions)
+	if opts.Rivals != nil {
+		// The rival boxes (rival_selection_plan.md step 3): the player's row
+		// and group first, so the instances key round it.
+		g := opts.PlayerGroup
+		if g <= 0 {
+			g = PlayerGroup
+		}
+		c.addFactionRow(c.Player.Faction, c.Player.Doctrine, 0, g)
+		c.seedRivals(opts.Rivals)
+	} else {
+		c.seedFactions(opts.Factions)
+	}
 	c.Observer = opts.Observer
 	c.BindQuests()
 	return c, nil

@@ -6,6 +6,13 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
+// PlayerFaction is the faction key of the player's people: "colony" for the
+// colony, "player" for a ship race's crew (phase F step 6, the greys; the
+// game sets it per campaign). The doors owned "colony" (the ship's, a
+// station frame's, a scenario's airlock: the player's people's doors) admit
+// it, and a keyed door unlocks for it.
+var PlayerFaction = "colony"
+
 // isFactionMember reports whether the entity belongs to a faction the door
 // would admit. Unlike rlentity.CanPassThroughDoor, this ignores the door's
 // current open state so it can be used to decide whether to keep it open.
@@ -15,6 +22,9 @@ func isFactionMember(entity *ecs.Entity, door *rlcomponents.DoorComponent) bool 
 	}
 	dc := entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent)
 	if door.OwnedBy != "" && dc.Faction == door.OwnedBy {
+		return true
+	}
+	if door.OwnedBy == "colony" && dc.Faction == PlayerFaction {
 		return true
 	}
 	for _, f := range door.AllowedFactions {

@@ -109,6 +109,7 @@ func (d *Director) hunt(s *Site, cfg *campaign.DoctrineDirector, snap *snapshot,
 		}
 		prey = func(e *ecs.Entity) bool {
 			return !e.HasComponent(rlcomponents.Inanimate) && faction(e) != own &&
+				(own == "" || faction(e) == "" || components.HostileFactions(own, faction(e))) &&
 				(e.HasComponent(components.ScriptedAI) || e.HasComponent(components.FactionAI) || e.HasComponent(components.Drops))
 		}
 	}

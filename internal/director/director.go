@@ -120,6 +120,9 @@ type Site struct {
 	Types     map[string]*campaign.DoctrineType
 	Unlocked  map[string]bool
 	SignalDir [2]float64
+	// Skip is the rung groups the player took over (a race run, phase F):
+	// their rungs are not walked.
+	Skip map[string]bool
 }
 
 // Director plans for one settlement. Its choices are deterministic given the
@@ -285,6 +288,9 @@ func (d *Director) Plan(s *Site, tick int) {
 	for _, p := range cfg.Priorities {
 		if p.StageMin > s.Stage {
 			continue // not at this stage yet (the hive's chamber, its spire)
+		}
+		if p.Group != "" && s.Skip[p.Group] {
+			continue // the player took this group over
 		}
 		if p.TierMin > s.Tier || s.Ship && p.StayLeft > 0 && s.StayLeft < p.StayLeft {
 			continue // a ship's hull too small, or too short a stay left for it
@@ -650,6 +656,9 @@ func (d *Director) research(s *Site, snap *snapshot, tick int) bool {
 		t, ok := research.GetTech(key)
 		if !ok || has(s.Known, key) || (t.RequiresTech != "" && !has(s.Known, t.RequiresTech)) {
 			continue
+		}
+		if t.Develop != nil && t.Develop.Hull != "" {
+			continue // a grey player's saucer gate: no rival has a saucer to grow (phase F step 6d)
 		}
 		if t.RequiredInt > snap.maxInt {
 			continue // no one here could work it

@@ -53,7 +53,7 @@ func printFactions(w io.Writer, seeds []int64, counts []int, days, every int, co
 					for _, p := range loc.Factions {
 						pres++
 						pop += p.Population
-						if p.Faction == "autonz" {
+						if p.Doctrine == "autonz" {
 							anyAutonz = true
 							if p.Dormant {
 								dormant++

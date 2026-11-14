@@ -116,6 +116,14 @@ func (gm *GUIManager) ShowColonistModal(colonist *ecs.Entity, storageItems []Sto
 	gm.hud.ShowColonistModal(colonist, storageItems)
 }
 
+// ShowUnitModal is ShowColonistModal with the type_tier section's line.
+func (gm *GUIManager) ShowUnitModal(colonist *ecs.Entity, storageItems []StorageItemEntry, typeLine string) {
+	gm.hud.ShowUnitModal(colonist, storageItems, typeLine)
+}
+
+// SetInterface applies the player's doctrine's interface (interface.go).
+func (gm *GUIManager) SetInterface(spec InterfaceSpec) { gm.hud.SetInterface(spec) }
+
 // CraftingRecipeIDs is the open crafting modal's rows' recipe IDs.
 func (gm *GUIManager) CraftingRecipeIDs() []string { return gm.hud.CraftingRecipeIDs() }
 

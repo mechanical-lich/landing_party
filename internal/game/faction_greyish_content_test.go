@@ -80,7 +80,7 @@ func TestGreyishContent(t *testing.T) {
 		}
 	}
 	for _, k := range d.Settlement.Buildables {
-		if !factory.BlueprintExists(k) {
+		if construction.GetBuildable(k).IsEntity && !factory.BlueprintExists(k) { // hull tiles and stairs are tiles
 			t.Errorf("buildable %s has no blueprint", k)
 		}
 	}

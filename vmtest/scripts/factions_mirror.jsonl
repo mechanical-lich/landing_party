@@ -1,6 +1,6 @@
-{"name":"factions_mirror","seed":19}
+{"name":"factions_mirror","seed":19,"config":{"rivalsByCount":true}}
 # New Expedition seed 19 with Rival factions 2: one hive and one rival colony
-# (the mirror doctrine), whose ship is seeded landed on Slag Hollow (sys_55,
+# (the colony doctrine run by a rival, faction key mirror), whose ship is seeded landed on Slag Hollow (sys_55,
 # 10 fuel from the Wreck Site). Jump there: from orbit the ship is seen,
 # drawn on the Star Map as a dart beside the site, the site tagged RIVAL
 # COLONY · NEUTRAL. Beam one colonist down and land: the colony's camp is

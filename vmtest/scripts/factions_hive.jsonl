@@ -1,4 +1,4 @@
-{"name":"factions_hive","seed":777}
+{"name":"factions_hive","seed":777,"config":{"rivalsByCount":true}}
 # The hive as a settlement (hive_plan.md, phase E2). New Expedition seed 777
 # with Rival factions 3 (as factions_site: with 1 the seed's hive is on Glass
 # Expanse), then 36 days pass (debug days) so the brood on Rust Tangle

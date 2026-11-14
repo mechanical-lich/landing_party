@@ -65,7 +65,11 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 		if wc.AllowedTasks == nil {
 			t = pickAffordableTask(level, entity, &mySettlement.Tasks, sc.Name)
 		} else if len(wc.AllowedTasks) > 0 {
-			t = pickAffordableTask(level, entity, &mySettlement.Tasks, sc.Name, wc.AllowedTasks...)
+			// An explicit list (a type's tasks, the player's filters) limits
+			// the work a worker takes on its own, never where the player sends
+			// it: the ground click's task (no action) is always taken.
+			allowed := append(append([]task.TaskAction(nil), wc.AllowedTasks...), task_requests.MoveHereAction)
+			t = pickAffordableTask(level, entity, &mySettlement.Tasks, sc.Name, allowed...)
 		}
 		// else: AllowedTasks is non-nil empty — all tasks blocked, t stays nil
 		if t != nil {

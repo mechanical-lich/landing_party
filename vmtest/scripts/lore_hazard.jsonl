@@ -1,4 +1,4 @@
-{"name":"lore_hazard","seed":407}
+{"name":"lore_hazard","seed":407,"config":{"rivalsByCount":true}}
 # A hazard-tier site: seed 407's sys_17 is an earth_like world whose history
 # ends in dormant_nest (unhatched eggs in an old wreck). The Star Map shows
 # the amber Hazard tag before its summary; on the ground the eggs stand by the

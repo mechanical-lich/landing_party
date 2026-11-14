@@ -1,4 +1,4 @@
-{"name":"factions_intercept","seed":55}
+{"name":"factions_intercept","seed":55,"config":{"rivalsByCount":true}}
 # New Expedition seed 55 with Rival factions 3: the greyish mothership (fl2)
 # is parked in orbit of Verdant Hold (sys_14, 11 fuel from the Wreck Site).
 # Jump there: arriving under it is an interception. The Contact popup stops

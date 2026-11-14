@@ -1,4 +1,4 @@
-{"name":"new_expedition","seed":777}
+{"name":"new_expedition","seed":777,"config":{"rivalsByCount":true}}
 # Title -> New Expedition with seed 777, the tutorial off and the Rival factions
 # stepper walked to both ends and back to its default -> Star Map (adrift)
 # -> travel to the start system -> beam two colonists down -> To Site -> 600 ticks.

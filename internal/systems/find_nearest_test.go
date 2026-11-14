@@ -8,6 +8,7 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mechanical-basic/pkg/basic"
+	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -159,4 +160,59 @@ endfunction
 		callNum(t, interp, "probe")
 	}
 	assert.Equal(t, 8.0, callNum(t, interp, "px"), "the colonist behind it")
+}
+
+// nearest_visible_enemy picks the same target every run when enemies are
+// equally near: the Visible set is a map, so without a tie-break the pick
+// followed its order, which changes from run to run. Four colonists one
+// tile away on each side: the one with the lowest Y (north) wins, every
+// time.
+func TestNearestVisibleEnemyTieIsRepeatable(t *testing.T) {
+	lvl := world.NewLevel(16, 16, 4)
+	self := mob(lvl, "monsters", 5, 5, 1)
+	vc := &components.VisionComponent{Range: 6, Visible: map[*ecs.Entity]components.VisibleEntry{}}
+	self.AddComponent(vc)
+	for _, d := range [][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}} {
+		w := mob(lvl, "colony", 5+d[0], 5+d[1], 1)
+		w.AddComponent(&components.WorkerComponent{})
+		vc.Visible[w] = components.VisibleEntry{Entity: w, X: 5 + d[0], Y: 5 + d[1], Z: 1}
+	}
+	interp := basic.NewMechanicalBasic()
+	registerScriptedAIFuncs(interp, self, lvl, &components.ScriptedAIComponent{Vars: map[string]any{}})
+	require.NoError(t, interp.Load(`
+function sx()
+    nearest_visible_enemy()
+    return get_seen_x()
+endfunction
+function sy()
+    nearest_visible_enemy()
+    return get_seen_y()
+endfunction
+`))
+	for i := 0; i < 50; i++ {
+		require.Equal(t, 5.0, callNum(t, interp, "sx"), "call %d: x", i)
+		require.Equal(t, 4.0, callNum(t, interp, "sy"), "call %d: y", i)
+	}
+}
+
+// Two factions of one group never take each other for enemies; in
+// different groups they do, whatever their doctrines (rival_selection_plan.md,
+// "Groups"). The default (no relation set) is any two different factions.
+func TestFindNearestEnemyRespectsGroups(t *testing.T) {
+	t.Cleanup(func() { components.FactionsHostile = nil })
+	probe := func() float64 {
+		lvl := world.NewLevel(16, 16, 4)
+		self := mob(lvl, "hive", 5, 5, 1)
+		mob(lvl, "hive.2", 7, 5, 1)
+		interp := basic.NewMechanicalBasic()
+		registerScriptedAIFuncs(interp, self, lvl, &components.ScriptedAIComponent{Vars: map[string]any{}})
+		require.NoError(t, interp.Load("function probe()\n    return find_nearest_enemy(6)\nendfunction\n"))
+		return callNum(t, interp, "probe")
+	}
+	components.FactionsHostile = nil
+	assert.Equal(t, 1.0, probe(), "default: two factions are enemies")
+	components.FactionsHostile = func(a, b string) bool { return false }
+	assert.Equal(t, 0.0, probe(), "one group: friends")
+	components.FactionsHostile = func(a, b string) bool { return true }
+	assert.Equal(t, 1.0, probe(), "two groups: enemies")
 }

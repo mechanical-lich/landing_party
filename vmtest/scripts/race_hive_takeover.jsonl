@@ -1,0 +1,54 @@
+{"name":"race_hive_takeover","seed":777,"config":{"rivalsByCount":true}}
+# Taking over (phase F step 3): a hive run on seed 777. The Brood Heart's
+# panel (the doctrine's panels: a text row and the rung-group toggles);
+# taking breeding over is recorded on the presence. A Resin Spire placed by
+# the heart (debug place) opens its panel: the launcher's readiness, the
+# worlds in reach and Aim at; aiming at the first world arms it (the Spire
+# fires only where the player aims it); Load takes the launch over and sends
+# the shot to hold round it. Then "I run this
+# world" on the heart takes every group over. Frames: the heart's panel,
+# breeding taken over, the Spire's panel, the Spire aimed, the Spire loaded,
+# the world run by hand.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Brood"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"wait","ticks":30}
+{"op":"key","key":"Space"}
+{"op":"click","target":"entity:hive_heart"}
+{"op":"assert","path":"modal","contains":"structurePanel"}
+{"op":"assert","path":"panel.title","eq":"Brood Heart"}
+{"op":"screenshot","name":"heart_panel"}
+{"op":"click","target":"modal:structurePanel:panel_group_breeding"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"taken_over","contains":"breeding"}
+{"op":"screenshot","name":"breeding_taken"}
+{"op":"click","target":"modal:structurePanel:close"}
+{"op":"debug","cmd":"place egg_launcher 3 0"}
+{"op":"click","target":"entity:egg_launcher"}
+{"op":"assert","path":"panel.title","eq":"Resin Spire"}
+{"op":"assert","path":"panel.rows","eq":["readiness","target_list","action","action"]}
+{"op":"screenshot","name":"spire_panel"}
+{"op":"click","target":"modal:structurePanel:row:panelTargets_1:0"}
+{"op":"click","target":"modal:structurePanel:panel_action_launch_at"}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"spire_aimed"}
+{"op":"click","target":"modal:structurePanel:panel_action_load_launcher"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"taken_over","contains":"launch"}
+{"op":"click","target":"modal:structurePanel:close"}
+{"op":"key","key":"Space"}
+{"op":"wait","ticks":300}
+{"op":"screenshot","name":"spire_loaded"}
+{"op":"key","key":"Space"}
+{"op":"click","target":"entity:hive_heart"}
+{"op":"click","target":"modal:structurePanel:panel_group_*"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"taken_over","contains":"scouting"}
+{"op":"assert","path":"taken_over","contains":"defence"}
+{"op":"screenshot","name":"world_run_by_hand"}

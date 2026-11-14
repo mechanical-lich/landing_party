@@ -1,4 +1,4 @@
-{"name":"factions_starmap","seed":777}
+{"name":"factions_starmap","seed":777,"config":{"rivalsByCount":true}}
 # New Expedition seed 777 with Rival factions 3: three hive broods on the
 # opening map, none on the start system, all unseen (no badge, no Legends
 # line). Jump to Rust Tangle (sys_43, a seeded site): from orbit the presence

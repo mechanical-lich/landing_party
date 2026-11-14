@@ -106,7 +106,7 @@ blueprint) and `ordered` (its director's orders by kind)),
 `paused`, `pause_text`, `cursor_mode`, `build_mode`, `camera`, `selected`,
 `settlement`, `view_room` and `view_module` (the named room and station
 module at the view's centre), `in_view` (blueprint → count on screen),
-`messages` (last 10), `observer_run` (an observer run), `shown_presences`
+`messages` (last 10), `observer_run` (an observer run), `spread_run` (a race run, phase F), `race` (the player's doctrine), `player_sites` and `player_site_count` (the worlds the player holds in a race run), `hud` on a site (phase F step 2: the doctrine's interface as drawn: `slots`, `resources` (slot → value), `orders`, `unit_modal` (the sections the unit modal drew last), `unit_title`, `research_title`, `research_hull` (the research modal's Hull section: a grey run's saucer, phase F step 6)), `panel` (the open structure panel's `title` and row kinds), `taken_over` and `launch_target` (the player's presence on the site: the rung groups taken over, the armed aim), `shown_presences`
 and `shown_fleets` (what the Star Map shows of the factions: everything in
 an observer run, the seen ones otherwise), `expedition` (the
 run's expedition fleet: `landed`, `site` (the site it is landed on, "" in
@@ -138,10 +138,10 @@ make vmtest-targets SCRIPT=new_expedition
 
 | Kind | Names |
 |---|---|
-| `title:` | `new`, `load`, `settings`, `quit`, `name`, `seed`, `tutorial`, `launch`, `cancel`, `load_confirm`, `load_cancel`, `save:<campaign dir>` |
+| `title:` | `new`, `load`, `settings`, `quit`, `name`, `seed`, `tutorial`, `factions_minus`, `factions_plus`, `race_prev`, `race_next` (the Race row, phase F), `launch`, `cancel`, `load_confirm`, `load_cancel`, `save:<campaign dir>` |
 | `tab:` | `starmap`, `crew`, `inventory`, `quests`, `encyclopedia`, `legends` |
 | `dash:` | the tutorial's names: `travelBtn`, `locateBtn`, `scanBtn`, `shipList`, `planList`, `beamDownBtn`, `beamUpBtn`, `returnSiteBtn`, `returnShipBtn`, `saveBtn`, `locList` |
-| `row:` | `locList:<location id>`, `shipList:<n>`, `planList:<n>` (Star Map lists; a row scrolled out of view does not resolve) |
+| `row:` | `locList:<location id>`, `shipList:<n>`, `planList:<n>` (Star Map lists; a row scrolled out of view does not resolve); `locList:yours:<n>`: the nth world the player holds in a race run, scrolled into view |
 | `star:` | `tutorial`, `next` (planet on the Star Map canvas) |
 | `legends:` | `chronicle` (the Legends tab's scrolling chronicle), `datapads` (its "Datapads read" filter row, once a datapad was read) |
 | `gi:` | `beam_down`, `beam_up` (Global Inventory tab) |
@@ -150,7 +150,7 @@ make vmtest-targets SCRIPT=new_expedition
 | `hud:` | any HUD element ID: `cat_orders`, `cat_structures`, `order_dig`, `order_mine`, `order_default`, `build_<type>`, `sub_back` |
 | `menu:` | the Esc menu: `save`, `load`, `newgame`, `quit` |
 | `modal:` | `<modal>:close`, `<modal>:<element id>`, `<modal>:row:<list id>:<n>`, `<modal>:item:<list id>:<text>` for `colonistModal`, `craftingModal`, `researchModal`, `mainMenu`, `saveModal`, `loadModal` (mlge's `minuitarget.Modal` grammar) |
-| `entity:` | `<blueprint>` (first on screen) or `<blueprint>:<n>` (nth on screen) |
+| `entity:` | `<blueprint>` (first on screen) or `<blueprint>:<n>` (nth on screen); `<blueprint>` also resolves aboard the ship (a grey run's vat and console) |
 | `region:` | a level region tag, e.g. `tut_rations` |
 | `tile:` | `x,y,z` (on screen, camera level) |
 | `focused` | the tile the entity the last `debug focus` found stands on now (pause first so it holds still) |
@@ -177,21 +177,44 @@ tutorial off.
 | `module [walk] <id>` | Frames a station module (`Level.Modules`: `dock`, `generator`, `lab`, `cargo:2`, `wreck`); `walk` puts the first colonist inside |
 | `deck <z>` | Frames deck z of a station on its main stair column (`station_deck:<z>`) |
 | `days <n>` | Moves the star date on n days and steps the rival factions through them (a hive grows before the player arrives) |
+| `place <blueprint> <dx> <dy>` | Puts a structure at the player settlement's centre plus (dx, dy), as built (a race run's structure panel without waiting days; phase F); a container is owned by that settlement, as a build gives it (a grey run's locker aboard is a door onto the ship's pocket) |
+| `presence <location id> <doctrine> <pop>` | Puts a planet-carried presence of that doctrine on a frozen location, built when the level is (a race run meeting a rival on its world; phase F) |
+| `aim <location id>` | Aims the player's launcher or signal on that world at the nearest world in its reach (a race run's spread fires only where the player aims it; phase F) |
+| `freeze <location id>` | Freezes a loaded planet the viewer is not on, so `days` steps it by Tier 1 (a race run's world stays loaded while its brood lives there; phase F) |
 | `faction [walk]` | Frames the camera on the first faction presence of the site on screen (its centre: the nest, the launcher); `walk` also puts the first colonist beside it |
 | `stance <faction> <neutral\|hostile>` | Sets a faction's stance toward the player (a script watching a hive build without its guards on the landing party) |
 | `tech <location id> <faction> <tech>` | The faction's presence there knows the tech in its record, from the dashboard (phase E3: its next spawns take it, so a script can show a bronze autonz without waiting on the day; the cheat console's `faction tech` does the same on a live site) |
 | `ship <fleet id> tier <n>\|pop <n>\|hold <n>\|tech <tech>\|leave` | A faction ship's hull tier, crew (units from the stage mix), hold (emptied to n metal, so a trip's digging does not send it home) or a tech, or `leave`: its stay over, so it lifts off at the next day (phase E4: a grey warship to look at without waiting on the hoard; set before the jump, since the site's level is built on arrival) |
 | `autonz [dx dy]` | Frames the camera on the autonz settlement of the site on screen (its centre, offset by dx, dy) |
-| `rival [walk]` | Frames the camera on the first faction settlement of the site on screen (its camp); `walk` also puts the first colonist south of it |
+| `rival [walk]` | Frames the camera on the first faction settlement of the site on screen (its camp; a race run's own brood is no rival); `walk` also puts the first colonist south of it |
 | `boarding [walk]` | On a boarded ship's deck: frames the camera on the hull; `walk` also puts the first colonist inside it, so its view shows the hull and the crew (phase D) |
 | `origin [walk [event type [n]]]` | Frames the camera on the site history's resolved chapter origin (the `region:lore_origin` tag), or on the origin of the site's event of that type; `walk` also puts the first colonist on the nearest free tile there, so its field of view reveals it; `n` picks the nth event of that type (the two sides of a per-side event) |
+
+### The rival boxes
+
+New Expedition's rival boxes (rival_selection_plan.md step 3) default to
+Random, a real roll from the seed, so a run started from the title screen
+does not seed the Rival factions count's lineup. A script that wants that
+lineup (every script written before the boxes) sets `"rivalsByCount": true`
+in its header's `config`: the title screen then ignores the boxes. Targets:
+`title:rival_prev_N`, `title:rival_next_N`, `title:rival_group_minus_N`,
+`title:rival_group_plus_N` (N from 0), `title:player_group_minus`,
+`title:player_group_plus`; the sidecar's `title_fields.rivals` (each shown
+choice), `title_fields.rival_groups`, `title_fields.player_group`, and
+`campaign.factions` (every faction instance by key: `doctrine`, `group`,
+`slot`, `name`; a key with a dot, `hive.2`, cannot be a path segment).
 
 ### Determinism
 
 The runner sets `GODEBUG=randautoseed=0` on the guest and scripts type their
 seed, so two runs of a starter script produce the same state at every frame.
-Generated planets have shown some variance in enemy types between same-seed
-runs; assert counts rather than specific enemies there.
+Generated planets used to vary in enemy types and ore between same-seed runs:
+the GameMaster's spawn pick and the asteroid primer's region order both
+followed Go's map order. Both now iterate in a fixed order
+(`TestSameSiteBuiltTwicePlaysTheSame` builds lore_ufo's site twice and
+compares every body for 60 ticks). Anything that picks by walking a map must
+sort its keys first, and new tiles go in a tile file that sorts last (tile
+variants follow catalogue indices).
 
 ## Starter scripts
 
@@ -202,7 +225,7 @@ runs; assert counts rather than specific enemies there.
 | `factions_mirror` | Seed 19, Rival factions 2: the rival colony's ship is landed on Slag Hollow (`sys_55`); from orbit the dart beside the site and the `RIVAL COLONY · NEUTRAL` tag; beam one down (it turns hostile, asserted) and land; its camp, four colonists and first beds after 600 ticks, framed with `debug rival walk` |
 | `factions_greyish` | Seed 55, Rival factions 3: the greyish scout (`fl1`) landed on Ember Pit (`sys_20`), the mothership (`fl2`) over Verdant Hold (`sys_14`); jump to Ember Pit: the saucer beside the site and the `GREY SCOUT · HOSTILE` tag; beam one down and land: the landed saucer, three typed grey crew and (phase E4) the scout's modules, a grey vat and a console (`rival.built.grey_vat`, `grey_console` asserted), framed after 900 ticks with `debug rival walk` |
 | `factions_greyish_warship` | Phase E4: the same scout made a warship of eight before the jump (`debug ship fl1 tier 2`, its techs, `pop 8`, `hold 0`): it lands with its vat, console, armory and two emitters and its research array on the ground (`rival.built.*` asserted), soldiers with beam rifles and a heavy; the greys set neutral. Frames: the camp, a day on, the landing scar after `debug ship fl1 leave` (no hull, no modules, the datapad), and `debug focus grey_array_wreck` (the wreck found: it is drawn only in view, and no colonist is near) |
-| `factions_autonz` | Seed 65, Rival factions 4 (the count that brings the autonz in): an autonz node seeded on Leaden Ridge (`sys_5`); `debug days 81` (80 before observer mode v2 moved the greys' routes) grows it into a hub at about 29% converted; jump there: the blue square chip with a stage pip and the `AUTONZ HUB` tag; beam one down and land: the hub stamp (a round wired hall, red-wired core), blue wire laid by its share, the fabricator and its locker, wire placers (the claw walker) and enforcers (the red-bar tripod), and since phase E3 the Signal Core, the cogitator and a relay pylon; framed after 900 ticks with `debug rival walk` |
+| `factions_autonz` | Seed 65, Rival factions 4 (the count path's default lineup, which brings the autonz in): an autonz node seeded on Leaden Ridge (`sys_5`); `debug days 81` (80 before observer mode v2 moved the greys' routes) grows it into a hub at about 29% converted; jump there: the blue square chip with a stage pip and the `AUTONZ HUB` tag; beam one down and land: the hub stamp (a round wired hall, red-wired core), blue wire laid by its share, the fabricator and its locker, wire placers (the claw walker) and enforcers (the red-bar tripod), and since phase E3 the Signal Core, the cogitator and a relay pylon; framed after 900 ticks with `debug rival walk` |
 | `factions_intercept` | Seed 55, Rival factions 3: jump to Verdant Hold under the greyish mothership: the Contact popup (Evade 8 fuel, Board, no Parley: hostile) stops the clock; Board: the mothership's deck as an encounter location, the Star Map with the mothership marker and `GREY MOTHERSHIP IN ORBIT · HOSTILE`; beam aboard and `debug boarding walk`: the hull, its crew and hoard |
 | `factions_hive` | Seed 777, Rival factions 3 (as `factions_site`: with 1 the seed's hive is on Glass Expanse), `debug days 36`: jump to Rust Tangle (`sys_43`) and land; `debug stance hive neutral` keeps its guards off the landing party. The hive as a settlement (phase E2): the hive_core chamber laid with resin, the heart with grey eggs round it, coloured eggs by type, magenta egg clusters, violet biomass pools, the evolution chamber and the Resin Spire, olive drones, blue scouts, red warriors; `faction.units`, `faction.larvae`, `faction.built.*` asserted. Frames: the Star Map tag, the hive on its heart (`debug faction walk`), three days on (`wait 2250`: resin laid outward, blooms, eggs hatched), the Factions tab (morph names) |
 | `factions_autonz_hub` | Seed 65, Rival factions 4, `debug days 120`: Leaden Ridge's (`sys_5`) autonz hub as a settlement (phase E3), landed with the autonz set neutral: the Signal Core on the red core, the cogitator, the foundry, a relay pylon at the wire's edge, two defence pylons, wire placers, bronze enforcers, a harvester, a relay drone, a seeker and a sentinel; `autonz.built.*` and `autonz.units.*` asserted. Frames: the hub (`debug rival walk`, `debug autonz 0 -2`), a day on, the Factions tab (units by type, bronze marked, the structures) |
@@ -226,6 +249,14 @@ runs; assert counts rather than specific enemies there.
 | `lore_war` | Seed 125: the start system is a `sundered_world` earth site; walk to each side's fort (`debug origin walk fortify 1` and `2`), the battlefield and a side's dwelling |
 | `lore_ship` | Seed 11: the start system's old warship wreck (`crashed_ship`, purpose warship), lighting off, walked to: hull, sections, rooms |
 | `observer` | An observer run (`observerMode` in the header config at New Expedition), seed 777: no player ship; the expedition fleet launches off the Wreck Site on day 1 and lands on Murk Shoals on day 4; the viewer sees every faction from day 0 (the Factions tab; its hive row, `factions:site:sys_54`, selects Glass Expanse on the Star Map, tagged `HIVE/XENO BROOD 3`); View opens the expedition's planet (six crew, the settlement director building), leaving unloads it, then View opens Rust Tangle (`sys_43`), a planet nothing is on. Frames: the Star Map adrift, the Factions tab, the hive at day 0, the Star Map after the landing, the expedition's colony at once and a day on, Rust Tangle, the Star Map after, and the hive on Glass Expanse viewed from its Factions row (the camera on the brood, `faction.bodies` at least 1, unloaded again on leaving) |
+| `race_hive` | Phase F step 1: New Expedition seed 777, the Race row stepped to the hive: no ship, the run opens viewing the brood on the start system (`spread_run`, `race`, `player_site_count` 1, `faction.units`); the larva's crafting modal (drone and scout eggs, the locked types named) queues a drone egg; the evolution chamber opens the research modal over the evolve tree; the Star Map (`Your worlds`, no Travel, Beam or Scan); `debug freeze start` and `debug days 60`: an egg has founded a second world (`player_site_count` 2), which `row:locList:yours:1` and View open. Frames: the race row, the brood, the larva modal, the evolve modal, the brood later, the Star Map at day 0 and 60, the second world |
+| `race_hive_ui` | Phase F step 2: a hive run's own interface from the doctrine's interface block: the resource bar is biomass and larvae (`hud.slots`, `hud.resources`), Orders has Forage and Lay Resin and no Sleep (`hud.orders`), the unit modal of a drone is titled Brood with its type and no equipment (`hud.unit_modal`), the research modal is Evolve; a Lay Resin click queues a convert order; the Crew tab lists the brood grouped by type. Frames: the HUD, the Orders menu, the unit modal, the resin order, the Crew tab |
+| `race_hive_takeover` | Phase F step 3: the Brood Heart's panel (a text row and the rung-group toggles: `panel.title`, `panel.rows`); breeding taken over (`taken_over`); a Resin Spire placed by `debug place` opens its panel (readiness, the worlds in reach, Aim at); aiming at the first world takes the launch over; Load sends the shot to hold round it; "I run this world" (`panel_group_*`) takes every group over. Frames: the heart's panel, breeding taken, the Spire's panel, aimed, loaded, the world run by hand |
+| `race_hive_rival` | Phase F step 4: a hive run at Rival factions 2 is seeded the rival colony and no rival hive (`campaign.diplomacy.mirror` neutral); a rival colony camp put on the brood's world (`debug presence`), the world viewed again, a drone walked to the camp (`debug rival walk`): the colony turns hostile. The Star Map tags the hive's own world `YOUR NEST 8` and its row `[yours]`; the Factions tab has a `YOUR HIVE` block with its units by type. Frames: the Star Map, the two camps, the colony hostile, the Factions tab |
+| `race_autonz` | Phase F step 5: an autonz run (the Race row stepped twice, `race.order`): the node on the start system, the HUD's metal, crystal, ferrite and conversion (`hud.slots`), Assimilation, Lay Wire and Deploy Relay (`hud.orders`); a wire placer's unit modal (type and tier, no needs); a Lay Wire click; a Signal Core placed outside the node opens its panel (readiness, worlds in reach, Transmit here, the group toggles); the node frozen and `debug days 200`: its signal founded more worlds (`player_site_count` 2 or more), the second viewed. Frames: the race row, the node, the unit modal, the core's panel, the Star Map at day 200, the second world |
+| `race_greyish` | Phase F step 6: a grey run (the Race row stepped three times): a ship run, the dashboard adrift with three greys aboard and no tutorial; aboard the saucer (`hud.slots`: metal, crystal, alloy, plastic, specimens), the vat opens its print rows and the console the grey tree with its Hull section (`hud.research_hull`); a locker placed aboard lists the hold (the pocket); Expand Hull clicked on deck 1 and 3000 ticks: the rim breached and the ring's floor spreading; then travel, all three beamed down (`hud.orders` without Sleep), standing after 600 ticks. Frames: the race row, adrift, the saucer, the vat, the console, the locker, the hull growing, the site, the site after 600 ticks |
+| `rivals_title` | Rival selection step 3: an observer run (seed 321) with Rival factions 4 picked in the boxes: rival 1 Hive, rival 2 Hive moved into rival 1's group, rival 3 Random, rival 4 Colony (`title_fields.rivals`, `rival_groups`); after launch `campaign.factions` (the hive in group 2, slot 1; the rival colony `colony!rival` in group 5). Frames: the boxes, the Factions tab (HIVE and THE ASH BROOD apart, the second hive by its draft instance name; the rolled Random, the rival colony) |
+| `race_hive_vs_hive` | Rival selection step 3: a hive run (seed 777) with rival 1 picked as Hive: `campaign.factions.hive` (doctrine hive, group 2) beside `campaign.factions.player` (group 1); its brood put on the player's world (`debug presence start hive 8`) and viewed. Frames: the boxes, the two broods, the Factions tab (XENOS beside YOUR HIVE) |
 | `lore_station` | Seed 114: jump to the quiet station `sys_57`, land at the dock (`view_module` dock, room "Docking Bay"), `debug module walk generator` (room "Main Generator", a `station_generator_broken` in view), then decks 0-2 from the main stair column; lighting off |
 
 Seeds for the lore scripts come from `make history-dump HFIND=<terms>`

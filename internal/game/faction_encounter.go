@@ -42,7 +42,7 @@ func (wm *WorldManager) noteInterception(e *campaign.Encounter) {
 	}
 	message.PostMessage("Alert", encounterText(c, e))
 	log.Printf("[faction] interception: %s (%s) near %s", e.FleetID, e.At, e.LocationID)
-	if observerRun() {
+	if shiplessRun() {
 		// An observer run has no player ship to meet one (only Travel
 		// detects interceptions); kept as a guard: Evade at once, never a
 		// popup addressed to a player who is not there.
@@ -200,7 +200,7 @@ func materialiseBoarding(c *campaign.Campaign, loc *campaign.Location, level *wo
 		} else {
 			e.AddComponent(&components.KinComponent{Morph: "crew", Presence: presenceID})
 		}
-		armBoarder(e, d, b.Doctrine)
+		armBoarder(e, d, b.Faction) // the ship's faction, never its doctrine (a rival colony's is "mirror")
 		level.AddEntity(e)
 	}
 	if f != nil && len(f.Presence.Stockpile) > 0 {

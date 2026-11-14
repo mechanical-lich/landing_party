@@ -1,6 +1,8 @@
 package scenario
 
 import (
+	"sort"
+
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/mlge/utility"
 )
@@ -56,8 +58,15 @@ func PickRandom(rules map[string]SpawnRule, tileName string, lightLevel, z, surf
 		return ""
 	}
 	pick := utility.GetRandom(0, total)
-	for bp, r := range rules {
-		if r.Matches(tileName, lightLevel, z, surfaceZ) {
+	// In key order: walking the map in its own (random) order would turn
+	// the same roll into a different creature from run to run.
+	keys := make([]string, 0, len(rules))
+	for bp := range rules {
+		keys = append(keys, bp)
+	}
+	sort.Strings(keys)
+	for _, bp := range keys {
+		if r := rules[bp]; r.Matches(tileName, lightLevel, z, surfaceZ) {
 			pick -= r.SpawnRate
 			if pick < 0 {
 				return bp

@@ -4197,6 +4197,15 @@
       "text": "{date}: the {colony} colony on {site} was lost with every colonist on it."
     },
     {
+      "id": "brood_losses",
+      "live": true,
+      "_text": "DRAFT: phase F, a race run's day of heavy losses on one world (its bodies are counted, not named).",
+      "fills": [
+        "count"
+      ],
+      "text": "{date}: the brood on {site} lost {count} of its own."
+    },
+    {
       "id": "colonist_died",
       "live": true,
       "fills": [

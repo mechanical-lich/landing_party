@@ -1,4 +1,4 @@
-{"name":"lore_site","seed":777}
+{"name":"lore_site","seed":777,"config":{"rivalsByCount":true}}
 # New expedition (seed 777, tutorial off) -> the start system's Star Map summary
 # is its history's line -> travel -> beam one down -> land and look at the site.
 {"op":"wait","ticks":10}

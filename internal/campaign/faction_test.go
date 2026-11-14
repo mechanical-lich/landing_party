@@ -40,7 +40,7 @@ func TestFactionDataLoads(t *testing.T) {
 	useRepoData(t)
 	fd := LoadFactionData()
 	d := hiveDoctrine(t)
-	if got := fd.seedable(); !reflect.DeepEqual(got, []string{"autonz", "greyish", "hive", "mirror"}) {
+	if got := fd.seedable(); !reflect.DeepEqual(got, []string{"autonz", "greyish", "hive", RivalColonyDoctrine}) {
 		t.Errorf("seedable = %v, want [autonz greyish hive mirror]", got)
 	}
 	if m := fd.Doctrine("mirror"); m == nil || m.SeedFrom != 2 || m.Settlement == nil {
@@ -58,7 +58,7 @@ func TestFactionDataLoads(t *testing.T) {
 func TestFactionGrowthDeterministic(t *testing.T) {
 	run := func() FactionPresence {
 		c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
-		c.newPresence("hive", hiveDoctrine(t), c.Locations["a"], 3)
+		c.newPresence("hive", "hive", hiveDoctrine(t), c.Locations["a"], 3)
 		c.StarDate = 40
 		c.StepFactions(nil)
 		return c.Locations["a"].Factions[0]
@@ -88,7 +88,7 @@ func TestFactionHazardFactor(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"calm": "earth_like", "plague": "zombie_plague", "blight": "crystalline_blight"})
 	d := hiveDoctrine(t)
 	for _, id := range []string{"calm", "plague", "blight"} {
-		c.newPresence("hive", d, c.Locations[id], 3)
+		c.newPresence("hive", "hive", d, c.Locations[id], 3)
 	}
 	c.StarDate = 12
 	c.StepFactions(nil)
@@ -128,7 +128,7 @@ func TestFactionLauncherSpread(t *testing.T) {
 	if th := d.FireThreshold(cap); th >= cap-d.Mobility.ShotPop {
 		t.Fatalf("threshold %d leaves no room above it at capacity %d", th, cap)
 	}
-	p := c.newPresence("hive", d, hive, cap)
+	p := c.newPresence("hive", "hive", d, hive, cap)
 	if p.Stage != len(d.Stages)-1 {
 		t.Fatalf("a full hive is at stage %d", p.Stage)
 	}
@@ -226,7 +226,7 @@ func TestFactionCrampedSiteFiresRarely(t *testing.T) {
 	if cool <= d.Mobility.Cooldown {
 		t.Fatalf("crowded cooldown %d not above the base %d", cool, d.Mobility.Cooldown)
 	}
-	c.newPresence("hive", d, cr, 3)
+	c.newPresence("hive", "hive", d, cr, 3)
 	c.StarDate = history.StarDate(cool - 1)
 	c.StepFactions(nil)
 	if n := countEggsFrom(c, "cramped"); n != 0 {
@@ -246,7 +246,7 @@ func TestFactionCrampedSiteFiresRarely(t *testing.T) {
 // egg bound for one waits in orbit.
 func TestFactionSkipsLoaded(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"live": "earth_like"})
-	c.newPresence("hive", hiveDoctrine(t), c.Locations["live"], 3)
+	c.newPresence("hive", "hive", hiveDoctrine(t), c.Locations["live"], 3)
 	c.Fleets = append(c.Fleets, Fleet{ID: "fl1", Kind: FleetProjectile, ToID: "live", ArriveDay: 1, Presence: FactionPresence{Faction: "hive", Doctrine: "hive", Population: 2}})
 	c.StarDate = 20
 	c.StepFactions(func(id string) bool { return id == "live" })
@@ -352,7 +352,7 @@ func TestFactionExcludedSites(t *testing.T) {
 func TestFactionEventsHiddenUntilRevealed(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
 	d := hiveDoctrine(t)
-	p := c.newPresence("hive", d, c.Locations["a"], 3)
+	p := c.newPresence("hive", "hive", d, c.Locations["a"], 3)
 	c.recordFaction("faction_arrived", c.Locations["a"], p, d, nil)
 	c.StarDate = 15
 	c.StepFactions(nil)
@@ -577,7 +577,7 @@ func TestFactionHiveMorphNames(t *testing.T) {
 			t.Errorf("%s morph = %+v", id, m)
 		}
 	}
-	p := c.newPresence("hive", d, c.Locations["fly"], 3)
+	p := c.newPresence("hive", "hive", d, c.Locations["fly"], 3)
 	c.recordFaction("faction_arrived", c.Locations["fly"], p, d, nil)
 	ev := c.History.Events[len(c.History.Events)-1]
 	if ev.Vars["singular"] != "troid" || ev.Vars["faction"] != "Troids" {

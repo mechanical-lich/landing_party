@@ -73,7 +73,8 @@ endif
 # the director running a landed party for 20,000 ticks, the expedition soak
 # (ten seeds, the expedition director flying the ship from adrift), then the
 # autonz soak (phase E3: ten node seeds and five hub seeds, AUTONZTICKS,
-# 30,000) and the hive soak (HIVETICKS, 30,000: forty days); prints every
+# 30,000), the hive soak (HIVETICKS, 30,000: forty days) and the hive run
+# soak (phase F: RACETICKS live, then Tier 1 to RACEDAYS); prints every
 # table. make soak SOAKSEEDS=3 SOAKTICKS=6000 for a shorter run.
 #
 # The greyish soak (phase E4: ten scout seeds and five warship seeds,
@@ -87,18 +88,24 @@ endif
 SOAKSEEDS ?= 10
 SOAKTICKS ?= 20000
 HIVETICKS ?= 30000
+RACETICKS ?= 30000
+RACEDAYS ?= 150
+RACEFACTIONS ?= 1
 AUTONZTICKS ?= 30000
 GREYTICKS ?= 22500
 HUBSEEDS ?= $(shell echo $$(( ($(SOAKSEEDS) + 1) / 2 )))
 SOAKJOBS ?= 10
 # upto lists 1..N, none for 0 (BSD seq 1 0 counts down: "1 0").
 upto = $(shell i=1; while [ $$i -le $(1) ]; do echo $$i; i=$$((i+1)); done)
-.PHONY: soak soak-autonz soak-hive soak-greyish
+.PHONY: soak soak-autonz soak-hive soak-greyish soak-hive-run soak-autonz-run soak-grey-run
 soak:
 	LP_SOAK=1 LP_SOAK_SEEDS=$(SOAKSEEDS) LP_SOAK_TICKS=$(SOAKTICKS) go test ./internal/game -run "TestObserverSoak|TestExpeditionSoak" -v -count=1 -timeout 30m
 	$(MAKE) soak-autonz
 	$(MAKE) soak-hive
 	$(MAKE) soak-greyish
+	$(MAKE) soak-hive-run
+	$(MAKE) soak-autonz-run
+	$(MAKE) soak-grey-run
 
 soak-autonz:
 	LP_SOAK_AUTONZ_TICKS=$(AUTONZTICKS) sh scripts/soak_par.sh TestAutonzSoak TestAutonzSoakJoin $(SOAKJOBS) \
@@ -111,6 +118,25 @@ soak-hive:
 soak-greyish:
 	LP_SOAK_GREY_TICKS=$(GREYTICKS) sh scripts/soak_par.sh TestGreyishSoak TestGreyishSoakJoin $(SOAKJOBS) \
 		$(addprefix scout:,$(call upto,$(SOAKSEEDS))) $(addprefix warship:,$(call upto,$(HUBSEEDS)))
+
+# The hive run soak (phase F): a hive run with the player doing nothing,
+# RACETICKS live (forty days) then Tier 1 to day RACEDAYS, at RACEFACTIONS
+# rivals; a loss inside the live run fails.
+soak-hive-run:
+	LP_SOAK_RACE_TICKS=$(RACETICKS) LP_SOAK_RACE_DAYS=$(RACEDAYS) LP_SOAK_RACE_FACTIONS=$(RACEFACTIONS) sh scripts/soak_par.sh TestHiveRunSoak TestHiveRunSoakJoin $(SOAKJOBS) \
+		$(addprefix hiverun:,$(call upto,$(SOAKSEEDS)))
+
+# The autonz run soak (phase F step 5): the same for an autonz run.
+soak-autonz-run:
+	LP_SOAK_RACE_TICKS=$(RACETICKS) LP_SOAK_RACE_DAYS=$(RACEDAYS) LP_SOAK_RACE_FACTIONS=$(RACEFACTIONS) sh scripts/soak_par.sh TestAutonzRunSoak TestAutonzRunSoakJoin $(SOAKJOBS) \
+		$(addprefix autonzrun:,$(call upto,$(SOAKSEEDS)))
+
+# The grey run soak (phase F step 6e): a grey run's crew of three beamed down
+# on the start system, the player doing nothing, RACETICKS live; a wiped crew
+# fails.
+soak-grey-run:
+	LP_SOAK_GREY_RUN_TICKS=$(RACETICKS) LP_SOAK_GREY_RUN_FACTIONS=$(RACEFACTIONS) sh scripts/soak_par.sh TestGreyRunSoak TestGreyRunSoakJoin $(SOAKJOBS) \
+		$(addprefix greyrun:,$(call upto,$(SOAKSEEDS)))
 
 # ---- VM play-testing (docs/developer/vmtest.md; the host is mlge's cmd/vmtest,
 # a go.mod tool, so it is built against this module's Ebiten) ----

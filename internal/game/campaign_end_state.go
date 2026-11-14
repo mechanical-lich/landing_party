@@ -14,6 +14,8 @@ import (
 // (total wipe). It returns to the title screen.
 type CampaignEndState struct {
 	victory bool
+	// title replaces the default title (a race's own words; race_run.go).
+	title   string
 	detail  string
 	backBtn *minui.Button
 	done    bool
@@ -47,6 +49,9 @@ func (e *CampaignEndState) Draw(screen *ebiten.Image) {
 	title, tcol := "Expedition Lost", color.RGBA{220, 90, 80, 255}
 	if e.victory {
 		title, tcol = "You Made It Home", color.RGBA{120, 220, 150, 255}
+	}
+	if e.title != "" {
+		title = e.title
 	}
 	screen.Fill(color.RGBA{6, 8, 16, 255})
 	mlge_text.Draw(screen, title, 44, cx-len(title)*44*3/10/2, 220, tcol)

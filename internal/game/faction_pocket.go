@@ -28,10 +28,60 @@ import (
 // pocket on its tile (one stack a tile, nearest first), stored GearDrop gear
 // rolling its chance.
 
-// pocketOwner reports whether containers owned by name are pocket doors.
+// pocketOwner reports whether containers owned by name are pocket doors: a
+// faction settlement whose doctrine keeps one, or one of the player's own
+// when the player's doctrine does (a grey run, phase F step 6b: the ship's
+// pocket and each planet's, joined by the beam).
 func pocketOwner(name string) bool {
+	if playerPocketOwner(name) {
+		return true
+	}
 	s := settlementBlock(name)
 	return s != nil && s.StoragePocket
+}
+
+// playerPocketBase is the loaded campaign's colony base name when the
+// player's doctrine keeps a storage pocket ("" otherwise: the colony, a
+// spreading race, an observer run). Set by NewWorldManager.
+var playerPocketBase string
+
+// playerPocketNoun is the player's doctrine's singular ("grey"), for the
+// spill message.
+var playerPocketNoun string
+
+// setPlayerPocket records whether c's player keeps a storage pocket.
+func setPlayerPocket(c *campaign.Campaign) {
+	playerPocketBase = ""
+	if c == nil || c.Observer || c.SpreadRun() {
+		return
+	}
+	if st := playerSettlementOf(c); st != nil && st.StoragePocket {
+		playerPocketBase = campaignColonyName(c)
+		playerPocketNoun = campaign.PlayerDoctrine(c).Singular
+	}
+}
+
+// playerPocketOwner reports one of the player's own settlements (the
+// colony base, the ship, a planet's "<base> @ <world>") in a pocket run.
+func playerPocketOwner(name string) bool {
+	b := playerPocketBase
+	return b != "" && (name == b || name == b+" Ship" || strings.HasPrefix(name, b+" @ "))
+}
+
+// isPlayerSettlementName is the same test in any run: the player's own
+// settlement names (the base, the ship, a planet's).
+func isPlayerSettlementName(c *campaign.Campaign, name string) bool {
+	b := campaignColonyName(c)
+	return name == b || name == b+" Ship" || strings.HasPrefix(name, b+" @ ")
+}
+
+// linkPlayerPockets relinks the player's pocket doors on a level they play
+// on, every 30 ticks (a locker built or smashed joins or leaves within a
+// second); nothing in a run without a player pocket.
+func (s *MainState) linkPlayerPockets() {
+	if playerPocketBase != "" && s.level != nil && s.tick%30 == 0 {
+		linkPockets(s.level)
+	}
 }
 
 // pocketDoorRadius is how far round a destroyed door its spill lands.
@@ -149,11 +199,14 @@ func pocketDoorLost(level *world.Level, door *ecs.Entity) int {
 
 // pocketOwnerNoun is the player-facing word for a pocket's owner ("grey").
 func pocketOwnerNoun(owner string) string {
+	if playerPocketOwner(owner) {
+		return playerPocketNoun
+	}
 	i := strings.IndexByte(owner, ':')
 	if i <= 0 {
 		return owner
 	}
-	if d := campaign.LoadFactionData().Doctrine(owner[:i]); d != nil && d.Singular != "" {
+	if d := campaign.LoadFactionData().Doctrine(doctrineOfSettlement(owner)); d != nil && d.Singular != "" {
 		return d.Singular
 	}
 	return owner[:i]
@@ -196,4 +249,16 @@ func spillPocket(level *world.Level, items []*ecs.Entity, cx, cy, cz int) int {
 		log.Printf("[faction] a storage pocket spilled %d items at %d,%d,%d", n, cx, cy, cz)
 	}
 	return n
+}
+
+// relinkPlayerPockets relinks the ship's and the orbited site's pockets now
+// (before a beam: a locker built this second already counts).
+func (wm *WorldManager) relinkPlayerPockets() {
+	if playerPocketBase == "" {
+		return
+	}
+	linkPockets(wm.ShipLevel())
+	if cur := wm.Current(); cur != nil {
+		linkPockets(cur.level)
+	}
 }

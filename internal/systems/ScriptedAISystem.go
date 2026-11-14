@@ -453,6 +453,9 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			if ignored[cf] {
 				return false
 			}
+			if selfFaction != "" && cf != "" && !components.HostileFactions(selfFaction, cf) {
+				return false // a faction of its own group (rival_selection_plan.md, "Groups")
+			}
 		}
 		return c.HasComponent(rlcomponents.Position)
 	}
@@ -734,7 +737,7 @@ func registerScriptedAIFuncs(interp *basic.MechBasic, entity *ecs.Entity, level 
 			dx := en.X - sx
 			dy := en.Y - sy
 			d2 := dx*dx + dy*dy
-			if bestEntry == nil || d2 < bestD2 {
+			if bestEntry == nil || d2 < bestD2 || d2 == bestD2 && visibleBefore(en, *bestEntry) {
 				e := en
 				bestEntry = &e
 				bestD2 = d2
@@ -1386,4 +1389,27 @@ func sameFaction(a, b *ecs.Entity) bool {
 		fb = b.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
 	}
 	return fa != "" && fa == fb
+}
+
+// visibleBefore orders two equally near visible entries the same way every
+// run (the Visible set is a map, whose order changes between runs): lower Y,
+// then X, then Z, then blueprint.
+func visibleBefore(a, b components.VisibleEntry) bool {
+	if a.Y != b.Y {
+		return a.Y < b.Y
+	}
+	if a.X != b.X {
+		return a.X < b.X
+	}
+	if a.Z != b.Z {
+		return a.Z < b.Z
+	}
+	ab, bb := "", ""
+	if a.Entity != nil {
+		ab = a.Entity.Blueprint
+	}
+	if b.Entity != nil {
+		bb = b.Entity.Blueprint
+	}
+	return ab < bb
 }

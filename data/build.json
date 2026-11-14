@@ -401,6 +401,7 @@
         "description": "DRAFT. The greys' bio-printer: every grey body is printed here. Carried aboard a grey ship.",
         "build_time": 60,
         "is_entity": true,
+        "ship_only": true,
         "allow_multiple": true,
         "module_only": true,
         "cost": {
@@ -417,6 +418,7 @@
         "description": "DRAFT. The greys' research console. Carried aboard a grey ship.",
         "build_time": 50,
         "is_entity": true,
+        "ship_only": true,
         "allow_multiple": true,
         "module_only": true,
         "cost": {
@@ -447,6 +449,7 @@
         "description": "DRAFT. A grey research array: the advanced entries are worked here.",
         "build_time": 80,
         "is_entity": true,
+        "ship_only": true,
         "allow_multiple": true,
         "required_tech": "grey_research_array",
         "cost": {
@@ -474,5 +477,25 @@
         },
         "category": "greyish",
         "order": 44
+    },
+    "grey_hull_floor": {
+        "name": "Grey Hull Floor",
+        "type": "grey_hull_floor",
+        "description": "DRAFT. A saucer's deck plating.",
+        "build_time": 1,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 1 },
+        "category": "hull",
+        "order": 1
+    },
+    "grey_hull_wall": {
+        "name": "Grey Hull Wall",
+        "type": "grey_hull_wall",
+        "description": "DRAFT. A saucer's rim, alloy-laced.",
+        "build_time": 2,
+        "allow_multiple": true,
+        "cost": { "metal_ore": 1, "grey_alloy": 1 },
+        "category": "hull",
+        "order": 2
     }
 }

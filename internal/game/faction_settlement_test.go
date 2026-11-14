@@ -31,7 +31,7 @@ func mirrorOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState
 		t.Fatal("no mirror doctrine with a settlement")
 	}
 	loc.Factions = append(loc.Factions, campaign.FactionPresence{
-		ID: "fpm", Faction: "mirror", Doctrine: "mirror", Population: pop,
+		ID: "fpm", Faction: "mirror", Doctrine: campaign.RivalColonyDoctrine, Population: pop,
 		Stockpile: map[string]int{"metal_ore": 30, "crystal": 15}, Seed: seed*31 + 7,
 		LastShotDay: campaign.NeverFired,
 	})
@@ -174,7 +174,7 @@ func TestMirrorShipLandsAndTurnsHostileOnContact(t *testing.T) {
 	c.Fleets = append(c.Fleets, campaign.Fleet{
 		ID: "flm", Kind: campaign.FleetShip, FromID: loc.ID, ToID: loc.ID,
 		FromX: loc.X, FromY: loc.Y, ToX: loc.X, ToY: loc.Y, LandedID: loc.ID,
-		Presence: campaign.FactionPresence{ID: "fpm", Faction: "mirror", Doctrine: "mirror", Population: 4,
+		Presence: campaign.FactionPresence{ID: "fpm", Faction: "mirror", Doctrine: campaign.RivalColonyDoctrine, Population: 4,
 			Stockpile: map[string]int{"metal_ore": 30}, Seed: 99, LastShotDay: campaign.NeverFired},
 	})
 	if err := wm.Travel(loc.ID); err != nil {
@@ -273,5 +273,28 @@ func TestConvertActionLaysTheTile(t *testing.T) {
 	ms.campaign.UnlockTech(ConvertTech)
 	if !ms.queueConvert(x+1, y, z, "blue_wires") {
 		t.Error("the player's order refused with the tech known")
+	}
+}
+
+// syncFactionHostility skips only the player's own faction, never a rival
+// that runs the player's doctrine: with the player's presence on the hive
+// doctrine under its own faction key, a hostile rival hive's workers are
+// still hostile (before phase F the skip compared doctrine keys, so the rival
+// hive was never marked).
+func TestHostilitySkipsOnlyThePlayersFaction(t *testing.T) {
+	t.Cleanup(components.ResetFactionHostility)
+	c := &campaign.Campaign{Player: &campaign.FactionPresence{ID: campaign.PlayerPresenceID, Faction: "player", Doctrine: "hive"},
+		Diplomacy: map[string]string{"hive": campaign.StanceHostile}}
+	syncFactionHostility(c)
+	if !components.IsFactionHostile("hive") {
+		t.Error("a rival hive is not hostile to a player on the hive doctrine")
+	}
+	if components.IsFactionHostile("player") {
+		t.Error("the player's own faction is marked hostile")
+	}
+	colony := &campaign.Campaign{Player: campaign.NewPlayerPresence(""), Diplomacy: map[string]string{"colony": campaign.StanceHostile}}
+	syncFactionHostility(colony)
+	if components.IsFactionHostile("colony") {
+		t.Error("the colony player's own faction is marked hostile")
 	}
 }

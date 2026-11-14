@@ -192,6 +192,8 @@ type MainState struct {
 	wm                *WorldManager
 	// observerReveal: RevealAll was set for observer mode (view.go).
 	observerReveal bool
+	// panelStructure is the structure whose panel is open (structure_panel.go).
+	panelStructure *ecs.Entity
 	dashboardBtn      *minui.Button
 	// forceQuestEval requests an immediate quest re-check next Update (set when
 	// a quest target dies) so completion isn't delayed by the periodic tick —
@@ -250,6 +252,8 @@ func (s *MainState) registerListeners() {
 	eq.RegisterListener(s, gui.SetSelfDefendEventType)
 	eq.RegisterListener(s, gui.EnterRogueModeEventType)
 	eq.RegisterListener(s, gui.ExitRogueModeEventType)
+	eq.RegisterListener(s, gui.StructurePanelActionEventType)
+	eq.RegisterListener(s, gui.StructurePanelToggleEventType)
 }
 
 // registerLevelListeners wires the simulation listeners onto THIS level's own
@@ -437,7 +441,7 @@ func newMainStateBase(cfg SettlementConfig) (*MainState, error) {
 	addLogic(&rlsystems.DoorSystem{AppearanceType: components.Appearance})
 	addLogic(&systems.FactionDoorSystem{})
 	addLogic(&systems.StationPowerSystem{})
-	addLogic(&systems.KeyDoorSystem{Faction: "colony"})
+	addLogic(&systems.KeyDoorSystem{}) // the player's people's faction
 	addLogic(&systems.ScriptSystem{})
 	addLogic(&rlsystems.StatusConditionSystem{})
 
@@ -483,6 +487,7 @@ func newMainStateFromLevel(level *world.Level, cfg SettlementConfig) (*MainState
 	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
 	s.gm.Init(level)
+	s.gm.player = s.colonyName
 
 	s.camera.Z = level.SurfaceZ
 	x, y := s.gm.GetFreeSpaceAtZ(s.camera.Z)
@@ -524,9 +529,17 @@ func (s *MainState) colonyName() string {
 	return s.settlementCfg.Name
 }
 
+// campaignTechs reports whether the player's techs live on the campaign (a
+// ship campaign: the colony's, on every planet). A spreading race's run keeps
+// each presence's on its own settlement, as a rival's are (phase F step 1),
+// and a skirmish its settlement's.
+func (s *MainState) campaignTechs() bool {
+	return s.campaign != nil && !s.campaign.SpreadRun()
+}
+
 // knownTechs returns the campaign's tech list if in campaign mode, else the settlement's.
 func (s *MainState) knownTechs() []string {
-	if s.campaign != nil {
+	if s.campaignTechs() {
 		return s.campaign.KnownTechs()
 	}
 	if s.MainSettlement != nil {
@@ -537,7 +550,7 @@ func (s *MainState) knownTechs() []string {
 
 // hasTech reports whether the given tech key has been researched.
 func (s *MainState) hasTech(key string) bool {
-	if s.campaign != nil {
+	if s.campaignTechs() {
 		return s.campaign.HasTech(key)
 	}
 	if s.MainSettlement != nil {
@@ -558,7 +571,7 @@ func (s *MainState) refreshResourceScanner() {
 
 // unlockTech records a tech as researched in the appropriate store.
 func (s *MainState) unlockTech(key string) {
-	if s.campaign != nil {
+	if s.campaignTechs() {
 		s.campaign.UnlockTech(key)
 		return
 	}
@@ -727,6 +740,7 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 	s.guiManager.SetDetailsTopOffset(smallMapSize + smallMapMargin*2)
 	s.gm = &GameMaster{}
 	s.gm.Init(s.level)
+	s.gm.player = s.colonyName
 
 	// Use the level's own surface Z (set by the primer — station maps put 0
 	// there for the top floor, planet maps put it at the regolith surface).
@@ -762,7 +776,7 @@ func (s *MainState) generate(md *mapdef.MapDef, activeScenario *scenario.Scenari
 			if s.MainSettlement != nil {
 				s.level.Flags["settlement_name"] = name
 			}
-			s.level.Flags["colonist_faction"] = "colony"
+			s.level.Flags["colonist_faction"] = playerPeopleFaction(s.campaign)
 			RunSetupScripts(sc.SetupScripts, s.level, seed)
 		}
 	}
@@ -862,7 +876,7 @@ func (s *MainState) Update() state.StateInterface {
 	s.guiManager.SetViewIndicator(view)
 	// The way out of a viewed planet is back to the Star Map.
 	switch {
-	case observerRun():
+	case shiplessRun():
 		s.dashboardBtn.Text = "Star Map"
 	case view != "":
 		s.dashboardBtn.Text = "To Ship"
@@ -925,6 +939,12 @@ func (s *MainState) Update() state.StateInterface {
 		if s.wm != nil {
 			s.wm.TickBackground(s)
 		}
+	}
+	if e := s.wm.takeEnd(); e != nil {
+		s.teardown()
+		s.next = e
+		s.done = true
+		return s.next
 	}
 
 	// Play positional audio for any in-world sounds the live level just emitted
@@ -1148,11 +1168,11 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.done = true
 		}
 	case gui.CraftRequestedEvent:
-		if !observerMode() {
+		if s.ordersHere() {
 			s.addCraftTask(ev.RecipeID, ev.Station)
 		}
 	case gui.StationClickedEvent:
-		if s.MainSettlement != nil {
+		if s.MainSettlement != nil && !s.foreignStation(ev.Station) {
 			cs := ev.Station.GetComponent(components.CraftingStation).(*components.CraftingStationComponent)
 			knownTechs := map[string]bool{}
 			for _, k := range s.knownTechs() {
@@ -1174,12 +1194,17 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			s.guiManager.OpenCraftingModal(title, recipes, lockedRecipes, ev.Station)
 		}
 	case gui.ResearchStationClickedEvent:
-		if s.MainSettlement != nil {
+		if s.MainSettlement != nil && !s.foreignStation(ev.Station) {
 			available, locked, completed, inProgress, queue := s.researchSnapshot()
+			s.guiManager.SetResearchHull(s.hullLines())
 			s.guiManager.OpenResearchModal(ev.Station, available, locked, completed, inProgress, queue)
 		}
+	case gui.StructurePanelActionEvent:
+		s.panelAction(ev.Action, ev.Target)
+	case gui.StructurePanelToggleEvent:
+		s.panelToggle(ev.Group, ev.On)
 	case gui.ResearchRequestedEvent:
-		if !observerMode() {
+		if s.ordersHere() {
 			s.addResearchTask(ev.TechKey, ev.Station)
 		}
 	case eventsystem.StructureBuiltEvent:
@@ -1200,6 +1225,12 @@ func (s *MainState) HandleEvent(e event.EventData) error {
 			break
 		}
 		s.unlockTech(ev.TechKey)
+		if !s.campaignTechs() && ev.Settlement != "" {
+			retypeSettlement(s.level, ev.Settlement, ev.TechKey) // a race's evolve reaches its living
+		}
+		if spreadRun() && s.wm != nil {
+			s.wm.syncPlayerTechs() // the evolve reaches every world the player holds
+		}
 		s.guiManager.SetKnownTechs(s.knownTechs())
 		s.refreshResourceScanner()
 	case gui.ColonistSelectedEvent:
@@ -1392,7 +1423,7 @@ func (s *MainState) openColonistModal(colonist *ecs.Entity) {
 			})
 		}
 	}
-	s.guiManager.ShowColonistModal(colonist, storageItems)
+	s.guiManager.ShowUnitModal(colonist, storageItems, unitTypeLine(s.campaign, colonist))
 }
 
 // equipItem equips an item onto the colonist. When the item is already carried
@@ -1658,8 +1689,8 @@ func (s *MainState) handleKeyPress(e input.KeyPressEvent) {
 
 // beamUpSelected sends the currently selected colonist up to the ship roster.
 func (s *MainState) beamUpSelected() {
-	if observerMode() {
-		return // the expedition director beams crew
+	if shiplessRun() || observerMode() {
+		return // the expedition director beams crew; a race has no ship
 	}
 	e := s.selectedEntity
 	if !components.IsColonyWorker(e, s.colonyName()) {
@@ -1794,9 +1825,9 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		if s.CursorMode == gui.CursorModeDefault {
 			ent := s.level.GetEntityAt(tX, tY, s.camera.Z)
 			// Observer mode: a click only selects; the director gives the orders.
-			orders := !observerMode()
+			orders := s.ordersHere()
 
-			if orders && ent != nil && components.IsAttackTarget(ent) && s.MainSettlement != nil {
+			if orders && ent != nil && components.IsDefaultAttackTarget(ent) && !s.ownStructure(ent) && s.MainSettlement != nil {
 				// Attack hostile entity (faction raiders, scripted mutants/zombies, etc.)
 				s.MainSettlement.Tasks.AddTask(&task.Task{
 					Action: task_requests.AttackAction, Data: ent,
@@ -1838,6 +1869,10 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 						// Observer mode: every entity opens the read-only
 						// inspector (no settlement to give orders to).
 						s.openInspector(ent)
+					} else if s.panelFor(ent) != nil && !s.foreignStation(ent) {
+						s.openStructurePanel(ent) // the doctrine's panel for it (the Resin Spire, the Brood Heart)
+					} else if (ent.HasComponent(components.CraftingStation) || ent.HasComponent(components.ResearchBuilding)) && s.foreignStation(ent) {
+						s.openInspector(ent) // a rival's station: read it, never the player's modal
 					} else if ent.HasComponent(components.CraftingStation) {
 						event.GetQueuedInstance().QueueEvent(gui.StationClickedEvent{Station: ent})
 					} else if ent.HasComponent(components.ResearchBuilding) {
@@ -1874,7 +1909,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 					}
 				}
 			}
-		} else if s.MainSettlement != nil && !observerMode() {
+		} else if s.MainSettlement != nil && s.ordersHere() {
 			// Perform the active order
 			switch s.CursorMode {
 			case gui.CursorModeBuild:
@@ -1895,9 +1930,24 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 				}
 			case gui.CursorModeSleep:
 				s.addSleepTask(tX, tY)
+			case gui.CursorModeDeploy:
+				s.deployAt(tX, tY, s.camera.Z)
+			case gui.CursorModePost:
+				s.postAt(tX, tY, s.camera.Z)
+			case gui.CursorModeExpandHull:
+				s.hullOrder(s.expandHull(s.camera.Z), "The hull of deck %d begins to grow.", s.camera.Z+1) // DRAFT
+				s.CursorMode = gui.CursorModeDefault
+			case gui.CursorModeAddDeck:
+				s.hullOrder(s.addDeck(), "A new deck begins.") // DRAFT
+				s.CursorMode = gui.CursorModeDefault
+			case gui.CursorModeConvert:
+				// Lay the doctrine's conversion tile (the hive's resin).
+				if tile := s.convertTile(); tile != "" {
+					s.queueConvert(tX, tY, s.camera.Z, tile)
+				}
 			case gui.CursorModeAttack:
 				target := s.level.GetEntityAt(tX, tY, s.camera.Z)
-				if components.IsAttackTarget(target) {
+				if components.IsAttackTarget(target) && !s.ownStructure(target) {
 					for _, colonist := range s.level.Entities {
 						if components.IsColonyWorker(colonist, s.colonyName()) {
 							wc := colonist.GetComponent(components.Worker).(*components.WorkerComponent)
@@ -1931,7 +1981,7 @@ func (s *MainState) handleMouseClick(e input.MouseClickEvent) {
 		if s.CursorMode != gui.CursorModeDefault {
 			// Cancel active order, return to default
 			event.GetQueuedInstance().QueueEvent(gui.CursorModeChangedEvent{Mode: gui.CursorModeDefault})
-		} else if s.MainSettlement != nil && !observerMode() {
+		} else if s.MainSettlement != nil && s.ordersHere() {
 			// Cancel any pending task at this tile
 			for _, t := range s.MainSettlement.Tasks.GetTasks() {
 				if t.X == tX && t.Y == tY && t.Z == s.camera.Z {
@@ -1993,7 +2043,16 @@ func (s *MainState) queueRetrieve(item *ecs.Entity, x, y, z int) {
 // (a sized entity's centre), unless one is already ordered there. The build
 // cursor and the director both order through it.
 func (s *MainState) queueBuild(kind string, x, y, z int) bool {
+	if construction.GetBuildable(kind).ShipOnly && !s.aboardShip() {
+		message.PostMessage("Build", construction.GetBuildable(kind).Name+" can only be built aboard the ship.") // DRAFT
+		return false
+	}
 	return orderBuild(s.MainSettlement, s.level, kind, x, y, z)
+}
+
+// aboardShip reports whether this state is the ship's level.
+func (s *MainState) aboardShip() bool {
+	return s.wm != nil && s.wm.shipLevel == s
 }
 
 // addRepairTask orders a broken machine repaired: a build of its Repairable
@@ -2106,8 +2165,8 @@ func (s *MainState) startMarquee(x, y int) {
 // addDigTask/addMineTask self-filter ineligible tiles and dedup, so a sweep over
 // the whole rectangle is safe; a plain click commits a 1x1 box (one tile).
 func (s *MainState) commitMarquee() {
-	if observerMode() {
-		return // the director gives the orders
+	if !s.ordersHere() {
+		return // the director gives the orders (or nothing of the player's is here)
 	}
 	minX, maxX := minMax(s.marqueeStartX, s.marqueeEndX)
 	minY, maxY := minMax(s.marqueeStartY, s.marqueeEndY)
@@ -2256,17 +2315,17 @@ func (s *MainState) updateHovered() {
 // updateDefaultContext detects what a Default-mode left-click would do at (tX,tY)
 // and updates the HUD context hint accordingly.
 func (s *MainState) updateDefaultContext(tX, tY int) {
-	if observerMode() {
+	if !s.ordersHere() {
 		s.observerContext(tX, tY)
 		return
 	}
 	if entity := s.level.GetEntityAt(tX, tY, s.camera.Z); entity != nil {
-		if components.IsAttackTarget(entity) {
+		if components.IsDefaultAttackTarget(entity) && !s.ownStructure(entity) {
 			name := "Enemy"
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.SetContext("Attack: "+name, "Order colonists to attack this target.", entity.Blueprint)
+			s.SetContext("Attack: "+name, "Order "+s.unitsWord()+" to attack this target.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(components.Choppable) {
@@ -2274,7 +2333,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.SetContext("Harvest: "+name, "Order colonists to harvest this.", entity.Blueprint)
+			s.SetContext("Harvest: "+name, "Order "+s.unitsWord()+" to harvest this.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(rlcomponents.Item) {
@@ -2282,7 +2341,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
-			s.SetContext("Retrieve: "+name, "Order colonists to pick this up.", entity.Blueprint)
+			s.SetContext("Retrieve: "+name, "Order "+s.unitsWord()+" to pick this up.", entity.Blueprint)
 			return
 		}
 		if entity.HasComponent(components.Bed) {
@@ -2294,7 +2353,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 			return
 		}
 		if components.IsColonyWorker(entity, s.colonyName()) {
-			name := "Colonist"
+			name := s.unitWord()
 			if entity.HasComponent(rlcomponents.Description) {
 				name = entity.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Name
 			}
@@ -2309,7 +2368,7 @@ func (s *MainState) updateDefaultContext(tX, tY int) {
 		walkable := t.Middle.IsEmpty() || !world.TileDefinitions[t.Middle.Type].Solid
 		hasFloor := !t.Floor.IsEmpty()
 		if walkable && hasFloor {
-			s.SetContext("Move Here", "Send colonists to this location.", "")
+			s.SetContext("Move Here", "Send "+s.unitsWord()+" to this location.", "")
 			return
 		}
 	}
@@ -2365,25 +2424,8 @@ func (s *MainState) refreshHUD() {
 
 	// Count resources held in on-site storage only. Ship hold is separate and
 	// managed via the Star Map beam interface.
-	resources := map[string]int{"metal_ore": 0, "crystal": 0, "food": 0, "fuel": 0, "biomass": 0}
-	for _, entity := range s.level.Entities {
-		if entity.HasComponent(components.Storage) {
-			st := entity.GetComponent(components.Storage).(*components.StorageComponent)
-			for _, item := range st.Items {
-				if item.Blueprint != "" {
-					if item.HasComponent(components.Material) {
-						mc := item.GetComponent(components.Material).(*components.MaterialComponent)
-						resources[item.Blueprint] += mc.Quantity
-					} else {
-						resources[item.Blueprint]++
-					}
-				}
-				if item.HasComponent(rlcomponents.Food) && !item.HasComponent(components.Material) {
-					resources["food"]++
-				}
-			}
-		}
-	}
+	// The slots and what each counts are the doctrine's (interface_doctrine.go).
+	resources := s.resourceValues()
 
 	for id, count := range resources {
 		s.guiManager.UpdateResource(id, count)
@@ -2417,6 +2459,7 @@ func (s *MainState) refreshHUD() {
 	s.refreshCraftQueue()
 	if s.MainSettlement != nil {
 		available, locked, completed, inProgress, queue := s.researchSnapshot()
+		s.guiManager.SetResearchHull(s.hullLines())
 		s.guiManager.RefreshResearchModal(available, locked, completed, inProgress, queue)
 	}
 }
@@ -2659,6 +2702,9 @@ func (s *MainState) checkTotalWipe() {
 	}
 	if c.Observer && c.Expedition() != nil {
 		return // an observer run's colonists are the expedition fleet's
+	}
+	if c.SpreadRun() {
+		return // a spreading race ends by its presences (checkSpreadEnd)
 	}
 	c.Lost = true
 	message.PostMessage("Mission", "All colonists are lost. The expedition ends here.")

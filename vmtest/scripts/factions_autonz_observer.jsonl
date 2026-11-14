@@ -1,4 +1,4 @@
-{"name":"factions_autonz_observer","seed":65,"config":{"observerMode":true}}
+{"name":"factions_autonz_observer","seed":65,"config":{"observerMode":true,"rivalsByCount":true}}
 # The autonz as a settlement in an observer run (autonz_plan.md, phase E3):
 # New Expedition seed 65 with Rival factions 4, 120 days on (debug days).
 # The Factions tab lists Leaden Ridge's autonz hub with its units by type and

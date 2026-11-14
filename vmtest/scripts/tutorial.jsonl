@@ -1,4 +1,4 @@
-{"name":"tutorial","seed":11}
+{"name":"tutorial","seed":11,"config":{"rivalsByCount":true}}
 # The guided first landing, all 24 steps, with real input in the order of
 # TestTutorialWalkthrough. A frame per step; tutorial.step checked at each.
 {"op":"wait","ticks":10}

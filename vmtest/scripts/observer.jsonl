@@ -1,4 +1,4 @@
-{"name":"observer","seed":777,"config":{"observerMode":true}}
+{"name":"observer","seed":777,"config":{"observerMode":true,"rivalsByCount":true}}
 # An observer run (observerMode on at New Expedition): no player ship. New
 # Expedition seed 777, one rival (the hive). The crew, hold and fuel are the
 # expedition, a fleet on the Star Map flown by the expedition table: it

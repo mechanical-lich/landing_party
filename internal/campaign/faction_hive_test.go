@@ -56,7 +56,7 @@ func TestHiveResinFormula(t *testing.T) {
 	d := hiveDoctrine(t)
 	loc := c.Locations["site"]
 	cap := d.CapacityAt(loc)
-	p := c.newPresence("hive", d, loc, cap)
+	p := c.newPresence("hive", "hive", d, loc, cap)
 	if d.ConvertCap(loc, p) != cap {
 		t.Fatalf("resin changed the capacity: %d, %d", d.ConvertCap(loc, p), cap)
 	}
@@ -81,7 +81,7 @@ func TestHiveTallyDay(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"site": "earth_like"})
 	d := hiveDoctrine(t)
 	loc := c.Locations["site"]
-	p := c.newPresence("hive", d, loc, 10)
+	p := c.newPresence("hive", "hive", d, loc, 10)
 	p.Stage, p.Larvae = 1, 1
 	p.Units = map[string]int{"drone": 8, "scout": 2}
 	p.Stockpile = map[string]int{"biomass": 40}

@@ -1,4 +1,4 @@
-{"name":"observer_datapad","seed":1512,"config":{"observerMode":true,"debugDisableLighting":true}}
+{"name":"observer_datapad","seed":1512,"config":{"observerMode":true,"debugDisableLighting":true,"rivalsByCount":true}}
 # Reading a datapad in an observer run: New Expedition seed 1512 with
 # observer mode on; View the xeno wreck site (sys_10, lore_legends' site),
 # where nobody of the player's ever walks, and click a lore datapad where it

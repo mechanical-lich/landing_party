@@ -111,6 +111,14 @@ type Campaign struct {
 	// Diplomacy is each faction's stance toward the player where it has
 	// changed from its doctrine's (faction_ship.go, Stance).
 	Diplomacy map[string]string `json:"diplomacy,omitempty"`
+
+	// FactionTable is the campaign's faction instances by key
+	// (faction_table.go): additive, rebuilt from the presences for a save
+	// from before it.
+	FactionTable map[string]*Faction `json:"faction_table,omitempty"`
+	// RivalPicks are the rival boxes the run was started with (nil: the
+	// Rival factions count alone), for the sidecar and debugging.
+	RivalPicks []RivalPick `json:"rival_picks,omitempty"`
 	// Encounter is a faction ship met in space awaiting the player's
 	// answer, or just answered (phase D; faction_intercept.go).
 	Encounter *Encounter `json:"encounter,omitempty"`
@@ -245,7 +253,14 @@ func NewPlayerPresence(doctrine string) *FactionPresence {
 	if doctrine == "" {
 		doctrine = DefaultPlayerDoctrine
 	}
-	return &FactionPresence{ID: PlayerPresenceID, Faction: doctrine, Doctrine: doctrine, LastShotDay: NeverFired}
+	faction := doctrine
+	if doctrine != DefaultPlayerDoctrine {
+		// A race (phase F) plays under the player's own faction key, never
+		// its doctrine's, so a rival of the same doctrine (rival greys, a
+		// rival hive) stays a rival.
+		faction = PlayerFaction
+	}
+	return &FactionPresence{ID: PlayerPresenceID, Faction: faction, Doctrine: doctrine, LastShotDay: NeverFired}
 }
 
 // PlayerPresenceID is the player's presence's ID; FactionSeq never makes it.

@@ -126,7 +126,7 @@ func (c *Campaign) trySignal(rng *rand.Rand, fd *FactionData, d *Doctrine, loc *
 		return nil
 	}
 	m := d.Mobility
-	cands := c.signalCands(d, loc, p, isLoaded, pylons)
+	cands := aimed(p, c.signalCands(d, loc, p, isLoaded, pylons))
 	target := pickWeighted(rng, cands, func(l *Location) float64 {
 		return economyWeight(d, l) / (1 + math.Hypot(l.X-loc.X, l.Y-loc.Y))
 	})
@@ -139,14 +139,15 @@ func (c *Campaign) trySignal(rng *rand.Rand, fd *FactionData, d *Doctrine, loc *
 		d.ShotUnits(p, loc, p.UnitsTotal()-p.Population)
 	}
 	p.LastShotDay = day
-	q := c.newPresence(p.Faction, d, target, max(m.EggPop, 1))
+	q := c.newPresence(p.Faction, p.Doctrine, d, target, max(m.EggPop, 1))
 	q.Dormant = true
 	q.WakeDay = day + history.StarDate(max(m.WakeDays, 1))
 	q.KnownTechs = append([]string(nil), p.KnownTechs...)
 	q.Stage = 0
-	if target.ID == c.CurrentLocationID {
+	if target.ID == c.CurrentLocationID || p.Faction == PlayerFaction {
 		q.Known = true
 	}
+	p.LaunchTarget = "" // the player's aim is spent
 	c.recordFaction("faction_signalled", loc, p, d, map[string]string{"to": target.Name})
 	return target
 }
@@ -158,7 +159,7 @@ func (c *Campaign) signalCands(d *Doctrine, loc *Location, p *FactionPresence, i
 	r := d.SignalRange(p.Stage, p.KnownTechs, pylons)
 	var cands []*Location
 	for _, t := range c.sortedLocations() {
-		if t == loc || isLoaded(t.ID) || !c.FactionSiteOK(t, false) || t.HasFaction(p.Faction) {
+		if t == loc || isLoaded(t.ID) || !c.FactionSiteOK(t, false) || c.HeldBySide(t, p.Faction) {
 			continue
 		}
 		if math.Hypot(t.X-loc.X, t.Y-loc.Y) <= r {
@@ -284,7 +285,7 @@ func (c *Campaign) SignalReady(loc *Location, id string, pop int, pylons int, lo
 		return false
 	}
 	isLoaded := func(id string) bool { return loaded != nil && loaded(id) }
-	return len(c.signalCands(d, loc, &q, isLoaded, pylons)) > 0
+	return len(aimed(&q, c.signalCands(d, loc, &q, isLoaded, pylons))) > 0
 }
 
 // SignalBearing is the unit bearing on the Star Map from loc to the nearest

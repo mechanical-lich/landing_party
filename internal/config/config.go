@@ -78,6 +78,11 @@ type Config struct {
 	// gives no orders, incident popups are answered Ignore and the Star Map
 	// never stops the clock. For integration and balance runs.
 	ObserverMode bool `json:"observerMode"`
+	// RivalsByCount makes New Expedition seed the rivals by the Rival
+	// factions number alone (the lineup before rival boxes), ignoring the
+	// boxes: the vmtest scripts set it so a seed seeds where it always did
+	// (rival_selection_plan.md, step 3).
+	RivalsByCount bool `json:"rivalsByCount"`
 }
 
 // LoadConfig reads and unmarshals a JSON config file.

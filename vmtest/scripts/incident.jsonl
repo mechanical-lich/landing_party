@@ -1,4 +1,4 @@
-{"name":"incident","seed":2024}
+{"name":"incident","seed":2024,"config":{"rivalsByCount":true}}
 # Tutorial expedition: land on the Training Ground, beam one colonist down, go
 # to the ship, raise an away-damage incident on the planet, answer Travel; then
 # raise another from the ship and answer Ignore.

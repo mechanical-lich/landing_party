@@ -1,4 +1,4 @@
-{"name":"lore_autonz","seed":23}
+{"name":"lore_autonz","seed":23,"config":{"rivalsByCount":true}}
 # Autonz wires spreading from an old wreck whose dormant swarm woke.
 # New expedition (seed 23, tutorial off) -> jump straight to sys_74, whose
 # history ends in wreck_nanites_wake -> beam one colonist down -> land -> frame the camera on

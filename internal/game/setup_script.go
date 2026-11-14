@@ -832,54 +832,8 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		r := int(toSetupFloat(args[3]))
 		wallTile := fmt.Sprint(args[4])
 		floorTile := fmt.Sprint(args[5])
-		if r < 1 {
-			return nil, nil
-		}
-		in := func(dx, dy int) bool { return dx*dx+dy*dy <= r*r+r }
-		wall := map[[2]int]bool{}
-		for dy := -r; dy <= r; dy++ {
-			for dx := -r; dx <= r; dx++ {
-				if !in(dx, dy) {
-					continue
-				}
-				for _, n := range [][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
-					if !in(dx+n[0], dy+n[1]) {
-						wall[[2]int{dx, dy}] = true
-						break
-					}
-				}
-			}
-		}
-		// Where the outline steps diagonally it can lay four walls in a 2x2
-		// block; the one nearest the centre is not needed to close the wall.
-		for dy := -r; dy < r; dy++ {
-			for dx := -r; dx < r; dx++ {
-				block := [][2]int{{dx, dy}, {dx + 1, dy}, {dx, dy + 1}, {dx + 1, dy + 1}}
-				if !wall[block[0]] || !wall[block[1]] || !wall[block[2]] || !wall[block[3]] {
-					continue
-				}
-				best := block[0]
-				for _, c := range block[1:] {
-					if c[0]*c[0]+c[1]*c[1] < best[0]*best[0]+best[1]*best[1] {
-						best = c
-					}
-				}
-				delete(wall, best)
-			}
-		}
-		for dy := -r; dy <= r; dy++ {
-			for dx := -r; dx <= r; dx++ {
-				if !in(dx, dy) {
-					continue
-				}
-				x, y := cx+dx, cy+dy
-				level.SetFloor(x, y, z, floorTile, world.TileVariantAt(floorTile, x, y, z))
-				if wall[[2]int{dx, dy}] {
-					level.SetMiddle(x, y, z, wallTile, world.TileVariantAt(wallTile, x, y, z))
-				} else {
-					level.ClearMiddle(x, y, z)
-				}
-			}
+		if rr := world.NewRoundRoom(r); rr != nil {
+			rr.Carve(level, cx, cy, z, wallTile, floorTile)
 		}
 		return nil, nil
 	})

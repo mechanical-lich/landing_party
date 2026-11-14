@@ -86,6 +86,13 @@ func (r *loreRecorder) recordDeath(e *ecs.Entity) {
 	}
 	colony := s.livingColonyName()
 	switch {
+	case spreadRun() && e.HasComponents(components.Worker, components.Settlement) &&
+		e.GetComponent(components.Settlement).(*components.SettlementComponent).Name == colony:
+		// A race run's body: counted, not named (the plan's open question
+		// 12); the day's losses are one event (race_run.go).
+		if s.wm != nil && loc != nil {
+			s.wm.noteBroodLoss(loc.ID)
+		}
 	case e.HasComponents(components.Worker, components.Settlement) &&
 		e.GetComponent(components.Settlement).(*components.SettlementComponent).Name == colony:
 		name := loreEntityName(e)
@@ -130,7 +137,7 @@ func (s *MainState) checkThreatCleared() {
 	alive := 0
 	for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
 		for _, e := range list { // a hive's grey eggs stand among the static
-			if e != nil && want[e.Blueprint] && !e.HasComponent(rlcomponents.Dead) {
+			if e != nil && want[e.Blueprint] && !e.HasComponent(rlcomponents.Dead) && !ownedBySettlement(e, s.colonyName()) {
 				alive++
 			}
 		}

@@ -47,7 +47,7 @@ func TestSeedingMirrorFromTwoFactions(t *testing.T) {
 		}
 		ships, hives := 0, 0
 		for _, f := range two.Fleets {
-			if f.Kind == FleetShip && f.Landed() && f.Presence.Doctrine == "mirror" {
+			if f.Kind == FleetShip && f.Landed() && f.Presence.Doctrine == RivalColonyDoctrine {
 				ships++
 				if f.Presence.Stockpile["metal_ore"] == 0 || f.Presence.Population != 4 {
 					t.Errorf("seed %d: ship presence %+v lacks the kit or crew", seed, f.Presence)
@@ -59,7 +59,7 @@ func TestSeedingMirrorFromTwoFactions(t *testing.T) {
 		}
 		for _, loc := range two.Locations {
 			for _, p := range loc.Factions {
-				if p.Doctrine == "mirror" {
+				if p.Doctrine == RivalColonyDoctrine {
 					t.Errorf("seed %d: a mirror presence on the planet %s", seed, loc.ID)
 				}
 				if p.Doctrine == "hive" {

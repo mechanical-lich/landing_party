@@ -197,6 +197,11 @@ const (
 	// MoveAction walks a worker to the task's tile (the default handler):
 	// a director's post, patrol waypoint or the walk to the hive's spire.
 	MoveAction task.TaskAction = "move"
+	// MoveHereAction is the player's ground click (no action: the worker
+	// walks there and does what the tile offers). A worker with an explicit
+	// task list (a type's, the player's filters) still takes it
+	// (workerai's task pick).
+	MoveHereAction task.TaskAction = ""
 )
 
 // HoldHere as a move task's Data: the worker stays on arrival until the task

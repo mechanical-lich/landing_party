@@ -56,7 +56,7 @@ there, workers fetch, haul, build and fight as the player's do.
 | Doctrine | Carrier | Mobility kind | Settlement director | Expedition director | Hostility default |
 |---|---|---|---|---|---|
 | [hive](#the-hive-as-a-settlement) | planet | `launcher` | yes (phase E2: drones, eggs on larvae, resin, the evolve tree) | no | hostile (no diplomacy) |
-| [mirror](#the-mirror-colony) | ship | `fleet` | yes (`settlement_from: colony`) | yes (`expedition_from: colony`) | neutral until the player lands on its site |
+| [rival colony](#the-mirror-colony) (`colony!rival`, faction key `mirror`) | ship | `fleet` | yes (the colony's) | yes (the colony's) | neutral until the player lands on its site |
 | [greyish](#the-greyish) | ship (and mothership) | `fleet` | yes | no (the stay and hold rhythm) | hostile |
 | [autonz](#the-autonz) | planet | `signal` | yes (phase E3: typed prints at the fabricator and foundry, structures on wire, the assimilation tree, the transmit walk) | no | hostile (no diplomacy) |
 | [colony](#the-players-doctrine): the player | the player's ship | `ship` | under the observer lock | no (the player flies) | n/a |
@@ -479,6 +479,32 @@ its colour); `name` ("Warrior") waits for B+. The raid alert names the
 morph. The Factions tab lists a hive's units by type: every type by name in
 an observer run, only the site's morph's by seen name in a normal campaign.
 
+## Factions and doctrines
+
+Since rival selection (rival_selection_plan.md) a faction is an
+**instance** of a doctrine, not the doctrine itself. `Campaign.FactionTable`
+holds a `Faction` row per instance (key, doctrine, name, badge, slot,
+group, ordinal); `EnsureFactionTable` (at `NewWorldManager` and on load)
+gives every faction the campaign holds a row, the player in group 1.
+Keys are opaque: one faction of a doctrine keeps the doctrine's key (so the
+count path and old saves are unchanged), a second is `<key>.2`. Every
+lookup by a faction key goes through `Campaign.DoctrineOf` (or the game's
+`doctrineOfFaction`). Per faction: the stance toward the player, techs, the
+mothership and hoard, spread targets, the Star Map badge and tag, the
+Factions tab block and Legends lines (a second of a kind is numbered,
+"Xenos 2", while the doctrine's name is hidden). **Groups**:
+`Campaign.Hostile(a, b)` (same group friendly, else hostile) is what bodies
+consult on a level (`components.HostileFactions`: the scripted AI's enemy
+test, the guard and hunt rungs); a faction of the player's group is neutral
+to the player and never turns; no faction spreads onto its own side's world
+(`HeldBySide`). A second instance's bodies, eggs, young and structures carry
+its key, never their blueprint's. A **doctrine view** (`<key>!rival`, from a
+doctrine's `rival` block) is what a rival faction of the doctrine runs: the
+colony's is the rival colony (see "The mirror colony"). New Expedition's
+**rival boxes** pick each rival's doctrine (or Random, rolled from the seed)
+and group (`GenOptions.Rivals`, `seedRivals`); without them the Rival
+factions number seeds by `seed_from` as before (`seedFactions`).
+
 ## The player's doctrine
 
 Phase C0: the player's settlement reads what it can build, research, craft
@@ -811,9 +837,12 @@ viewed level, the expedition's included. The sidecar's `observer_run`,
 (docs/developer/vmtest.md).
 
 **The soaks.** `make soak` runs the observer soak, the expedition soak, the
-autonz soak and the hive soak (`LP_SOAK=1`). The autonz and hive soaks run
-their seeds as separate processes side by side (`make soak-autonz`,
-`make soak-hive`, `scripts/soak_par.sh`: the soaks share package globals,
+autonz soak, the hive soak, the greyish soak and the race run soaks (the
+hive run, the autonz run and, since phase F step 6, the grey run:
+`TestGreyRunSoak`, `make soak-grey-run`, a grey run's crew beamed down on
+the start system and left alone for forty days, a wiped crew failing;
+`LP_SOAK=1`). These run their seeds as separate processes side by side
+(`make soak-autonz`, `make soak-hive`, `scripts/soak_par.sh`: the soaks share package globals,
 so they cannot be parallel subtests): each process runs one seed
 (`LP_SOAK_ONLY=node:3`, `hub:3`, `hive:3`) and writes its row into
 `LP_SOAK_ROWS`, and a join test (`TestAutonzSoakJoin`, `TestHiveSoakJoin`)
@@ -851,6 +880,214 @@ under the reserve; its table has the mirror ships' lift-offs by reason
 ./internal/game -run TestObserverRunLog -v` prints the expedition's moves
 on seed 777 (`LP_EXPEDITION_SEED`, `LP_EXPEDITION_FACTIONS`). The numbers
 are in the plan's "Phase C1 as built" and "Observer mode v2 as built".
+
+## Playable races
+
+Phase F ([playable_races_plan.md](../brainstorm/playable_races_plan.md)).
+The New Expedition screen's **Race** row offers the `playable` doctrines (the
+colony first, the default; `campaign.PlayableDoctrines`), with the doctrine's
+`race.blurb` under it. The choice is `GenOptions.Doctrine`; an observer run
+is always the colony's. `Doctrine.CampaignMode()` is `ship` (the colony, the
+fleet doctrines) or `spread` (`mobility.kind` `launcher` or `signal`: the
+hive, the autonz). `Campaign.SpreadRun()` (never in an observer run) makes
+the run a **race run**; the game reads it once (`spreadRun()`, set by
+`NewWorldManager`).
+
+**A race run has no ship.** `shiplessRun()` (an observer run or a race run)
+gates the ship surface exactly as observer v2 did: no ship crew, hold, fuel,
+Travel, Beam, Scan, crew lists, To Ship or To Site, incidents or
+interceptions; no tutorial and no quests (they pay fuel into a hold there is
+not). The player's people are **presences of faction `player`**
+(`campaign.PlayerFaction`) running the race's doctrine, planet-carried like
+a rival hive's: `Campaign.AddPlayerBrood` puts the first on the start
+system from the doctrine's `race.start` (stage, units by type, larvae,
+stockpile), Known, the start system Visited, `Diplomacy["player"]`
+neutral, `Campaign.Player.Faction` `player`. From there everything is the
+rival machinery: Tier 1 grows, researches and launches the frozen ones;
+materialise, the settlement director, larvae, bloom, the live launch and
+reconcile run the loaded ones; an egg lands as a new `player` presence
+(`landFleet` keeps the fleet's faction and doctrine; `newPresence` now takes
+both) and is Known.
+
+**The faction key is not the doctrine key.** `factionDoctrines`
+(`internal/game/faction_hive.go`, set from the campaign by
+`setFactionDoctrines`) maps `player` to the race and `expedition` to the
+colony; `doctrineOfFaction` / `doctrineOfSettlement` resolve a faction or a
+settlement name (`player:<loc>`) to its doctrine for `settlementBlock` (diet,
+kill drops), unit types at spawn (`doctrineType`) and resin speed
+(`bodyDoctrine`). `syncFactionHostility` skips only the player's faction
+key, so a rival hive is still marked hostile to a hive player.
+
+**View is the camera; your world gives you the cursor.** The Star Map's View
+(`viewing()`: observer mode or a race run) opens a world the player holds
+(`Campaign.HoldsSite`); others are refused in a race run. A race run opens
+viewing the brood. After a level's presences materialise
+(`buildParked`), `bindPlayerSettlement` points `MainState.MainSettlement` at
+the player's presence's settlement (`player:<loc>`), so `colonyName()` is that
+settlement and every order path, the crew panel (`PlanetColonists` reads the
+viewed world in a race run), the keep-loaded rule and lore recording see the
+brood. `ordersHere()` is the cursor's gate (never in observer mode; in a race
+run only on a bound world). Techs in a race run are each presence's own
+(`campaignTechs()` is false: `knownTechs`, `hasTech` and `unlockTech` read
+the bound settlement, and a finished evolve retypes the living). The
+settlement director keeps running every rung (**assist**): the player's
+orders go into the same queue.
+
+**The player spreads; the director never does** (the owner, 2026-11-12). A
+race run's launcher or signal fires only at the world the player aimed it at
+(`FactionPresence.LaunchTarget`; `campaign.aimed`), on a loaded world and in
+Tier 1 alike; unaimed it holds fire, and a shot spends the aim. The director
+still walks a ready shot to the Spire or Core toward that aim (the launch
+group, which the player can take over and load by hand). **Leaving a world
+hands it back:** `WorldManager.handBack` releases every group taken over
+there when the viewer leaves it (`EndView`, or View of another world); the
+aim stays.
+
+**The end** (`WorldManager.checkSpreadEnd`, once a star-date day in
+`TickBackground`; `Campaign.SpreadOutcome`): **lost** when no presence of the
+player's (a dormant one counts) and no egg or signal of it in flight is left
+anywhere, frozen worlds included; **won** holding awake presences on
+`race.win.sites` systems at once (the hive: 6). The end screen takes the
+race's `win` / `loss` title and text (draft) and is shown by whichever state
+is up (`takeEnd`). `checkTotalWipe` leaves a race run alone.
+
+The Star Map in a race run tags held worlds `[yours]` and shows **Your
+worlds** (each with its stage and population, dormant ones with their wake
+day, eggs in flight) where the ship's crew lists stand; the dashboard header
+reads `Star Date: n      Your worlds: k / 6`.
+
+**The world from a race's side** (step 4). Seeding (`seedRaceFactions`):
+the rival colony first, so the humans exist from Rival factions 1; the
+player's own doctrine left out of the bag; the rest by `seed_from`, the cycle
+repeating; a colony run's seeding is untouched. Contact (`RaceContact`): a
+neutral faction turns hostile everywhere when its ship lands on a world the
+player holds (`LandShip`) or when a body of the player's comes within 8 tiles
+of one of its workers on a loaded world (`WorldManager.raceContacts`, every
+30 ticks: a worker passing a camp is there for moments); the hostility marks
+are synced and its people take their hostile stance. Wild xenos and troids
+are strangers to a player hive (their faction `hive`, the brood's `player`):
+they hunt its drones and its guards fight them. The fog: a world at its
+launcher or signal stage charts every site within its reach once a day
+(`ChartRaceReach`, `InRaceReach`); View opens a held world, or one in reach,
+which it sees as a ship in orbit would (its presences revealed, the whole
+level drawn: none of the player's bodies is there to light it). Hidden
+identity inverted: the player's own bodies and eggs carry their types' names
+(`doctrineType`), its Star Map tag is `YOUR <stage> <pop>` and its row
+`[yours]`, its Factions block `Your Hive` with units by type, the HUD names
+its faction "yours", and its `faction_*` Legends lines name the hive. Its
+units' deaths are counted, not named: a world losing five or more in a day
+records one `brood_losses` event (draft).
+
+**The autonz run** (step 5) is the same machinery over the signal: the
+autonz' `race` block (the autonz soak's node start: three wire placers, an
+enforcer, 20 metal ore, 4 crystal), its interface (metal, crystal, ferrite
+and the conversion share; Lay Wire and **Deploy Relay**, the `deploy` order:
+the nearest idle unit whose type deploys walks to the clicked wired tile and
+folds into its structure, `MainState.deployAt`; Assimilation; a unit modal
+without needs; the crew grouped by type and tier), its rung groups, and the
+Signal Core's panel (the signal's readiness, the worlds in reach, Transmit
+here, the group toggles). A signal founds a **dormant** node of the
+player's: Known, shown with its wake day on the Star Map's Your worlds, alive
+for the loss, not a world held toward the win until it wakes. The title
+screen's races are ordered by `race.order` (the hive 1, the autonz 2).
+
+**The greys, a ship race** (step 6). Greyish is `playable` but a `fleet`
+doctrine, so its run is a **ship run**, not a race run: the ordinary ship,
+Travel, Beam, quests and the reach-Home win. What differs:
+
+- **Faction.** Any race's player presence takes the key `player`
+  (`NewPlayerPresence`; the colony keeps `colony`), so rival greys stay
+  hostile. `systems.PlayerFaction` (`playerPeopleFaction`: the player's key
+  in a ship run, `colony` in a race or observer run) is admitted by every
+  door owned `colony` (the ship's, a station frame's, a scenario's airlock)
+  and unlocks keyed doors; setup scripts' `colonist_faction` reads it. A
+  printed unit takes its crafter's faction, so the player's prints are the
+  player's.
+- **Crew and hold.** `Doctrine.ShipStart` (a ship race's `race.start`):
+  `units` the crew by type (`seedRaceCrew`: typed, faction `player`),
+  `gear` each type's kit, `aboard` the structures stood by the hull centre
+  (the vat and console), `stockpile` the hold; a crew without needs gets
+  no rations. The tutorial is the colony's only.
+- **Ship-only structures.** A buildable's `ship_only` refuses the player's
+  build order off the ship (`MainState.aboardShip`): the vat, console and
+  array. Rival directors are unaffected.
+- **Linked lockers.** When the player's doctrine keeps a storage pocket,
+  `pocketOwner` counts the player's own settlement names
+  (`playerPocketOwner`: the base, `<base> Ship`, `<base> @ <world>`): one
+  pocket aboard and one per world, relinked every 30 ticks
+  (`linkPlayerPockets`) and before a beam (`relinkPlayerPockets`), joined
+  by the beam. The inspector lists the whole pocket and offers no beam from
+  another owner's pocket door; the global inventory's tiers are open from
+  the start.
+- **The saucer.** The settlement block's `ship` block (`DoctrineShip`:
+  `layout` `grid`, the default, or `saucer`; `saucer.start` radius and
+  decks, `rings`, `decks`, `floor`, `wall`) picks the ship level
+  (`buildShipLevelFor`; `ship.BuildSaucerLevel` carves a `world.RoundRoom`
+  round `ship.HullCenter`). **Expand Hull** (click a deck) and **Add Deck**
+  (`internal/game/race_hull.go`) grow it by ordinary orders in phases kept
+  in the ship level's flags (`hull_r:<z>`, `hull_decks`, `hull_job`):
+  breach, floor (only the reachable frontier is ordered), open (the old rim
+  dug out), rim (the outline's stepped corners, reachable only from the
+  outline beside them) and wall; a deck is stairs, floor, rim, wall. A
+  ring or deck may need a tech (`requires_tech`; the greys' lattice and
+  spine, whose `develop.hull` keeps rival directors off them). The
+  research modal's Hull section is `MainState.hullLines`.
+
+Station clicks check the owner (`stationOwner`, `internal/game/station_owner.go`):
+a station's owner is the settlement its Kin names (a larva), else the
+faction settlement whose director radius covers it; a click on a foreign one
+opens the inspector, never the player's crafting or research modal. The
+GameMaster's `hostile_max` count and `checkThreatCleared` skip the player's
+own bodies (`ownedBySettlement`).
+
+### The interface block
+
+Phase F step 2 (the owner's direction: the interface adapts to a faction
+through data, by a middle path, not a layout engine). A playable doctrine's
+`settlement.interface` says what the player's HUD and modals show; every list
+and label a race needs is here, and Go holds only a fixed set of **kinds**
+each field picks from. An absent block, or field, is the colony's interface
+as it was; the colony declares its own anyway, as documentation. Code:
+`internal/campaign/doctrine_interface.go` (the schema),
+`internal/gui/interface.go` (the HUD's spec, section kinds, order registry),
+`internal/game/interface_doctrine.go` (the spec from the doctrine, resource
+sources, type lines, crew grouping, validation),
+`internal/game/structure_panel.go` (panels).
+
+```json
+"interface": {
+  "resources": [ { "id": "biomass", "source": "storage" }, { "id": "larvae", "source": "larvae" } ],
+  "unit_label": "Brood", "units_label": "Brood",
+  "research_label": "Evolve",
+  "orders": [ { "id": "default" }, { "id": "mine", "label": "Forage" }, { "id": "convert", "label": "Lay Resin", "description": "..." } ],
+  "unit_modal": [ "identity", "type_tier", "stats", "needs", "task_filters", "inventory" ],
+  "crew_group": "type",
+  "panels": { "egg_launcher": { "title": "...", "rows": [ { "kind": "readiness", "source": "launcher" }, ... ] } },
+  "groups": [ { "id": "breeding", "label": "Breeding" }, ... ]
+}
+```
+
+| Key | Meaning | Kinds (registry) |
+|---|---|---|
+| `resources` | the HUD resource bar's slots, in order; `id` names the slot | `source`: `storage` (the ID as a blueprint in storage), `food` (edible items), `larvae` (the player's larvae on the level), `conversion` (the converted share of the patch, percent); none: the colony's rule (food by edibles, the rest by blueprint). A race run counts only its own settlement's storage; the colony counts every storage on the level, as it did |
+| `unit_label`, `units_label` | one of the player's people (the unit modal's title, a fallback name), many (the population tab, the hover hints: "Send brood to this location.") | words, draft |
+| `research_label` | the research modal's title | words, draft |
+| `orders` | the build menu's Orders category, in order; `label` and `description` override the defaults | `default`, `dig`, `mine`, `store`, `drop`, `cancel`, `attack`, `sleep`, `convert` (lays the doctrine's `conversion.tile` where clicked: the order is open to a doctrine with one, so the colony's stays gated on `terraforming`), `deploy` (the nearest idle unit whose type deploys folds into its structure there), `post` (the nearest idle unit with one of the entry's `roles` walks to the tile and holds it: the player's guard post) |
+| `unit_modal` | the unit modal's sections; the crew panel's detail follows `needs`, `stats` and `equipment` too | `identity` (name, Take Control), `type_tier` (the type's name and print tier), `stats`, `needs` (an exhaustion limit out of reach is not drawn), `equipment` (the six slots and the storage column), `task_filters`, `inventory` (Carrying and Pickup) |
+| `crew_group` | the crew panel's grouping key; a race run's crew panel lists every loaded world's bodies and a row per frozen world | `""` (none: the colony), `type`, `type_tier` |
+| `panels` | a structure blueprint's panel (step 3): a click on one of the player's opens it | row `kind`: `readiness`, `target_list`, `action`, `text`, `group_toggles` (one toggle per group), `world_toggle` (one switch taking every group over: "I run this world"); `source`: `launcher`, `signal` (readiness), `launch_targets`, `signal_targets` (target_list); `action`: `launch_at`, `transmit_to`, `load_launcher` (the shot of the player's units, the launch rung's roles first, walks to hold round the structure: the launch rung's walk by hand) |
+| `groups` | the director's rung groups the player may take over (step 3); rungs carry `group`, and every rung of a playable race has one, so the player can take the director's place entirely | ids and labels |
+
+**Validation.** `validateInterfaces` (run by `ValidateData` at start-up and
+by `TestInterfaceBlocksValidate`) refuses an unknown section kind, order,
+resource source, crew group, panel row kind, source or action, naming the
+doctrine. **Adding a kind**: add it to its registry (`gui.UnitModalSections`
+and `ShowUnitModal`; `orderRegistry` and a cursor mode; `resourceSources` and
+`resourceValues`; `crewGroups` and `crewGroupKey`; `panelRowKinds`,
+`panelSources`, `panelActions` and the panel's drawing), then any doctrine may
+name it. A fourth doctrine reusing existing kinds needs no Go:
+`TestFourthDoctrineUnitModal` loads a made-up one and checks its modal,
+titles and orders.
 
 ## Faction settlements
 
@@ -891,6 +1128,14 @@ workers into `population`, `storage.Summarize` over the settlement into
 written onto its fleet. No workers left is a wipe, as for the hive.
 
 ## The mirror colony
+
+Since rival selection step 2 (rival_selection_plan.md) the rival colony is
+not a doctrine of its own: it is the colony doctrine's **rival view**
+(`colony!rival`, derived by the loader from the colony's `rival` block: its
+name, badge, fleet mobility, ore economy, kit and seeding), and a
+count-seeded campaign keys it `mirror` (the view's legacy key, which also
+keeps its seeding order and resolves an old save's `mirror` doctrine). What
+follows describes it as it was built, as the `mirror` doctrine.
 
 Phase C2. Doctrine `mirror` ("Rival Colony"): `settlement_from: "colony"`
 (the colony's crew, build menu, research and director ladder, copied on

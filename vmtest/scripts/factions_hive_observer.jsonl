@@ -1,4 +1,4 @@
-{"name":"factions_hive_observer","seed":777,"config":{"observerMode":true}}
+{"name":"factions_hive_observer","seed":777,"config":{"observerMode":true,"rivalsByCount":true}}
 # The hive as a settlement in an observer run (hive_plan.md, phase E2): New
 # Expedition seed 777 with Rival factions 3, 36 days on (debug days). The
 # viewer sees every faction by its name and the hive's bodies by type: the

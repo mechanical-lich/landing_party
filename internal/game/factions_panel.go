@@ -66,6 +66,7 @@ func (p *factionsPanel) Transition() state.StateInterface {
 // factionBlock gathers one faction's holdings.
 type factionBlock struct {
 	key, name string
+	faction   string // the faction key (its colour)
 	d         *campaign.Doctrine
 	pop       int
 	techs     map[string]bool
@@ -75,15 +76,21 @@ type factionBlock struct {
 
 // factionKey is how presences group: by faction in an observer run, by the
 // morph the player would name it by otherwise (hidden identity).
-func factionKey(d *campaign.Doctrine, p *campaign.FactionPresence, loc *campaign.Location) (key, name string) {
+func factionKey(c *campaign.Campaign, d *campaign.Doctrine, p *campaign.FactionPresence, loc *campaign.Location) (key, name string) {
 	if p.Faction == campaign.ExpeditionFaction {
 		return p.Faction, "Expedition"
 	}
+	if p.Faction == campaign.PlayerFaction {
+		return p.Faction, "Your " + d.Name // DRAFT: a race run's own block, named truly
+	}
 	if observerRun() {
+		if f := c.FactionOf(p.Faction); f != nil && f.Name != "" {
+			return p.Faction, f.Name // a second faction of a doctrine, by its own name
+		}
 		return p.Faction, d.Name
 	}
 	m := d.MorphAt(loc)
-	return p.Faction + "/" + m.Name, m.Name
+	return p.Faction + "/" + m.Name, m.Name + c.FactionSuffix(p.Faction)
 }
 
 // rebuild collects the blocks from the campaign under the viewer's fog.
@@ -93,10 +100,10 @@ func (p *factionsPanel) rebuild() {
 	fd := campaign.LoadFactionData()
 	blocks := map[string]*factionBlock{}
 	get := func(d *campaign.Doctrine, pr *campaign.FactionPresence, loc *campaign.Location) *factionBlock {
-		key, name := factionKey(d, pr, loc)
+		key, name := factionKey(c, d, pr, loc)
 		b := blocks[key]
 		if b == nil {
-			b = &factionBlock{key: key, name: name, d: d, techs: map[string]bool{}}
+			b = &factionBlock{key: key, name: name, faction: pr.Faction, d: d, techs: map[string]bool{}}
 			blocks[key] = b
 		}
 		for _, t := range pr.KnownTechs {
@@ -118,7 +125,7 @@ func (p *factionsPanel) rebuild() {
 			}
 			b := get(d, pr, loc)
 			b.pop += pr.Population
-			text := fmt.Sprintf("  %s  ·  %s  ·  pop %d", loc.Name, stageWord(d, pr.Stage), pr.Population)
+			text := fmt.Sprintf("  %s  ·  %s  ·  pop %d", loc.Name, stageWordFor(d, pr), pr.Population)
 			if pr.Dormant {
 				text = fmt.Sprintf("  %s  ·  signal, wakes day %d", loc.Name, int(pr.WakeDay))
 			} else if pr.Conversion > 0 && d.Broods() {
@@ -126,9 +133,9 @@ func (p *factionsPanel) rebuild() {
 			} else if pr.Conversion > 0 {
 				text += fmt.Sprintf("  ·  %.0f%% converted", 100*pr.Conversion)
 			}
-			b.sites = append(b.sites, factionRow{text: text, col: factionBadgeColor(d), locID: loc.ID})
+			b.sites = append(b.sites, factionRow{text: text, col: factionColor(c, pr.Faction, d), locID: loc.ID})
 			if units := unitsLine(d, pr, loc); units != "" {
-				b.sites = append(b.sites, factionRow{text: "      " + units, col: factionBadgeColor(d), locID: loc.ID, detail: true})
+				b.sites = append(b.sites, factionRow{text: "      " + units, col: factionColor(c, pr.Faction, d), locID: loc.ID, detail: true})
 			}
 		}
 	}
@@ -173,7 +180,7 @@ func (p *factionsPanel) rebuild() {
 				text += fmt.Sprintf("  ·  fuel %d", f.Presence.Fuel)
 			}
 		}
-		b.fleets = append(b.fleets, factionRow{text: text, col: factionBadgeColor(d), locID: at})
+		b.fleets = append(b.fleets, factionRow{text: text, col: factionColor(c, f.Presence.Faction, d), locID: at})
 		if f.Kind == campaign.FleetShip && !f.Mothership && d.ShipSettles() {
 			if line := greyShipLine(d, f); line != "" {
 				b.fleets = append(b.fleets, factionRow{text: "      " + line, col: dashBodyColor, locID: at})
@@ -188,7 +195,7 @@ func (p *factionsPanel) rebuild() {
 	p.rows = p.rows[:0]
 	for _, k := range keys {
 		b := blocks[k]
-		col := factionBadgeColor(b.d)
+		col := factionColor(c, b.faction, b.d)
 		sites := 0
 		for _, r := range b.sites {
 			if !r.detail {
@@ -305,19 +312,20 @@ func unitsLine(d *campaign.Doctrine, p *campaign.FactionPresence, loc *campaign.
 		return ""
 	}
 	site := d.MorphKeyAt(loc)
+	known := observerRun() || p.Faction == campaign.PlayerFaction // a race knows its own
 	var parts []string
 	for _, k := range d.TypeKeys() {
 		n, t := p.Units[k], d.Types[k]
 		if n <= 0 {
 			continue
 		}
-		if observerRun() {
+		if known {
 			parts = append(parts, fmt.Sprintf("%d %s", n, strings.ToLower(t.Name)))
 		} else if t.Morph == site {
 			parts = append(parts, fmt.Sprintf("%s %d", t.SeenName, n))
 		}
 	}
-	if observerRun() && p.Larvae > 0 {
+	if known && p.Larvae > 0 {
 		parts = append(parts, fmt.Sprintf("%d larvae", p.Larvae))
 	}
 	return strings.Join(parts, ", ")

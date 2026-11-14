@@ -83,7 +83,7 @@ func TestAutonzConversionDrivesGrowthAndCapacity(t *testing.T) {
 	a, b := c.Locations["a"], c.Locations["b"]
 	b.Tags = []string{"biomass"} // no ore
 	full := d.CapacityAt(a)
-	p := c.newPresence("autonz", d, a, 3)
+	p := c.newPresence("autonz", "autonz", d, a, 3)
 	if got := d.ConvertCap(a, p); got >= full || got < d.Capacity.Min {
 		t.Fatalf("unconverted capacity %d of %d", got, full)
 	}
@@ -97,7 +97,7 @@ func TestAutonzConversionDrivesGrowthAndCapacity(t *testing.T) {
 	p.Conversion = 0
 
 	// Thirty days on an ore site against one without ore.
-	q := c.newPresence("autonz", d, b, 3)
+	q := c.newPresence("autonz", "autonz", d, b, 3)
 	c.StarDate = 30
 	c.StepFactions(nil)
 	p, q = a.Presence("autonz"), b.Presence("autonz")
@@ -128,7 +128,7 @@ func TestAutonzFullyConvertedSpendsPopulation(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
 	d := autonzDoctrine(t)
 	a := c.Locations["a"]
-	p := c.newPresence("autonz", d, a, 9)
+	p := c.newPresence("autonz", "autonz", d, a, 9)
 	p.Stage, p.Conversion = 1, d.ConversionCap()
 	// Nowhere to signal (every other site is far out of range): it holds.
 	c.StarDate = 10
@@ -156,7 +156,7 @@ func TestAutonzSignalSpread(t *testing.T) {
 		c.Locations["near"].X, c.Locations["near"].Y = a.X+8, a.Y
 		c.Locations["near2"].X, c.Locations["near2"].Y = a.X, a.Y+12
 		c.Locations["far"].X, c.Locations["far"].Y = a.X+d.Mobility.BaseRange+5, a.Y
-		p := c.newPresence("autonz", d, a, 8)
+		p := c.newPresence("autonz", "autonz", d, a, 8)
 		p.Stage = 1
 		p.Conversion = d.Mobility.SignalConversion
 		return c
@@ -227,7 +227,7 @@ func TestAutonzWakeDay(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
 	d := autonzDoctrine(t)
 	a := c.Locations["a"]
-	p := c.newPresence("autonz", d, a, 1)
+	p := c.newPresence("autonz", "autonz", d, a, 1)
 	p.Dormant, p.WakeDay = true, 15
 	c.StarDate = 14
 	c.StepFactions(nil)
@@ -247,7 +247,7 @@ func TestAutonzWakeDay(t *testing.T) {
 		t.Errorf("awake 45 days and converted nothing: %+v", p)
 	}
 	// Loaded: WakePresence wakes it on the level's day.
-	q := c.newPresence("autonz", d, c.Locations["a"], 1)
+	q := c.newPresence("autonz", "autonz", d, c.Locations["a"], 1)
 	q.Dormant, q.WakeDay = true, 70
 	if c.WakePresence(a, q.ID) {
 		t.Error("woke before its day")
@@ -257,7 +257,7 @@ func TestAutonzWakeDay(t *testing.T) {
 		t.Error("did not wake on its day")
 	}
 	// A sleeper destroyed before it wakes is a wipe.
-	r := c.newPresence("autonz", d, a, 1)
+	r := c.newPresence("autonz", "autonz", d, a, 1)
 	r.Dormant, r.WakeDay = true, 200
 	if !c.WipeDormant(a, r.ID) || a.PresenceByID(r.ID) != nil {
 		t.Error("WipeDormant left the presence")
@@ -270,9 +270,9 @@ func TestAutonzScanRevealsDormant(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like", "b": "earth_like"})
 	d := autonzDoctrine(t)
 	a, b := c.Locations["a"], c.Locations["b"]
-	p := c.newPresence("autonz", d, a, 1)
+	p := c.newPresence("autonz", "autonz", d, a, 1)
 	p.Dormant, p.WakeDay = true, 9
-	q := c.newPresence("autonz", d, b, 1)
+	q := c.newPresence("autonz", "autonz", d, b, 1)
 	q.Dormant, q.WakeDay = true, 9
 	c.RevealPresencesWithin(a.X, a.Y, 50)
 	if !a.Presence("autonz").Known || b.Presence("autonz").Known {

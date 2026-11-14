@@ -60,7 +60,7 @@ func TestShipLandsAndLiftsOffLive(t *testing.T) {
 	c.Fleets = append(c.Fleets, campaign.Fleet{
 		ID: "fl900", Kind: campaign.FleetShip, FromID: from.ID, ToID: loc.ID,
 		FromX: from.X, FromY: from.Y, ToX: loc.X, ToY: loc.Y, LaunchDay: day - 2, ArriveDay: day + 1,
-		Presence: campaign.FactionPresence{ID: "fp900", Faction: "mirror", Doctrine: "mirror", Population: 3,
+		Presence: campaign.FactionPresence{ID: "fp900", Faction: "mirror", Doctrine: campaign.RivalColonyDoctrine, Population: 3,
 			Stockpile: map[string]int{"metal_ore": 30, "crystal": 15}, Seed: 4242, LastShotDay: campaign.NeverFired},
 	})
 	landedEvents := eventsOf(c, "faction_landed")
@@ -202,7 +202,7 @@ func TestStuckShipStaysLive(t *testing.T) {
 	c.Fleets = append(c.Fleets, campaign.Fleet{
 		ID: "fl901", Kind: campaign.FleetShip, FromID: from.ID, ToID: loc.ID,
 		FromX: from.X, FromY: from.Y, ToX: loc.X, ToY: loc.Y, LaunchDay: day - 2, ArriveDay: day + 1,
-		Presence: campaign.FactionPresence{ID: "fp901", Faction: "mirror", Doctrine: "mirror", Population: 3,
+		Presence: campaign.FactionPresence{ID: "fp901", Faction: "mirror", Doctrine: campaign.RivalColonyDoctrine, Population: 3,
 			Stockpile: map[string]int{"metal_ore": 30, "crystal": 15}, Seed: 4243, LastShotDay: campaign.NeverFired},
 	})
 	name := "mirror:" + loc.ID

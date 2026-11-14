@@ -39,8 +39,19 @@ alone and need a play-test or a judgment call.
   settlement faction: unit types with steel and bronze print tiers, the
   assimilation tree, structures on wire, relay pylons deployed by drones,
   the transmit walk into the Signal Core, the autonz director, the parallel
-  soak harness; [autonz_plan.md](autonz_plan.md)); next is B+ (hidden identity:
-  `LoreLinks`, per-morph naming, the types' names) or F (playable races). Doc:
+  soak harness; [autonz_plan.md](autonz_plan.md)); Phase F (playable races,
+  [playable_races_plan.md](playable_races_plan.md)) steps 1 to 6 are built
+  (2026-11-13): the Race row on New Expedition, hive and autonz runs with no
+  ship, View your worlds to give orders, the director in assist with
+  rung-group toggles, the Spire and Signal Core aimed by hand, the
+  doctrine's `interface` block, the world seen from the race's side; the
+  greys as a ship race (a grey crew, linked lockers, a saucer grown in
+  rings and decks). Rival selection
+  ([rival_selection_plan.md](rival_selection_plan.md), built 2026-11-14):
+  factions as instances of doctrines with groups, the mirror folded into
+  the colony doctrine, and New Expedition's rival boxes (each rival's
+  doctrine or Random, and its group); then B+ (hidden identity: `LoreLinks`, per-morph
+  naming, the types' names). Doc:
   [factions.md](../developer/factions.md).
 - Start camps can open onto rock. Seed 2's start (a 7x7 bunker room from a
   scenario setup script) was laid against an outcrop: its airlock (the
@@ -57,8 +68,9 @@ alone and need a play-test or a judgment call.
   2-5 levels down and far off); the mothership's beam-down carries the
   camps (owner's call, 2026-11-12); beamed stock does not count toward the
   hold target; research takes plastic pressed from biomass (scouts learn
-  1-2 entries a stay): balance questions in "As built". Not built: Phase F's grey player,
-  growing saucer and the player's side of linked lockers; research progress
+  1-2 entries a stay): balance questions in "As built". The grey player,
+  the growing saucer and the player's linked lockers are Phase F step 6
+  (playable_races_plan.md "As built"). Not built: research progress
   carried across a lift-off; research-modal effect lines. Checked in Go
   tests only, not played: lancers posted at emitters, a heavy-led raid,
   colonists smashing every grey locker.
@@ -96,6 +108,23 @@ alone and need a play-test or a judgment call.
 - `protein_press` (biomass into a protein bar at the workbench) joined the
   player's recipes with phase D's food rung: the game had no other renewable
   food. Owner's call whether the player keeps it.
+
+- Phase F leftovers (playable races; playable_races_plan.md "As built"):
+  a grey run's ring is slow (8 to 10 took some 70 days with the start's two
+  builders: a haul from the hold per floor tile); the greys' start, texts
+  and hull tiles are placeholders; task stops wait five wall-clock seconds (`task.Stop`), so a headless run
+  replays them differently from a live one (the soaks use
+  `deterministicTaskStops`); the level's opening
+  message is the colony's ("Welcome to your new home. Establish a
+  perimeter."); the Star Map still draws the ship's range circle and its
+  marker at the Wreck Site in a race run; the rival colony met the brood on
+  no soak seed (its raids on a hive are tested in Go and the vmtest, not
+  measured); the GameMaster counts a player's Resin Spire (a scripted
+  structure) toward `hostile_max`; the soaks vary a little run to run, as the
+  hive soak does; balance questions for the owner in the plan's "As built"
+  (an autonz node of six signals on day 2; no hive run wins by day 150 at
+  Rival factions 1 but two of ten do at 2; the hive's spire comes earlier in
+  a race run than in E2's soak).
 
 ## Verify
 

@@ -198,7 +198,14 @@ func (p *starMapPanel) refreshLocations() {
 	for _, loc := range locs {
 		p.locIDs = append(p.locIDs, loc.ID)
 		tag := ""
-		if observerRun() {
+		if spreadRun() {
+			// No ship: the player's own worlds, and eggs bound for one.
+			if p.campaign.HoldsSite(loc) {
+				tag = "  [yours]" // DRAFT
+			} else if loc.Visited && loc.HasSite() {
+				tag = "  [visited]"
+			}
+		} else if observerRun() {
 			// No ship of the player's: the expedition's whereabouts instead.
 			if f := p.campaign.Expedition(); f != nil && f.Landed() && f.LandedID == loc.ID {
 				tag = "  [expedition]"
@@ -426,12 +433,16 @@ func (p *starMapPanel) rowRect(id string) (minui.Rect, bool) {
 
 // view opens the selected planet's level (view.go).
 func (p *starMapPanel) view() {
-	if !observerMode() {
+	if !viewing() {
 		return
 	}
 	loc := p.selectedLocation()
 	if !loc.HasSite() {
 		p.status = "Nothing to view there."
+		return
+	}
+	if spreadRun() && !observerMode() && !p.campaign.HoldsSite(loc) && !p.campaign.InRaceReach(loc) {
+		p.status = "Beyond your reach." // DRAFT
 		return
 	}
 	ms, err := p.wm.ViewLocation(loc.ID)
@@ -444,7 +455,7 @@ func (p *starMapPanel) view() {
 
 func (p *starMapPanel) travel() {
 	loc := p.selectedLocation()
-	if loc == nil || observerRun() {
+	if loc == nil || shiplessRun() {
 		return
 	}
 	if lock := p.travelBlockReason(loc); lock != "" {
@@ -521,7 +532,7 @@ func (p *starMapPanel) closeScanModal() {
 }
 
 func (p *starMapPanel) beamDown() {
-	if observerRun() {
+	if shiplessRun() {
 		return
 	}
 	if p.wm.Current() == nil {
@@ -542,7 +553,7 @@ func (p *starMapPanel) beamDown() {
 }
 
 func (p *starMapPanel) beamUp() {
-	if observerRun() {
+	if shiplessRun() {
 		return
 	}
 	idx := p.planList.SelectedIndex
@@ -598,11 +609,12 @@ func (p *starMapPanel) Update() {
 	p.locateBtn.Update()
 	// View is the observer's (a run, or the lock on a normal campaign):
 	// in play it would scout any planet for free.
-	if observerMode() {
-		p.viewBtn.SetEnabled(p.selectedLocation().HasSite())
+	if viewing() {
+		sel := p.selectedLocation()
+		p.viewBtn.SetEnabled(sel.HasSite() && (observerMode() || p.campaign.HoldsSite(sel) || p.campaign.InRaceReach(sel)))
 		p.viewBtn.Update()
 	}
-	if observerRun() {
+	if shiplessRun() {
 		// No player ship: the map, Locate, View and the clock are the
 		// viewer's whole interface.
 		p.syncPauseBtn()
@@ -833,7 +845,7 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 			vector.StrokeCircle(canvas, sx, sy, r+3, 2, color.RGBA{255, 230, 120, 255}, true)
 		}
 		mlge_text.Draw(canvas, loc.Name, 11, int(sx)+int(r)+4, int(sy)-7, color.RGBA{190, 205, 225, 255})
-		drawFactionBadges(canvas, loc, sx, sy, r)
+		drawFactionBadges(canvas, p.campaign, loc, sx, sy, r)
 	}
 	p.drawFleets(canvas)
 
@@ -844,11 +856,13 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	mlge_text.Draw(screen, "Destinations", 14, 20, lblY, lbl)
 	p.locList.Draw(screen)
 	p.locateBtn.Draw(screen)
-	if observerMode() {
+	if viewing() {
 		p.viewBtn.Draw(screen)
 	}
 	p.pauseBtn.Draw(screen)
-	if observerRun() {
+	if spreadRun() {
+		p.drawPlayerSites(screen, 340, lblY)
+	} else if observerRun() {
 		p.drawExpedition(screen, 340, lblY)
 	} else {
 		mlge_text.Draw(screen, "On Ship", 14, 340, lblY, lbl)
@@ -917,6 +931,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 
 	if p.status != "" {
 		mlge_text.Draw(screen, p.status, 13, 20, sh-30, color.RGBA{230, 160, 90, 255})
+	} else if spreadRun() {
+		mlge_text.Draw(screen, "No ship: select one of your worlds and View it to give orders there.", 13, 20, sh-30, color.RGBA{120, 220, 255, 255}) // DRAFT
 	} else if observerRun() {
 		mlge_text.Draw(screen, "Observer run: no ship of yours. Select any planet and View it.", 13, 20, sh-30, color.RGBA{120, 220, 255, 255})
 	}
@@ -1154,15 +1170,17 @@ func drawTierTag(screen *ebiten.Image, tier string, x, y int) int {
 
 // ---- rival faction badges (enemy_factions_plan.md, Tier 3, Phase A) ----
 
-// factionBadgeColor is a doctrine's Star Map colour.
-func factionBadgeColor(d *campaign.Doctrine) color.RGBA {
-	return color.RGBA{d.Badge[0], d.Badge[1], d.Badge[2], 255}
+// factionColor is a faction's Star Map colour: its own (a second faction of
+// a doctrine, rival_selection_plan.md), else its doctrine's.
+func factionColor(c *campaign.Campaign, faction string, d *campaign.Doctrine) color.RGBA {
+	b := c.FactionBadge(faction, d)
+	return color.RGBA{b[0], b[1], b[2], 255}
 }
 
 // drawFactionBadges marks each presence the player has seen on a site's icon:
 // a diamond in the faction's colour left of the icon, with one pip per stage
 // reached beside it. Unseen presences draw nothing.
-func drawFactionBadges(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r float32) {
+func drawFactionBadges(canvas *ebiten.Image, c *campaign.Campaign, loc *campaign.Location, sx, sy, r float32) {
 	known := shownPresences(loc)
 	if len(known) == 0 {
 		return
@@ -1176,7 +1194,7 @@ func drawFactionBadges(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r f
 		if d == nil {
 			continue
 		}
-		col := factionBadgeColor(d)
+		col := factionColor(c, p.Faction, d)
 		if d.BadgeShape == "square" {
 			// The autonz' chip (phase E): filled when awake, an outline
 			// while it is a dormant signal.
@@ -1225,6 +1243,9 @@ func factionListTag(c *campaign.Campaign, loc *campaign.Location) string {
 		}
 	}
 	for _, p := range shownPresences(loc) {
+		if p.Faction == campaign.PlayerFaction {
+			continue // the player's own: the [yours] tag
+		}
 		if d := fd.Doctrine(p.Doctrine); d != nil {
 			if p.Dormant {
 				tag += fmt.Sprintf("  [%s signal]", presenceWord(d, loc))
@@ -1253,7 +1274,7 @@ func (p *starMapPanel) drawFleets(canvas *ebiten.Image) {
 		if d == nil {
 			continue
 		}
-		col := factionBadgeColor(d)
+		col := factionColor(p.campaign, f.Presence.Faction, d)
 		fx, fy := f.Pos(now)
 		sx, sy := p.worldToScreen(fx, fy)
 		tx, ty := p.worldToScreen(f.ToX, f.ToY)
@@ -1367,7 +1388,7 @@ func (p *starMapPanel) drawInboundTags(screen *ebiten.Image, loc *campaign.Locat
 			// A rival colony is openly a colony: its own name.
 			label = fmt.Sprintf("%s INBOUND · %s", fleetTag(d, f), when)
 		}
-		y = drawTag(screen, label, factionBadgeColor(d), x, y)
+		y = drawTag(screen, label, factionColor(p.campaign, f.Presence.Faction, d), x, y)
 	}
 	// Ships that left here and where they are heading.
 	for _, f := range shownFleets(p.campaign) {
@@ -1384,7 +1405,7 @@ func (p *starMapPanel) drawInboundTags(screen *ebiten.Image, loc *campaign.Locat
 		if f.Returning {
 			label = fmt.Sprintf("%s BOUND FOR ITS MOTHERSHIP · %s", fleetTag(d, f), plural(max(days, 0), "DAY"))
 		}
-		y = drawTag(screen, label, factionBadgeColor(d), x, y)
+		y = drawTag(screen, label, factionColor(p.campaign, f.Presence.Faction, d), x, y)
 	}
 	return y
 }
@@ -1432,7 +1453,7 @@ func drawFactionTags(screen *ebiten.Image, c *campaign.Campaign, loc *campaign.L
 		if d == nil || f.Kind != campaign.FleetShip || f.Landed() || f.ToID != loc.ID || !(f.Mothership || f.FromID == f.ToID) {
 			continue
 		}
-		y = drawTag(screen, fleetTag(d, f)+" IN ORBIT · "+strings.ToUpper(c.Stance(f.Presence.Faction)), factionBadgeColor(d), x, y)
+		y = drawTag(screen, fleetTag(d, f)+" IN ORBIT · "+strings.ToUpper(c.Stance(f.Presence.Faction)), factionColor(c, f.Presence.Faction, d), x, y)
 	}
 	// A known ship landed here: the rival colony by name, with its stance
 	// (and its class, for a doctrine with tiers).
@@ -1441,8 +1462,8 @@ func drawFactionTags(screen *ebiten.Image, c *campaign.Campaign, loc *campaign.L
 		if d == nil || !fleetShown(f) {
 			continue
 		}
-		col := factionBadgeColor(d)
-		label := strings.ToUpper(d.MorphAt(loc).Tag + " · " + c.Stance(f.Presence.Faction))
+		col := factionColor(c, f.Presence.Faction, d)
+		label := strings.ToUpper(d.MorphAt(loc).Tag + c.FactionSuffix(f.Presence.Faction) + " · " + c.Stance(f.Presence.Faction))
 		if len(d.ShipTiers()) > 0 {
 			label = fleetTag(d, f) + " · " + strings.ToUpper(c.Stance(f.Presence.Faction))
 		}
@@ -1459,12 +1480,16 @@ func drawFactionTags(screen *ebiten.Image, c *campaign.Campaign, loc *campaign.L
 		if d == nil {
 			continue
 		}
-		col := factionBadgeColor(d)
+		col := factionColor(c, p.Faction, d)
 		// The morph's word, never the faction's, while its identity is
 		// hidden (an observer run names both, with the population).
-		label := strings.ToUpper(d.MorphAt(loc).Tag + " " + stageWord(d, p.Stage))
+		label := strings.ToUpper(d.MorphAt(loc).Tag + c.FactionSuffix(p.Faction) + " " + stageWord(d, p.Stage))
 		if observerRun() {
 			label = strings.ToUpper(presenceWord(d, loc)+" "+stageWord(d, p.Stage)) + presenceCount(p.Population)
+		}
+		if p.Faction == campaign.PlayerFaction {
+			// Hidden identity inverted: the player's own, by its true name.
+			label = strings.ToUpper("your "+d.StageName(p.Stage)) + fmt.Sprintf(" %d", p.Population) // DRAFT
 		}
 		if p.Dormant {
 			label = c.SignalNote(d, loc, p) // phase E: the autonz signal marker

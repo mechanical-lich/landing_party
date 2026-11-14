@@ -25,7 +25,7 @@ func mirrorFlight(t *testing.T, seed int64, days int) (lines []string, moves map
 		c.StepFactions(nil)
 		for i := range c.Fleets {
 			f := &c.Fleets[i]
-			if f.Presence.Doctrine != "mirror" {
+			if f.Presence.Doctrine != RivalColonyDoctrine {
 				continue
 			}
 			p := &f.Presence

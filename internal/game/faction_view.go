@@ -70,6 +70,9 @@ func init() { gui.FactionLabel = hudFactionLabel }
 // hidden-identity faction (the hive) is not named in a normal campaign (the
 // line is hidden), every faction is in an observer run.
 func hudFactionLabel(faction string) string {
+	if faction == campaign.PlayerFaction {
+		return "yours" // DRAFT: a race run's own bodies
+	}
 	if hiddenFaction(faction) {
 		return ""
 	}
@@ -83,7 +86,7 @@ func hiddenFaction(faction string) bool {
 	if faction == "" || observerRun() {
 		return false
 	}
-	d := campaign.LoadFactionData().Doctrine(faction)
+	d := campaign.LoadFactionData().Doctrine(doctrineOfFaction(faction))
 	return d != nil && len(d.Morphs) > 0
 }
 
@@ -103,4 +106,13 @@ func presenceCount(n int) string {
 		return ""
 	}
 	return fmt.Sprintf(" %d", n)
+}
+
+// stageWordFor is p's stage word: the true name for the player's own
+// presence (hidden identity inverted, phase F), else stageWord.
+func stageWordFor(d *campaign.Doctrine, p *campaign.FactionPresence) string {
+	if p != nil && p.Faction == campaign.PlayerFaction {
+		return d.StageName(p.Stage)
+	}
+	return stageWord(d, p.Stage)
 }

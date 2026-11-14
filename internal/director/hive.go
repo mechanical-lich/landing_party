@@ -289,7 +289,8 @@ func hostileNear(s *Site, r int) *ecs.Entity {
 		case s.Hostile && s.Enemy != "" && components.IsColonyWorker(e, s.Enemy):
 			hostile = true
 		case !e.HasComponent(components.Worker) && (e.HasComponent(components.ScriptedAI) || e.HasComponent(components.FactionAI)) &&
-			e.HasComponent(rlcomponents.Stats) && faction(e) != own && faction(e) != "":
+			e.HasComponent(rlcomponents.Stats) && faction(e) != own && faction(e) != "" &&
+			(own == "" || components.HostileFactions(own, faction(e))):
 			hostile = true
 		}
 		if hostile && (dist < bestD || dist == bestD && less(e, best)) {

@@ -1,0 +1,89 @@
+{"name":"race_greyish","seed":777,"config":{"rivalsByCount":true}}
+# A grey run (phase F step 6a): New Expedition seed 777, the Race row
+# stepped three times to the greys. A ship run: the dashboard opens adrift
+# with the greys' crew of three aboard (a worker, a technician, a soldier),
+# no tutorial. Aboard, the vat and the console stand by the hold; a click on
+# the vat opens the crafting modal (the print rows), on the console the
+# research modal (the grey tree). The ship travels to the start system and
+# the three beam down; the HUD is the greys' (metal, crystal, alloy,
+# plastic, specimens; no Sleep order) and the crew stands after 600 ticks.
+# A locker placed aboard (debug place) is a door onto the ship's pocket:
+# its inspector lists the hold's alloy (phase F step 6b). The console's
+# research modal carries the Hull section (deck 1 at radius 8, the next
+# ring 10); Expand Hull clicked on deck 1 starts the work: 3000 ticks on,
+# the old rim is breached and the new ring's floor is spreading (step 6d).
+# Frames: the race row, adrift, the ship with its modules, the vat, the
+# console, the site, the site after 600 ticks.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Saucer"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:race_next"}
+{"op":"screenshot","name":"title_race"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":300}
+{"op":"assert","path":"race","eq":"greyish"}
+{"op":"assert","path":"spread_run","eq":false}
+{"op":"assert","path":"tutorial","eq":null}
+{"op":"assert","path":"crew_at.ship","eq":3}
+{"op":"screenshot","name":"adrift"}
+{"op":"click","target":"dash:returnShipBtn"}
+{"op":"wait_until","path":"state","eq":"ship","max_ticks":60}
+{"op":"assert","path":"hud.slots","eq":["metal_ore","crystal","grey_alloy","plastic","specimen"]}
+{"op":"wait","ticks":30}
+{"op":"screenshot","name":"ship"}
+{"op":"click","target":"entity:grey_vat"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","contains":"craftingModal"}
+{"op":"screenshot","name":"vat"}
+{"op":"click","target":"modal:craftingModal:close"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"entity:grey_console"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","contains":"researchModal"}
+{"op":"assert","path":"hud.research_hull","contains":"Deck 1: radius 8; next ring 10"}
+{"op":"screenshot","name":"console"}
+{"op":"click","target":"modal:researchModal:close"}
+{"op":"wait","ticks":5}
+{"op":"debug","cmd":"place storage_locker 3 -3"}
+{"op":"wait","ticks":31}
+{"op":"click","target":"entity:storage_locker"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"modal","contains":"inspector"}
+{"op":"screenshot","name":"locker"}
+{"op":"click","target":"inspector:close"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"assert","path":"hud.orders","contains":"expand_hull"}
+{"op":"click","target":"hud:order_expand_hull"}
+{"op":"click","target":"settle:0,0"}
+{"op":"wait","ticks":3000}
+{"op":"screenshot","name":"hull_growing"}
+{"op":"click","target":"btn:dashboard"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":60}
+{"op":"click","target":"row:locList:start"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"crew_at.ship","eq":null}
+{"op":"assert","path":"crew_on_site","eq":3}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":60}
+{"op":"assert","path":"hud.orders","eq":["default","dig","mine","store","drop","cancel","attack","expand_hull","add_deck"]}
+{"op":"screenshot","name":"site"}
+{"op":"wait","ticks":600}
+{"op":"assert","path":"crew_on_site","eq":3}
+{"op":"screenshot","name":"site600"}

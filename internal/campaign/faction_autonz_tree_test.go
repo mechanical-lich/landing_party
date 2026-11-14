@@ -20,7 +20,7 @@ func spineDays(t *testing.T, withAssim bool, days int) (map[string]int, *Faction
 	}
 	defer func() { d.Assimilation, d.AssimilationPerDay = saved, savedPer }()
 	a := c.Locations["a"]
-	c.newPresence("autonz", d, a, 3)
+	c.newPresence("autonz", "autonz", d, a, 3)
 	got := map[string]int{}
 	for day := 1; day <= days; day++ {
 		c.StarDate = history.StarDate(day)

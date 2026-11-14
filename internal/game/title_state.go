@@ -60,6 +60,20 @@ type TitleState struct {
 	factionsMinus *minui.Button
 	factionsPlus  *minui.Button
 
+	// races is the playable doctrines (the colony first) and race the one
+	// chosen (phase F): GenOptions.Doctrine.
+	races    []string
+	race     int
+	racePrev *minui.Button
+	raceNext *minui.Button
+
+	// The rival boxes (title_rivals.go): one row per rival, the player's
+	// group.
+	rivalChoices              []string
+	rivals                    []*rivalRow
+	playerGroup               int
+	playerGMinus, playerGPlus *minui.Button
+
 	generateBtn *minui.Button
 	cancelBtn   *minui.Button
 
@@ -223,12 +237,26 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		}
 	}
 
+	// Race: the playable doctrines, the colony first (phase F). An observer
+	// run is always the colony's expedition.
+	ts.races, ts.race = campaign.PlayableDoctrines(), 0
+	ts.racePrev = minui.NewButton("race_prev", "<")
+	ts.racePrev.SetPosition(cx-20, 432)
+	ts.racePrev.SetSize(28, 28)
+	ts.racePrev.OnClick = func() { ts.stepRace(-1) }
+	ts.raceNext = minui.NewButton("race_next", ">")
+	ts.raceNext.SetPosition(cx+132, 432)
+	ts.raceNext.SetSize(28, 28)
+	ts.raceNext.OnClick = func() { ts.stepRace(1) }
+
+	ts.buildRivalRows()
+
 	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
-	ts.generateBtn.SetPosition(cx-80, 444)
+	ts.generateBtn.SetPosition(cx-80, 484)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 488)
+	ts.cancelBtn.SetPosition(cx-80, 528)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 }
@@ -247,7 +275,7 @@ func (ts *TitleState) startNewSettlement() {
 		seed = rand.Int63()
 	}
 
-	ms, err := StartNewExpedition(name, seed, ts.tutorialToggle.IsOn(), ts.factions)
+	ms, err := StartNewExpeditionWith(name, seed, ts.tutorialToggle.IsOn() && !ts.raceIsNotColony(), ts.factions, ts.raceKey(), ts.rivalPicks(), ts.playerGroup)
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
 		return
@@ -263,15 +291,39 @@ func (ts *TitleState) startNewSettlement() {
 // tutorial's metal; the ship still parks at the generated start. factions is
 // the number of rival presences seeded.
 func StartNewExpedition(name string, seed int64, tutorial bool, factions int) (state.StateInterface, error) {
+	return StartNewExpeditionAs(name, seed, tutorial, factions, "")
+}
+
+// StartNewExpeditionAs is StartNewExpedition as a chosen race (phase F;
+// "" is the colony). A spreading race (the hive) has no ship and no
+// tutorial: it opens viewing its first world.
+func StartNewExpeditionAs(name string, seed int64, tutorial bool, factions int, race string) (state.StateInterface, error) {
+	return StartNewExpeditionWith(name, seed, tutorial, factions, race, nil, 0)
+}
+
+// StartNewExpeditionWith is StartNewExpeditionAs with the rival boxes
+// (rival_selection_plan.md step 3: nil is the Rival factions count alone)
+// and the player's group.
+func StartNewExpeditionWith(name string, seed int64, tutorial bool, factions int, race string, rivals []campaign.RivalPick, playerGroup int) (state.StateInterface, error) {
 	// Observer mode at New Expedition makes the whole run an observer run:
-	// no player ship, the expedition a fleet (campaign/observer.go).
+	// no player ship, the expedition a fleet (campaign/observer.go). An
+	// observer run is always the colony's.
 	observer := config.Global().ObserverMode
 	if observer {
 		tutorial = false // nobody to teach
+		race = ""
 	}
-	c, wm, err := newExpeditionOpts(name, seed, tutorial, campaign.GenOptions{Factions: factions, Observer: observer})
+	c, wm, err := newExpeditionOpts(name, seed, tutorial, campaign.GenOptions{Factions: factions, Observer: observer, Doctrine: race,
+		Rivals: rivals, PlayerGroup: playerGroup})
 	if err != nil {
 		return nil, err
+	}
+	if c.SpreadRun() {
+		if ms, err := wm.ViewLocation(campaign.StartLocationID); err == nil {
+			return ms, nil
+		} else {
+			log.Printf("race start view: %v", err)
+		}
 	}
 	return NewDashboardState(c, wm), nil
 }
@@ -292,6 +344,15 @@ func newExpeditionOpts(name string, seed int64, tutorial bool, opts campaign.Gen
 	}
 	cfg := campaign.GenerationConfig()
 	SeedNewCampaign(c)
+	if c.SpreadRun() {
+		// A spreading race (phase F): no ship crew, no hold, no tutorial,
+		// no quests (they pay fuel into a hold the run has not got). The
+		// player's first presence goes on the start system.
+		if _, err := c.AddPlayerBrood(); err != nil {
+			return nil, nil, err
+		}
+		return c, NewWorldManager(c), nil
+	}
 	var hold map[string]int
 	if tutorial {
 		campaign.AddTutorialLocation(c)
@@ -309,6 +370,9 @@ func newExpeditionOpts(name string, seed int64, tutorial bool, opts campaign.Gen
 		}
 		wm := NewWorldManager(c)
 		return c, wm, nil
+	}
+	if st := campaign.PlayerDoctrine(c).ShipStart(); st != nil && st.Stockpile != nil && hold == nil {
+		hold = st.Stockpile // a ship race's own hold (the greys)
 	}
 	wm := NewWorldManager(c)
 	wm.SeedShipCrew(cfg.StartColonists)   // crew spawns aboard the ship
@@ -348,9 +412,16 @@ func (ts *TitleState) Update() state.StateInterface {
 		ts.randomNameBtn.Update()
 		ts.seedInput.Update()
 		ts.randomSeedBtn.Update()
-		ts.tutorialToggle.Update()
+		if !ts.raceIsNotColony() {
+			ts.tutorialToggle.Update() // a spreading race has no tutorial
+		}
 		ts.factionsMinus.Update()
 		ts.factionsPlus.Update()
+		ts.updateRivalRows()
+		if ts.raceChoice() {
+			ts.racePrev.Update()
+			ts.raceNext.Update()
+		}
 		ts.generateBtn.Update()
 		ts.cancelBtn.Update()
 	case screenLoad:
@@ -398,13 +469,27 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, "Seed (blank = random):", 14, lx, 295, lblCol)
 		ts.seedInput.Draw(screen)
 		ts.randomSeedBtn.Draw(screen)
-		ts.tutorialToggle.Draw(screen)
+		if !ts.raceIsNotColony() {
+			ts.tutorialToggle.Draw(screen)
+		}
 		mlge_text.Draw(screen, "Rival factions:", 14, lx, 398, lblCol)
 		ts.factionsMinus.Draw(screen)
 		ts.factionsPlus.Draw(screen)
+		ts.drawRivalRows(screen)
 		val := strconv.Itoa(ts.factions)
 		vw, _ := mlge_text.Measure(val, 16)
 		mlge_text.Draw(screen, val, 16, cfg.ScreenWidth/2+120-int(vw)/2, 396, color.RGBA{220, 230, 255, 255})
+		if ts.raceChoice() {
+			mlge_text.Draw(screen, "Race:", 14, lx, 438, lblCol) // DRAFT
+			ts.racePrev.Draw(screen)
+			ts.raceNext.Draw(screen)
+			name := ts.raceName()
+			nw, _ := mlge_text.Measure(name, 16)
+			mlge_text.Draw(screen, name, 16, cfg.ScreenWidth/2+74-int(nw)/2, 436, color.RGBA{220, 230, 255, 255})
+			if b := ts.raceBlurb(); b != "" {
+				mlge_text.Draw(screen, b, 12, lx, 466, color.RGBA{150, 170, 195, 255})
+			}
+		}
 		ts.generateBtn.Draw(screen)
 		ts.cancelBtn.Draw(screen)
 	}
@@ -421,3 +506,52 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 }
 
 func (ts *TitleState) Done() bool { return ts.done }
+
+// raceChoice reports whether the race row is offered: more than one
+// playable doctrine, and not an observer run (always the colony's).
+func (ts *TitleState) raceChoice() bool {
+	return len(ts.races) > 1 && !config.Global().ObserverMode
+}
+
+// stepRace moves the race choice by d, wrapping.
+func (ts *TitleState) stepRace(d int) {
+	if n := len(ts.races); n > 0 {
+		ts.race = ((ts.race+d)%n + n) % n
+	}
+}
+
+// raceKey is the chosen doctrine ("" for the colony or no choice).
+func (ts *TitleState) raceKey() string {
+	if !ts.raceChoice() || ts.race <= 0 || ts.race >= len(ts.races) {
+		return ""
+	}
+	return ts.races[ts.race]
+}
+
+func (ts *TitleState) raceDoctrine() *campaign.Doctrine {
+	if ts.race < 0 || ts.race >= len(ts.races) {
+		return nil
+	}
+	return campaign.LoadFactionData().Doctrine(ts.races[ts.race])
+}
+
+// raceName is the chosen race's name on the row.
+func (ts *TitleState) raceName() string {
+	if d := ts.raceDoctrine(); d != nil {
+		return d.Name
+	}
+	return "Colony"
+}
+
+// raceBlurb is the chosen race's one line under the row (draft).
+func (ts *TitleState) raceBlurb() string {
+	if d := ts.raceDoctrine(); d != nil && d.Race != nil {
+		return d.Race.Blurb
+	}
+	return ""
+}
+
+
+// raceIsNotColony reports a race other than the colony picked: the tutorial
+// is the colony's only (open question 16), for a ship race too.
+func (ts *TitleState) raceIsNotColony() bool { return ts.raceKey() != "" }

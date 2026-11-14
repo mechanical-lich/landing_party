@@ -914,5 +914,27 @@
                 "turrets": 2
             }
         }
+    },
+    "grey_hull_lattice": {
+        "name": "Hull Lattice",
+        "description": "_draft The saucer's frame takes a wider ring and a third deck.",
+        "tree": "greyish",
+        "duration": 900,
+        "cost": { "metal_ore": 4, "plastic": 6, "crystal": 6, "grey_alloy": 3 },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "requires_tech": "grey_hull_plating",
+        "develop": { "hull": "_draft Rings 12 and 15, the third deck" }
+    },
+    "grey_hull_spine": {
+        "name": "Hull Spine",
+        "description": "_draft The saucer's widest ring and its fourth deck.",
+        "tree": "greyish",
+        "duration": 1200,
+        "cost": { "metal_ore": 6, "plastic": 8, "crystal": 8, "grey_alloy": 5 },
+        "required_building": "grey_console",
+        "required_int": 12,
+        "requires_tech": "grey_hull_lattice",
+        "develop": { "hull": "_draft Ring 18, the fourth deck" }
     }
 }

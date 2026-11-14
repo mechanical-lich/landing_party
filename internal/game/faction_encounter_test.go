@@ -163,7 +163,7 @@ func TestInterceptionBoardingLevel(t *testing.T) {
 func TestBoardedMirrorCrewFightBack(t *testing.T) {
 	c, wm, to := interceptTrip(t, 12, 0)
 	f := c.FleetByPresence("fp777")
-	f.Presence.Faction, f.Presence.Doctrine, f.Presence.Population = "mirror", "mirror", 3
+	f.Presence.Faction, f.Presence.Doctrine, f.Presence.Population = "mirror", campaign.RivalColonyDoctrine, 3
 	if err := wm.Travel(to.ID); err != nil {
 		t.Fatal(err)
 	}

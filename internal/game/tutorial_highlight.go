@@ -67,9 +67,11 @@ func (b *tutorialBridge) highlightTargets() []highlight {
 	return out
 }
 
-// liveSite is the level this frame was drawn from, if it is the one in orbit.
+// liveSite is the level this frame was drawn from, if it is the one in orbit
+// or the one being viewed (a race run's world, an observer's planet).
 func (b *tutorialBridge) liveSite() *MainState {
-	if b.lastSite != nil && b.lastSite == b.wm.Current() && b.lastCtx == tutorial.ContextSite {
+	if b.lastSite != nil && b.lastCtx == tutorial.ContextSite &&
+		(b.lastSite == b.wm.Current() || b.wm.viewedID != "" && b.lastSite.locationID == b.wm.viewedID) {
 		return b.lastSite
 	}
 	return nil
@@ -257,7 +259,12 @@ func (b *tutorialBridge) shipHoldHighlight() (highlight, bool) {
 }
 
 func (b *tutorialBridge) entityHighlight(blueprint string) (highlight, bool) {
-	s := b.liveSite()
+	return b.entityHighlightOn(b.liveSite(), blueprint)
+}
+
+// entityHighlightOn is entityHighlight on state s (the vmtest hook passes
+// the ship's).
+func (b *tutorialBridge) entityHighlightOn(s *MainState, blueprint string) (highlight, bool) {
 	if s == nil || s.level == nil {
 		return highlight{}, false
 	}

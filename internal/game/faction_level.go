@@ -324,6 +324,7 @@ func spawnPresenceBodies(level *world.Level, loc *campaign.Location, d *campaign
 		if err != nil {
 			continue
 		}
+		stampPresenceFaction(e, p)
 		level.AddEntity(e)
 	}
 }

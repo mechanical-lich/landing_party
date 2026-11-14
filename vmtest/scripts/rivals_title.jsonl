@@ -1,0 +1,42 @@
+{"name":"rivals_title","seed":321,"config":{"observerMode":true}}
+# Rival selection step 3: New Expedition's rival boxes. Rival factions 4,
+# picked by hand: rival 1 Hive, rival 2 Hive moved into rival 1's group
+# (two hive factions, friendly to each other), rival 3 Random (rolled from
+# the seed), rival 4 Colony (a rival colony, the colony doctrine's rival
+# view). An observer run, so the Factions tab shows every faction: the two
+# hives as two blocks, the second named apart. Frames: the boxes, the
+# Factions tab.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Rivals"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"321"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"click","target":"title:factions_plus"}
+{"op":"assert","path":"title_fields.factions","eq":4}
+{"op":"assert","path":"title_fields.rivals","eq":["Random","Random","Random","Random"]}
+{"op":"assert","path":"title_fields.rival_groups","eq":[2,3,4,5]}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"click","target":"title:rival_next_1"}
+{"op":"click","target":"title:rival_next_1"}
+{"op":"click","target":"title:rival_next_1"}
+{"op":"click","target":"title:rival_group_minus_1"}
+{"op":"click","target":"title:rival_prev_3"}
+{"op":"assert","path":"title_fields.rivals","eq":["Hive","Hive","Random","Colony"]}
+{"op":"assert","path":"title_fields.rival_groups","eq":[2,2,4,5]}
+{"op":"assert","path":"title_fields.player_group","eq":1}
+{"op":"screenshot","name":"boxes"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":200}
+{"op":"assert","path":"campaign.faction_count","eq":4}
+{"op":"assert","path":"campaign.factions.hive.group","eq":2}
+{"op":"assert","path":"campaign.factions.hive.slot","eq":1}
+{"op":"assert","path":"campaign.factions.mirror.doctrine","eq":"colony!rival"}
+{"op":"assert","path":"campaign.factions.mirror.group","eq":5}
+{"op":"click","target":"tab:factions"}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"factions_tab"}

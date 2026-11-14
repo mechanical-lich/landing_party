@@ -1,4 +1,4 @@
-{"name":"factions_greyish_warship","seed":55}
+{"name":"factions_greyish_warship","seed":55,"config":{"rivalsByCount":true}}
 # Phase E4: a landed grey warship at work. New Expedition seed 55 with Rival
 # factions 3 (as factions_greyish): the greyish scout fl1 is landed on Ember
 # Pit (sys_20). Before the jump, debug ship makes it a warship (its hold

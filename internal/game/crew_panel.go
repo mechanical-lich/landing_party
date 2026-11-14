@@ -3,11 +3,13 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/config"
+	"github.com/mechanical-lich/landing_party/internal/gui"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/state"
@@ -28,6 +30,9 @@ type crewPanel struct {
 type crewMember struct {
 	ent    *ecs.Entity
 	onShip bool
+	// site is the world a race run's body is on; summary stands for a
+	// frozen world's bodies (Tier 1's units), ent nil.
+	site, summary string
 }
 
 func newCrewPanel(c *campaign.Campaign, wm *WorldManager) *crewPanel {
@@ -45,6 +50,11 @@ func (p *crewPanel) Enter() { p.refresh() }
 func (p *crewPanel) refresh() {
 	p.crew = p.crew[:0]
 	var labels []string
+	if spreadRun() {
+		labels = p.raceRows()
+		p.setRows(labels)
+		return
+	}
 	for _, e := range p.wm.ShipColonists() {
 		p.crew = append(p.crew, crewMember{ent: e, onShip: true})
 		labels = append(labels, entityDisplayName(e)+"  · Ship")
@@ -57,6 +67,11 @@ func (p *crewPanel) refresh() {
 		p.crew = append(p.crew, crewMember{ent: e, onShip: false})
 		labels = append(labels, entityDisplayName(e)+"  · "+siteName)
 	}
+	p.setRows(labels)
+}
+
+// setRows puts labels in the list, keeping the selection.
+func (p *crewPanel) setRows(labels []string) {
 	if len(labels) == 0 {
 		labels = []string{"(no crew)"}
 	}
@@ -92,12 +107,24 @@ func (p *crewPanel) Draw(screen *ebiten.Image) {
 	x := 420
 	y := dashContentTop + 20
 	hdr := color.RGBA{200, 220, 255, 255}
+	if e == nil {
+		// A frozen world of a race run: its bodies by type (Tier 1's record).
+		mlge_text.Draw(screen, cm.site, 22, x, y, color.RGBA{230, 240, 255, 255})
+		mlge_text.Draw(screen, cm.summary, 14, x, y+34, dashBodyColor)
+		mlge_text.Draw(screen, "Not loaded: View it to see each one.", 13, x, y+60, color.RGBA{150, 170, 195, 255}) // DRAFT
+		return
+	}
 
 	mlge_text.Draw(screen, colonistName(e), 22, x, y, color.RGBA{230, 240, 255, 255})
 	y += 34
 
 	loc := "Aboard the Ship"
-	if !cm.onShip {
+	if cm.site != "" {
+		loc = "On " + cm.site
+		if line := unitTypeLine(p.campaign, e); line != "" {
+			loc = line + "  ·  " + loc
+		}
+	} else if !cm.onShip {
 		loc = "Planetside"
 		if l := p.campaign.CurrentLocation(); l != nil && p.wm.Current() != nil {
 			loc = "On " + l.Name
@@ -112,14 +139,20 @@ func (p *crewPanel) Draw(screen *ebiten.Image) {
 		mlge_text.Draw(screen, fmt.Sprintf("Health:      %d / %d", hc.Health, hc.MaxHealth), 14, x, y, dashBodyColor)
 		y += 22
 	}
-	if e.HasComponent(components.Needs) {
+	sec := p.sections()
+	if sec[gui.SectionNeeds] && e.HasComponent(components.Needs) {
 		nc := e.GetComponent(components.Needs).(*components.NeedsComponent)
 		mlge_text.Draw(screen, fmt.Sprintf("Hunger:      %d / %d", nc.Hunger, nc.MaxHunger), 14, x, y, dashBodyColor)
 		y += 22
-		mlge_text.Draw(screen, fmt.Sprintf("Exhaustion:  %d / %d", nc.Exhaustion, nc.MaxExhaustion), 14, x, y, dashBodyColor)
-		y += 22
+		if !gui.NeverTires(nc) {
+			mlge_text.Draw(screen, fmt.Sprintf("Exhaustion:  %d / %d", nc.Exhaustion, nc.MaxExhaustion), 14, x, y, dashBodyColor)
+			y += 22
+		}
 	}
 	y += 12
+	if !sec[gui.SectionStats] {
+		return
+	}
 
 	// Stats.
 	mlge_text.Draw(screen, "Stats", 16, x, y, hdr)
@@ -134,6 +167,9 @@ func (p *crewPanel) Draw(screen *ebiten.Image) {
 		y += 26
 	}
 	y += 12
+	if !sec[gui.SectionEquipment] {
+		return
+	}
 
 	// Equipment.
 	mlge_text.Draw(screen, "Equipment", 16, x, y, hdr)
@@ -175,4 +211,59 @@ func colonistName(e *ecs.Entity) string {
 		}
 	}
 	return "Colonist"
+}
+
+// raceRows is a race run's crew: every body of the player's on every loaded
+// world it holds, grouped by the doctrine's crew_group (the type, or the
+// type and tier), then a row per frozen world with its bodies by type.
+func (p *crewPanel) raceRows() []string {
+	c := p.campaign
+	key := campaign.PlayerDoctrine(c).Settlement.UI().CrewGroup
+	type row struct {
+		m            crewMember
+		group, label string
+	}
+	var rows []row
+	var frozen []crewMember
+	for _, loc := range c.PlayerSites() {
+		ms := p.wm.loaded[loc.ID]
+		if ms == nil || ms.level == nil {
+			pr := loc.Presence(campaign.PlayerFaction)
+			frozen = append(frozen, crewMember{site: loc.Name, summary: fmt.Sprintf("%d: %s", pr.Population, countsLine(pr.Units))})
+			continue
+		}
+		for _, e := range settlementWorkers(ms.level, playerSettlementName(loc.ID)) {
+			g := crewGroupKey(c, key, e)
+			label := entityDisplayName(e) + "  · " + loc.Name
+			if g != "" {
+				label = g + "  —  " + label
+			}
+			rows = append(rows, row{crewMember{ent: e, site: loc.Name}, g, label})
+		}
+	}
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].group < rows[j].group })
+	var labels []string
+	for _, r := range rows {
+		p.crew = append(p.crew, r.m)
+		labels = append(labels, r.label)
+	}
+	for _, m := range frozen {
+		p.crew = append(p.crew, m)
+		labels = append(labels, m.site+"  · "+m.summary)
+	}
+	return labels
+}
+
+// sections is the player's doctrine's unit modal sections, which the crew
+// panel's detail follows too (needs, stats, equipment).
+func (p *crewPanel) sections() map[string]bool {
+	list := playerSettlementOf(p.campaign).UI().UnitModal
+	if len(list) == 0 {
+		return map[string]bool{gui.SectionNeeds: true, gui.SectionStats: true, gui.SectionEquipment: true}
+	}
+	m := map[string]bool{}
+	for _, k := range list {
+		m[k] = true
+	}
+	return m
 }

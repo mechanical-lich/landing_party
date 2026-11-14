@@ -1,4 +1,4 @@
-{"name":"lore_station","seed":114,"config":{"debugDisableLighting":true}}
+{"name":"lore_station","seed":114,"config":{"debugDisableLighting":true,"rivalsByCount":true}}
 # A quiet abandoned station built from its history: seed 114's sys_57 is a
 # quiet station (no chapter). Land at the dock, walk to the main generator
 # (dead until repaired) and look at every deck from the main stair column.

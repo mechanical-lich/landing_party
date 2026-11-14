@@ -1,4 +1,4 @@
-{"name":"lore_xenos","seed":1512}
+{"name":"lore_xenos","seed":1512,"config":{"rivalsByCount":true}}
 # A xeno hive growing out of an old wreck's hull.
 # New expedition (seed 1512, tutorial off) -> jump straight to sys_10, whose
 # history ends in wreck_eggs_hatch -> beam one colonist down -> land -> frame the camera on

@@ -1,4 +1,4 @@
-{"name":"lore_ufo","seed":1372}
+{"name":"lore_ufo","seed":1372,"config":{"rivalsByCount":true}}
 # A warship shot down at the history's origin, its crew at the hull.
 # New expedition (seed 1372, tutorial off) -> jump straight to sys_46, whose
 # history ends in ship_shot_down -> beam one colonist down -> land -> frame the camera on

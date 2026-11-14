@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/world"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
@@ -47,12 +48,12 @@ func TestResinSpeed(t *testing.T) {
 		x    int
 		want float64
 	}{
-		{"xeno_crew", 1, 0.75},  // the hive, walking
-		{"colonist", 2, 1.4},    // everyone else
-		{"troid_crew", 3, 1},    // fliers ignore it
-		{"xeno_egg", 4, 1},      // eggs do not walk
-		{"colonist", 6, 1},      // off resin
-		{"xeno_stage3", 7, 1},   // off resin
+		{"xeno_crew", 1, 0.75}, // the hive, walking
+		{"colonist", 2, 1.4},   // everyone else
+		{"troid_crew", 3, 1},   // fliers ignore it
+		{"xeno_egg", 4, 1},     // eggs do not walk
+		{"colonist", 6, 1},     // off resin
+		{"xeno_stage3", 7, 1},  // off resin
 	}
 	for _, c := range cases {
 		e := make(c.bp, c.x)
@@ -61,5 +62,32 @@ func TestResinSpeed(t *testing.T) {
 		if got := refill(e); got != want {
 			t.Errorf("%s at x %d: refilled to %d, want %d (base %d)", c.bp, c.x, got, want, base)
 		}
+	}
+}
+
+// Resin speeds the hive's walkers by the doctrine their settlement runs, not
+// the faction string on the body: a drone of a player hive (faction "player",
+// settlement "player:<loc>", the hive doctrine) walks as fast as a rival's
+// (before phase F the table was keyed on the faction, so it walked at 1).
+func TestResinSpeedByDoctrine(t *testing.T) {
+	t.Cleanup(func() { setFactionDoctrines(nil) })
+	setFactionDoctrines(&campaign.Campaign{Player: &campaign.FactionPresence{Faction: "player", Doctrine: "hive"}})
+	lvl := world.NewLevel(4, 4, 3)
+	for x := 0; x < 4; x++ {
+		for y := 0; y < 4; y++ {
+			lvl.SetFloor(x, y, 1, "hive_resin", 0)
+		}
+	}
+	e, err := factory.Create("xeno_crew", 1, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lvl.AddEntity(e)
+	enrolHiveWorker(e, "player:start")
+	if f := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction; f != "player" {
+		t.Fatalf("faction %q, want player", f)
+	}
+	if got := tileSpeed(lvl, e); got != 0.75 {
+		t.Errorf("player hive drone on resin: speed %v, want 0.75", got)
 	}
 }

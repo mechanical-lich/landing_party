@@ -66,7 +66,7 @@ func isOn(v any) bool {
 // The door is then the colony's (OwnedBy), so its colonists path through it,
 // and the level flag "door:<module kind>" is set for the module it seals.
 type KeyDoorSystem struct {
-	// Faction is the colony's faction ("colony").
+	// Faction is the faction it unlocks for ("": PlayerFaction).
 	Faction string
 }
 
@@ -84,7 +84,7 @@ func (s *KeyDoorSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Ent
 	}
 	faction := s.Faction
 	if faction == "" {
-		faction = "colony"
+		faction = PlayerFaction
 	}
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	x, y, z := pc.GetX(), pc.GetY(), pc.GetZ()

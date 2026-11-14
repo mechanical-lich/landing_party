@@ -61,15 +61,30 @@ func tileSpeed(lvl *world.Level, e *ecs.Entity) float64 {
 	if len(sp) == 0 {
 		return 1
 	}
-	faction := ""
-	if e.HasComponent(rlcomponents.Description) {
-		faction = e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
-	}
-	if f, ok := sp[faction]; ok && faction != "" {
-		return f
+	if key := bodyDoctrine(e); key != "" {
+		if f, ok := sp[key]; ok {
+			return f
+		}
 	}
 	if f, ok := sp["*"]; ok {
 		return f
 	}
 	return 1
+}
+
+// bodyDoctrine is the doctrine e's people run, the key a tile's speed table
+// uses: its settlement's (a player hive's drones run the hive doctrine under
+// the player's faction key), else its faction's (a wild xeno's "hive").
+func bodyDoctrine(e *ecs.Entity) string {
+	if e.HasComponent(components.Settlement) {
+		if key := doctrineOfSettlement(e.GetComponent(components.Settlement).(*components.SettlementComponent).Name); key != "" {
+			return key
+		}
+	}
+	if e.HasComponent(rlcomponents.Description) {
+		if f := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction; f != "" {
+			return doctrineOfFaction(f)
+		}
+	}
+	return ""
 }

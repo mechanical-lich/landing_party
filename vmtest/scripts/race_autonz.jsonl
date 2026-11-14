@@ -1,0 +1,60 @@
+{"name":"race_autonz","seed":777,"config":{"rivalsByCount":true}}
+# An autonz run (phase F step 5): New Expedition seed 777, the Race row
+# stepped twice to the autonz. No ship; the run opens viewing the node on
+# the start system (three wire placers and an enforcer, the cursor bound).
+# The HUD is the autonz's (metal, crystal, ferrite, conversion; Lay Wire and
+# Deploy Relay; Assimilation), a wire placer's unit modal shows its type and
+# tier and no needs, a Lay Wire click queues a convert order, a Signal Core
+# placed by the node (debug place) opens its panel (readiness, worlds in
+# reach, Transmit here, the group toggles). Then the node aimed (debug aim:
+# the director never spreads by itself), frozen and 200 days stepped by
+# Tier 1: its signal has founded a second world of the
+# player's. Frames: the race row, the node, the unit modal, the core's
+# panel, the Star Map at day 200, the second world.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Node"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:race_next"}
+{"op":"screenshot","name":"title_race"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"assert","path":"race","eq":"autonz"}
+{"op":"assert","path":"spread_run","eq":true}
+{"op":"assert","path":"hud.slots","eq":["metal_ore","crystal","ferrite","conversion"]}
+{"op":"assert","path":"hud.research_title","eq":"Assimilation"}
+{"op":"assert","path":"hud.orders","contains":"deploy"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"node"}
+{"op":"key","key":"Space"}
+{"op":"click","target":"entity:wire_placer_crew"}
+{"op":"assert","path":"modal","contains":"colonistModal"}
+{"op":"assert","path":"hud.unit_modal","contains":"type_tier"}
+{"op":"screenshot","name":"unit_modal"}
+{"op":"click","target":"modal:colonistModal:close"}
+{"op":"click","target":"hud:cat_orders"}
+{"op":"click","target":"hud:order_convert"}
+{"op":"click","target":"settle:6,0"}
+{"op":"assert","path":"settlement_stats.tasks","gte":1}
+{"op":"click","target":"hud:order_default"}
+{"op":"debug","cmd":"place signal_core 0 7"}
+{"op":"click","target":"entity:signal_core"}
+{"op":"assert","path":"panel.title","eq":"Signal Core"}
+{"op":"screenshot","name":"core_panel"}
+{"op":"click","target":"modal:structurePanel:close"}
+{"op":"key","key":"Space"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"debug","cmd":"freeze start"}
+{"op":"debug","cmd":"aim start"}
+{"op":"debug","cmd":"days 200"}
+{"op":"assert","path":"player_site_count","gte":2}
+{"op":"screenshot","name":"starmap_day200"}
+{"op":"click","target":"row:locList:yours:1"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":200}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"second_world"}

@@ -68,7 +68,7 @@ func (wm *WorldManager) noteAwayDamage(s *MainState, ev eventsystem.EntityDamage
 	}
 	victim := entityDisplayName(ev.Victim)
 	where := wm.locationLabel(s.locationID)
-	if observerRun() {
+	if shiplessRun() {
 		// An observer run has no colonists of the player's to raise this
 		// (the expedition's are a faction's); kept as a guard: nothing is
 		// addressed to a player who is not there. Ignored and logged.

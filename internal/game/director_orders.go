@@ -46,6 +46,25 @@ var observerRunActive bool
 // observerRun reports whether the loaded campaign is an observer run.
 func observerRun() bool { return observerRunActive }
 
+// spreadRunActive is the loaded campaign's SpreadRun (set by
+// NewWorldManager): a spreading race (the hive, the autonz) played with no
+// ship, the player's people planet-carried presences (phase F).
+var spreadRunActive bool
+
+// spreadRun reports whether the loaded campaign is a spreading race's run.
+func spreadRun() bool { return spreadRunActive }
+
+// shiplessRun reports whether the loaded campaign has no player ship: an
+// observer run or a spreading race's run. The ship surface (Travel, Beam,
+// Scan, the crew lists, To Ship and To Site, incidents and interceptions
+// addressed to the ship's crew) is gone in both.
+func shiplessRun() bool { return observerRunActive || spreadRunActive }
+
+// viewing reports whether the Star Map's View is offered: observer mode
+// (it scouts any planet for free), or a spreading race's run (it is how the
+// player goes to the planets they hold).
+func viewing() bool { return observerMode() || spreadRun() }
+
 // setObserverMode turns the observer lock on or off for the loaded campaign
 // (the console's observer on|off on a normal campaign); the config flag is
 // left alone, and an observer run stays one.
@@ -63,10 +82,12 @@ func (o directorOrders) Convert(x, y, z int, tile string) bool {
 	return o.s.queueConvert(x, y, z, tile)
 }
 
-// queueConvert is the player's ConvertAction order: refused until the
-// settlement knows ConvertTech (no research entry gives it yet).
+// queueConvert is the player's ConvertAction order: open to a doctrine with
+// a conversion tile (the hive's resin, the autonz' wire: phase F), else
+// refused until the settlement knows ConvertTech (no research entry gives it
+// yet), so the colony is unchanged.
 func (s *MainState) queueConvert(x, y, z int, tile string) bool {
-	if !s.hasTech(ConvertTech) {
+	if s.convertTile() == "" && !s.hasTech(ConvertTech) {
 		return false
 	}
 	return orderConvert(s.MainSettlement, s.level, x, y, z, tile)
@@ -90,6 +111,15 @@ func (o directorOrders) Craft(recipe string, station *ecs.Entity) bool {
 }
 
 func (o directorOrders) Cancel(t *task.Task) { cancelOrder(o.s.MainSettlement, t) }
+
+// convertTile is the player's doctrine's conversion tile, "" for none (the
+// colony).
+func (s *MainState) convertTile() string {
+	if d := campaign.PlayerDoctrine(s.campaign); d != nil {
+		return d.Conversion.Tile
+	}
+	return ""
+}
 
 // directorSite is the director's view of this level's settlement.
 func (s *MainState) directorSite() *director.Site {

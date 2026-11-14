@@ -18,3 +18,24 @@ func IsAttackTarget(e *ecs.Entity) bool {
 		(e.HasComponent(FactionAI) || e.HasComponent(ScriptedAI) || e.HasComponent(rlcomponents.HostileAI)) ||
 		IsHostileWorker(e)
 }
+
+// FriendlyToPlayer reports a faction of the player's own group
+// (rival_selection_plan.md, "Groups"): set by the game from the campaign;
+// nil is none.
+var FriendlyToPlayer func(faction string) bool
+
+// IsFriendlyToPlayer reports an entity of a faction in the player's group.
+func IsFriendlyToPlayer(e *ecs.Entity) bool {
+	if e == nil || FriendlyToPlayer == nil || !e.HasComponent(rlcomponents.Description) {
+		return false
+	}
+	f := e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction
+	return f != "" && FriendlyToPlayer(f)
+}
+
+// IsDefaultAttackTarget is what a plain click, a hover hint, a rogue bump
+// and the map's red dot treat as an enemy: an attack target that is not of
+// the player's group. The explicit Attack order may still target a friend.
+func IsDefaultAttackTarget(e *ecs.Entity) bool {
+	return IsAttackTarget(e) && !IsFriendlyToPlayer(e)
+}

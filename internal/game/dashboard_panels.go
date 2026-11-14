@@ -181,14 +181,22 @@ func newGlobalInvPanel(c *campaign.Campaign, wm *WorldManager, inspector *Storag
 	return p
 }
 
+// invOpen reports whether a global inventory tier is open: its research
+// known, or every tier from the start for a player whose lockers are one
+// storage pocket a level (the greys; greyish_plan.md, "Linked lockers": the
+// two pockets are the grey player's whole stock).
+func (p *globalInvPanel) invOpen(tech string) bool {
+	return p.campaign.HasTech(tech) || playerPocketBase != ""
+}
+
 func (p *globalInvPanel) Enter() {
 	// Pick the default (highest-unlocked) tier only on first entry; later
 	// entries (tab switches, post-beam refresh) keep the current sub-tab.
 	if p.activeTab == "" {
 		switch {
-		case p.campaign.HasTech(techGlobalInvDetailed):
+		case p.invOpen(techGlobalInvDetailed):
 			p.activeTab = "site"
-		case p.campaign.HasTech(techGlobalInvAll):
+		case p.invOpen(techGlobalInvAll):
 			p.activeTab = "all"
 		default:
 			p.activeTab = "current"
@@ -205,10 +213,10 @@ func (p *globalInvPanel) rebuild() {
 	// Sub-tabs, gated by research tier.
 	p.subTabBar.Tabs = nil
 	p.subTabBar.AddTab("current", "Current Site")
-	if p.campaign.HasTech(techGlobalInvAll) {
+	if p.invOpen(techGlobalInvAll) {
 		p.subTabBar.AddTab("all", "All Sites")
 	}
-	if p.campaign.HasTech(techGlobalInvDetailed) {
+	if p.invOpen(techGlobalInvDetailed) {
 		p.subTabBar.AddTab("site", "By Site")
 	}
 	p.subTabBar.SetActive(p.activeTab)

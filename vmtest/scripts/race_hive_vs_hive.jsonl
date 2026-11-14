@@ -1,0 +1,39 @@
+{"name":"race_hive_vs_hive","seed":777}
+# Rival selection step 3: a hive run against a rival hive. New Expedition
+# seed 777, the Race row on the hive, Rival factions 1 with rival 1 picked
+# as Hive: the rival hive is a faction of its own (key hive, group 2) beside
+# the player's (player, group 1), hostile. Its brood is put on the player's
+# world (debug presence) and the world viewed: two broods, each its own
+# side. Frames: the boxes, the two broods, the Factions tab.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Hives"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"click","target":"title:rival_next_0"}
+{"op":"assert","path":"title_fields.rivals","eq":["Hive"]}
+{"op":"screenshot","name":"boxes"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"assert","path":"race","eq":"hive"}
+{"op":"assert","path":"campaign.factions.hive.doctrine","eq":"hive"}
+{"op":"assert","path":"campaign.factions.hive.group","eq":2}
+{"op":"assert","path":"campaign.factions.player.group","eq":1}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"debug","cmd":"freeze start"}
+{"op":"debug","cmd":"presence start hive 8"}
+{"op":"click","target":"row:locList:yours:0"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"debug","cmd":"rival walk"}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"two_broods"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"click","target":"tab:factions"}
+{"op":"screenshot","name":"factions_tab"}

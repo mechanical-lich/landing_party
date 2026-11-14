@@ -1,0 +1,57 @@
+{"name":"race_hive","seed":777,"config":{"rivalsByCount":true}}
+# A hive run (phase F step 1, playable_races_plan.md). New Expedition seed
+# 777, the race row stepped to the hive: no ship, the run opens viewing the
+# brood on the start system (a nest of eight, the cursor bound to it). The
+# larva's crafting modal lists the egg types and queues a drone egg; the
+# evolution chamber opens the research modal over the evolve tree. Then the
+# Star Map (no Travel, Beam or Scan; "Your worlds"), the brood aimed at the
+# nearest world (debug aim: the director never spreads by itself), frozen
+# and 60 days stepped by Tier 1: an egg has landed and founded a second world of
+# the player's, which View opens. Frames: the race row, the brood, the larva
+# modal, the evolve modal, the Star Map at day 0 and after, the second world.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Brood"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"777"}
+{"op":"click","target":"title:race_next"}
+{"op":"screenshot","name":"title_race"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":300}
+{"op":"assert","path":"spread_run","eq":true}
+{"op":"assert","path":"race","eq":"hive"}
+{"op":"assert","path":"location","eq":"start"}
+{"op":"assert","path":"player_site_count","eq":1}
+{"op":"assert","path":"faction.units.drone","gte":1}
+{"op":"assert","path":"settlement_stats.alive","gte":4}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"brood"}
+{"op":"key","key":"Space"}
+{"op":"click","target":"entity:hive_larva"}
+{"op":"assert","path":"modal","contains":"craftingModal"}
+{"op":"screenshot","name":"larva_modal"}
+{"op":"click","target":"modal:craftingModal:item:craftRecipeList:drone egg"}
+{"op":"click","target":"modal:craftingModal:close"}
+{"op":"click","target":"entity:evolution_chamber"}
+{"op":"assert","path":"modal","contains":"researchModal"}
+{"op":"screenshot","name":"evolve_modal"}
+{"op":"click","target":"modal:researchModal:close"}
+{"op":"key","key":"Space"}
+{"op":"wait","ticks":600}
+{"op":"screenshot","name":"brood_later"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"screenshot","name":"starmap_day0"}
+{"op":"debug","cmd":"freeze start"}
+{"op":"debug","cmd":"aim start"}
+{"op":"debug","cmd":"days 60"}
+{"op":"assert","path":"player_site_count","gte":2}
+{"op":"screenshot","name":"starmap_day60"}
+{"op":"click","target":"row:locList:yours:1"}
+{"op":"click","target":"dash:viewBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":200}
+{"op":"assert","path":"spread_run","eq":true}
+{"op":"assert","path":"faction.population","gte":1}
+{"op":"wait","ticks":60}
+{"op":"screenshot","name":"second_world"}

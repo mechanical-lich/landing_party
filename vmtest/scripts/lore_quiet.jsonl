@@ -1,4 +1,4 @@
-{"name":"lore_quiet","seed":66}
+{"name":"lore_quiet","seed":66,"config":{"rivalsByCount":true}}
 # A quiet site with a history structure on it: seed 66's start system is an
 # earth_like world whose civilization collapsed, leaving a castle. The castle
 # stands at the event's origin, empty (occupants none): no brute, no guards.

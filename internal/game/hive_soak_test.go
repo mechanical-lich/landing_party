@@ -310,22 +310,6 @@ func hiveSoakOne(t *testing.T, seed int64, ticks int) hiveRow {
 	return r
 }
 
-func countsLine(m map[string]int) string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var parts []string
-	for _, k := range keys {
-		parts = append(parts, fmt.Sprintf("%s %d", k, m[k]))
-	}
-	if len(parts) == 0 {
-		return "-"
-	}
-	return strings.Join(parts, ", ")
-}
-
 func tickCol(t int) string {
 	if t < 0 {
 		return "-"

@@ -3,6 +3,7 @@ package game
 import (
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
@@ -55,11 +56,18 @@ func techsOf(presence string) []string {
 }
 
 func doctrineType(faction, typ, presence string) *factory.UnitType {
-	d := campaign.LoadFactionData().Doctrine(faction)
+	d := campaign.LoadFactionData().Doctrine(doctrineOfFaction(faction))
 	if d == nil || d.Types[typ] == nil {
 		return nil
 	}
-	return upgradedType(d, typ, techsOf(presence))
+	ut := upgradedType(d, typ, techsOf(presence))
+	if (faction == campaign.PlayerFaction || strings.HasPrefix(presenceSettlement[presence], campaign.PlayerFaction+":")) && d.Types[typ].Name != "" {
+		// Hidden identity inverted (phase F): a race knows what it is, so
+		// its own bodies carry their type's name ("Drone"), never the seen
+		// one a colony player would give them ("Xeno").
+		ut.SeenName = d.Types[typ].Name
+	}
+	return ut
 }
 
 // upgradedType is d's type typ with the upgrades known in techs applied: the

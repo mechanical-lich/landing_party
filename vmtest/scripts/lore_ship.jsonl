@@ -1,4 +1,4 @@
-{"name":"lore_ship","seed":11,"config":{"debugDisableLighting":true}}
+{"name":"lore_ship","seed":11,"config":{"debugDisableLighting":true,"rivalsByCount":true}}
 # A crashed warship: seed 11's start system is an earth_like world where an
 # old warship came down (ancient_wreck, purpose warship). Walk to the wreck
 # (debug origin walk ancient_wreck): its hull, sections and named rooms.

@@ -18,9 +18,10 @@ import (
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/construction"
+	"github.com/mechanical-lich/landing_party/internal/factory"
 	"github.com/mechanical-lich/landing_party/internal/generation"
-	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/history"
+	"github.com/mechanical-lich/landing_party/internal/settlement"
 	"github.com/mechanical-lich/landing_party/internal/storage"
 	"github.com/mechanical-lich/landing_party/internal/tutorial"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -69,6 +70,16 @@ func vmState(cur state.StateInterface) map[string]any {
 		out["state"] = "title"
 		out["title_screen"] = titleScreenNames[s.screen]
 		out["title_fields"] = map[string]any{"name": s.nameInput.Text, "seed": s.seedInput.Text, "tutorial": s.tutorialToggle.IsOn(), "factions": s.factions}
+		if s.rivalBoxes() {
+			var names []any
+			var groups []any
+			for i := 0; i < s.factions && i < len(s.rivals); i++ {
+				names = append(names, s.rivalPickName(s.rivals[i].pick))
+				groups = append(groups, s.rivals[i].group)
+			}
+			tf := out["title_fields"].(map[string]any)
+			tf["rivals"], tf["rival_groups"], tf["player_group"] = names, groups, s.playerGroup
+		}
 		if s.errMsg != "" {
 			out["title_error"] = s.errMsg
 		}
@@ -155,6 +166,22 @@ func vmState(cur state.StateInterface) map[string]any {
 		if a := vmAutonz(s); a != nil {
 			out["autonz"] = a
 		}
+		if s.guiManager != nil {
+			// Phase F: the HUD the doctrine's interface block draws.
+			res := map[string]any{}
+			for _, id := range s.guiManager.ResourceSlots() {
+				res[id] = s.guiManager.ResourceValue(id)
+			}
+			out["panel"] = map[string]any{"title": s.guiManager.StructurePanelTitle(), "rows": vmList(s.guiManager.StructurePanelShown())}
+			if pr := s.playerPresenceHere(); pr != nil {
+				out["taken_over"] = vmList(append([]string(nil), pr.TakenOver...))
+				out["launch_target"] = pr.LaunchTarget
+			}
+			out["hud"] = map[string]any{"resources": res, "slots": vmList(s.guiManager.ResourceSlots()),
+				"orders": vmList(s.guiManager.OrderIDs()), "unit_modal": vmList(s.guiManager.UnitModalShown()),
+				"unit_title": s.guiManager.UnitModalTitle(), "research_title": s.guiManager.ResearchTitle(),
+				"research_hull": vmList(s.guiManager.ResearchHull())}
+		}
 		if s.level != nil {
 			out["settlement_stats"] = vmStats(s.settlementStats())
 			out["observer"] = observerMode()
@@ -187,7 +214,7 @@ func vmState(cur state.StateInterface) map[string]any {
 				"lines": vmList(ei.Lines), "text": strings.Join(ei.Lines, "\n")}
 		}
 		if s.guiManager != nil {
-			for _, m := range []string{"mainMenu", "saveModal", "loadModal", "craftingModal", "researchModal", "colonistModal"} {
+			for _, m := range []string{"mainMenu", "saveModal", "loadModal", "craftingModal", "researchModal", "colonistModal", "structurePanel"} {
 				if s.guiManager.ModalElement(m, "") != nil {
 					modals = append(modals, m)
 				}
@@ -229,7 +256,7 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 		"day": c.Day(),
 		// Rival factions: the New Expedition count and every presence (known
 		// or not) as id -> population, for scripts that check seeding.
-		"faction_count": c.FactionCount, "presences": vmPresences(c),
+		"faction_count": c.FactionCount, "presences": vmPresences(c), "factions": vmFactionTable(c),
 		"fleets": len(c.Fleets), "known_fleets": len(c.KnownFleets()),
 		"ships": vmShips(c), "diplomacy": vmDiplomacy(c), "ship_fleets": vmFleets(c),
 		"encounter": vmEncounter(c),
@@ -256,6 +283,15 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 	// or not, crew, fuel, why it last lifted off), and the planet the viewer
 	// is on.
 	out["observer_run"] = c.Observer
+	// Phase F: a spreading race's run, its race and the worlds it holds.
+	out["spread_run"] = c.SpreadRun()
+	out["race"] = campaign.PlayerDoctrineKey(c)
+	var held []string
+	for _, l := range c.PlayerSites() {
+		held = append(held, l.ID)
+	}
+	out["player_sites"] = vmList(held)
+	out["player_site_count"] = len(held)
 	// What the Star Map shows of the factions (faction_view.go): every
 	// presence and fleet in an observer run, the seen ones otherwise.
 	shownP := 0
@@ -565,6 +601,9 @@ func vmBridgeTarget(b *tutorialBridge, name string) (guest.Rect, bool) {
 		if bp, n, has := strings.Cut(rest, ":"); has {
 			return vmNthEntity(b, bp, n)
 		}
+		if b.lastCtx == tutorial.ContextShip {
+			return fromHL(b.entityHighlightOn(b.lastSite, rest)) // aboard (a grey run's vat)
+		}
 		return fromHL(b.entityHighlight(rest))
 	case "tutorial":
 		return vmTutorialTarget(rest)
@@ -600,10 +639,35 @@ func vmTitleTarget(s *TitleState, name string) (guest.Rect, bool) {
 			el = s.factionsMinus
 		case "factions_plus":
 			el = s.factionsPlus
+		case "race_prev":
+			el = s.racePrev
+		case "race_next":
+			el = s.raceNext
 		case "launch":
 			el = s.generateBtn
 		case "cancel":
 			el = s.cancelBtn
+		case "player_group_minus":
+			el = s.playerGMinus
+		case "player_group_plus":
+			el = s.playerGPlus
+		default:
+			// rival_prev_N, rival_next_N, rival_group_minus_N, rival_group_plus_N
+			var kind string
+			var n int
+			for _, k := range []string{"rival_group_minus_", "rival_group_plus_", "rival_prev_", "rival_next_"} {
+				if v, ok := strings.CutPrefix(name, k); ok {
+					if i, err := strconv.Atoi(v); err == nil {
+						kind, n = k, i
+					}
+					break
+				}
+			}
+			if kind != "" && n >= 0 && n < len(s.rivals) {
+				r := s.rivals[n]
+				el = map[string]minui.Element{"rival_prev_": r.prev, "rival_next_": r.next,
+					"rival_group_minus_": r.gMinus, "rival_group_plus_": r.gPlus}[kind]
+			}
 		}
 	case screenLoad:
 		switch name {
@@ -640,6 +704,22 @@ func vmDashRow(d *DashboardState, rest string) (guest.Rect, bool) {
 	if p := d.starMapPanel(); p != nil && d.tabs[d.active].id == "starmap" {
 		switch list {
 		case "locList":
+			if n, ok := strings.CutPrefix(key, "yours:"); ok {
+				// row:locList:yours:<n>: the nth world the player holds
+				// (a spreading race's run).
+				i, err := strconv.Atoi(n)
+				held := d.campaign.PlayerSites()
+				if err != nil || i < 0 || i >= len(held) {
+					return guest.Rect{}, false
+				}
+				key = held[i].ID
+				for j, lid := range p.locIDs {
+					if lid == key {
+						p.locList.ScrollTo(j) // a row scrolled out of view does not resolve
+						return minuitarget.ListRow(p.locList, j)
+					}
+				}
+			}
 			if r, ok := p.rowRect(key); ok {
 				return minuitarget.FromRect(r), true
 			}
@@ -941,6 +1021,87 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		wm.Campaign.AdvanceDays(n)
 		wm.Campaign.StepFactions(wm.IsLoaded)
 		return fmt.Sprintf("day %d", wm.Campaign.Day()), nil
+	case "place":
+		// "place <blueprint> <dx> <dy>": put a structure at the player
+		// settlement's centre plus (dx, dy), as built (a script showing a
+		// race's structure panel without waiting days for it).
+		s, ok := cur.(*MainState)
+		f := strings.Fields(rest)
+		if !ok || s.level == nil || s.MainSettlement == nil || len(f) != 3 {
+			return "", fmt.Errorf("usage: place <blueprint> <dx> <dy> (needs a site with a settlement)")
+		}
+		dx, e1 := strconv.Atoi(f[1])
+		dy, e2 := strconv.Atoi(f[2])
+		if e1 != nil || e2 != nil {
+			return "", fmt.Errorf("usage: place <blueprint> <dx> <dy>")
+		}
+		st := s.MainSettlement
+		e, err := factory.Create(f[0], st.CenterX+dx, st.CenterY+dy, st.CenterZ)
+		if err != nil {
+			return "", err
+		}
+		if e.HasComponent(components.Storage) {
+			e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy = st.Name // as a build gives it
+		}
+		s.level.AddEntity(e)
+		return fmt.Sprintf("%s at %d,%d,%d", f[0], st.CenterX+dx, st.CenterY+dy, st.CenterZ), nil
+	case "presence":
+		// "presence <location id> <doctrine> <pop>": put a planet-carried
+		// presence of doctrine on a frozen location (a script meeting a
+		// rival on a race run's world; phase F). Built when the level is.
+		wm := vmWorld(cur)
+		f := strings.Fields(rest)
+		if wm == nil || len(f) != 3 {
+			return "", fmt.Errorf("usage: presence <location id> <doctrine> <pop> (needs a campaign)")
+		}
+		loc := wm.Campaign.Locations[f[0]]
+		pop, err := strconv.Atoi(f[2])
+		if loc == nil || err != nil || campaign.LoadFactionData().Doctrine(f[1]) == nil || wm.IsLoaded(f[0]) {
+			return "", fmt.Errorf("presence: unknown or loaded location, unknown doctrine, or bad count")
+		}
+		fd := campaign.LoadFactionData()
+		dk := fd.Resolve(f[1])      // "mirror" is the colony's rival view
+		key := fd.FactionKeyFor(dk) // and its faction key stays "mirror"
+		wm.Campaign.AddFactionRowFor(key, dk)
+		setFactionDoctrines(wm.Campaign)
+		wm.Campaign.FactionSeq++
+		loc.Factions = append(loc.Factions, campaign.FactionPresence{ID: fmt.Sprintf("fp%d", wm.Campaign.FactionSeq),
+			Faction: key, Doctrine: dk, Population: pop, Stockpile: map[string]int{"metal_ore": 30, "crystal": 15},
+			Seed: wm.Campaign.Seed + int64(wm.Campaign.FactionSeq), LastShotDay: campaign.NeverFired, Known: true})
+		return fmt.Sprintf("%s presence of %d on %s", f[1], pop, f[0]), nil
+	case "aim":
+		// "aim <location id>": aim the player's launcher or signal there at
+		// the nearest world in its reach (a race run; phase F: the player's
+		// spread fires only where the player aims it).
+		wm := vmWorld(cur)
+		if wm == nil || rest == "" {
+			return "", fmt.Errorf("usage: aim <location id> (needs a campaign)")
+		}
+		loc := wm.Campaign.Locations[rest]
+		if loc == nil || loc.Presence(campaign.PlayerFaction) == nil {
+			return "", fmt.Errorf("nothing of the player's on %s", rest)
+		}
+		if t := aimNearest(wm.Campaign, loc, wm.IsLoaded); t != "" {
+			return "aimed at " + t, nil
+		}
+		return "", fmt.Errorf("no world in reach of %s", rest)
+	case "freeze":
+		// "freeze <location id>": freeze a loaded planet the viewer is not
+		// on, so Tier 1 (debug days) steps it (a race run's world stays
+		// loaded while its brood lives there).
+		wm := vmWorld(cur)
+		if wm == nil || rest == "" {
+			return "", fmt.Errorf("usage: freeze <location id> (needs a campaign)")
+		}
+		ms, loc := wm.loaded[rest], wm.Campaign.Locations[rest]
+		if ms == nil || loc == nil || rest == wm.viewedID {
+			return "", fmt.Errorf("%s is not loaded, or is on screen", rest)
+		}
+		ms.teardown()
+		if err := wm.Freeze(loc, ms); err != nil {
+			return "", err
+		}
+		return "frozen " + rest, nil
 	case "stance":
 		// "stance <faction> <neutral|hostile>" sets a faction's stance toward
 		// the player (a script watching a hive build without its guards on
@@ -1089,7 +1250,7 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 		if !ok || s.level == nil || s.location() == nil {
 			return "", fmt.Errorf("rival needs a site on screen")
 		}
-		ps, _ := settlementPresences(s.campaign, s.location())
+		ps := rivalPresences(s.campaign, s.location())
 		if len(ps) == 0 {
 			return "", fmt.Errorf("no faction settlement on this site")
 		}
@@ -1414,7 +1575,7 @@ func vmRival(s *MainState) map[string]any {
 	if loc == nil || s.level == nil {
 		return nil
 	}
-	ps, _ := settlementPresences(s.campaign, loc)
+	ps := rivalPresences(s.campaign, loc)
 	if len(ps) == 0 {
 		return nil
 	}
@@ -1483,9 +1644,18 @@ func vmFleets(c *campaign.Campaign) map[string]any {
 // vmDiplomacy is each settlement faction's stance toward the player.
 func vmDiplomacy(c *campaign.Campaign) map[string]any {
 	out := map[string]any{}
-	for key, d := range campaign.LoadFactionData().Doctrines {
+	fd := campaign.LoadFactionData()
+	for key, d := range fd.Doctrines {
 		if d.Settlement != nil && key != campaign.DefaultPlayerDoctrine {
-			out[key] = c.Stance(key)
+			fk := fd.FactionKeyFor(key) // the rival colony's faction is "mirror"
+			out[fk] = c.Stance(fk)
+		}
+	}
+	for _, f := range c.Factions() { // and every faction instance (rival_selection_plan.md)
+		if (c.Player == nil || f.Key != c.Player.Faction) && f.Key != campaign.ExpeditionFaction {
+			if d := fd.Doctrine(f.Doctrine); d != nil && d.Settlement != nil {
+				out[f.Key] = c.Stance(f.Key)
+			}
 		}
 	}
 	return out
@@ -1579,4 +1749,27 @@ func vmFind(level *world.Level, spec string) *ecs.Entity {
 		}
 	}
 	return nil
+}
+
+// rivalPresences are loc's settlement presences other than a race run's own
+// (the player's brood is no rival).
+func rivalPresences(c *campaign.Campaign, loc *campaign.Location) []*campaign.FactionPresence {
+	ps, _ := settlementPresences(c, loc)
+	var out []*campaign.FactionPresence
+	for _, p := range ps {
+		if p.Faction != campaign.PlayerFaction {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// vmFactionTable is the campaign's faction instances by key: doctrine,
+// group, slot (rival_selection_plan.md).
+func vmFactionTable(c *campaign.Campaign) map[string]any {
+	out := map[string]any{}
+	for _, f := range c.Factions() {
+		out[f.Key] = map[string]any{"doctrine": f.Doctrine, "group": f.Group, "slot": f.Slot, "name": f.Name}
+	}
+	return out
 }

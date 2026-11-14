@@ -175,7 +175,7 @@ func (s *StorageInspectorModal) collectSourceTags() []string {
 		return nil
 	}
 	tagSet := map[string]bool{}
-	for _, item := range sc.Items {
+	for _, item := range sc.PocketItems() { // a pocket door shows the whole pocket
 		if item.HasComponent(components.Material) {
 			mc := item.GetComponent(components.Material).(*components.MaterialComponent)
 			for _, t := range mc.Tags {
@@ -460,7 +460,7 @@ type inspectorEntry struct {
 func inspectorEntries(sc *components.StorageComponent, tagFilter string) []inspectorEntry {
 	entries := []inspectorEntry{}
 	seen := map[string]bool{}
-	for _, item := range sc.Items {
+	for _, item := range sc.PocketItems() { // a pocket door shows the whole pocket
 		if item == nil || seen[item.Blueprint] {
 			continue
 		}
@@ -506,8 +506,12 @@ func (s *StorageInspectorModal) updateActionPanel() {
 	if tagsStr != "" {
 		label += "  (" + tagsStr + ")"
 	}
+	foreign := s.foreignPocket()
+	if foreign {
+		label += "  — not yours to beam" // DRAFT
+	}
 	s.selectedLbl.Text = label
-	s.actionBtn.SetEnabled(true)
+	s.actionBtn.SetEnabled(!foreign)
 	if s.relocateBtn != nil {
 		s.relocateBtn.SetEnabled(qty > 0)
 	}
@@ -645,4 +649,16 @@ func parseSIQty(s string) int {
 		return 0
 	}
 	return v
+}
+
+// foreignPocket reports a source that is another owner's storage pocket door
+// (a rival grey locker): the inspector offers no beam from it, since beaming
+// would hand over the whole pocket (greyish_plan.md, "The owner-check gap").
+// An ordinary container keeps its beam.
+func (s *StorageInspectorModal) foreignPocket() bool {
+	sc := s.sourceStorage()
+	if sc == nil || s.wm == nil || s.wm.Campaign == nil {
+		return false
+	}
+	return pocketOwner(sc.OwnedBy) && !isPlayerSettlementName(s.wm.Campaign, sc.OwnedBy)
 }

@@ -54,3 +54,20 @@ func IsHostileWorker(e *ecs.Entity) bool {
 	}
 	return IsFactionHostile(e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction)
 }
+
+// FactionsHostile reports whether two factions' bodies fight where they
+// meet (rival_selection_plan.md, "Groups"): set by the game from the
+// campaign's faction groups; nil is "any two different factions".
+var FactionsHostile func(a, b string) bool
+
+// HostileFactions is FactionsHostile with its default: two different
+// factions are hostile, one faction never is.
+func HostileFactions(a, b string) bool {
+	if a == b {
+		return false
+	}
+	if FactionsHostile == nil {
+		return true
+	}
+	return FactionsHostile(a, b)
+}

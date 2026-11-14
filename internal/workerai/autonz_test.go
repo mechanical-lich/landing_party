@@ -9,6 +9,7 @@ import (
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
 	"github.com/mechanical-lich/landing_party/internal/world"
+	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 	"github.com/mechanical-lich/mlge/ecs"
 	"github.com/mechanical-lich/mlge/task"
 	"github.com/stretchr/testify/assert"
@@ -105,4 +106,33 @@ func TestCraft_TypedPrintDeploys(t *testing.T) {
 	require.NotNil(t, k)
 	assert.Equal(t, "seeker", k.Type)
 	assert.Equal(t, "fp1", k.Presence)
+}
+
+// A typed print takes its crafter's faction, not its blueprint's: the
+// player's autonz print fights for the player (faction "player"), never for
+// the rival autonz its blueprint names.
+func TestCraft_TypedPrintTakesTheCraftersFaction(t *testing.T) {
+	prev := getRecipe
+	getRecipe = func(string) (crafting.Recipe, bool) {
+		return crafting.Recipe{Name: "Print Seeker", Output: "seeker_crew", KinType: "seeker", Station: "autonz_fabricator", DeployOnCraft: true}, true
+	}
+	t.Cleanup(func() { getRecipe = prev })
+	colony(t)
+	lvl := physicalLevel(t, 6, 3)
+	e, wc, _ := physicalWorker(lvl, 2, 1)
+	e.AddComponent(&rlcomponents.DescriptionComponent{Name: "placer", Faction: "player"})
+	e.AddComponent(&components.KinComponent{Type: "wire_placer", Presence: "fp1"})
+	tk := craftTask(3, 1, 1)
+	wc.CurrentTask = tk
+	for i := 0; i < 5 && !tk.Completed; i++ {
+		HandleTaskState(lvl, e)
+	}
+	require.True(t, tk.Completed)
+	for _, c := range lvl.Entities {
+		if c.Blueprint == "seeker_crew" {
+			assert.Equal(t, "player", c.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction)
+			return
+		}
+	}
+	t.Fatal("no seeker printed")
 }

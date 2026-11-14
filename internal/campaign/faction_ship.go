@@ -72,7 +72,7 @@ func (c *Campaign) newShip(key string, d *Doctrine, loc *Location, pop int, reco
 		Presence: FactionPresence{
 			ID:          fmt.Sprintf("fp%d", c.FactionSeq),
 			Faction:     key,
-			Doctrine:    key,
+			Doctrine:    c.DoctrineOf(key),
 			Population:  pop,
 			Stockpile:   kit,
 			ArrivedDay:  c.FactionDay,
@@ -488,15 +488,19 @@ const (
 	StanceHostile = "hostile"
 )
 
-// Stance is faction's stance toward the player: what the campaign recorded,
-// else its doctrine's starting diplomacy, else hostile.
+// Stance is faction's stance toward the player: neutral for a faction of
+// the player's own group (rival_selection_plan.md, "Groups"), else what the
+// campaign recorded, else its doctrine's starting diplomacy, else hostile.
 func (c *Campaign) Stance(faction string) string {
 	if c != nil {
+		if c.Player != nil && faction != c.Player.Faction && c.SameGroup(faction, c.Player.Faction) {
+			return StanceNeutral
+		}
 		if s, ok := c.Diplomacy[faction]; ok {
 			return s
 		}
 	}
-	if d := LoadFactionData().Doctrine(faction); d != nil && d.Diplomacy != "" {
+	if d := LoadFactionData().Doctrine(c.DoctrineOf(faction)); d != nil && d.Diplomacy != "" {
 		return d.Diplomacy
 	}
 	return StanceHostile
@@ -508,11 +512,14 @@ func (c *Campaign) SetStance(faction, stance string, loc *Location) bool {
 	if c.Stance(faction) == stance {
 		return false
 	}
+	if stance == StanceHostile && c.Player != nil && c.SameGroup(faction, c.Player.Faction) {
+		return false // a faction of the player's group never turns on the player
+	}
 	if c.Diplomacy == nil {
 		c.Diplomacy = map[string]string{}
 	}
 	c.Diplomacy[faction] = stance
-	if d := LoadFactionData().Doctrine(faction); d != nil && stance == StanceHostile {
+	if d := LoadFactionData().Doctrine(c.DoctrineOf(faction)); d != nil && stance == StanceHostile {
 		c.recordFaction("faction_hostile", loc, nil, d, nil)
 	}
 	return true

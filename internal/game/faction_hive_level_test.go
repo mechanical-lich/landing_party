@@ -319,3 +319,54 @@ func TestHiveFreezeThaw(t *testing.T) {
 		t.Errorf("thaw changed the hive:\n%v\n%v", before, after)
 	}
 }
+
+// The player's own hive bodies are never the scenario's threat: a drone and
+// a larva of the player's settlement neither keep exterminate_xenos from
+// clearing nor count toward the GameMaster's hostile_max, while a rival
+// hive's drone does both (phase F; before it, every settled body counted).
+func TestPlayersHiveIsNoThreat(t *testing.T) {
+	ms, _, _, _ := loreBuild(t, loreSite{Map: "moon", Scenario: "exterminate_xenos", Seed: 3, Chapter: "impact_colony"})
+	for _, e := range append([]*ecs.Entity(nil), ms.level.Entities...) {
+		if components.KinOf(e) != nil || e.HasComponent(components.ScriptedAI) || e.HasComponent(components.FactionAI) {
+			ms.level.RemoveEntity(e)
+		}
+	}
+	for _, e := range append([]*ecs.Entity(nil), ms.level.StaticEntities...) {
+		if components.KinOf(e) != nil {
+			ms.level.RemoveEntity(e)
+		}
+	}
+	own := ms.colonyName()
+	if own == "" {
+		t.Fatal("no player settlement name")
+	}
+	base := ms.gm.hostiles()
+	drone, _ := factory.Create("xeno_crew", 5, 5, ms.level.SurfaceZ)
+	enrolHiveWorker(drone, own)
+	larva, _ := factory.Create("hive_larva", 6, 5, ms.level.SurfaceZ)
+	if k := components.KinOf(larva); k != nil {
+		k.Settlement = own
+	}
+	ms.level.AddEntity(drone)
+	ms.level.AddEntity(larva)
+	if n := ms.gm.hostiles(); n != base {
+		t.Errorf("hostiles %d with the player's drone, want %d", n, base)
+	}
+	ms.level.Flags[loreThreatSeenFlag] = 1.0
+	ms.checkThreatCleared()
+	if ms.level.Flags[loreThreatClearedFlag] == nil {
+		t.Error("the player's own drone and larva kept the threat from clearing")
+	}
+
+	delete(ms.level.Flags, loreThreatClearedFlag)
+	rival, _ := factory.Create("xeno_crew", 8, 5, ms.level.SurfaceZ)
+	enrolHiveWorker(rival, "hive:rival")
+	ms.level.AddEntity(rival)
+	if n := ms.gm.hostiles(); n != base+1 {
+		t.Errorf("hostiles %d with a rival drone, want %d", n, base+1)
+	}
+	ms.checkThreatCleared()
+	if ms.level.Flags[loreThreatClearedFlag] != nil {
+		t.Error("cleared while a rival hive's drone lives")
+	}
+}

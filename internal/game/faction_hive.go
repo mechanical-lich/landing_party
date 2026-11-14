@@ -54,14 +54,54 @@ func wireCampaignTechs(c *campaign.Campaign) {
 	}
 }
 
+// factionDoctrines maps a faction key that is not itself a doctrine key to
+// the doctrine its people run: the observer run's expedition (colony) and a
+// race run's player (the chosen race). Set by the world manager from the
+// campaign (setFactionDoctrines); every other faction's key is its doctrine's.
+var factionDoctrines = map[string]string{}
+
+// setFactionDoctrines points the faction-to-doctrine table at c.
+func setFactionDoctrines(c *campaign.Campaign) {
+	factionDoctrines = map[string]string{campaign.ExpeditionFaction: campaign.DefaultPlayerDoctrine}
+	if c == nil {
+		return
+	}
+	for _, f := range c.Factions() { // every faction instance (rival_selection_plan.md)
+		if f.Doctrine != "" {
+			factionDoctrines[f.Key] = f.Doctrine
+		}
+	}
+	if c.Player != nil && c.Player.Faction != "" && c.Player.Doctrine != "" {
+		factionDoctrines[c.Player.Faction] = c.Player.Doctrine
+	}
+}
+
+// doctrineOfFaction is the doctrine key a faction's people run.
+func doctrineOfFaction(faction string) string {
+	if d, ok := factionDoctrines[faction]; ok {
+		return d
+	}
+	return faction
+}
+
+// doctrineOfSettlement is the doctrine key of a faction settlement by its
+// name ("hive:<loc>"), "" for the player's colony or a name with no faction.
+func doctrineOfSettlement(name string) string {
+	i := strings.IndexByte(name, ':')
+	if i <= 0 {
+		return ""
+	}
+	return doctrineOfFaction(name[:i])
+}
+
 // settlementBlock is the settlement block of a faction settlement's doctrine
 // by its name ("hive:<loc>"), nil for the player's or an unknown one.
 func settlementBlock(name string) *campaign.DoctrineSettlement {
-	i := strings.IndexByte(name, ':')
-	if i <= 0 {
+	key := doctrineOfSettlement(name)
+	if key == "" {
 		return nil
 	}
-	d := campaign.LoadFactionData().Doctrine(name[:i])
+	d := campaign.LoadFactionData().Doctrine(key)
 	if d == nil {
 		return nil
 	}
@@ -169,6 +209,7 @@ func prepareSettledKin(parent, child *ecs.Entity, stage string) {
 	if k == nil || k.Settlement == "" {
 		return
 	}
+	stampSettlementFaction(child, k.Settlement)
 	switch {
 	case stage == "hatchling" && child.HasComponent(components.ScriptedAI):
 		sc := child.GetComponent(components.ScriptedAI).(*components.ScriptedAIComponent)
@@ -456,6 +497,7 @@ func placeHiveThing(level *world.Level, bp, id, name string, x, y, z int) *ecs.E
 	if e.HasComponent(components.Storage) {
 		e.GetComponent(components.Storage).(*components.StorageComponent).OwnedBy = name
 	}
+	stampSettlementFaction(e, name) // a second hive's structures are its own
 	level.AddEntity(e)
 	return e
 }
@@ -623,6 +665,7 @@ func topUpHiveBodies(level *world.Level, loc *campaign.Location, d *campaign.Doc
 			if share(len(have[typ])+i, d.Level.EggShare) && m != nil {
 				x, y, z := hiveNear(level, cx, cy, cz, 3, rng)
 				if e, err := factory.CreateTyped(m.Blueprint+"_egg", x, y, z, typ, p.ID); err == nil {
+					stampPresenceFaction(e, p)
 					components.KinOf(e).Settlement = name
 					level.AddEntity(e)
 				}
@@ -943,4 +986,32 @@ func removeBody(level *world.Level, e *ecs.Entity) {
 		}
 	}
 	level.RemoveEntity(e)
+}
+
+// stampSettlementFaction gives a settled body its settlement's faction (the
+// prefix of "<faction>:<loc>") in place of its blueprint's: a second hive's
+// young are that hive's, never the first's (rival_selection_plan.md,
+// "Baked blueprint factions"). The player's own race keeps its bodies'
+// blueprint faction until they enrol as workers, as before.
+func stampSettlementFaction(e *ecs.Entity, settlementName string) {
+	i := strings.IndexByte(settlementName, ':')
+	if i <= 0 || !e.HasComponent(rlcomponents.Description) {
+		return
+	}
+	f := settlementName[:i]
+	if f == campaign.PlayerFaction || f == doctrineOfFaction(f) {
+		return // the player's race, or a faction keyed by its doctrine: as before
+	}
+	e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction = f
+}
+
+// stampPresenceFaction gives a presence's freshly spawned body the
+// presence's faction when that is an extra instance of its doctrine (a
+// second hive's eggs): a faction keyed by its doctrine keeps the blueprint's
+// as before.
+func stampPresenceFaction(e *ecs.Entity, p *campaign.FactionPresence) {
+	if p == nil || p.Faction == p.Doctrine || p.Faction == campaign.PlayerFaction || !e.HasComponent(rlcomponents.Description) {
+		return
+	}
+	e.GetComponent(rlcomponents.Description).(*rlcomponents.DescriptionComponent).Faction = p.Faction
 }

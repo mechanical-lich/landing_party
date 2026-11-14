@@ -1,4 +1,4 @@
-{"name":"lore_war","seed":125}
+{"name":"lore_war","seed":125,"config":{"rivalsByCount":true}}
 # A war-arc site: seed 125's start system is an earth_like world where two
 # peoples (sundered_world) destroyed each other. Each fortified its own half;
 # walk to each side's fort (debug origin walk fortify 1 / 2) and look.

@@ -1,4 +1,4 @@
-{"name":"factions_autonz","seed":65}
+{"name":"factions_autonz","seed":65,"config":{"rivalsByCount":true}}
 # New Expedition seed 65 with Rival factions 4 (the count that brings the
 # autonz in): an autonz node is seeded on Leaden Ridge (sys_5, 9 fuel from
 # the Wreck Site). 81 days pass (debug days): it converts its ground and

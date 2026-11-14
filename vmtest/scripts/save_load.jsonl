@@ -1,4 +1,4 @@
-{"name":"save_load","seed":4242}
+{"name":"save_load","seed":4242,"config":{"rivalsByCount":true}}
 # Land, play, save from the dashboard, relaunch the game, load the expedition,
 # check it came back the same, then quit from the title (Q) with exit status 0.
 {"op":"wait","ticks":10}

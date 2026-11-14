@@ -47,7 +47,17 @@ func (wm *WorldManager) ViewLocation(id string) (*MainState, error) {
 		wm.visits++
 		wm.lastVisit[id] = wm.visits
 	}
+	if wm.viewedID != "" && wm.viewedID != id {
+		wm.handBack(wm.viewedID)
+	}
 	wm.viewedID = id
+	if c.SpreadRun() && !c.HoldsSite(loc) {
+		// A race run sees a world in its reach as a ship in orbit would:
+		// what holds it, and the whole level (none of its bodies is there to
+		// light the fog).
+		c.RevealPresences(loc)
+		ms.level.RevealAll = true
+	}
 	if err := wm.enforceLoadedCap(); err != nil {
 		return nil, err
 	}
@@ -73,6 +83,7 @@ func (wm *WorldManager) ViewedElsewhere() bool {
 // before it was viewed); any other stays loaded as before.
 func (wm *WorldManager) EndView() {
 	id := wm.viewedID
+	wm.handBack(id) // a race run's world goes back to its director
 	wm.viewedID = ""
 	if id == "" || id == wm.currentID {
 		return
@@ -116,7 +127,7 @@ func (wm *WorldManager) viewLabel(s *MainState) string {
 	if wm == nil || s == nil || s == wm.shipLevel || s.locationID == "" {
 		return ""
 	}
-	if observerRun() {
+	if shiplessRun() {
 		// No ship: the label names the planet.
 		if loc := wm.Campaign.Locations[s.locationID]; loc != nil {
 			return "VIEWING " + loc.Name

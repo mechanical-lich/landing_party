@@ -168,3 +168,27 @@ func placeShipHold(level *world.Level, x, y, z int, owner string) {
 	}
 	level.AddEntity(e)
 }
+
+// Saucer is a round hull (phase F step 6c, the greys' ship): Decks decks
+// from HullDeck, each a bordered disc of Radius round HullCenter, of the
+// Floor and Wall tiles.
+type Saucer struct {
+	Radius      int
+	Decks       int
+	Floor, Wall string
+}
+
+// BuildSaucerLevel is BuildShipLevel for a saucer: the same level, the hull
+// a round room (world.RoundRoom, as a rival's landed saucer is carved) at
+// the centre, the hold (owned by storageOwner) by the hull centre. Decks
+// above the first have no stairs yet (step 6d adds them with Add deck).
+func BuildSaucerLevel(storageOwner string, s Saucer) *world.Level {
+	level := world.NewLevel(LevelWidth, LevelHeight, LevelDepth)
+	cx, cy, _ := HullCenter()
+	rr := world.NewRoundRoom(s.Radius)
+	for d := 0; d < max(s.Decks, 1) && rr != nil && HullDeck+d < LevelDepth; d++ {
+		rr.Carve(level, cx, cy, HullDeck+d, s.Wall, s.Floor)
+	}
+	placeShipHold(level, cx-2, cy-2, HullDeck, storageOwner)
+	return level
+}
