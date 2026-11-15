@@ -28,6 +28,7 @@ What this plan recommends, all from existing sprites:
 | World and site types (maps) | 8 | **13** | 6 | 5 by data alone, 2 by a 50-line code pass |
 | Existing maps given more biomes | | **5** | 5 | |
 | Ruin and dungeon styles (wall and floor pairs) | 9 | **13** | 13 | |
+| Structures (stamps) | about 50 scripts | **15** | | 7 history ruins, 2 for the elders and the gate, 4 natural landmarks, 2 station modules |
 | Wildlife | 1 harmless, worms, yetis | **30** | | 10 harmless, 17 that hunt or guard, 3 stationary vents |
 | Archetypes | 9 | **10** (19 in all) | | |
 
@@ -224,11 +225,13 @@ at cols 0 to 2 (plain, cracked, broken), floors at cols 3 to 6, stairs at
 | 21 | grey boulders | drystone ruin style; natural wall |
 | 22 | red boulders | drystone ruin style; natural wall on a red world |
 
-Rows 20 to 22 are **not** in the standard order (found when the sample
-images were composed, 2026-11-14): they start at col 9 and their pieces
-must be mapped by hand in the tile editor before use. Rows 0 to 19 are
-confirmed on row 13 only. Read the rest of this paragraph as: check the
-layout before the copy.
+Rows 20 to 22 are unresolved. Composed in the standard order for the
+sample images (2026-11-14) they looked jumbled in a mass. At 3× the
+columns look like the standard ones, so the likelier cause is that these
+sets have gaps and no solid interior piece: fine for a one-tile-thick
+ruin wall, wrong for a mountain. Check in the tile editor before use.
+Rows 14 (hedge) and 16 (fence) look standard at 3×; row 13 composed
+correctly.
 
 **Ground sets, cols 28 to 52, two rows each.**
 
@@ -276,10 +279,35 @@ brown at (51..54,2).
 | (43,2) | cave mouth | unused |
 | (43..54, 4..7) and (43..54, 9..12) | 3×3 and 2×1 canopy blocks: green, autumn, bare, pine, snowy pine, grey and brown spire ranges | unused; needs multi-cell placing |
 
-**Fantasy furniture, cols 28 to 41, rows 0 to 10.** Graves, bones, webs,
-doors, chests, shelves, tables, barrels, pots, statues, fountains, floor
-glyphs, grates, skulls. One cell is used (a torch at (40,1)). Fits the
-stone and iron age ruins as dressing; does not fit anywhere else.
+**Fantasy furniture, cols 28 to 41, rows 0 to 9** (read at 4×; one cell
+used, a torch at (40,1)). Fits stone and iron age ruins; nothing else.
+
+| Cells | What |
+|---|---|
+| (28,0) (29,0) (30,0) | gravestone, cracked gravestone, rubble |
+| (31..37,0) | scattered bones, bone piles, skull and bones |
+| (38,0) (39,0) | campfire, two frames |
+| (28..33,1) | cobwebs |
+| (28..34,2) (35,2) (36,2) (39,2) (40,2) | wooden doors, stone doors, barred doors |
+| (28,3) (29,3) | portcullis, shut and open |
+| (35..37,3) | coffins |
+| (38,3) (39,3) (40,3) (41,3) | barrel, broken barrel, buckets |
+| (28..31,4) (32..34,4) (35,4) | cabinets and shelves, tables and a chair, a throne |
+| (40,4) (41,4) | crates |
+| (32..35,5) | statues |
+| (36..41,5) (36..41,6) (36..41,7) | urns in grey, blue, green, red and orange, each whole, cracked and broken |
+| (28,6) (33,6) (34,6) (35,6) | floor spikes, a round pit, floor grates |
+| (28,7) (29..35,7) | fountain, pedestals with and without figures |
+| (28..31,8) | weapon racks |
+| (32,8) (33,8) | well, well with a roof |
+| (34,8) (35,8) | grain heap, gravel heap |
+| (40,8) (40,9) (41,8) (41,9) | skulls, a horned skull, a ribcage |
+| (28..35,9) | long tables, three cells each |
+
+**Paving and boards, rows 23 to 26.** Six paving colours, three cells by
+two rows each: olive (11..13, 23..24), grey (14..16), sand (17..19), brown
+(11..13, 25..26), teal (14..16), mossed dark (17..19). Plank floors at
+(20..22, 23..26) and parquet at (24..26, 23..26). All unused.
 
 ### `scifi_world`: `assets/tilesets/oryx_16bit_scifi_world.png` (840×984, 35×41 cells, 140 used)
 
@@ -341,6 +369,12 @@ factions plan, not this one.
 
 ### Others
 
+- `scifi_vehicles` (`assets/entities/oryx_16bit_scifi_vehicles.png`,
+  576×384, **nothing used**): tanks (rows 0 and 1, six colours, four
+  facings, two cells each), trucks (rows 2 and 3, the same colours and
+  facings), and four small aircraft shapes (rows 4 to 15, six colours).
+  As wrecks and parked machines they give the industrial, atomic and
+  star ages something of their own to leave behind.
 - `fantasy_items` (16 px cells, nothing used): feathers, fangs, eyes,
   hearts, mushrooms, gems, jelly pieces. Usable as creature drops. No
   meat or hide.
@@ -525,10 +559,85 @@ on sight; a datapad or a scan can then describe it without naming it.
 This costs one tile pair and one line in the binding, and should land
 with the gate.
 
-**Dressing** (optional, after the styles): a dozen `Inanimate` props from
-the fantasy furniture block (bones, webs, pots, barrels, shelves, a
-statue, graves) that stone and iron age scripts scatter. About 250 lines
-of blueprint and a few lines per script.
+**Dressing.** The props the new structures need (next section) are also
+scattered by the existing stone and iron age scripts: a few lines each.
+
+### New structures
+
+Added 2026-11-15 at the owner's request. The styles above change what a
+ruin is built of; these add shapes. The library has about 50 scripts, and
+a structure reaches a site in one of four ways, which is how they are
+grouped. Costs are from the existing scripts (`landing_platform` 111
+lines, `graveyard` 126, `standing_stones` 156).
+
+What a new script costs: 90 to 160 lines of BASIC; the param contract
+(`tech`, `damage`, `occupants`, `holds`, `clue`, `room_<key>`, and now
+`wall`/`floor`); `mirror` for four orientations; `ruin_pass` for wear; a
+row in the content tests' footprint table; the presets regenerated
+(`TestContentPresetsMatchData`). No Go, except one line per station
+module (`ModuleKinds`).
+
+**Props first** (about 22 `Inanimate` blueprints, 450 lines of JSON): from
+the furniture block, a table, chair, shelf, barrel, urn (three colours),
+coffin, gravestone, bones, cobweb, statue, fountain, well, campfire,
+weapon rack, grain heap, skull, ribcage; from `scifi_vehicles`, a wrecked
+tank, truck and aircraft (tinted, so six colours are not six blueprints);
+the cave mouth (43,2). Today's scripts spawn almost nothing but lockers,
+lights, beds and tanks, so these props lift every existing ruin as well.
+
+**1. History ruins: a weighted alternative on a role in `tech.json`.**
+No new events; history already asks for the role, and a site rolls which
+shape it gets (as `seat` rolls castle or castle town today).
+
+| # | Script | Role and age | What | Art | Differs in play | Footprint |
+|---|---|---|---|---|---|---|
+| S1 | `farmstead` | dwelling; stone, iron | fenced or hedged plots of `dirt_floor` with bushes in rows, a barn, a well | hedge (row 14), fence (row 16), planks, barrels, grain heaps | open ground with nothing to breach; holds food, not trade goods | 21×17, small 17×13 |
+| S2 | `longhall` | seat; stone | one long hall, a hearth down the middle, a high seat, benches | timber (row 4), long tables (row 9), campfire, throne | a small seat for small maps; one room, one door | 19×11, small 15×9 |
+| S3 | `market` | dwelling; iron, industrial | a paved square, stalls round a fountain, a counting house | paving (rows 23 to 26), tables, urns, crates, fountain | trade goods spread over many small containers in the open | 21×17, small 17×13 |
+| S4 | `catacomb` | grave; iron and later | a chapel over a stair to one level of niches | coffins, bones, cobwebs, urns, gravestones | grave goods underground; the natural home of `restless_graves`; counts against the underground lore budget | 15×13, small 11×11 |
+| S5 | `quarry` | works; stone, iron | a cut one level down reached by a stair, squared blocks, a foreman's hut | slab (48,1), gravel heaps, pebbles, boulder walls if they resolve | a ready way underground with ore showing in the cut | 19×15, small 17×13 |
+| S6 | `compound` | fort; industrial, atomic (and the `prison` and `forced_labour` purposes) | a fence round rows of huts, corner posts, a gate, a yard with a wrecked truck | fence (row 16), bunker tiles, beds, trucks | see-through perimeter: hostiles inside see the party coming | 27×19, small 17×13 |
+| S7 | `airbase` | fort; atomic | a strip, two or three parked or wrecked aircraft, fuel tanks, a control hut | road lines (sci-fi rows 30, 31), aircraft and tanks, `fuel_tank` | fuel on the ground: the only ruin worth visiting for it | 31×13, small 19×11 |
+
+Also, with no new script: the `battlefield` at the atomic and star ages
+gains wrecked tanks among its wreckage.
+
+**2. The elders and the gate.**
+
+| # | Script | Placed by | What | Why |
+|---|---|---|---|---|
+| S8 | `waystone` | a new, cheap, repeatable interlude event (`waystone_raised`) on any solid map | a ring or pillar of the builders' own wall with one datapad; 7×7 to 11×11 | the carrier for datapads that point at **other places**, which the pregenerated galaxy makes possible (its Decision: "datapads that point at other places get simpler"). Small enough that the lore budget can afford several per site. A waystone of the gate's builders, in the reserved wall, points toward the gate |
+| S9 | `gate_vault` | the galaxy plan's forced ending on the controls world | a wrapper: a marked entry building, `underground_dungeon` two or three levels deep in the reserved style, and a final chamber holding the gate controls, with the two constructs as its last guard | the galaxy plan says the controls sit "deep in it, not at the door" and leaves how they are guarded open (its question 12). This answers it from existing content. About 90 lines; lands with galaxy plan step 4, not before |
+
+**3. Natural landmarks: a `stamp` feature in a biome or map file.** Not
+history: nobody built them, they carry no datapad, and as unanchored
+stamps they are never dropped by the lore budget. They are what makes a
+biome have places in it.
+
+| # | Script | Biomes | What | Differs in play | Footprint |
+|---|---|---|---|---|---|
+| S10 | `oasis` | desert, badlands, savanna | an irregular pool ringed by trees, bushes and ferns | the one source of biomass in a dry biome; harmless animals gather there | 13×11 |
+| S11 | `sinkhole` | any with caverns | a ring of rubble round a collapsed shaft: stairs down into the first cavern, the cave mouth as its marker | a way underground on day one without digging; bats come up it | 9×9 |
+| S12 | `predator_den` | by hunter (see Wildlife) | a hollow under a rock overhang, bones, a skull, the pack, a small cache | gives the `predator_pack` hazard a place and an origin, as the yetis' has none today | 9×9 |
+| S13 | `vent_field` | scorched_crust, volcanic_island; glacier with cold vents | vents clustered round a lava or red pool, red and green crystals among them | crystal for the taking, guarded by ground that hurts to stand beside | 11×11 |
+
+**4. Station modules.** One line of Go each, a script, and a place in the
+`optional` lists of `data/history/purposes.json`.
+
+| # | Script | Purposes | What |
+|---|---|---|---|
+| S14 | `station_brig` | garrison | cells behind blast doors, beds, a guard desk; sealed like the armoury |
+| S15 | `station_workshop` | shipyard, refinery | `foundry`, `robot_workbench` and `gun_bench` (blueprints that exist), parts lockers |
+
+Ranked for the owner: S11 sinkhole and S10 oasis first (small, on every
+world, change play); S8 waystone (small, and the galaxy needs it); S1
+farmstead and S6 compound (the two most unlike anything in the library);
+S4 catacomb; S7 airbase; S3 market; S12 and S13 with the wildlife step;
+S9 with the gate; S2, S5, S14, S15 last.
+
+Not proposed: anything built of the gantry frames (sci-fi rows 18 to 20)
+or the two pipe sets. Both are multi-piece art with their own layouts and
+would each cost a mapping session for one structure.
 
 ### Wildlife
 
@@ -722,6 +831,17 @@ rough; JSON counts are generous because a 16-variant wall is 90 lines.
    Tests: frozen structures unchanged with no param; every style builds
    every preset in `structure_presets.json`. Frames: the structure
    viewer's presets, one per style.
+5b. **New structures** (about 1,900 lines of BASIC, 450 of JSON for
+   props, 60 of data, 2 lines of Go). Props first; then S10, S11, S8;
+   then the history alternatives S1 to S7 one at a time, each with its
+   `tech.json` weight at 1 beside the existing script; S14 and S15 with
+   or after step 8. S12 and S13 land with step 6, S9 with the galaxy
+   plan's gate. Tests: each script at its smallest and largest footprint
+   with every param, inside its footprint on every level, intact and
+   ruined (the existing content tests' table); `sinkhole` always reaches
+   an open cavern or builds nothing; `history-dump -stats` shows each
+   alternative on a share of sites. Frames: one structure-viewer preset
+   per script, intact and at damage 2.
 6. **Hunters, guardians and vents** (about 900 lines of JSON, three
    chapters in `events.json`, 30 lines of BASIC for the guardian).
    Twenty blueprints. Tests: each new hazard spawns at its origin within
@@ -747,8 +867,9 @@ rough; JSON counts are generous because a 16-variant wall is 90 lines.
     world list, and the observer soak run once across a medium galaxy to
     see that no new map breaks a faction's landing or settlement.
 
-About 550 lines of Go, 100 of BASIC and 4,500 of JSON (2,600 if the
-helper writes the walls and edged grounds). Steps 1 and 2 are a weekend
+About 550 lines of Go, 2,000 of BASIC (nearly all of it the fifteen new
+structures) and 5,000 of JSON (3,100 if the helper writes the walls and
+edged grounds). Steps 1 and 2 are a weekend
 of data and change how every existing world looks. Steps 3, 5 and 8 are
 independent of each other.
 
@@ -817,6 +938,15 @@ Each with a recommended default.
     ruins.
 11. **Weathering by world** (snowed stone on cold maps). Default: no; it
     fights the recognition in question 3.
+12. **Which new structures replace and which join?** Default: every
+    history alternative joins at weight 1 beside the existing script, so
+    half of stone age dwellings are farmsteads. Alternative: lower
+    weights, keeping the village the norm.
+13. **Do natural landmarks appear near a landfall?** Default: oasis and
+    sinkhole anywhere; dens and vent fields never inside a safe radius.
+14. **Is the gate vault this plan's or the galaxy plan's?** Default: the
+    galaxy plan builds it in its step 4, using the style, guardians and
+    props from here.
 
 ## Where the owner rewrites text
 
@@ -826,17 +956,30 @@ Each with a recommended default.
 - Every animal's name; the three hazard chapters' history text and
   datapad lines; the guardians' and vents' names.
 - The style labels if they are ever shown (they need not be).
+- Room names and clue lines for the new structures (barn, hall, counting
+  house, crypt, cut, guard post, control hut, cells, workshop), the
+  `waystone_raised` event text and the waystones' datapads, and every
+  prop's name.
 - The player guide's world list.
 
 ## Riskiest assumptions
 
 - **The sci-fi organic and smooth wall sets can be mapped.** Rows 26 to
-  29 of the sci-fi sheet and rows 20 to 22 of the fantasy sheet are laid
-  out differently from the sets in use. If a set lacks some of the
+  29 of the sci-fi sheet are laid out differently from the sets in use,
+  and rows 20 to 22 of the fantasy sheet may lack an interior piece. If a set lacks some of the
   sixteen cases, the living crust keeps its floor but takes `rock` for
   walls (as the sample image does), the gate's reserved style falls back
   to another unused set, and the drystone styles are dropped.
 
+- **A script can open the ground.** `quarry` and `sinkhole` assume a
+  structure script can cut down a level and leave a usable stair, as
+  `mine` and the underground stamps do, and that a sinkhole can find a
+  cavern under its footprint on most seeds. Where it cannot, it must
+  build nothing rather than a stair into rock.
+- **Seven more ruin shapes fit the lore budget.** Alternatives replace,
+  they do not add, so the count of stamps per site should not move; the
+  larger footprints (compound, airbase) will be dropped more often on
+  small maps, which is what their `small` sizes are for.
 - **The floor autotile works as read.** `resolveFloorAutotileVariant` is
   in the draw path but no tile uses it, so it has never run in the game.
   The case table was measured from pixels, and one piece of the
@@ -884,7 +1027,8 @@ Composed 2026-11-14 straight from the sheet cells named above (not by the
 generator), one per biome plus two edged-ground borders, to check the
 cells. They corrected three readings, all folded in above: the
 "mushroom" is a stump, the "clover" and "orange flowers" are bushes, and
-the boulder and organic wall sets are not in the standard order. Row 13
+the organic wall sets are not in the standard order (the boulder sets
+are unresolved). Row 13
 (orange cave rock) and the sixteen-case ground edges composed correctly
 at the first attempt. The images were not committed.
 
