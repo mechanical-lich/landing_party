@@ -17,11 +17,11 @@ func factionTestCampaign(t *testing.T, sites map[string]string) *Campaign {
 	t.Helper()
 	useRepoData(t)
 	c := &Campaign{Version: CampaignVersion, Seed: 5, Locations: map[string]*Location{}, History: history.New(5), FactionCount: 1}
-	c.Locations[AdriftLocationID] = &Location{ID: AdriftLocationID, Kind: AdriftKind, Discovered: true, Visited: true}
+	c.Locations[AdriftLocationID] = &Location{ID: AdriftLocationID, Kind: AdriftKind, Identified: true, Visited: true}
 	c.CurrentLocationID = AdriftLocationID
 	x := 100.0
 	for id, sc := range sites {
-		c.Locations[id] = &Location{ID: id, Name: id, Kind: "planet", ScenarioID: sc, Tags: []string{"biomass", "ore"}, X: x, Y: 1000, Discovered: true}
+		c.Locations[id] = &Location{ID: id, Name: id, Kind: "planet", ScenarioID: sc, Tags: []string{"biomass", "ore"}, X: x, Y: 1000, Identified: true}
 		x += 1000 // out of each other's launcher range
 	}
 	return c
@@ -329,11 +329,14 @@ func TestFactionExcludedSites(t *testing.T) {
 				if len(l.Factions) == 0 {
 					continue
 				}
-				if !l.HasSite() || l.Tutorial || id == StartLocationID || (c.firstJump(l) && !l.Visited) {
+				if !l.HasSite() || l.Tutorial || id == c.StartID || (c.firstJump(l) && !l.Visited) {
 					t.Errorf("seed %d %s: presence on excluded site %s (%s)", seed, when, id, l.Kind)
 				}
 			}
 			for _, e := range c.Fleets {
+				if e.ToID == GateLocationID {
+					continue // a rival colony leaving through the gate
+				}
 				if l := c.Locations[e.ToID]; !c.FactionSiteOK(l, false) {
 					t.Errorf("seed %d %s: egg bound for excluded %s", seed, when, e.ToID)
 				}
@@ -421,50 +424,6 @@ func TestFactionSaveRoundTrip(t *testing.T) {
 	}
 }
 
-// A version 2 save (no factions, no tags) migrates to an empty faction layer
-// whose clock starts at the save's star date; version 1 is refused.
-func TestFactionMigrateFromV2(t *testing.T) {
-	useRepoData(t)
-	c := genCampaign(t, 3)
-	c.StarDate = 42
-	b, _ := json.Marshal(c)
-	var raw map[string]any
-	_ = json.Unmarshal(b, &raw)
-	raw["version"] = 2
-	for _, k := range []string{"faction_count", "faction_day", "faction_seq", "eggs"} {
-		delete(raw, k)
-	}
-	for _, l := range raw["locations"].(map[string]any) {
-		delete(l.(map[string]any), "tags")
-		delete(l.(map[string]any), "factions")
-	}
-	b, _ = json.Marshal(raw)
-	var old Campaign
-	if err := json.Unmarshal(b, &old); err != nil {
-		t.Fatal(err)
-	}
-	if err := MigrateCampaign(&old); err != nil {
-		t.Fatal(err)
-	}
-	if old.Version != CampaignVersion || old.FactionDay != 42 || old.FactionCount != 0 {
-		t.Errorf("migrated: version %d day %d count %d", old.Version, old.FactionDay, old.FactionCount)
-	}
-	for id, l := range old.Locations {
-		if l.QuestTag != "" && (len(l.Tags) != 1 || l.Tags[0] != l.QuestTag) {
-			t.Errorf("%s: tags %v from quest tag %q", id, l.Tags, l.QuestTag)
-		}
-	}
-	old.StarDate = 90
-	old.StepFactions(nil)
-	if old.FactionDay != 90 || len(old.Fleets) != 0 {
-		t.Error("migrated campaign stepped wrongly")
-	}
-	old.Version = 1
-	if err := MigrateCampaign(&old); err == nil {
-		t.Error("version 1 migrated")
-	}
-}
-
 // A station has its own capacity entry and is a site like any other.
 func TestFactionStationCapacity(t *testing.T) {
 	useRepoData(t)
@@ -523,16 +482,17 @@ func TestFactionLeavesHistoriesAlone(t *testing.T) {
 	}
 }
 
-// The pace for Rival factions 1 on the opening map with no player: no spread
-// by day 40, one or two hives on every seed at day 100 and two on most (the
-// target is about 2-3; a seed whose hive starts on a cramped site lags).
-// Retune data/factions.json against make history-dump HFACTIONS=1 and update
-// this range on purpose, never by accident.
+// The pace for Rival factions 1 on a medium galaxy with no player (re-pinned
+// for the pregenerated galaxy, docs/developer/factions.md, Balance): no
+// spread by day 40, two hives at day 100 on most seeds (one to three on
+// every one), and 8 to 15 by day 300, where the old opening map filled at 6
+// to 9. Retune data/factions.json against make history-dump HFACTIONS=1 and
+// update these ranges on purpose, never by accident.
 func TestFactionPaceRivalOne(t *testing.T) {
 	useRepoData(t)
 	twos := 0
 	for seed := int64(1); seed <= 6; seed++ {
-		c, err := GenerateCampaignOpts("Pace", seed, GenOptions{Factions: 1})
+		c, err := GenerateCampaignOpts("Pace", seed, GenOptions{Factions: 1, Size: "medium"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -551,15 +511,20 @@ func TestFactionPaceRivalOne(t *testing.T) {
 		c.StarDate = 100
 		c.StepFactions(nil)
 		n := count()
-		if n < 1 || n > 2 {
-			t.Errorf("seed %d: %d presences at day 100, want 1-2", seed, n)
+		if n < 1 || n > 3 {
+			t.Errorf("seed %d: %d presences at day 100, want 1-3", seed, n)
 		}
-		if n == 2 {
+		if n >= 2 {
 			twos++
 		}
+		c.StarDate = 300
+		c.StepFactions(nil)
+		if n := count(); n < 8 || n > 15 {
+			t.Errorf("seed %d: %d presences at day 300, want 8-15", seed, n)
+		}
 	}
-	if twos < 4 {
-		t.Errorf("only %d of 6 seeds have two hives at day 100, want at least 4", twos)
+	if twos < 5 {
+		t.Errorf("only %d of 6 seeds have two hives at day 100, want at least 5", twos)
 	}
 }
 

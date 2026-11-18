@@ -317,36 +317,26 @@ function generate(x, y, w, h)
     set_tile(col_a, stair_y, dz, "stairs_up")
 
     # ── Phase 6: intermediate shaft levels ─────────────────────────────────
-    # Stair column alternates each level. Distance k above the bottom:
-    #   k=1: down at col_a (matches bottom up), up at col_b
-    #   k=2: down at col_b, up at col_a
-    # → parity of (depth - level) selects which column is down vs up.
-    for level = 1 to depth - 1
-        dist = depth - level
-        half = dist / 2
-        parity = dist - half * 2
-
-        carve_room(col_a - 1, stair_y - 1, sz - level, 4, 3, "dungeon_wall", "dungeon_floor")
-        if parity = 1 then
-            set_tile(col_a, stair_y, sz - level, "stairs_down")
-            set_tile(col_b, stair_y, sz - level, "stairs_up")
+    # From the bottom up, every stairs_down stands over the stairs_up of the
+    # level below (the path check wants a down and an up for every level
+    # changed), the columns alternating. (This used a parity sum that divides
+    # with "/", which is not whole here, so the shaft never paired and no
+    # worker could walk down it.)
+    downc = col_a
+    for k = 1 to depth - 1
+        lz = dz + k
+        upc = col_b
+        if downc = col_b then
+            upc = col_a
         endif
-        if parity = 0 then
-            set_tile(col_b, stair_y, sz - level, "stairs_down")
-            set_tile(col_a, stair_y, sz - level, "stairs_up")
-        endif
-    next level
+        carve_room(col_a - 1, stair_y - 1, lz, 4, 3, "dungeon_wall", "dungeon_floor")
+        set_tile(downc, stair_y, lz, "stairs_down")
+        set_tile(upc, stair_y, lz, "stairs_up")
+        downc = upc
+    next k
 
-    # The surface stairs_down column matches the topmost intermediate's
-    # stairs_up. depth=1 → directly above the bottom → col_a. Otherwise:
-    #   depth even → surface col = col_b
-    #   depth odd  → surface col = col_a
-    surface_col = col_a
-    half_d = depth / 2
-    parity_d = depth - half_d * 2
-    if parity_d = 0 then
-        surface_col = col_b
-    endif
+    # The surface stairs_down stands over the topmost stairs_up.
+    surface_col = downc
 
     # ── Phase 7: surface entrance — fixed-size room around the stair tile.
     # 9×9 with the stair tile at its exact centre (cell 4,4 of the room).
@@ -375,6 +365,36 @@ function generate(x, y, w, h)
     # ── Phase 8: spawns at the bottom ──────────────────────────────────────
     boss_cx = rx[3] + rw[3] / 2
     boss_cy = ry[3] + rh[3] / 2
+
+    # A passage from the stair to beside the far room's centre, through rock
+    # and rooms alike: the BSP's corridors join siblings, and sometimes leave
+    # room 3 (the boss, the quest target) cut off. The stair tile is never
+    # cleared.
+    tx = boss_cx - 1
+    ty = boss_cy
+    if tx = col_a then
+        tx = col_a + 1
+    endif
+    lo = col_a + 1
+    hi = tx
+    if tx < col_a then
+        lo = tx
+        hi = col_a - 1
+    endif
+    for xx = lo to hi
+        set_tile(xx, stair_y, dz, "dungeon_floor")
+        clear_middle(xx, stair_y, dz)
+    next xx
+    lo = stair_y
+    hi = ty
+    if ty < stair_y then
+        lo = ty
+        hi = stair_y
+    endif
+    for yy = lo to hi
+        set_tile(tx, yy, dz, "dungeon_floor")
+        clear_middle(tx, yy, dz)
+    next yy
     if guards = 1 then
         spawn_entity("mutant_brute", boss_cx, boss_cy, dz)
     endif

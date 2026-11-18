@@ -1,9 +1,12 @@
 {"name":"factions_starmap","seed":777,"config":{"rivalsByCount":true}}
-# New Expedition seed 777 with Rival factions 3: three hive broods on the
-# opening map, none on the start system, all unseen (no badge, no Legends
-# line). Jump to Rust Tangle (sys_43, a seeded site): from orbit the presence
-# is revealed, the Star Map badges it under its morph's name (XENO BROOD, the
-# hive's identity is hidden) and its arrival reaches Legends as a xeno egg.
+# New Expedition seed 777 with Rival factions 3: the hive's brood lands on its
+# own landfall, Ashen Basin (sys_25), none on the player's landfall (sys_55,
+# campaign.start_id for this seed), unseen (no badge, no Legends line; its
+# row is an "Unidentified system — fuel 207"). Jump there (debug travel: 207
+# is beyond the starting 200 fuel; the jump takes the star date to 69): from
+# orbit the presence is revealed, the Star Map (Locate) badges it under its
+# morph's name (XENO GREAT NEST by then, the hive's identity is hidden) and
+# its arrival reaches Legends as a xeno egg.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
@@ -17,19 +20,23 @@
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.faction_count","eq":3}
-{"op":"assert","path":"campaign.presences.start","eq":null}
-{"op":"assert","path":"campaign.presences.sys_43","gte":3}
+{"op":"assert","path":"campaign.start_id","eq":"sys_55"}
+{"op":"assert","path":"campaign.presences.sys_55","eq":null}
+{"op":"assert","path":"campaign.presences.sys_25","gte":3}
 {"op":"assert","path":"campaign.known_events","eq":0}
-{"op":"click","target":"row:locList:sys_43"}
+{"op":"debug","cmd":"see sys_25"}
+{"op":"click","target":"row:locList:sys_25"}
 {"op":"assert","path":"selected_location.known_factions","eq":0}
 {"op":"screenshot","name":"unseen"}
-{"op":"click","target":"dash:travelBtn"}
+{"op":"debug","cmd":"travel sys_25"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_25"}
 {"op":"assert","path":"selected_location.known_factions","eq":1}
 {"op":"assert","path":"campaign.known_events","gte":1}
+{"op":"click","target":"dash:locateBtn"}
+{"op":"wait","ticks":5}
 {"op":"screenshot","name":"badged"}
 {"op":"click","target":"tab:legends"}
 {"op":"assert","path":"dash_tab","eq":"legends"}
-{"op":"assert","path":"legends_text","contains":"a xeno egg came down on Rust Tangle"}
+{"op":"assert","path":"legends_text","contains":"a xeno egg came down on Ashen Basin"}
 {"op":"screenshot","name":"legends"}

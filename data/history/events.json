@@ -4225,6 +4225,15 @@
       "text": "{date}: {boss} was killed on {site}{cause}."
     },
     {
+      "id": "race_milestone",
+      "_text": "DRAFT: a spreading race's six-worlds milestone (pregenerated_galaxy_plan.md).",
+      "live": true,
+      "fills": [
+        "count"
+      ],
+      "text": "{date}: {count} worlds were ours at once."
+    },
+    {
       "id": "quest_completed",
       "live": true,
       "fills": [
@@ -4302,6 +4311,44 @@
         "singular"
       ],
       "text": "{date}: a {singular} ship came down on {site} and its crew made camp."
+    },
+    {
+      "id": "gate_switched_on",
+      "_text": "DRAFT: the gate's controls switched on (pregenerated_galaxy_plan.md, the gate). {who} is whoever did it.",
+      "live": true,
+      "fills": [
+        "who"
+      ],
+      "text": "{date}: {who} switched on the gate's controls on {site}. The gate is lit."
+    },
+    {
+      "id": "gate_left",
+      "_text": "DRAFT: the player's expedition leaving through the gate.",
+      "live": true,
+      "fills": [
+        "who"
+      ],
+      "text": "{date}: {who} went through the gate and left the galaxy."
+    },
+    {
+      "id": "faction_found_gate",
+      "_text": "DRAFT: a rival colony learning where the gate is.",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: the {singular} found the gate beside {site}."
+    },
+    {
+      "id": "faction_left_galaxy",
+      "_text": "DRAFT: a rival colony's ship leaving through the gate.",
+      "live": true,
+      "fills": [
+        "faction",
+        "singular"
+      ],
+      "text": "{date}: a {singular} ship went through the gate and left the galaxy."
     },
     {
       "id": "faction_departed",

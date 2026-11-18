@@ -1,0 +1,41 @@
+{
+    "gate_controls_dormant": {
+        "Appearance": {
+            "R": 120,
+            "G": 110,
+            "B": 140,
+            "Bounces": false,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Gate Controls (dark)",
+            "Faction": ""
+        },
+        "Repairable": {
+            "Into": "gate_controls",
+            "SetsFlag": "gate:on"
+        },
+        "Inanimate": {},
+        "Solid": {}
+    },
+    "gate_controls": {
+        "Appearance": {
+            "R": 255,
+            "G": 220,
+            "B": 130,
+            "Bounces": true,
+            "Resource": "scifi_world",
+            "SpriteX": 696,
+            "SpriteY": 24
+        },
+        "Description": {
+            "Name": "Gate Controls",
+            "Faction": ""
+        },
+        "Inanimate": {},
+        "Solid": {},
+        "NeverSleep": {}
+    }
+}

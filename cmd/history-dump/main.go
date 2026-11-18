@@ -368,17 +368,12 @@ func abbrev(s string) string {
 	return out
 }
 
-// chartCampaign generates a campaign the way New Expedition does and grows it
-// the way play does (expansions, travel rolls), so every site is charted
-// through newLocation.
+// chartCampaign generates a campaign the way New Expedition does: the whole
+// galaxy, every site bound in one pass (campaign.GenerateGalaxy).
 func chartCampaign(seed int64) *campaign.Campaign {
 	c, err := campaign.GenerateCampaign("Dump", seed)
 	if err != nil {
 		log.Fatal(err)
-	}
-	c.Expand(4)
-	for i := 0; i < 12; i++ {
-		c.MaybeTravelQuests()
 	}
 	return c
 }
@@ -519,7 +514,7 @@ func printFind(w *os.File, lib *history.Library, want string, maxSeed int) {
 		for _, id := range ids {
 			loc := c.Locations[id]
 			site := c.SiteHistory(loc)
-			if site == nil || !loc.Discovered {
+			if site == nil {
 				continue
 			}
 			chapter := ""

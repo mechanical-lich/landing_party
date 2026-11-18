@@ -1,7 +1,7 @@
 {"name":"race_hive","seed":777,"config":{"rivalsByCount":true}}
 # A hive run (phase F step 1, playable_races_plan.md). New Expedition seed
 # 777, the race row stepped to the hive: no ship, the run opens viewing the
-# brood on the start system (a nest of eight, the cursor bound to it). The
+# brood on its landfall system (sys_55) (a nest of eight, the cursor bound to it). The
 # larva's crafting modal lists the egg types and queues a drone egg; the
 # evolution chamber opens the research modal over the evolve tree. Then the
 # Star Map (no Travel, Beam or Scan; "Your worlds"), the brood aimed at the
@@ -21,7 +21,7 @@
 {"op":"wait_until","path":"state","eq":"site","max_ticks":300}
 {"op":"assert","path":"spread_run","eq":true}
 {"op":"assert","path":"race","eq":"hive"}
-{"op":"assert","path":"location","eq":"start"}
+{"op":"assert","path":"location","eq":"sys_55"}
 {"op":"assert","path":"player_site_count","eq":1}
 {"op":"assert","path":"faction.units.drone","gte":1}
 {"op":"assert","path":"settlement_stats.alive","gte":4}

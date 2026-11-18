@@ -1,25 +1,36 @@
-{"name":"lore_hazard","seed":407,"config":{"rivalsByCount":true}}
-# A hazard-tier site: seed 407's sys_17 is an earth_like world whose history
-# ends in dormant_nest (unhatched eggs in an old wreck). The Star Map shows
-# the amber Hazard tag before its summary; on the ground the eggs stand by the
+{"name":"lore_hazard","seed":44,"config":{"rivalsByCount":true}}
+# A hazard-tier site: seed 44's sys_4 (fuel 12 from the Wreck Site) is an
+# earth_like world whose history ends in dormant_nest (unhatched eggs in an
+# old wreck). A scan from the Wreck Site (the scanner unlocked by debug)
+# identifies it, and the Star Map shows the amber Hazard tag before its
+# summary; on the ground the eggs stand by the
 # wreck at the history's origin. Re-find with: make history-dump HFIND=hazard,dormant_nest
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore Hazard"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"407"}
+{"op":"type","text":"44"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"click","target":"row:locList:sys_17"}
-{"op":"assert","path":"selected_location.id","eq":"sys_17"}
+{"op":"debug","cmd":"unlock ship_scanner_1"}
+{"op":"wait","ticks":2}
+{"op":"click","target":"dash:scanBtn"}
+{"op":"wait","ticks":3}
+{"op":"assert","path":"modal","contains":"scan"}
+{"op":"assert","path":"campaign.identified","gte":2}
+# The Scan Report's Ok button has no target name: its place on screen.
+{"op":"click","at":[578,461]}
+{"op":"wait","ticks":2}
+{"op":"click","target":"row:locList:sys_4"}
+{"op":"assert","path":"selected_location.id","eq":"sys_4"}
 {"op":"assert","path":"selected_location.tier","eq":"hazard"}
 {"op":"assert","path":"selected_location.history_summary","eq":true}
 {"op":"screenshot","name":"starmap_tag"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_17"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_4"}
 {"op":"assert","path":"campaign.tier","eq":"hazard"}
 {"op":"assert","path":"campaign.chapter","eq":"dormant_nest"}
 {"op":"assert","path":"campaign.scenario","eq":"earth_like"}
@@ -31,4 +42,5 @@
 {"op":"debug","cmd":"origin walk"}
 {"op":"wait","ticks":20}
 {"op":"move","target":"region:lore_origin"}
+{"op":"assert","path":"in_view.xeno_egg","gte":1}
 {"op":"screenshot","name":"hazard"}

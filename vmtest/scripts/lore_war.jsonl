@@ -1,14 +1,15 @@
-{"name":"lore_war","seed":125,"config":{"rivalsByCount":true}}
-# A war-arc site: seed 125's start system is an earth_like world where two
-# peoples (sundered_world) destroyed each other. Each fortified its own half;
+{"name":"lore_war","seed":56,"config":{"rivalsByCount":true}}
+# A war-arc site: seed 56's landfall system (sys_62) is an
+# earth_like world where two
+# peoples (sundered_world) destroyed each other (mutual_ruin). Each fortified its own half;
 # walk to each side's fort (debug origin walk fortify 1 / 2) and look.
-# Re-find with: make history-dump HFIND=start,quiet,earth_like,fortify,stamped:fortify,stamped:great_battle,stamped:twin_peoples_rise
+# Re-find with: make history-dump HFIND=sys_62,quiet,earth_like,fortify,stamped:fortify,stamped:great_battle,stamped:twin_peoples_rise
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore War"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"125"}
+{"op":"type","text":"56"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
@@ -17,7 +18,7 @@
 {"op":"screenshot","name":"starmap"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"start"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_62"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
 {"op":"wait","ticks":5}

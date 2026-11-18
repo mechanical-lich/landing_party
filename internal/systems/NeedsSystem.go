@@ -95,6 +95,15 @@ func (s *NeedsSystem) UpdateEntity(levelInterface interface{}, entity *ecs.Entit
 		aiMemory.State = "idle"
 	}
 
+	// --- Hunger interrupts a drop-off ---
+	// Food-seeking below starts only from idle, and a worker stuck carrying
+	// something to a container it cannot reach (or crowded at one) never goes
+	// idle: put the errand down and eat, while there is food to eat.
+	if nc.IsHungry() && aiMemory.State == "dropoff" && workerai.FoodAvailable(level, entity) {
+		chatter.Post(name, "Too hungry to finish carrying, looking for food.")
+		workerai.AbandonDropOff(wc, aiMemory)
+	}
+
 	// --- Idle food-seeking ---
 	if aiMemory.State == "idle" && nc.IsHungry() {
 		// Food-seeking returns before the sleep roll below, so a spent worker with

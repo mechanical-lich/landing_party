@@ -1,7 +1,6 @@
 package campaign
 
 import (
-	"math"
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
@@ -35,7 +34,7 @@ func greyTestCampaign(t *testing.T) (*Campaign, *Doctrine, *Fleet, *Fleet) {
 }
 
 // Seeding three rival factions puts a greyish scout on a site and its
-// mothership in orbit far from Home, at the top tier, never landed.
+// mothership in orbit of its landfall system, at the top tier, never landed.
 func TestGreyishSeededWithAMothership(t *testing.T) {
 	useRepoData(t)
 	for seed := int64(1); seed <= 6; seed++ {
@@ -51,22 +50,12 @@ func TestGreyishSeededWithAMothership(t *testing.T) {
 		if ms.Landed() || ms.ShipTier != len(d.ShipTiers())-1 || ms.Presence.Population != d.Ships.Mothership.Crew {
 			t.Errorf("seed %d: mothership %+v", seed, ms)
 		}
-		var home *Location
-		for _, l := range c.Locations {
-			if l.Kind == HomeKind {
-				home = l
-			}
-		}
 		at := c.Locations[ms.ToID]
 		if at == nil || !c.FactionSiteOK(at, true) {
 			t.Fatalf("seed %d: mothership over %q", seed, ms.ToID)
 		}
-		far := math.Hypot(at.X-home.X, at.Y-home.Y)
-		for _, l := range c.Locations {
-			if c.FactionSiteOK(l, true) && far < d.Ships.Mothership.MinHomeDistance && math.Hypot(l.X-home.X, l.Y-home.Y) > far+1e-9 {
-				t.Errorf("seed %d: mothership %.0f from Home, but %s is farther", seed, far, l.ID)
-				break
-			}
+		if !isLandfallSystem(c, at.ID) || at.ID == c.StartID {
+			t.Errorf("seed %d: mothership over %s, not a rival's landfall system", seed, at.ID)
 		}
 		scouts := 0
 		for _, f := range c.Fleets {
@@ -253,4 +242,15 @@ func TestScanRevealsShipsInRange(t *testing.T) {
 	if !c.Mothership("greyish").Known {
 		t.Error("the mothership within a 15-unit sweep was not revealed")
 	}
+}
+
+// parkMothership parks key's mothership over the first site (by ID) a
+// faction may be on that is not taken, for tests on hand-built maps.
+func parkMothership(c *Campaign, key string, d *Doctrine, taken map[string]bool) *Fleet {
+	for _, l := range c.sortedLocations() {
+		if !taken[l.ID] && c.FactionSiteOK(l, true) {
+			return c.newMothership(key, d, l)
+		}
+	}
+	return nil
 }

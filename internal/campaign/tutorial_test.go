@@ -59,7 +59,7 @@ func TestTutorialLocationPlacement(t *testing.T) {
 	for seed := int64(1); seed <= 60; seed++ {
 		c := genCampaign(t, seed)
 		loc := AddTutorialLocation(c)
-		if !loc.Discovered {
+		if !loc.Identified {
 			t.Fatalf("seed %d: tutorial planet hidden", seed)
 		}
 		cost := c.FuelCost(loc.ID)
@@ -73,21 +73,20 @@ func TestTutorialLocationPlacement(t *testing.T) {
 			if d := math.Hypot(other.X-loc.X, other.Y-loc.Y); d < minSep {
 				t.Errorf("seed %d: tutorial planet %.1f from %s, min separation %.1f", seed, d, id, minSep)
 			}
-			if id != c.CurrentLocationID && other.Discovered && c.FuelCost(id) <= cost {
+			if id != c.CurrentLocationID && other.Identified && c.FuelCost(id) <= cost {
 				t.Errorf("seed %d: %s (fuel %d) is as near as the tutorial planet (fuel %d)", seed, id, c.FuelCost(id), cost)
 			}
 		}
-		// Away from Home: the bearing to the Training Ground is more than 60
-		// degrees off the bearing to Home.
-		home := c.HomeLocation()
+		// Beyond the rim: the bearing to the Training Ground is within 60
+		// degrees of straight out from the galaxy's centre.
 		start := c.CurrentLocation()
-		toHome := math.Atan2(home.Y-start.Y, home.X-start.X)
+		out := math.Atan2(start.Y-c.Galaxy.CY, start.X-c.Galaxy.CX)
 		toTut := math.Atan2(loc.Y-start.Y, loc.X-start.X)
-		off := math.Abs(math.Mod(toTut-toHome+3*math.Pi, 2*math.Pi) - math.Pi)
-		if off < math.Pi/3 {
-			t.Errorf("seed %d: tutorial planet is only %.0f degrees off the Home line", seed, off*180/math.Pi)
+		off := math.Abs(math.Mod(toTut-out+3*math.Pi, 2*math.Pi) - math.Pi)
+		if off > math.Pi/3+1e-9 {
+			t.Errorf("seed %d: tutorial planet is %.0f degrees off the outward bearing", seed, off*180/math.Pi)
 		}
-		if c.Tutorial == nil || c.Tutorial.NextLocationID != StartLocationID || !c.Tutorial.IsUnlocked(TutorialLocationID) || c.Tutorial.IsUnlocked(c.CurrentLocationID) {
+		if c.Tutorial == nil || c.Tutorial.NextLocationID != c.StartID || !c.Tutorial.IsUnlocked(TutorialLocationID) || c.Tutorial.IsUnlocked(c.CurrentLocationID) {
 			t.Errorf("seed %d: progress = %+v", seed, c.Tutorial)
 		}
 	}
@@ -175,6 +174,4 @@ func TestTemplatesNeverRollTutorial(t *testing.T) {
 	for _, a := range lt.Archetypes {
 		check("archetype "+a.ID+" maps", a.Maps)
 	}
-	check("home maps", lt.Home.Maps)
-	check("home scenarios", lt.Home.Scenarios)
 }

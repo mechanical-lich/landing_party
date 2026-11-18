@@ -15,6 +15,7 @@ import (
 // events' and drops the oldest, logging each drop; the drops keep their
 // origins and datapads.
 func TestContentBudgetDropsOldestAndLogs(t *testing.T) {
+	t.Setenv("LP_LORE_LOG", "1") // the budget logs only when asked
 	lib := loreLibrary(t)
 	h := New(1)
 	site := &SiteHistory{ID: "site1", Map: "earth_like", Seed: 5}

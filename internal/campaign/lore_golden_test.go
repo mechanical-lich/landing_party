@@ -11,8 +11,8 @@ import (
 
 var updateGolden = flag.Bool("update-golden", false, "rewrite testdata/lore_golden_sites.json from the current generator")
 
-// goldenSite is what charting decided about a location before history existed:
-// its map, position and name.
+// goldenSite is what generation decided about a location apart from its
+// history: its map, position and name.
 type goldenSite struct {
 	ID, Name, Kind, Map string
 	X, Y                float64
@@ -21,10 +21,6 @@ type goldenSite struct {
 func goldenRun(t *testing.T, seed int64) []goldenSite {
 	t.Helper()
 	c := genCampaign(t, seed)
-	c.Expand(4)
-	for i := 0; i < 12; i++ {
-		c.MaybeTravelQuests()
-	}
 	var out []goldenSite
 	for _, l := range c.Locations {
 		out = append(out, goldenSite{ID: l.ID, Name: l.Name, Kind: l.Kind, Map: l.MapID,
@@ -34,8 +30,9 @@ func goldenRun(t *testing.T, seed int64) []goldenSite {
 	return out
 }
 
-// Adding history moves none of a seed's maps, positions or names: the old
-// scenario roll left a discard draw in its place (lore plan, step 2).
+// A seed's galaxy keeps its maps, positions and names: a change to
+// generation that moves them is made on purpose (-update-golden), never by
+// accident. Re-pinned for the pregenerated galaxy (plan step 1).
 func TestLoreHistoryKeepsSeedsMapsPositionsNames(t *testing.T) {
 	useRepoData(t)
 	got := map[string][]goldenSite{}

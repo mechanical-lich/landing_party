@@ -27,10 +27,10 @@ func interceptTrip(t *testing.T, seed int64, tier int) (*campaign.Campaign, *Wor
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
-	from := c.Locations[campaign.StartLocationID]
+	from := c.Locations[c.StartID]
 	var to *campaign.Location
 	for _, l := range c.Locations {
 		if l.ID != from.ID && c.FactionSiteOK(l, false) && c.FuelCost(l.ID) >= 6 && (to == nil || l.ID < to.ID) {

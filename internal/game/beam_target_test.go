@@ -35,7 +35,7 @@ func TestBeamDownLandsWhereTheShipIs(t *testing.T) {
 	}
 	var sites []string
 	for id, loc := range c.Locations {
-		if loc.Discovered && loc.HasSite() && loc.Kind != campaign.EncounterKind {
+		if loc.Identified && loc.HasSite() && loc.Kind != campaign.EncounterKind {
 			sites = append(sites, id)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 
@@ -388,7 +389,7 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 				// surface would build nothing there.
 				if script, _ := fb.Params["script"].(string); kind == mapdef.SiteStation && !buildsOffSurface(script) {
 					out.Dropped = append(out.Dropped, DroppedEvidence{Event: ev.ID, Type: ev.Type, Kind: fb.Kind, Script: script, Limit: LimitNoSurface})
-					log.Printf("lore budget: %s (%s, %d wide) dropped the stamp %s of %s %s: over the %s limit",
+					budgetLogf("lore budget: %s (%s, %d wide) dropped the stamp %s of %s %s: over the %s limit",
 						site.ID, site.Map, width, script, ev.Type, ev.ID, LimitNoSurface)
 					continue // the datapad stays
 				}
@@ -425,7 +426,7 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 		if fb.CountMax > left {
 			fb.CountMax = left
 		}
-		log.Printf("lore budget: %s (%s, %d wide) clamped the %s of chapter %s %s from %d to %d",
+		budgetLogf("lore budget: %s (%s, %d wide) clamped the %s of chapter %s %s from %d to %d",
 			site.ID, site.Map, width, fb.Kind, blocks[i].ev.Type, blocks[i].ev.ID, was, left)
 	}
 	spend := func(i int, force bool) {
@@ -456,7 +457,7 @@ func (h *History) Evidence(lib *Library, site *SiteHistory) SiteEvidence {
 			if script != "" {
 				what += " " + script
 			}
-			log.Printf("lore budget: %s (%s, %d wide) dropped the %s of %s %s: over the %s limit",
+			budgetLogf("lore budget: %s (%s, %d wide) dropped the %s of %s %s: over the %s limit",
 				site.ID, site.Map, width, what, d.Type, d.Event, limit)
 			return
 		}
@@ -694,4 +695,13 @@ func (h *History) LoreFlags(lib *Library, site *SiteHistory) map[string]any {
 	f["tier"] = h.TierOf(lib, site)
 	f["station_purpose"] = h.StationPurpose(lib, site)
 	return f
+}
+
+// budgetLogf logs what a site's lore budget dropped or clamped, only with
+// LP_LORE_LOG set: binding a whole galaxy at once would print a line for
+// every dropped stamp of every site.
+func budgetLogf(format string, args ...any) {
+	if os.Getenv("LP_LORE_LOG") != "" {
+		log.Printf(format, args...)
+	}
 }

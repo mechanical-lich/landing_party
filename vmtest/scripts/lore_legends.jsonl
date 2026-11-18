@@ -1,19 +1,21 @@
-{"name":"lore_legends","seed":1512,"config":{"rivalsByCount":true}}
-# Land on the xeno wreck site of seed 1512, pick up a lore datapad, open the
+{"name":"lore_legends","seed":13,"config":{"rivalsByCount":true}}
+# Land on the xeno wreck site of seed 13 (sys_23, a wreck_eggs_hatch desert
+# world 45 fuel from the Wreck Site, reached by a blind jump), pick up a lore datapad, open the
 # dashboard's Legends tab: the datapad's event is in the chronicle.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore Legends"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"1512"}
+{"op":"type","text":"13"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.known_events","eq":0}
-{"op":"click","target":"row:locList:sys_10"}
+{"op":"click","target":"row:locList:sys_23"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_23"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
 {"op":"wait","ticks":5}
@@ -26,7 +28,7 @@
 {"op":"click","target":"tab:legends"}
 {"op":"assert","path":"dash_tab","eq":"legends"}
 {"op":"assert","path":"legends.#","gte":2}
-{"op":"assert","path":"legends_text","contains":"an Ixix ship came down hard on Scorch Expanse"}
+{"op":"assert","path":"legends_text","contains":"a Mounl ship came down hard on Pale Expanse"}
 {"op":"screenshot","name":"legends"}
 # The datapads read, word for word: the Legends tab's "Datapads read" filter
 # (the datapad's own account, text_side, where the chronicle has the event's).

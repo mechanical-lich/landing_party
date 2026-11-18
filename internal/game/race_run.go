@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/mechanical-lich/landing_party/internal/audio"
 	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/landing_party/internal/task_requests"
@@ -64,16 +65,18 @@ func (s *MainState) ordersHere() bool {
 	return true
 }
 
-// checkSpreadEnd ends a spreading race's run once a day: lost with nothing
-// left of the player's, won holding the race's win.sites worlds. The end
-// screen is shown by whichever state is up (takeEnd).
+// checkSpreadEnd ends a spreading race's run once a day when nothing is left
+// of the player's; holding the race's milestone worlds is an alert and a
+// Legends entry, and the run goes on. The end screen is shown by whichever
+// state is up (takeEnd).
 func (wm *WorldManager) checkSpreadEnd() {
 	c := wm.Campaign
 	wm.dropDeadPlayerWorlds()
+	if m := c.SpreadMilestone(); m != nil {
+		audio.PlayGlobal("notify")
+		message.PostMessage("Mission", strings.TrimSpace(m.Title+". "+m.Text))
+	}
 	switch c.SpreadOutcome() {
-	case "won":
-		c.Won = true
-		wm.end = raceEndScreen(c, true)
 	case "lost":
 		c.Lost = true
 		wm.end = raceEndScreen(c, false)
@@ -91,16 +94,14 @@ func (wm *WorldManager) takeEnd() *CampaignEndState {
 }
 
 // raceEndScreen is the end screen with the race's own words (draft, in the
-// doctrine's race block).
+// doctrine's race block). A spreading race only loses (won is kept for a
+// later objective).
 func raceEndScreen(c *campaign.Campaign, won bool) *CampaignEndState {
 	title, text := "Expedition Lost", ""
 	if won {
 		title = "Victory"
 	}
 	if d := campaign.PlayerDoctrine(c); d != nil && d.Race != nil {
-		if won && d.Race.Win != nil {
-			title, text = orStr(d.Race.Win.Title, title), d.Race.Win.Text
-		}
 		if !won && d.Race.Loss != nil {
 			title, text = orStr(d.Race.Loss.Title, title), d.Race.Loss.Text
 		}
@@ -118,12 +119,12 @@ func orStr(s, def string) string {
 }
 
 // raceLine is the dashboard header's line in a spreading race's run: how
-// many worlds are the player's, against the win.
+// many worlds are the player's, against the milestone.
 func raceLine(c *campaign.Campaign) string {
 	held := len(c.PlayerSites())
 	want := 0
-	if d := campaign.PlayerDoctrine(c); d != nil && d.Race != nil && d.Race.Win != nil {
-		want = d.Race.Win.Sites
+	if d := campaign.PlayerDoctrine(c); d != nil && d.Race != nil && d.Race.Milestone != nil {
+		want = d.Race.Milestone.Sites
 	}
 	eggs := 0
 	for _, f := range c.Fleets {

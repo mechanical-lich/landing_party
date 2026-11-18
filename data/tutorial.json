@@ -382,7 +382,7 @@
     {
       "id": "star_map",
       "title": "The Star Map",
-      "body": "Press O or the Star Map button to open the dashboard. The Star Map tab lists every known destination with its fuel cost, nearest first. Select one and press Travel Here to jump; the fuel comes out of the ship's hold and there is no refund. Travelling and landing are separate: after a jump the ship is in orbit, and To Site takes you to the surface once someone has beamed down. Home is the far gold marker; reaching it ends the expedition."
+      "body": "Press O or the Star Map button to open the dashboard. The Star Map tab lists every known destination with its fuel cost, nearest first. Select one and press Travel Here to jump; the fuel comes out of the ship's hold and there is no refund. Travelling and landing are separate: after a jump the ship is in orbit, and To Site takes you to the surface once someone has beamed down. Every star in the galaxy is on the map from the start, but you know only the nearest; a scanner identifies the rest. Somewhere deep in the galaxy is a dark gate, the way out: switch on its controls and leave through it to end the expedition, or play on as long as your people last."
     },
     {
       "id": "camera",

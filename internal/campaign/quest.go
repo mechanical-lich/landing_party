@@ -21,9 +21,9 @@ const (
 type QuestReward struct {
 	Fuel      int            `json:"fuel,omitempty"`
 	Resources map[string]int `json:"resources,omitempty"`
-	// SpawnSystems, when > 0, procedurally generates that many new systems
-	// (each with its own quests) on completion — the campaign expands as the
-	// player explores. Deterministic via Campaign.GenSeq.
+	// SpawnSystems, when > 0, is star charts: on completion that many of the
+	// nearest systems not yet known become known (Campaign.RevealCharts).
+	// Nothing is created.
 	SpawnSystems int `json:"spawn_systems,omitempty"`
 }
 
@@ -54,7 +54,12 @@ type Quest struct {
 	// event a history-backed template names); completing the quest makes it
 	// known.
 	EventID string `json:"event_id,omitempty"`
-	// Contract marks a quest that charted its own location (makeContract).
+	// Offered marks news (a contract or a travel roll's quest): offered
+	// whether or not the player has identified its system. Any other quest
+	// on a system is offered only once the system is identified.
+	Offered bool `json:"offered,omitempty"`
+	// Contract marks a quest that points at a system of its own archetype
+	// (makeContract).
 	Contract bool `json:"contract,omitempty"`
 }
 
@@ -140,13 +145,13 @@ func (c *Campaign) reconcileQuestGates() {
 	}
 }
 
-// revealQuestLocation makes a quest's bound location visible on the star map.
+// revealQuestLocation identifies a quest's bound location on the star map.
 func (c *Campaign) revealQuestLocation(q *Quest) {
 	if q.Location == "" {
 		return
 	}
 	if loc := c.Locations[q.Location]; loc != nil {
-		loc.Discovered = true
+		loc.Identified, loc.Seen = true, true
 	}
 }
 
@@ -171,7 +176,25 @@ func (c *Campaign) questsByStatus(status QuestStatus) []*Quest {
 	return out
 }
 
-func (c *Campaign) AvailableQuests() []*Quest { return c.questsByStatus(QuestAvailable) }
+func (c *Campaign) AvailableQuests() []*Quest {
+	var out []*Quest
+	for _, q := range c.questsByStatus(QuestAvailable) {
+		if c.questOffered(q) {
+			out = append(out, q)
+		}
+	}
+	return out
+}
+
+// questOffered reports whether an available quest is shown: news, a quest
+// with no system, or one on a system the player has identified.
+func (c *Campaign) questOffered(q *Quest) bool {
+	if q.Offered || q.Location == "" {
+		return true
+	}
+	l := c.Locations[q.Location]
+	return l == nil || l.Identified
+}
 func (c *Campaign) ActiveQuests() []*Quest    { return c.questsByStatus(QuestActive) }
 func (c *Campaign) CompletedQuests() []*Quest { return c.questsByStatus(QuestCompleted) }
 

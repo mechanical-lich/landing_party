@@ -73,17 +73,17 @@ func TestAdriftStart(t *testing.T) {
 	// Travel to the start system: fuel is charged, a level is generated and
 	// landed on normally.
 	fuel := holdCount(wm, "fuel")
-	cost := c.FuelCost(campaign.StartLocationID)
+	cost := c.FuelCost(c.StartID)
 	if cost <= 0 {
 		t.Fatalf("start costs %d", cost)
 	}
-	p.selectByID(campaign.StartLocationID)
+	p.selectByID(c.StartID)
 	p.refreshTravelLock()
 	if !p.travelBtn.IsEnabled() {
 		t.Fatalf("Travel to the start locked: %s", p.travelLock)
 	}
 	p.travel()
-	if c.CurrentLocationID != campaign.StartLocationID || wm.Current() == nil || c.IsAdrift() {
+	if c.CurrentLocationID != c.StartID || wm.Current() == nil || c.IsAdrift() {
 		t.Fatalf("travel: current=%s level=%v status=%q", c.CurrentLocationID, wm.Current(), p.status)
 	}
 	if got := holdCount(wm, "fuel"); got != fuel-cost {
@@ -109,7 +109,7 @@ func TestAdriftStart(t *testing.T) {
 		t.Errorf("Travel back to the wreck allowed: lock=%q", p.travelLock)
 	}
 	p.travel()
-	if c.CurrentLocationID != campaign.StartLocationID {
+	if c.CurrentLocationID != c.StartID {
 		t.Errorf("travel() moved the ship to %s", c.CurrentLocationID)
 	}
 }
@@ -120,8 +120,8 @@ func TestOldCampaignWithPlanetCurrentStillLoads(t *testing.T) {
 	loadTutorialData(t)
 	isolateSettlements(t)
 	c := &campaign.Campaign{Name: "Old", Seed: 5, CurrentLocationID: "sys_1", Locations: map[string]*campaign.Location{
-		"home":  {ID: "home", Name: "Home", Kind: campaign.HomeKind, Discovered: true, X: 300},
-		"sys_1": {ID: "sys_1", Name: "Old Start", Kind: "planet", MapID: "tutorial", ScenarioID: "tutorial", Seed: 9, Discovered: true},
+		"gate":  {ID: "gate", Name: "The Gate", Kind: campaign.GateKind, Identified: true, X: 300},
+		"sys_1": {ID: "sys_1", Name: "Old Start", Kind: "planet", MapID: "tutorial", ScenarioID: "tutorial", Seed: 9, Identified: true},
 	}}
 	c.BindQuests()
 	wm := NewWorldManager(c)

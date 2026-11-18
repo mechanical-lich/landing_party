@@ -1,6 +1,7 @@
 {"name":"encyclopedia_hidden","seed":777,"config":{"rivalsByCount":true}}
 # Hidden identity in the Encyclopedia: as factions_hive, a colony lands on
-# Rust Tangle (sys_43) beside a grown hive; the cursor rests on the Brood
+# Ashen Basin (sys_25, reached by debug travel: the 69-day jump grows the
+# hive) beside a grown hive; the cursor rests on the Brood
 # Heart (catalogued on hover), then the Encyclopedia tab shows its card:
 # no "Faction: hive" line or sentence and no "id: hive_heart" footer.
 # Frames: the heart hovered, its Encyclopedia card (its row clicked by
@@ -16,12 +17,13 @@
 {"op":"click","target":"title:factions_plus"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"debug","cmd":"days 36"}
-{"op":"assert","path":"campaign.presences.sys_43","gte":12}
-{"op":"click","target":"row:locList:sys_43"}
-{"op":"click","target":"dash:travelBtn"}
+{"op":"debug","cmd":"see sys_25"}
+{"op":"click","target":"row:locList:sys_25"}
+{"op":"debug","cmd":"travel sys_25"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_25"}
+{"op":"assert","path":"campaign.day","gte":60}
+{"op":"assert","path":"campaign.presences.sys_25","gte":12}
 {"op":"assert","path":"selected_location.known_factions","eq":1}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

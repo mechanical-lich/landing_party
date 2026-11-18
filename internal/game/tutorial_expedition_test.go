@@ -44,11 +44,11 @@ func TestNewExpeditionTutorialToggle(t *testing.T) {
 	if c.CurrentLocationID != campaign.AdriftLocationID || wm.Current() != nil {
 		t.Errorf("tutorial expedition starts at %s with level %v, want adrift with none", c.CurrentLocationID, wm.Current())
 	}
-	if c.Tutorial.NextLocationID != campaign.StartLocationID {
+	if c.Tutorial.NextLocationID != c.StartID {
 		t.Errorf("second destination = %s, want the generated start", c.Tutorial.NextLocationID)
 	}
-	if c.FuelCost(campaign.TutorialLocationID) >= c.FuelCost(campaign.StartLocationID) {
-		t.Errorf("Training Ground (fuel %d) is not nearer than the start (fuel %d)", c.FuelCost(campaign.TutorialLocationID), c.FuelCost(campaign.StartLocationID))
+	if c.FuelCost(campaign.TutorialLocationID) >= c.FuelCost(c.StartID) {
+		t.Errorf("Training Ground (fuel %d) is not nearer than the start (fuel %d)", c.FuelCost(campaign.TutorialLocationID), c.FuelCost(c.StartID))
 	}
 	if got := holdCount(wm, "metal_ore"); got != tutorialHoldMetal {
 		t.Errorf("hold metal with the tutorial on = %d, want %d", got, tutorialHoldMetal)

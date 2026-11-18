@@ -476,7 +476,7 @@ func (p *encyclopediaPanel) Update() { p.list.Update() }
 
 func (p *encyclopediaPanel) Draw(screen *ebiten.Image) {
 	cfg := config.Global()
-	hdr := "Discovered: " + itoa(len(p.campaign.KnownEntities))
+	hdr := "Identified: " + itoa(len(p.campaign.KnownEntities))
 	mlge_text.Draw(screen, hdr, 14, 40, dashContentTop+20, color.RGBA{160, 185, 215, 255})
 	mlge_text.Draw(screen, "Catalogue", 16, 40, dashContentTop+50, color.RGBA{200, 220, 255, 255})
 	p.list.Draw(screen)

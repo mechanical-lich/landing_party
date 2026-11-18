@@ -141,7 +141,7 @@ func hiveSoakOne(t *testing.T, seed int64, ticks int) hiveRow {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	loc.Factions = append(loc.Factions, campaign.FactionPresence{
 		ID: "fph", Faction: "hive", Doctrine: "hive", Population: hiveSoakPop, Stage: 1,
 		Units: map[string]int{"drone": 6, "scout": 2}, Larvae: 3,
@@ -149,7 +149,7 @@ func hiveSoakOne(t *testing.T, seed int64, ticks int) hiveRow {
 		LastShotDay: campaign.NeverFired,
 	})
 	c.SetStance("hive", campaign.StanceNeutral, loc)
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	if err := wm.BeamDown(wm.ShipColonists()[0]); err != nil {

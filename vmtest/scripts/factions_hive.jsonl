@@ -1,8 +1,9 @@
 {"name":"factions_hive","seed":777,"config":{"rivalsByCount":true}}
 # The hive as a settlement (hive_plan.md, phase E2). New Expedition seed 777
-# with Rival factions 3 (as factions_site: with 1 the seed's hive is on Glass
-# Expanse), then 36 days pass (debug days) so the brood on Rust Tangle
-# (sys_43) grows into a hive. Jump there, beam one colonist down and land:
+# with Rival factions 3 (as factions_site): the brood lands on its landfall,
+# Ashen Basin (sys_25), 207 fuel from the player's, so debug travel jumps
+# there; the jump takes the star date to 69, so the brood has grown into a
+# hive by arrival. Beam one colonist down and land:
 # the presence is built as a settlement (the hive_core chamber laid with
 # resin, the heart with grey eggs, pools with its biomass, the stage's
 # clusters, chamber and spire, drones, scouts and warriors by type, coloured
@@ -22,13 +23,16 @@
 {"op":"click","target":"title:factions_plus"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"debug","cmd":"days 36"}
-{"op":"assert","path":"campaign.presences.sys_43","gte":12}
-{"op":"click","target":"row:locList:sys_43"}
-{"op":"click","target":"dash:travelBtn"}
+{"op":"debug","cmd":"see sys_25"}
+{"op":"click","target":"row:locList:sys_25"}
+{"op":"debug","cmd":"travel sys_25"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_43"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_25"}
+{"op":"assert","path":"campaign.day","gte":60}
+{"op":"assert","path":"campaign.presences.sys_25","gte":12}
 {"op":"assert","path":"selected_location.known_factions","eq":1}
+{"op":"click","target":"dash:locateBtn"}
+{"op":"wait","ticks":5}
 {"op":"screenshot","name":"starmap"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

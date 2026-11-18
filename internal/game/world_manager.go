@@ -374,7 +374,10 @@ func (wm *WorldManager) TickBackground(live *MainState) {
 		wm.chartRaceRange()  // and learns the worlds in its reach
 		wm.recordBroodLosses()
 		wm.checkSpreadEnd()
+		wm.orderGateRepairs()
+		wm.postNews()
 	}
+	wm.checkGate()
 	if wm.shipLevel != nil && wm.shipLevel != live {
 		// The live level's Update reset the per-frame pathfinding budget for
 		// itself; each background tick needs its own.
@@ -716,7 +719,7 @@ func (wm *WorldManager) StockShipLocker(fuel int, stock map[string]int) {
 }
 
 // applyQuestReward grants a completed quest's reward: fuel/resources into the
-// ship hold, and any new systems charted by SpawnSystems.
+// ship hold, and star charts (SpawnSystems): that many systems made known.
 func (wm *WorldManager) applyQuestReward(q *campaign.Quest) {
 	c := wm.Campaign
 	wm.addToShipHold("fuel", q.Reward.Fuel)
@@ -724,8 +727,8 @@ func (wm *WorldManager) applyQuestReward(q *campaign.Quest) {
 		wm.addToShipHold(bp, n)
 	}
 	if q.Reward.SpawnSystems > 0 {
-		for _, loc := range c.Expand(q.Reward.SpawnSystems) {
-			message.PostMessage("Mission", "New system charted: "+loc.Name)
+		for _, loc := range c.RevealCharts(q.Reward.SpawnSystems) {
+			message.PostMessage("Mission", "Star chart: "+loc.Name) // DRAFT
 		}
 	}
 }
@@ -1203,6 +1206,19 @@ func spawnLocationFixtures(c *campaign.Campaign, loc *campaign.Location, level *
 		} else if f.Kind == "datapad" {
 			ox = (h%81 - 40) * 3 // roughly ±120 tiles
 			oy = ((h/81)%81 - 40) * 3
+		} else if f.Kind == campaign.GateControlsKind {
+			// The gate's vault: a walk from the landing, not beside it, on
+			// ground the landing reaches (vaultSite).
+			if vx, vy, ok := vaultSite(level, ax, ay, az, f.StructW, f.StructH, h); ok {
+				ox, oy = vx-ax, vy-ay
+			} else {
+				ox = (35 + h%11) * (1 - 2*(h/11%2))
+				oy = (h/22%41 - 20)
+			}
+			// Never off the map: the whole vault fits inside it.
+			hw, hh := f.StructW/2+2, f.StructH/2+2
+			ox = min(max(ax+ox, hw), level.GetWidth()-1-hw) - ax
+			oy = min(max(ay+oy, hh), level.GetHeight()-1-hh) - ay
 		} else {
 			ox = h%25 - 12
 			oy = (h/25)%25 - 12
@@ -1298,7 +1314,7 @@ func (wm *WorldManager) Travel(locID string) error {
 	// A faction ship the jump meets, found where the fleets are as it
 	// starts; answered once in orbit (phase D, interception).
 	var met *campaign.Encounter
-	if dest.Kind != campaign.HomeKind && dest.Kind != campaign.EncounterKind {
+	if dest.Kind != campaign.EncounterKind {
 		met = c.DetectInterception(from, locID, c.StarDate, jumpDays)
 	}
 	if cur := wm.Current(); cur != nil {
@@ -1321,22 +1337,21 @@ func (wm *WorldManager) Travel(locID string) error {
 	// The factions live through the jump's days (the level left behind is
 	// still loaded if staffed, and skipped).
 	c.StepFactions(wm.IsLoaded)
-	// Reaching Home ends the run in victory — no level to generate or land.
-	if dest.Kind == campaign.HomeKind {
-		c.CurrentLocationID = locID
-		c.Won = true
-		return nil
-	}
-	// The Wreck Site is empty space: the ship sits there with no level, nothing
-	// to orbit and nothing to land on. (The Star Map refuses the jump; this
-	// keeps the state consistent if anything else asks.)
-	if dest.Kind == campaign.AdriftKind {
+	// The Wreck Site and the gate are empty space: the ship sits there with no
+	// level, nothing to orbit and nothing to land on. (The Star Map refuses
+	// the jump to the Wreck Site; this keeps the state consistent if anything
+	// else asks.) The gate is inert until its controls are built (plan step 4).
+	if dest.Kind == campaign.AdriftKind || dest.Kind == campaign.GateKind {
+		c.Identify(dest)
+		c.SeeAround(dest)
 		c.CurrentLocationID = locID
 		wm.currentID = ""
 		wm.landSet = false
 		return nil
 	}
 	c.CurrentLocationID = locID
+	c.Identify(dest)  // a blind jump learns what it jumped to on arrival
+	c.SeeAround(dest) // and sees what lies within sight of it
 	wm.landSet = false
 	delete(wm.viewVisited, locID) // in orbit: visited for real
 	ms := wm.loaded[locID]
@@ -1363,12 +1378,9 @@ func (wm *WorldManager) Travel(locID string) error {
 	if err := wm.enforceLoadedCap(); err != nil {
 		return err
 	}
-	// Travelling stirs up new contracts: 1-in-6 chance of 1d4 fresh quests
-	// (existing systems and/or newly charted ones) so the run keeps flowing.
-	if newLocs, added := c.MaybeTravelQuests(); added > 0 {
-		for _, loc := range newLocs {
-			message.PostMessage("Mission", "New system charted: "+loc.Name)
-		}
+	// Travelling stirs up new contracts: 1-in-6 chance of 1d4 fresh quests on
+	// existing systems so the run keeps flowing.
+	if added := c.MaybeTravelQuests(); added > 0 {
 		message.PostMessage("Mission", fmt.Sprintf("New contracts received (%d).", added))
 	}
 	return nil
@@ -1376,7 +1388,7 @@ func (wm *WorldManager) Travel(locID string) error {
 
 // EnterStartingOrbit parks the campaign's current location so a session begins
 // already in orbit of it — no fuel cost, no travel-quest roll — rather than "in
-// transit". No-op if a location is already loaded or the current site is Home.
+// transit". No-op if a location is already loaded or the ship is in empty space.
 func (wm *WorldManager) EnterStartingOrbit() error {
 	c := wm.Campaign
 	if wm.Current() != nil || c == nil || c.CurrentLocationID == "" {
@@ -1384,7 +1396,7 @@ func (wm *WorldManager) EnterStartingOrbit() error {
 	}
 	loc := c.Locations[c.CurrentLocationID]
 	if !loc.HasSite() {
-		// Home, or adrift at the Wreck Site: no level to park. Away planets
+		// Adrift at the Wreck Site or the gate: no level to park. Away planets
 		// that were loaded still come back.
 		wm.restoreLoaded()
 		return nil

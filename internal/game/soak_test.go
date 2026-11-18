@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	fspath "github.com/mechanical-lich/landing_party/internal/path"
 	"github.com/mechanical-lich/landing_party/internal/world"
@@ -105,7 +104,7 @@ func soakOne(t *testing.T, seed int64, ticks int) soakRow {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	crew := wm.ShipColonists()

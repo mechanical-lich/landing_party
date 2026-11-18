@@ -1,9 +1,11 @@
 {"name":"factions_autonz_observer","seed":65,"config":{"observerMode":true,"rivalsByCount":true}}
 # The autonz as a settlement in an observer run (autonz_plan.md, phase E3):
 # New Expedition seed 65 with Rival factions 4, 120 days on (debug days).
-# The Factions tab lists Leaden Ridge's autonz hub with its units by type and
+# The Factions tab lists Gaunt Cradle's autonz hub (sys_46, the autonz
+# landfall on the rim of the pregenerated galaxy) with its units by type and
 # its structures. Before viewing it, debug tech grants the hub the Bronze
-# Enforcer entry, so the frame does not wait on the day: viewing it
+# Enforcer entry, so the frame does not wait on the day (on this galaxy the
+# hub has learned it on its own by day 120; the grant pins it): viewing it
 # materialises its enforcers bronze (one row down on the sheet) beside its
 # steel wire placers. Frames: the Factions tab, the hub viewed, and the hub a
 # day on.
@@ -20,14 +22,14 @@
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"observer_run","eq":true}
 {"op":"debug","cmd":"days 120"}
-{"op":"debug","cmd":"tech sys_5 autonz autonz_bronze_enforcer"}
+{"op":"debug","cmd":"tech sys_46 autonz autonz_bronze_enforcer"}
 {"op":"click","target":"tab:factions"}
 {"op":"screenshot","name":"factions_tab"}
-{"op":"click","target":"factions:site:sys_5"}
-{"op":"assert","path":"selected_location.id","eq":"sys_5"}
+{"op":"click","target":"factions:site:sys_46"}
+{"op":"assert","path":"selected_location.id","eq":"sys_46"}
 {"op":"click","target":"dash:viewBtn"}
 {"op":"wait_until","path":"state","eq":"site","max_ticks":120}
-{"op":"assert","path":"location","eq":"sys_5"}
+{"op":"assert","path":"location","eq":"sys_46"}
 {"op":"assert","path":"autonz.stage","eq":1}
 {"op":"assert","path":"autonz.built.signal_core","eq":1}
 {"op":"assert","path":"autonz.tiers.enforcer bronze","gte":1}

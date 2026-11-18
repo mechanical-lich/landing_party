@@ -65,9 +65,9 @@ func TestFleetVisibility(t *testing.T) {
 	if c.Fleets[0].Known || len(c.KnownFleets()) != 0 {
 		t.Fatal("an egg from an unseen hive is known")
 	}
-	// A scanner at a site 22 units off the egg's line sees it once it is
-	// within range (tier 1: 25).
-	c.Locations["watch"] = &Location{ID: "watch", Name: "watch", Kind: "planet", X: c.Locations["hive"].X + 15, Y: c.Locations["hive"].Y + 22, Discovered: true}
+	// A scanner at a site 22 units off the egg's line, ahead of it, sees it
+	// once it is within range (tier 1: 40).
+	c.Locations["watch"] = &Location{ID: "watch", Name: "watch", Kind: "planet", X: c.Locations["hive"].X + 35, Y: c.Locations["hive"].Y + 22, Identified: true}
 	c.CurrentLocationID = "watch"
 	c.UnlockTech("ship_scanner_1")
 	c.StarDate = 2

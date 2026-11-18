@@ -17,7 +17,7 @@ func questRewardText(def *campaign.Quest) string {
 		parts = append(parts, fmt.Sprintf("%d %s", n, bp))
 	}
 	if def.Reward.SpawnSystems > 0 {
-		parts = append(parts, "charts new space")
+		parts = append(parts, fmt.Sprintf("star charts (%d systems)", def.Reward.SpawnSystems)) // DRAFT
 	}
 	out := ""
 	for i, p := range parts {

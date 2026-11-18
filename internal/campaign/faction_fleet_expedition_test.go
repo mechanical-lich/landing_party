@@ -46,10 +46,12 @@ func mirrorFlight(t *testing.T, seed int64, days int) (lines []string, moves map
 	return lines, moves, broke
 }
 
-// A mirror ship flies by the colony's expedition table: over 300 days the
-// same campaign seed moves it the same way, its fuel never goes below the
-// reserve after a jump nor past its tanks, and at least one lift-off in the
-// seeds is the table's own move rather than the stay_days fallback.
+// A mirror ship (a rival colony) flies on the colony's expedition table's
+// fuel and its gate objective (gate.go): over 300 days the same campaign
+// seed moves it the same way, its fuel never goes below the reserve after a
+// jump nor past its tanks, and every lift-off is a move toward the gate
+// ("explore" before it knows it, "gate" after), never the stay_days
+// fallback.
 func TestMirrorFleetFliesByTheTable(t *testing.T) {
 	useRepoData(t)
 	all := map[string]int{}
@@ -67,8 +69,8 @@ func TestMirrorFleetFliesByTheTable(t *testing.T) {
 		}
 		t.Logf("seed %d lift-offs %v", seed, moves)
 	}
-	if all["table"]+all["pack_up"] == 0 {
-		t.Errorf("no table-driven lift-off in four seeds: %v", all)
+	if all["explore"] == 0 || all["gate"] == 0 || all["fallback"]+all["stay"] > 0 {
+		t.Errorf("lift-offs in four seeds %v: want explore and gate moves, no fallback", all)
 	}
 }
 

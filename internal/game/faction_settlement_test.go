@@ -25,7 +25,7 @@ func mirrorOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	d := campaign.LoadFactionData().Doctrine("mirror")
 	if d == nil || d.Settlement == nil {
 		t.Fatal("no mirror doctrine with a settlement")
@@ -35,7 +35,7 @@ func mirrorOnStart(t *testing.T, seed int64, pop int) (*WorldManager, *MainState
 		Stockpile: map[string]int{"metal_ore": 30, "crystal": 15}, Seed: seed*31 + 7,
 		LastShotDay: campaign.NeverFired,
 	})
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	crew := wm.ShipColonists()
@@ -169,7 +169,7 @@ func TestMirrorShipLandsAndTurnsHostileOnContact(t *testing.T) {
 		t.Fatal(err)
 	}
 	syncFactionHostility(c)
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	c.FactionSeq++
 	c.Fleets = append(c.Fleets, campaign.Fleet{
 		ID: "flm", Kind: campaign.FleetShip, FromID: loc.ID, ToID: loc.ID,

@@ -125,20 +125,27 @@ func AddTutorialLocation(c *Campaign) *Location {
 	if from != nil {
 		sx, sy = from.X, from.Y
 	}
-	next := StartLocationID
+	next := c.StartID
 	if c.Locations[next] == nil {
 		next = c.CurrentLocationID
 	}
-	// Away from Home: the opposite bearing, within a 120 degree arc, so the
-	// Training Ground stays clear of the dashed Home line.
+	// Away from the galaxy: outward from its centre, within a 120 degree arc,
+	// so the Training Ground sits beyond the rim beside the landfall, clear
+	// of every system.
 	awayAng := 0.0
-	if home := c.HomeLocation(); home != nil {
-		awayAng = math.Atan2(home.Y-sy, home.X-sx) + math.Pi
+	if g := c.Galaxy; g != nil {
+		awayAng = math.Atan2(sy-g.CY, sx-g.CX)
 	}
+	// Nearer than every system, so it is the first destination.
+	hi := tutorialRadiusMax
+	for _, l := range c.Systems() {
+		hi = math.Min(hi, math.Hypot(l.X-sx, l.Y-sy)-1)
+	}
+	lo := math.Min(tutorialRadiusMin, hi*0.75)
 	rng := rand.New(rand.NewSource(c.Seed*7919 + 17))
 	x, y := c.placeSeparated(func() (float64, float64) {
 		ang := awayAng + (rng.Float64()-0.5)*(2*math.Pi/3)
-		r := tutorialRadiusMin + rng.Float64()*(tutorialRadiusMax-tutorialRadiusMin)
+		r := lo + rng.Float64()*(hi-lo)
 		return sx + math.Cos(ang)*r, sy + math.Sin(ang)*r
 	})
 	loc := &Location{
@@ -148,7 +155,7 @@ func AddTutorialLocation(c *Campaign) *Location {
 		MapID:      "tutorial",
 		ScenarioID: "tutorial",
 		Seed:       tutorialSeed,
-		Discovered: true,
+		Identified: true,
 		X:          x,
 		Y:          y,
 		Summary:    "A small, quiet world with a supply pad, a rock outcrop and food on the ground. The guided first landing.",

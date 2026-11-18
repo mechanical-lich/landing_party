@@ -158,7 +158,7 @@ func TestRaceRunSharedTechs(t *testing.T) {
 	st.UnlockTech("hive_warrior_brood")
 	var other *campaign.Location
 	for _, l := range c.Locations {
-		if l.ID != campaign.StartLocationID && l.HasSite() && len(l.Factions) == 0 {
+		if l.ID != c.StartID && l.HasSite() && len(l.Factions) == 0 {
 			other = l
 			break
 		}

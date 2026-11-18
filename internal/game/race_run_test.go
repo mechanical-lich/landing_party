@@ -37,7 +37,7 @@ func raceRun(t *testing.T, race string, seed int64, factions int) (*campaign.Cam
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, err := wm.ViewLocation(campaign.StartLocationID)
+	ms, err := wm.ViewLocation(c.StartID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestHiveRunStarts(t *testing.T) {
 	if n := len(wm.ShipColonists()); n != 0 {
 		t.Errorf("%d crew aboard a hive run's ship", n)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	p := loc.Presence(campaign.PlayerFaction)
 	if p == nil || p.Doctrine != "hive" || p.Population != 8 || !p.Known || c.Player.Faction != campaign.PlayerFaction {
 		t.Fatalf("player presence %+v (player %+v)", p, c.Player)
@@ -164,7 +164,7 @@ func TestRaceContactOnTheGround(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	loc.Factions = append(loc.Factions, campaign.FactionPresence{ID: "fpm", Faction: "mirror", Doctrine: campaign.RivalColonyDoctrine, Population: 3,
 		Stockpile: map[string]int{"metal_ore": 30}, Seed: 77, LastShotDay: campaign.NeverFired})
 	ms, err := wm.ViewLocation(loc.ID)
@@ -201,7 +201,7 @@ func TestHiveRunNamesTheHive(t *testing.T) {
 		}
 	}
 	d := campaign.LoadFactionData().Doctrine("hive")
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	if _, name := factionKey(c, d, loc.Presence(campaign.PlayerFaction), loc); !strings.Contains(name, "Hive") {
 		t.Errorf("the Factions block is %q", name)
 	}
@@ -227,7 +227,7 @@ func TestAutonzRunStarts(t *testing.T) {
 	if !c.SpreadRun() || len(ms.wm.ShipColonists()) != 0 {
 		t.Fatal("not a spread run, or crew aboard")
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	p := loc.Presence(campaign.PlayerFaction)
 	if p == nil || p.Doctrine != "autonz" || p.Population != 6 {
 		t.Fatalf("player presence %+v", p)
@@ -325,7 +325,7 @@ func TestRaceRunPeopleWord(t *testing.T) {
 		if got := playerPeopleWord(c); got != want {
 			t.Errorf("%s: people word %q, want %q", race, got, want)
 		}
-		loc := c.Locations[campaign.StartLocationID]
+		loc := c.Locations[c.StartID]
 		for i := 0; i < broodLossThreshold; i++ {
 			wm.noteBroodLoss(loc.ID)
 		}

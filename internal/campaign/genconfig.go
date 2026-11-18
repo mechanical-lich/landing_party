@@ -16,41 +16,30 @@ var GenerationConfigPath = "data/generation.json"
 // missing fields fall back to defaults (see defaultGenConfig), so the game
 // runs without the file and any subset can be overridden.
 type GenConfig struct {
-	HomeRadius     float64 `json:"home_radius"`
-	StartFuel      int     `json:"start_fuel"`
-	StartColonists int     `json:"start_colonists"`
-	RosterCap      int     `json:"roster_cap"`
+	StartFuel      int `json:"start_fuel"`
+	StartColonists int `json:"start_colonists"`
+	RosterCap      int `json:"roster_cap"`
 
-	// StartRadius is how far the generated start system sits from the Wreck
-	// Site at the origin: the first jump's fuel cost. Keep it under
-	// NearbyRadiusMin so the start is the nearest destination.
+	// StartRadius is how far outside the rim a landfall's arrival point (the
+	// Wreck Site, for the player) sits from its landfall system: the first
+	// jump's fuel cost.
 	StartRadius float64 `json:"start_radius"`
 
-	NearbyMin       int     `json:"nearby_min"`
-	NearbyMax       int     `json:"nearby_max"`
-	NearbyRadiusMin float64 `json:"nearby_radius_min"`
-	NearbyRadiusMax float64 `json:"nearby_radius_max"`
+	// Galaxy is the pregenerated galaxy's shape, sizes and landfalls
+	// (galaxy.go); Gate the way out of it (gate.go).
+	Galaxy GalaxyConfig `json:"galaxy"`
+	Gate   GateConfig   `json:"gate"`
 
 	DatapadQuestsMax int `json:"datapad_quests_max"` // hidden datapad quests per location (1..N)
 
 	TravelQuestOneIn int `json:"travel_quest_one_in"` // 1-in-N chance per jump
 	TravelQuestMax   int `json:"travel_quest_max"`    // up to this many (1..N)
 	ContractOneIn    int `json:"contract_one_in"`     // chance a rolled quest is a contract
-	NewSystemOneIn   int `json:"new_system_one_in"`   // chance a non-contract rolls a new system
 
-	ExpansionGapMin  float64 `json:"expansion_gap_min"`
-	ExpansionGapRand float64 `json:"expansion_gap_rand"`
-	HomeCapFrac      float64 `json:"home_cap_frac"`
-
-	// HomeBias (0..1) pulls each new system's direction toward Home: 0 spreads
-	// in every direction (no progress bias), 1 heads straight at Home (a
-	// corridor). Between, the map grows as a branching network that trends home
-	// while still offering lateral directions to explore.
-	HomeBias float64 `json:"home_bias"`
-
-	// MinSeparation is the smallest allowed distance between any two locations,
-	// so systems don't stack into overlapping star-map icons. Placement re-rolls
-	// to satisfy it. 0 disables the check.
+	// MinSeparation is the smallest allowed distance between a location placed
+	// beside the galaxy (the Training Ground, the gate) and any other, so
+	// icons don't stack. Placement re-rolls to satisfy it. 0 disables the
+	// check. The galaxy's own systems use their size's min_separation.
 	MinSeparation float64 `json:"min_separation"`
 
 	// ScannerTiers is the ship scanner's power by level (index 0 = scanner
@@ -60,6 +49,12 @@ type GenConfig struct {
 	// ScanFuelCosts is the fuel one scan burns by efficiency level (index 0 =
 	// base, each scan_efficiency_N tech advances one — cheaper).
 	ScanFuelCosts []int `json:"scan_fuel_costs"`
+
+	// SightRange is how far round the ship systems become seen (on arrival
+	// and at the start); SightBonus adds to it by scanner level (index 0 =
+	// scanner level 1).
+	SightRange float64   `json:"sight_range"`
+	SightBonus []float64 `json:"sight_bonus"`
 
 	// JumpFuelPerDay converts a jump's fuel cost to the star-date days it
 	// takes: ceil(fuel / JumpFuelPerDay).
@@ -76,41 +71,72 @@ type GenConfig struct {
 	FactionsMax     int `json:"factions_max"`
 }
 
-// ScannerTier is one ship-scanner power level: the chance a scan reveals a new
-// location, and the max distance (= fuel cost to reach) it can appear from the
-// ship's current location.
+// ScannerTier is one ship-scanner power level: how far from the ship a scan
+// reaches.
 type ScannerTier struct {
-	Chance float64 `json:"chance"`
-	Range  float64 `json:"range"`
+	Range float64 `json:"range"`
+}
+
+// GalaxyConfig is the pregenerated galaxy's tuning (generation.json "galaxy").
+type GalaxyConfig struct {
+	// DefaultSize is the New Expedition Galaxy size row's starting choice.
+	DefaultSize string       `json:"default_size"`
+	Sizes       []GalaxySize `json:"sizes"`
+	// Shapes are rolled by weight; each id is a density function (galaxy_shapes.go).
+	Shapes []GalaxyShape `json:"shapes"`
+	// LandfallSpare is how many landfalls beyond factions_max+1 the rim
+	// gets, so a later expedition has somewhere to arrive.
+	LandfallSpare int `json:"landfall_spare"`
+	// LandfallMinDistance keeps landfall points apart, so no two share a
+	// safe start (it is at least 2*safe_start_radius+1 whatever it says).
+	LandfallMinDistance float64 `json:"landfall_min_distance"`
+	// RimBins is how many angular slices round the centre of mass the rim
+	// is read from: the outermost system of each is a rim system.
+	RimBins int `json:"rim_bins"`
+	// GateHopMin/Max is the gate's distance from the world holding its controls.
+	GateHopMin float64 `json:"gate_hop_min"`
+	GateHopMax float64 `json:"gate_hop_max"`
+}
+
+// GalaxySize is one Galaxy size choice: how many systems in what radius.
+type GalaxySize struct {
+	ID            string  `json:"id"`
+	NameDraft     string  `json:"name_draft"`
+	Systems       int     `json:"systems"`
+	Radius        float64 `json:"radius"`
+	MinSeparation float64 `json:"min_separation"`
+	// SightRange, when set, replaces sight_range on a galaxy of this size.
+	SightRange float64 `json:"sight_range,omitempty"`
+}
+
+// GalaxyShape is one galaxy shape the generator may roll.
+type GalaxyShape struct {
+	ID        string `json:"id"`
+	NameDraft string `json:"name_draft"`
+	Weight    int    `json:"weight"`
 }
 
 func defaultGenConfig() GenConfig {
 	return GenConfig{
-		HomeRadius:       220,
 		StartFuel:        40,
 		StartColonists:   6,
 		RosterCap:        12,
 		StartRadius:      8,
-		NearbyMin:        2,
-		NearbyMax:        3,
-		NearbyRadiusMin:  9,
-		NearbyRadiusMax:  27,
 		DatapadQuestsMax: 20,
 		TravelQuestOneIn: 6,
 		TravelQuestMax:   4,
 		ContractOneIn:    3,
-		NewSystemOneIn:   3,
-		ExpansionGapMin:  18,
-		ExpansionGapRand: 32,
-		HomeCapFrac:      0.9,
-		HomeBias:         0.35,
 		MinSeparation:    5,
 		ScannerTiers: []ScannerTier{
-			{Chance: 0.10, Range: 25},
-			{Chance: 0.20, Range: 50},
-			{Chance: 0.30, Range: 100},
+			{Range: 40},
+			{Range: 70},
+			{Range: 110},
 		},
-		ScanFuelCosts:   []int{200, 100, 50},
+		Galaxy:          defaultGalaxyConfig(),
+		Gate:            GateConfig{LeaveFuel: 300},
+		SightRange:      60,
+		SightBonus:      []float64{10, 20, 30},
+		ScanFuelCosts:   []int{40, 25, 15},
 		JumpFuelPerDay:  3,
 		FactionsDefault: 1,
 		FactionsMax:     3,
@@ -144,6 +170,9 @@ func genConfig() GenConfig {
 	// The slices are the cache's own: a caller gets copies.
 	cfg.ScannerTiers = slices.Clone(cfg.ScannerTiers)
 	cfg.ScanFuelCosts = slices.Clone(cfg.ScanFuelCosts)
+	cfg.SightBonus = slices.Clone(cfg.SightBonus)
+	cfg.Galaxy.Sizes = slices.Clone(cfg.Galaxy.Sizes)
+	cfg.Galaxy.Shapes = slices.Clone(cfg.Galaxy.Shapes)
 	return cfg
 }
 
@@ -175,9 +204,6 @@ func loadGenConfig() GenConfig {
 	if cfg.ContractOneIn < 1 {
 		cfg.ContractOneIn = 1
 	}
-	if cfg.NewSystemOneIn < 1 {
-		cfg.NewSystemOneIn = 1
-	}
 	if cfg.FactionsMax < 0 {
 		cfg.FactionsMax = 0
 	}
@@ -187,10 +213,66 @@ func loadGenConfig() GenConfig {
 	if cfg.FactionsDefault < 0 {
 		cfg.FactionsDefault = 0
 	}
-	if cfg.HomeBias < 0 {
-		cfg.HomeBias = 0
-	} else if cfg.HomeBias > 1 {
-		cfg.HomeBias = 1
+	if len(cfg.Galaxy.Sizes) == 0 || len(cfg.Galaxy.Shapes) == 0 {
+		def := defaultGalaxyConfig()
+		if len(cfg.Galaxy.Sizes) == 0 {
+			cfg.Galaxy.Sizes = def.Sizes
+		}
+		if len(cfg.Galaxy.Shapes) == 0 {
+			cfg.Galaxy.Shapes = def.Shapes
+		}
+	}
+	if cfg.Galaxy.RimBins < 8 {
+		cfg.Galaxy.RimBins = 8
 	}
 	return cfg
+}
+
+// defaultGalaxyConfig is the galaxy tuning without a data file.
+func defaultGalaxyConfig() GalaxyConfig {
+	return GalaxyConfig{
+		DefaultSize: "medium",
+		Sizes: []GalaxySize{
+			{ID: "small", NameDraft: "Small", Systems: 40, Radius: 110, MinSeparation: 8, SightRange: 40},
+			{ID: "medium", NameDraft: "Medium", Systems: 80, Radius: 160, MinSeparation: 8},
+			{ID: "large", NameDraft: "Large", Systems: 150, Radius: 220, MinSeparation: 8},
+		},
+		Shapes: []GalaxyShape{
+			{ID: "spiral", NameDraft: "Spiral galaxy", Weight: 1},
+			{ID: "barred_spiral", NameDraft: "Barred spiral galaxy", Weight: 1},
+			{ID: "elliptical", NameDraft: "Elliptical galaxy", Weight: 1},
+			{ID: "lenticular", NameDraft: "Lenticular galaxy", Weight: 1},
+			{ID: "ring", NameDraft: "Ring galaxy", Weight: 1},
+			{ID: "irregular", NameDraft: "Irregular galaxy", Weight: 1},
+		},
+		LandfallSpare:       4,
+		LandfallMinDistance: 40,
+		RimBins:             32,
+		GateHopMin:          7,
+		GateHopMax:          11,
+	}
+}
+
+// GalaxySizes is the Galaxy size row's choices and its default id.
+func GalaxySizes() (sizes []GalaxySize, def string) {
+	g := genConfig().Galaxy
+	return g.Sizes, g.DefaultSize
+}
+
+// galaxySize is the size with id ("" or unknown: the default, else the first).
+func (g GalaxyConfig) size(id string) GalaxySize {
+	if id == "" {
+		id = g.DefaultSize
+	}
+	for _, s := range g.Sizes {
+		if s.ID == id {
+			return s
+		}
+	}
+	for _, s := range g.Sizes {
+		if s.ID == g.DefaultSize {
+			return s
+		}
+	}
+	return g.Sizes[0]
 }

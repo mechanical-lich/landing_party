@@ -1,8 +1,8 @@
 {"name":"new_expedition","seed":777,"config":{"rivalsByCount":true}}
 # Title -> New Expedition with seed 777, the tutorial off and the Rival factions
 # stepper walked to both ends and back to its default -> Star Map (adrift)
-# -> travel to the start system -> beam two colonists down -> To Site -> 600 ticks.
-# The start system is a first jump, so its history ends safe (here a quiet
+# -> travel to the landfall system (sys_55, Gleaming Cradle) -> beam two colonists down -> To Site -> 600 ticks.
+# The landfall system is a first jump, so its history ends safe (here a
 # earth_like world) and the crew is still standing after 600 ticks.
 {"op":"wait","ticks":10}
 {"op":"assert","path":"state","eq":"title"}
@@ -41,24 +41,24 @@
 {"op":"assert","path":"campaign.seed","eq":777}
 {"op":"assert","path":"campaign.faction_count","eq":1}
 # The seeded presence is never on the start system (the safe first jump).
-{"op":"assert","path":"campaign.presences.start","eq":null}
+{"op":"assert","path":"campaign.presences.sys_55","eq":null}
 {"op":"assert","path":"tutorial","eq":null}
-{"op":"assert","path":"fuel","eq":400}
+{"op":"assert","path":"fuel","eq":200}
 {"op":"assert","path":"crew_at.ship","eq":6}
 {"op":"save_as","name":"adrift"}
 {"op":"screenshot","name":"adrift"}
 {"op":"click","target":"row:locList:start"}
-{"op":"assert","path":"selected_location.id","eq":"start"}
+{"op":"assert","path":"selected_location.id","eq":"sys_55"}
 {"op":"assert","path":"selected_location.fuel_cost","eq":8}
 {"op":"screenshot","name":"picked"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
 {"op":"assert","path":"campaign.adrift","eq":false}
 {"op":"assert","path":"campaign.in_orbit","eq":true}
-{"op":"assert","path":"campaign.location_id","eq":"start"}
-# Fuel fell by the cost the Star Map showed (400 - 8).
-{"op":"assert","path":"fuel","eq":392}
-{"op":"assert","path":"hold.fuel","eq":392}
+{"op":"assert","path":"campaign.location_id","eq":"sys_55"}
+# Fuel fell by the cost the Star Map showed (200 - 8).
+{"op":"assert","path":"fuel","eq":192}
+{"op":"assert","path":"hold.fuel","eq":192}
 {"op":"screenshot","name":"traveled"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

@@ -10,8 +10,8 @@ import (
 	"github.com/mechanical-lich/mlge/ui/minui"
 )
 
-// CampaignEndState is the terminal screen: victory (reached Home) or defeat
-// (total wipe). It returns to the title screen.
+// CampaignEndState is the terminal screen: victory (left through the gate)
+// or defeat (total wipe). It returns to the title screen.
 type CampaignEndState struct {
 	victory bool
 	// title replaces the default title (a race's own words; race_run.go).
@@ -48,7 +48,7 @@ func (e *CampaignEndState) Draw(screen *ebiten.Image) {
 
 	title, tcol := "Expedition Lost", color.RGBA{220, 90, 80, 255}
 	if e.victory {
-		title, tcol = "You Made It Home", color.RGBA{120, 220, 150, 255}
+		title, tcol = "Victory", color.RGBA{120, 220, 150, 255}
 	}
 	if e.title != "" {
 		title = e.title

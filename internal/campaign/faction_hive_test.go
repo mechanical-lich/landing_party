@@ -134,9 +134,10 @@ func TestHiveFieldsSave(t *testing.T) {
 				m := f.(map[string]any)
 				delete(m, "units")
 				delete(m, "larvae")
-				for i, k := range m["known_techs"].([]any) {
+				kt, _ := m["known_techs"].([]any)
+				for i, k := range kt {
 					if k == "hive_warrior_brood" {
-						m["known_techs"].([]any)[i] = "tier_advanced"
+						kt[i] = "tier_advanced"
 					}
 				}
 			}

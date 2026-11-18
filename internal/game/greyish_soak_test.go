@@ -168,7 +168,7 @@ func greySoakOne(t *testing.T, seed int64, start string, ticks int) greyRow {
 	// one): the nearest the ship's fuel reaches.
 	var loc *campaign.Location
 	for _, l := range c.Locations {
-		if l.ID == campaign.StartLocationID || !c.FactionSiteOK(l, false) || !hasTag(l.CapacityTags(), "ore") {
+		if l.ID == c.StartID || !c.FactionSiteOK(l, false) || !hasTag(l.CapacityTags(), "ore") {
 			continue
 		}
 		if loc == nil || c.FuelCost(l.ID) < c.FuelCost(loc.ID) || c.FuelCost(l.ID) == c.FuelCost(loc.ID) && l.ID < loc.ID {
@@ -203,7 +203,7 @@ func greySoakOne(t *testing.T, seed int64, start string, ticks int) greyRow {
 		// off, with its beam stock: what the camp's materials come down from.
 		var far *campaign.Location
 		for _, l := range c.Locations {
-			if l.ID != loc.ID && l.ID != campaign.StartLocationID && (far == nil || l.ID < far.ID) {
+			if l.ID != loc.ID && l.ID != c.StartID && (far == nil || l.ID < far.ID) {
 				far = l
 			}
 		}

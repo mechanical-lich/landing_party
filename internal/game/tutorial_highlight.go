@@ -123,6 +123,8 @@ func (b *tutorialBridge) dashWidget(name string) minui.Element {
 			return p.beamUpBtn
 		case "scanBtn":
 			return p.scanBtn
+		case "leaveBtn":
+			return p.leaveBtn
 		}
 	}
 	return nil

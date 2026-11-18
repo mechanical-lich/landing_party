@@ -1,6 +1,8 @@
 {"name":"lore_station","seed":114,"config":{"debugDisableLighting":true,"rivalsByCount":true}}
-# A quiet abandoned station built from its history: seed 114's sys_57 is a
-# quiet station (no chapter). Land at the dock, walk to the main generator
+# A quiet abandoned station built from its history: seed 114's sys_73 (Far
+# Ridge, fuel 143 from the Wreck Site) is a quiet station (no chapter). A
+# blind jump identifies it (its Quiet tag on the Star Map after arrival).
+# Land at the dock, walk to the main generator
 # (dead until repaired) and look at every deck from the main stair column.
 # Lighting is off so whole modules show.
 # Re-find with: make history-dump HFIND=quiet,abandoned_station
@@ -13,12 +15,17 @@
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"click","target":"row:locList:sys_57"}
-{"op":"assert","path":"selected_location.id","eq":"sys_57"}
-{"op":"assert","path":"selected_location.tier","eq":"quiet"}
+{"op":"debug","cmd":"see sys_73"}
+{"op":"click","target":"row:locList:sys_73"}
+{"op":"assert","path":"selected_location.id","eq":"sys_73"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_57"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_73"}
+{"op":"assert","path":"campaign.location_identified","eq":true}
+{"op":"assert","path":"campaign.tier","eq":"quiet"}
+{"op":"assert","path":"campaign.chapter","eq":""}
+{"op":"click","target":"row:locList:sys_73"}
+{"op":"assert","path":"selected_location.tier","eq":"quiet"}
 {"op":"assert","path":"campaign.scenario","eq":"abandoned_station"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

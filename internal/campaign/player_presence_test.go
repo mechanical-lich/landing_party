@@ -6,57 +6,27 @@ import (
 	"testing"
 )
 
-// A version 3 save kept the player's techs on the campaign (known_techs). It
-// migrates to version 4 with them on the player's presence, which runs the
-// default doctrine; research checks read the same techs as before.
-func TestMigrateKnownTechsFromV3(t *testing.T) {
+// Every save from before the pregenerated galaxy is refused: no migration.
+func TestOlderSavesRefused(t *testing.T) {
 	useRepoData(t)
 	c := genCampaign(t, 1)
+	if err := MigrateCampaign(c); err != nil {
+		t.Fatalf("a current save is refused: %v", err)
+	}
+	for v := 0; v < CampaignVersion; v++ {
+		old := *c
+		old.Version = v
+		if err := MigrateCampaign(&old); err == nil {
+			t.Errorf("a version %d save loads", v)
+		}
+	}
 	b, _ := json.Marshal(c)
-	var raw map[string]any
-	_ = json.Unmarshal(b, &raw)
-	raw["version"] = 3
-	delete(raw, "player")
-	techs := []string{"basic_metallurgy", "ship_scanner_1", "ship_scanner_2"}
-	raw["known_techs"] = techs
-	b, _ = json.Marshal(raw)
-	var old Campaign
-	if err := json.Unmarshal(b, &old); err != nil {
-		t.Fatal(err)
-	}
-	if old.Player != nil || len(old.KnownTechs()) != 0 {
-		t.Fatal("the v3 shape should load with no player presence")
-	}
-	if err := MigrateCampaign(&old); err != nil {
-		t.Fatal(err)
-	}
-	if old.Version != CampaignVersion || CampaignVersion != 4 {
-		t.Errorf("version %d, CampaignVersion %d", old.Version, CampaignVersion)
-	}
-	if old.Player == nil || old.Player.Doctrine != DefaultPlayerDoctrine || old.Player.ID != PlayerPresenceID {
-		t.Fatalf("player presence %+v", old.Player)
-	}
-	if !reflect.DeepEqual(old.KnownTechs(), techs) || old.LegacyKnownTechs != nil {
-		t.Errorf("techs %v (legacy %v), want %v", old.KnownTechs(), old.LegacyKnownTechs, techs)
-	}
-	if !old.HasTech("basic_metallurgy") || old.ScannerLevel() != 2 {
-		t.Errorf("HasTech / ScannerLevel after migration: %v %d", old.HasTech("basic_metallurgy"), old.ScannerLevel())
-	}
-	// Saved again, the techs are under player and known_techs is gone.
-	b, _ = json.Marshal(&old)
-	var again map[string]any
-	_ = json.Unmarshal(b, &again)
-	if _, ok := again["known_techs"]; ok {
-		t.Error("known_techs still written at version 4")
-	}
 	var back Campaign
-	_ = json.Unmarshal(b, &back)
-	if err := MigrateCampaign(&back); err != nil || !reflect.DeepEqual(back.KnownTechs(), techs) {
-		t.Errorf("v4 round-trip: %v %v", err, back.KnownTechs())
+	if err := json.Unmarshal(b, &back); err != nil || MigrateCampaign(&back) != nil || back.Galaxy == nil || back.StartID != c.StartID {
+		t.Fatalf("round trip: %v, galaxy %v", err, back.Galaxy)
 	}
 }
 
-// A new campaign's player presence runs the chosen doctrine, the default
 // when none is chosen, and is on no location: Tier 1 never steps it.
 func TestPlayerPresenceOnNewCampaign(t *testing.T) {
 	useRepoData(t)

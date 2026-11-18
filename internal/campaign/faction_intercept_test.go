@@ -42,7 +42,7 @@ func TestInterceptionCrossingAndOrbit(t *testing.T) {
 	}
 	// A mothership in orbit of the destination is met on arrival.
 	d := greyDoctrine(t)
-	ms := c.newMothership("greyish", d, map[string]bool{"p1": true, "n": true, "s": true})
+	ms := parkMothership(c, "greyish", d, map[string]bool{"p1": true, "n": true, "s": true})
 	if ms == nil {
 		t.Fatal("no mothership")
 	}
@@ -163,7 +163,7 @@ func TestInterceptionParleyOnlyWhenNeutral(t *testing.T) {
 func TestBoardingTheMothership(t *testing.T) {
 	c, _ := interceptCampaign(t, 7, 0)
 	d := greyDoctrine(t)
-	ms := c.newMothership("greyish", d, map[string]bool{"p1": true, "n": true, "s": true})
+	ms := parkMothership(c, "greyish", d, map[string]bool{"p1": true, "n": true, "s": true})
 	ms.Presence.Stockpile = map[string]int{"metal_ore": 80}
 	c.Encounter = c.DetectInterception("p1", ms.ToID, 0, 1)
 	e, err := c.AnswerEncounter(AnswerBoard)

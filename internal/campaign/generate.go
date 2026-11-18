@@ -45,11 +45,6 @@ type locArchetype struct {
 
 type locTemplates struct {
 	Archetypes []locArchetype `json:"archetypes"`
-	Home       struct {
-		Maps      []string `json:"maps"`
-		Scenarios []string `json:"scenarios"`
-		Summary   string   `json:"summary"`
-	} `json:"home"`
 }
 
 type questTemplate struct {
@@ -85,14 +80,13 @@ type questTemplate struct {
 	FixtureStructW   int    `json:"fixture_struct_w"`
 	FixtureStructH   int    `json:"fixture_struct_h"`
 	// SpawnArchetype, when set, makes this a "contract": instead of attaching
-	// to an existing system's tags, generating the quest also charts a new
-	// (hidden) location of that archetype and binds the quest to it. Accepting
-	// the quest reveals it. Lets quests bring their own destination into being
-	// (e.g. a distress call from a xeno-infested world).
+	// to a system by its tags, it points at an existing system made from
+	// that archetype (e.g. a distress call from a xeno-infested world).
+	// Accepting the quest reveals it.
 	SpawnArchetype string `json:"spawn_archetype"`
-	// SpawnEvent, on a contract, names the history chapter the new location
-	// must end in (a distress call wants a colony overrun by xenos), so the
-	// threat the quest asks about is the one the site plays.
+	// SpawnEvent, on a contract, names the history chapter the system should
+	// end in (a distress call wants a colony overrun by xenos): a system
+	// whose site plays it is preferred.
 	SpawnEvent string `json:"spawn_event,omitempty"`
 	// History, when set, makes this a history-backed template bound at
 	// charting from the site's history (see addHistoryQuest): "figure_log",
@@ -131,85 +125,68 @@ func loadGenTemplates() (*locTemplates, *questTemplates, error) {
 // file is absent) so callers can read start fuel/colonists/roster cap.
 func GenerationConfig() GenConfig { return genConfig() }
 
-// GenerateCampaign builds a fully procedural campaign: a generated start
-// system, a far-off visible "Home" (reaching it wins), a couple of nearby
-// systems, and their quests. Everything is derived from seed and persisted, so
-// loading a save reproduces the run exactly. It seeds no rival factions (see
+// GenerateCampaign builds a campaign on a fresh galaxy of the default size
+// (GenerateGalaxy) with the expedition arrived at a rolled landfall.
+// Everything is derived from seed and persisted, so loading a save
+// reproduces the run exactly. It seeds no rival factions (see
 // GenerateCampaignOpts).
 func GenerateCampaign(name string, seed int64) (*Campaign, error) {
 	return GenerateCampaignOpts(name, seed, GenOptions{})
 }
 
 // GenerateCampaignOpts is GenerateCampaign with the New Expedition options:
-// opts.Factions rival presences are seeded once the opening map is charted,
-// from their own random stream, so the map is the same at every count.
+// the galaxy is made first (GenerateGalaxy, from seed and opts.Size alone),
+// then the expedition arrives: a landfall rolled from its own stream, the
+// Wreck Site at that landfall's point outside the rim, the landfall system
+// its first jump, one opening contract, and opts.Factions rival presences,
+// each from a stream of its own, so the galaxy is the same whoever arrives.
 func GenerateCampaignOpts(name string, seed int64, opts GenOptions) (*Campaign, error) {
-	lt, qt, err := loadGenTemplates()
+	c, err := generateGalaxy(seed, opts.Size, opts.Shape)
+	if err != nil {
+		return nil, err
+	}
+	_, qt, err := loadGenTemplates()
 	if err != nil {
 		return nil, err
 	}
 	cfg := genConfig()
-	c := &Campaign{
-		Version:   CampaignVersion,
-		Name:      name,
-		Seed:      seed,
-		Locations: make(map[string]*Location),
-		Ship:      NewShipState(cfg.RosterCap),
-		History:   history.New(seed),
-		Player:    NewPlayerPresence(opts.Doctrine),
-	}
+	c.Name = name
+	c.Ship = NewShipState(cfg.RosterCap)
+	c.Player = NewPlayerPresence(opts.Doctrine)
 	if c.Player.Faction == PlayerFaction {
 		c.Diplomacy = map[string]string{PlayerFaction: StanceNeutral} // a stray Stance lookup
 	}
-	rng := rand.New(rand.NewSource(seed))
 
-	// Home: far away, visible from day one; distance drives its (huge) cost.
-	hang := rng.Float64() * 2 * math.Pi
-	home := &Location{
-		ID: "home", Name: "Home", Kind: HomeKind,
-		MapID: pick(rng, lt.Home.Maps), ScenarioID: pick(rng, lt.Home.Scenarios),
-		Seed: seed + 1, Discovered: true,
-		X: math.Cos(hang) * cfg.HomeRadius, Y: math.Sin(hang) * cfg.HomeRadius,
-		Summary: lt.Home.Summary,
+	// The expedition's landfall, rolled from the free ones.
+	if len(c.Galaxy.Landfalls) == 0 {
+		return nil, fmt.Errorf("galaxy: seed %d has no landfall", seed)
 	}
-	c.Locations[home.ID] = home
+	lrng := rand.New(rand.NewSource(seed*6364136223846793 + 1442695040888963))
+	c.Landfall = lrng.Intn(len(c.Galaxy.Landfalls))
+	lf := c.Galaxy.Landfalls[c.Landfall]
+	c.StartID = lf.System
+	// The crew can see the nearest star: the landfall system is identified.
+	c.Identify(c.StartLocation())
 
-	// The ship begins adrift at the origin: the Wreck Site, an empty point with
-	// nothing to land on, so the first act is choosing a destination.
+	// The ship begins adrift at the landfall's point just outside the rim:
+	// the Wreck Site, an empty point with nothing to land on, so the first
+	// act is choosing a destination. The landfall system is the nearest.
 	adrift := &Location{
 		ID: AdriftLocationID, Name: "Wreck Site", Kind: AdriftKind,
-		Discovered: true, Visited: true,
-		Summary: "Where the damaged life-raft came to rest. Empty space: nothing to orbit, nothing to land on. Choose a destination.",
+		Identified: true, Visited: true, X: lf.X, Y: lf.Y,
+		Summary: "Where the damaged life-raft came to rest, at the edge of the galaxy. Empty space: nothing to orbit, nothing to land on. Choose a destination.", // DRAFT
 	}
 	c.Locations[adrift.ID] = adrift
 	c.CurrentLocationID = adrift.ID
-
-	// Start system: the nearest and cheapest destination, start_radius out in a
-	// random direction, so the first jump is always affordable.
-	sang := rng.Float64() * 2 * math.Pi
-	start := c.newSystem(rng, lt, qt, startArchetype(rng, lt),
-		math.Cos(sang)*cfg.StartRadius, math.Sin(sang)*cfg.StartRadius, StartLocationID)
-	start.Discovered = true
-
-	// Nearby systems, visible from the start so there's somewhere to go.
-	nearby := cfg.NearbyMin
-	if cfg.NearbyMax > cfg.NearbyMin {
-		nearby += rng.Intn(cfg.NearbyMax - cfg.NearbyMin + 1)
-	}
-	for i := 0; i < nearby; i++ {
-		x, y := c.placeSeparated(func() (float64, float64) {
-			ang := rng.Float64() * 2 * math.Pi
-			r := cfg.NearbyRadiusMin + rng.Float64()*(cfg.NearbyRadiusMax-cfg.NearbyRadiusMin)
-			return math.Cos(ang) * r, math.Sin(ang) * r
-		})
-		near := c.newSystem(rng, lt, qt, weightedArchetype(rng, lt), x, y, "")
-		near.Discovered = true
-	}
+	// From the landfall the crew can see what lies within its sight range.
+	c.SeeAround(adrift)
 
 	// One opening "contract" so a quest-defines-its-destination mission (e.g.
 	// a distress call) is offered from the very start.
-	if qd := c.makeContract(rng, lt, qt); qd != nil {
+	erng := rand.New(rand.NewSource(seed*2862933555777941757 + 3037000493))
+	if qd := c.makeContract(erng, qt); qd != nil {
 		c.QuestDefs = append(c.QuestDefs, *qd)
+		c.offerQuest()
 	}
 
 	if opts.Rivals != nil {
@@ -229,93 +206,130 @@ func GenerateCampaignOpts(name string, seed int64, opts GenOptions) (*Campaign, 
 	return c, nil
 }
 
-// Expand procedurally charts n new systems (with quests), marching the
-// frontier toward Home. Deterministic via Seed+GenSeq. Returns the new
-// systems (already Discovered) for the caller to announce.
-func (c *Campaign) Expand(n int) []*Location {
-	lt, qt, err := loadGenTemplates()
-	if err != nil || n <= 0 {
+// StartLocation is the expedition's landfall system: its first jump.
+func (c *Campaign) StartLocation() *Location {
+	if c == nil {
 		return nil
 	}
-	rng := rand.New(rand.NewSource(c.Seed + int64(c.GenSeq+1)*1000003))
-	var out []*Location
-	for i := 0; i < n; i++ {
-		x, y := c.placeTowardHome(rng)
-		loc := c.newSystem(rng, lt, qt, weightedArchetype(rng, lt), x, y, "")
-		loc.Discovered = true
-		out = append(out, loc)
+	return c.Locations[c.StartID]
+}
+
+// RevealCharts is a quest's star-chart reward: it makes known the n systems
+// nearest the ship that are not known yet, and returns them for the caller
+// to announce. Nothing is created.
+func (c *Campaign) RevealCharts(n int) []*Location {
+	if n <= 0 {
+		return nil
 	}
-	c.BindQuests()
-	return out
+	cur := c.CurrentLocation()
+	var cx, cy float64
+	if cur != nil {
+		cx, cy = cur.X, cur.Y
+	}
+	var cands []*Location
+	for _, l := range c.Systems() {
+		if !l.Identified {
+			cands = append(cands, l)
+		}
+	}
+	if g := c.GateLocation(); g != nil && !g.Identified {
+		cands = append(cands, g) // a chart may show the gate
+	}
+	sort.SliceStable(cands, func(i, j int) bool {
+		return math.Hypot(cands[i].X-cx, cands[i].Y-cy) < math.Hypot(cands[j].X-cx, cands[j].Y-cy)
+	})
+	if len(cands) > n {
+		cands = cands[:n]
+	}
+	for _, l := range cands {
+		l.Identified, l.Seen = true, true
+	}
+	return cands
 }
 
 // MaybeTravelQuests is rolled on every jump to a system: a 1-in-N chance
-// (config: travel_quest_one_in) to generate 1..travel_quest_max new quests,
-// each attached either to an existing discovered system or a freshly charted
-// one. Keeps the run from stalling as long as the player keeps moving. Returns
-// any newly charted systems and the number of quests added.
-func (c *Campaign) MaybeTravelQuests() ([]*Location, int) {
-	lt, qt, err := loadGenTemplates()
+// (config: travel_quest_one_in) to post 1..travel_quest_max new quests, each
+// on an existing system (a contract on one of its archetype, the rest on one
+// near the ship). Keeps the run from stalling as long as the player keeps
+// moving. Returns the number of quests added.
+func (c *Campaign) MaybeTravelQuests() int {
+	_, qt, err := loadGenTemplates()
 	if err != nil {
-		return nil, 0
+		return 0
 	}
 	cfg := genConfig()
 	c.TravelSeq++
 	rng := rand.New(rand.NewSource(c.Seed + int64(c.TravelSeq)*2654435761 + int64(c.GenSeq)*131))
 	if rng.Intn(cfg.TravelQuestOneIn) != 0 {
-		return nil, 0
+		return 0
 	}
 	count := 1 + rng.Intn(cfg.TravelQuestMax)
-
-	// Sorted by ID so selection (and thus the RNG draw sequence) is
-	// deterministic — Go map iteration order is randomized.
-	existing := []*Location{}
-	for _, l := range c.Locations {
-		if l.Discovered && l.HasSite() && !l.Tutorial {
-			existing = append(existing, l)
-		}
-	}
-	sort.Slice(existing, func(i, j int) bool { return existing[i].ID < existing[j].ID })
-
 	hasContracts := len(contractTemplates(qt)) > 0
-
-	var newLocs []*Location
 	added := 0
 	for i := 0; i < count; i++ {
-		// ~1/3 of rolled quests are "contracts" that chart their own hidden
-		// destination (e.g. a distress call), independent of existing systems.
+		// ~1/3 of rolled quests are "contracts" pointing at a system of their
+		// own archetype (e.g. a distress call).
 		if hasContracts && rng.Intn(cfg.ContractOneIn) == 0 {
-			if qd := c.makeContract(rng, lt, qt); qd != nil {
+			if qd := c.makeContract(rng, qt); qd != nil {
 				c.QuestDefs = append(c.QuestDefs, *qd)
+				c.offerQuest()
 				added++
 				continue
 			}
 		}
-		a := weightedArchetype(rng, lt)
-		var target *Location
-		if len(existing) == 0 || rng.Intn(cfg.NewSystemOneIn) == 0 {
-			x, y := c.placeTowardHome(rng)
-			target = c.newLocation(rng, a, x, y, "", "")
-			target.Discovered = true
-			c.addDatapadQuests(rng, qt, a, target)
-			newLocs = append(newLocs, target)
-			existing = append(existing, target)
-		} else {
-			target = existing[rng.Intn(len(existing))]
-			// Roll a template against the target's own tag, not the random
-			// archetype's, so the contract fits where it's posted.
-			a = locArchetype{Tags: tagSlice(target.QuestTag)}
+		target := c.questTarget(rng, nil)
+		if target == nil {
+			continue
 		}
+		// Roll a template against the target's own tag, so the quest fits
+		// where it's posted.
+		a := locArchetype{Tags: tagSlice(target.QuestTag)}
 		if qd := c.makeQuest(rng, qt, a, target); qd != nil {
 			c.QuestDefs = append(c.QuestDefs, *qd)
+			c.offerQuest()
 			added++
 		}
 	}
 	if added > 0 {
 		c.BindQuests()
 	}
-	return newLocs, added
+	return added
 }
+
+// offerQuest marks the last quest added as news: offered whatever the
+// player knows of its system, whose point it puts on the map (seen;
+// accepting it identifies the system).
+func (c *Campaign) offerQuest() {
+	if n := len(c.QuestDefs); n > 0 {
+		c.QuestDefs[n-1].Offered = true
+		c.See(c.Locations[c.QuestDefs[n-1].Location])
+	}
+}
+
+// questTarget picks the existing system a posted quest or contract points
+// at: one ok accepts (nil: any), never visited, never the ship's own, never
+// the Training Ground, weighted toward systems near the ship. nil if none.
+func (c *Campaign) questTarget(rng *rand.Rand, ok func(*Location) bool) *Location {
+	cur := c.CurrentLocation()
+	var cx, cy float64
+	if cur != nil {
+		cx, cy = cur.X, cur.Y
+	}
+	var cands []*Location
+	for _, l := range c.Systems() {
+		if l.Visited || l.ID == c.CurrentLocationID || (ok != nil && !ok(l)) {
+			continue
+		}
+		cands = append(cands, l)
+	}
+	return pickWeighted(rng, cands, func(l *Location) float64 {
+		return 1 / (1 + math.Hypot(l.X-cx, l.Y-cy)/questNearScale)
+	})
+}
+
+// questNearScale is the distance at which a system is half as likely to get
+// a posted quest as one beside the ship.
+const questNearScale = 40
 
 func tagSlice(t string) []string {
 	if t == "" {
@@ -324,82 +338,15 @@ func tagSlice(t string) []string {
 	return []string{t}
 }
 
-// placeTowardHome charts a new system a short hop from an existing "anchor"
-// system, in a direction that's biased toward Home but otherwise free — so the
-// map grows as a branching network that trends home rather than a single
-// corridor. The anchor is usually the player's current location (exploration
-// grows around them), sometimes a random discovered system (so the network
-// spreads). Overshooting Home is clamped away.
-func (c *Campaign) placeTowardHome(rng *rand.Rand) (float64, float64) {
-	cfg := genConfig()
-	ax, ay := c.expansionAnchor(rng)
-	homeAng := 0.0
-	if home := c.HomeLocation(); home != nil {
-		homeAng = math.Atan2(home.Y-ay, home.X-ax)
-	}
-	capR := cfg.HomeRadius * cfg.HomeCapFrac
-	return c.placeSeparated(func() (float64, float64) {
-		// A random bearing pulled toward Home by HomeBias.
-		ang := blendAngle(rng.Float64()*2*math.Pi, homeAng, cfg.HomeBias)
-		gap := cfg.ExpansionGapMin + rng.Float64()*cfg.ExpansionGapRand
-		x := ax + math.Cos(ang)*gap
-		y := ay + math.Sin(ang)*gap
-		if r := math.Hypot(x, y); r > capR && r > 0 {
-			x *= capR / r
-			y *= capR / r
-		}
-		return x, y
-	})
-}
-
-// expansionAnchor picks the existing location a new system buds from: usually
-// the player's current location (so exploration grows where they are),
-// sometimes a random discovered system (so the network spreads rather than only
-// trailing the player). Falls back to the origin.
-func (c *Campaign) expansionAnchor(rng *rand.Rand) (float64, float64) {
-	if cur := c.Locations[c.CurrentLocationID]; cur != nil && cur.Kind != HomeKind {
-		if rng.Intn(3) != 0 { // ~2/3 of the time, grow from the current location
-			return cur.X, cur.Y
-		}
-	}
-	// Sorted by ID so the selection (and RNG draw) is deterministic despite
-	// Go's randomized map iteration.
-	systems := make([]*Location, 0, len(c.Locations))
-	for _, l := range c.Locations {
-		if l.Discovered && l.HasSite() {
-			systems = append(systems, l)
-		}
-	}
-	if len(systems) == 0 {
-		return 0, 0
-	}
-	sort.Slice(systems, func(i, j int) bool { return systems[i].ID < systems[j].ID })
-	a := systems[rng.Intn(len(systems))]
-	return a.X, a.Y
-}
-
-// blendAngle rotates a toward b by fraction t (0 = a, 1 = b) along the shortest
-// arc.
-func blendAngle(a, b, t float64) float64 {
-	diff := math.Mod(b-a, 2*math.Pi)
-	if diff < -math.Pi {
-		diff += 2 * math.Pi
-	} else if diff > math.Pi {
-		diff -= 2 * math.Pi
-	}
-	return a + diff*t
-}
-
-// Scan runs one ship-scanner sweep from the current location. It rolls the
-// scanner's chance (by power level) and, on success, charts a new nearby planet
-// within the scanner's range — revealed and stocked with hidden datapad quests.
+// Scan runs one ship-scanner sweep from the current location: it identifies
+// every system within the scanner tier's range (the gate as the gate) and
+// shows what holds the worlds there. No chance roll; nothing is created. It
+// returns the newly identified, nearest first.
 //
 // The bool reports whether the scan actually ran: true means it executed (the
-// caller should charge fuel — a genuine miss returns (nil, true)); false means a
-// precondition failed (no scanner, no current location, templates unavailable)
-// and no fuel should be spent. The roll advances every run (hit or miss) so
-// repeated scans differ, and is deterministic/persisted via ScanSeq.
-func (c *Campaign) Scan(level int) (*Location, bool) {
+// caller should charge fuel); false means a precondition failed (no scanner,
+// no current location) and no fuel should be spent.
+func (c *Campaign) Scan(level int) ([]*Location, bool) {
 	if level < 1 {
 		return nil, false
 	}
@@ -407,59 +354,41 @@ func (c *Campaign) Scan(level int) (*Location, bool) {
 	if len(tiers) == 0 {
 		return nil, false
 	}
-	idx := level - 1
-	if idx >= len(tiers) {
-		idx = len(tiers) - 1
-	}
-	tier := tiers[idx]
+	tier := tiers[min(level, len(tiers))-1]
 	cur := c.Locations[c.CurrentLocationID]
 	if cur == nil {
 		return nil, false
 	}
-	lt, qt, err := loadGenTemplates()
-	if err != nil {
-		return nil, false
-	}
-	// The scan runs from here — a miss still counts (the caller charges fuel).
-	c.ScanSeq++
-	rng := rand.New(rand.NewSource(c.Seed + int64(c.ScanSeq)*2246822519))
-	// The sweep shows what holds the worlds already charted in range.
+	found := c.IdentifyWithin(cur.X, cur.Y, tier.Range)
 	c.RevealPresencesWithin(cur.X, cur.Y, tier.Range)
-	if rng.Float64() >= tier.Chance {
-		return nil, true // ran, came back empty
-	}
-	x, y := c.placeNear(rng, cur.X, cur.Y, tier.Range)
-	a := weightedArchetype(rng, lt)
-	loc := c.newLocation(rng, a, x, y, "", "")
-	loc.Discovered = true
-	// The scan reads the new site's story: its summary event becomes known.
-	c.RevealEvent(c.storyEvent(loc))
-	c.addDatapadQuests(rng, qt, a, loc)
-	c.BindQuests()
-	return loc, true
+	return found, true
 }
 
-// placeNear returns min-separated coordinates within maxDist of (cx, cy) in a
-// random direction — the scanner reveals a nearby world in any direction, not
-// just toward Home. Overshooting Home is clamped away.
-func (c *Campaign) placeNear(rng *rand.Rand, cx, cy, maxDist float64) (float64, float64) {
-	cfg := genConfig()
-	minD := cfg.ExpansionGapMin
-	if minD >= maxDist {
-		minD = maxDist * 0.3
+// ScanRange is the scanner's reach at level (0: none).
+func ScanRange(level int) float64 {
+	tiers := genConfig().ScannerTiers
+	if level < 1 || len(tiers) == 0 {
+		return 0
 	}
-	capR := cfg.HomeRadius * cfg.HomeCapFrac
-	return c.placeSeparated(func() (float64, float64) {
-		ang := rng.Float64() * 2 * math.Pi
-		r := minD + rng.Float64()*(maxDist-minD)
-		x := cx + math.Cos(ang)*r
-		y := cy + math.Sin(ang)*r
-		if d := math.Hypot(x, y); d > capR && d > 0 {
-			x *= capR / d
-			y *= capR / d
+	return tiers[min(level, len(tiers))-1].Range
+}
+
+// IdentifyWithin identifies every system and the gate within r of (x, y),
+// returning the newly identified nearest first.
+func (c *Campaign) IdentifyWithin(x, y, r float64) []*Location {
+	var out []*Location
+	for _, l := range c.sortedLocations() {
+		if l.Kind != GateKind && (!l.HasSite() || l.Kind == EncounterKind) {
+			continue
 		}
-		return x, y
+		if math.Hypot(l.X-x, l.Y-y) <= r && c.Identify(l) {
+			out = append(out, l)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return math.Hypot(out[i].X-x, out[i].Y-y) < math.Hypot(out[j].X-x, out[j].Y-y)
 	})
+	return out
 }
 
 // tooClose reports whether (x,y) lands within minSep of any existing location,
@@ -514,41 +443,6 @@ func (c *Campaign) uniqueName(rng *rand.Rand) string {
 	return n
 }
 
-// newLocation creates one location from an archetype (no quests) and appends
-// it to the campaign. wantEvent, if set, asks its history to end in that
-// chapter (see bindHistory).
-func (c *Campaign) newLocation(rng *rand.Rand, a locArchetype, x, y float64, idHint, wantEvent string) *Location {
-	c.GenSeq++
-	id := fmt.Sprintf("sys_%d", c.GenSeq)
-	if idHint != "" {
-		id = idHint
-	}
-	loc := &Location{
-		ID:       id,
-		Name:     c.uniqueName(rng),
-		Kind:     a.Kind,
-		MapID:    pick(rng, a.Maps),
-		Seed:     c.Seed + int64(c.GenSeq)*131,
-		X:        x,
-		Y:        y,
-		Summary:  a.Summary,
-		QuestTag: firstTag(a.Tags),
-		Tags:     append([]string(nil), a.Tags...),
-	}
-	// The scenario used to be rolled here. History picks it now (bindHistory);
-	// this draw stands in for the old roll so every later draw, and with it
-	// every later site's map, position and name, stays where it was.
-	_ = rng.Int31()
-	c.Locations[id] = loc
-	if wantEvent == "" {
-		wantEvent = a.SpawnEvent
-	}
-	c.bindHistory(loc, wantEvent)
-	c.addHistoryQuest(loc)
-	c.addStationQuests(loc)
-	return loc
-}
-
 // bindHistory gives a charted site its history: the scenario is the history's
 // chapter (or the map's quiet base), the summary its one-line story. wantEvent,
 // if set, asks for a history ending in that chapter (a contract's threat). On a
@@ -567,10 +461,10 @@ func (c *Campaign) bindHistory(loc *Location, wantEvent string) {
 	}
 	var site *history.SiteHistory
 	switch {
+	case c.safeStart(loc): // a first jump is safe whatever it was asked for
+		site, err = c.History.BindSiteSafe(lib, loc.MapID, loc.Seed)
 	case wantEvent != "":
 		site, err = c.History.BindSiteEnding(lib, loc.MapID, loc.Seed, wantEvent)
-	case c.firstJump(loc):
-		site, err = c.History.BindSiteSafe(lib, loc.MapID, loc.Seed)
 	default:
 		site, err = c.History.BindSite(lib, loc.MapID, loc.Seed)
 	}
@@ -772,20 +666,6 @@ func (c *Campaign) SiteHistory(loc *Location) *history.SiteHistory {
 	return c.History.Sites[loc.History]
 }
 
-// newSystem creates one location from an archetype plus 1–2 quests, appends
-// them to the campaign, and returns the location.
-func (c *Campaign) newSystem(rng *rand.Rand, lt *locTemplates, qt *questTemplates, a locArchetype, x, y float64, idHint string) *Location {
-	loc := c.newLocation(rng, a, x, y, idHint, "")
-	nq := 1 + rng.Intn(2)
-	for i := 0; i < nq; i++ {
-		if qd := c.makeQuest(rng, qt, a, loc); qd != nil {
-			c.QuestDefs = append(c.QuestDefs, *qd)
-		}
-	}
-	c.addDatapadQuests(rng, qt, a, loc)
-	return loc
-}
-
 // addDatapadQuests gives a location 1..datapad_quests_max hidden quests, each
 // recoverable only by finding its datapad clue spawned at the location. They
 // stay out of the quest log until the datapad is picked up.
@@ -821,28 +701,49 @@ func (c *Campaign) makeQuest(rng *rand.Rand, qt *questTemplates, a locArchetype,
 	return c.buildQuestFromTemplate(rng, t, loc)
 }
 
-// makeContract rolls a "contract" quest: it charts a new hidden location of
-// the template's spawn archetype and binds the quest there. Accepting the
-// quest reveals the location (see Campaign.AcceptQuest).
-func (c *Campaign) makeContract(rng *rand.Rand, lt *locTemplates, qt *questTemplates) *Quest {
+// makeContract rolls a "contract" quest pointing at an existing system made
+// from the template's spawn archetype (one whose site ends in the template's
+// spawn event preferred), near the ship by preference, not yet visited.
+// Accepting the quest reveals the system (see Campaign.AcceptQuest). nil
+// when no system fits.
+func (c *Campaign) makeContract(rng *rand.Rand, qt *questTemplates) *Quest {
 	contracts := contractTemplates(qt)
 	if len(contracts) == 0 {
 		return nil
 	}
 	t := contracts[rng.Intn(len(contracts))]
-	a, ok := archetypeByID(lt, t.SpawnArchetype)
-	if !ok {
+	fits := func(l *Location) bool {
+		return l.Archetype == t.SpawnArchetype && !c.safeStart(l) && !c.contracted(l)
+	}
+	if t.SpawnEvent != "" {
+		inner := fits
+		fits = func(l *Location) bool {
+			site := c.SiteHistory(l)
+			return inner(l) && site != nil && c.History.Event(site.Chapter) != nil && c.History.Event(site.Chapter).Type == t.SpawnEvent
+		}
+		if c.questTarget(rand.New(rand.NewSource(0)), fits) == nil {
+			fits = inner // no system plays it: any of the archetype
+		}
+	}
+	loc := c.questTarget(rng, fits)
+	if loc == nil {
 		return nil
 	}
-	x, y := c.placeTowardHome(rng)
-	loc := c.newLocation(rng, a, x, y, "", t.SpawnEvent)
-	loc.Discovered = false // hidden until the contract is accepted
 	q := c.buildQuestFromTemplate(rng, t, loc)
 	if q != nil {
 		q.Contract = true
 	}
-	c.addDatapadQuests(rng, qt, a, loc)
 	return q
+}
+
+// contracted reports whether a contract already points at l.
+func (c *Campaign) contracted(l *Location) bool {
+	for i := range c.QuestDefs {
+		if q := &c.QuestDefs[i]; q.Contract && q.Location == l.ID {
+			return true
+		}
+	}
+	return false
 }
 
 // buildQuestFromTemplate constructs a concrete Quest from a chosen template,

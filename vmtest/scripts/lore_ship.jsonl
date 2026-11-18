@@ -1,9 +1,10 @@
 {"name":"lore_ship","seed":11,"config":{"debugDisableLighting":true,"rivalsByCount":true}}
-# A crashed warship: seed 11's start system is an earth_like world where an
-# old warship came down (ancient_wreck, purpose warship). Walk to the wreck
+# A crashed warship: seed 11's landfall system (sys_1, Crimson Flats) is an
+# alien world where an old warship came down (ancient_wreck, purpose warship;
+# its reactor leaks now, the hazard chapter wreck_leak). Walk to the wreck
 # (debug origin walk ancient_wreck): its hull, sections and named rooms.
 # Lighting is off so the whole wreck shows.
-# Re-find with: make history-dump HFIND=start,ancient_wreck,purpose=warship,stamped:ancient_wreck
+# Re-find with: make history-dump HFIND=sys_1,ancient_wreck,purpose=warship,stamped:ancient_wreck
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
@@ -17,7 +18,7 @@
 {"op":"assert","path":"selected_location.history_summary","eq":true}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"start"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_1"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
 {"op":"wait","ticks":5}

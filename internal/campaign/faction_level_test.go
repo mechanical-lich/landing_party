@@ -76,7 +76,7 @@ func TestFactionReconcile(t *testing.T) {
 // A lost launcher stops the hive firing until it regrows after a cooldown.
 func TestFactionLostLauncherRegrows(t *testing.T) {
 	c := factionTestCampaign(t, map[string]string{"a": "earth_like"})
-	c.Locations["b"] = &Location{ID: "b", Name: "b", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"biomass"}, X: 110, Y: 1000, Discovered: true}
+	c.Locations["b"] = &Location{ID: "b", Name: "b", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"biomass"}, X: 110, Y: 1000, Identified: true}
 	d := hiveDoctrine(t)
 	p := c.newPresence("hive", "hive", d, c.Locations["a"], 20)
 	p.LauncherLost, p.LauncherLostDay = true, 0

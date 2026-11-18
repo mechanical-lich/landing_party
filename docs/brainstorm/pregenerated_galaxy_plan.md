@@ -462,3 +462,331 @@ Still open, small or tuned by play:
   fixed map they must still feel like news.
 
 ## As built
+
+### Step 1: the galaxy (built 2026-11-15)
+
+- `GenerateGalaxy(seed, size)` (`internal/campaign/galaxy.go`) makes every
+  system from the galaxy stream alone: shape, positions, rim and landfalls,
+  the controls world and the gate, archetypes, names and seeds, then every
+  site's history in ID order, then each system's posted and datapad quests.
+  `GenerateCampaignOpts` calls it, then adds the expedition from streams of
+  its own (the landfall roll, the Wreck Site, the opening contract, rival
+  seeding). A test proves the galaxy is the same with any race, rival count
+  or rival boxes.
+- Shapes are density functions in `galaxy_shapes.go` keyed by the ids in
+  `generation.json`'s new `galaxy` block (all six, weight 1); sizes, radii,
+  the systems' minimum separation (8), landfall spacing (40), rim bins (32)
+  and the gate's hop (7 to 11) are data there too.
+- **`Campaign.Galaxy` holds less than the plan listed.** It records the
+  size, shape, radius, centre of mass, landfalls and the gate and controls
+  ids. The systems stay in `Campaign.Locations` and the past in
+  `Campaign.History`: a `Location` also carries the expedition's knowledge
+  of it (visited, the level save, presences) and `History` the events made
+  in play, so moving them would not draw the boundary the plan wants
+  without also splitting those types. That split is the revisit plan's save
+  change.
+- **The landfall system is not always the rim system.** A landfall's point
+  is `start_radius` (8) outward from the outermost system of its angular
+  bin; the system nearest the point owns it. Every system within the safe
+  radius of any landfall point is given a start archetype and bound safe,
+  and a safe binding now wins over an archetype's forced ending, so no
+  safe start can hold a hive (a test found one before the fix).
+- **The controls world cannot be half a diameter from every landfall.**
+  With nine landfalls round the rim the centre is nearer than that to all of
+  them on every shape and size (0 of 540 layouts managed it). It is rolled
+  among the systems within 85% of the farthest any system lies from its
+  nearest landfall: in practice 0.25 to 0.45 of the radius from the nearest
+  one, near the middle.
+- Landfalls: `factions_max + 1 + landfall_spare` = 9 (the plan's `+4`
+  counted the player's in the four). The player's is rolled from its own
+  stream; the Wreck Site sits on its point and `Campaign.StartID` names its
+  system (the fixed `start` id is gone). `firstJump` still measures from the
+  Wreck Site, so the player's safe start keeps its protection from rivals.
+- The gate (`GateKind`, id `gate`) replaces Home: a site in space beside the
+  controls world, inert. Travelling there leaves the ship in empty space as
+  at the Wreck Site (`IsAdrift` covers both). Reaching it wins nothing; the
+  run is endless until step 4. The Star Map draws it as a dark ring and the
+  dashed line to Home is gone.
+- Creation paths removed: `Expand` (a quest's `spawn_systems` is now star
+  charts, `RevealCharts`: the nearest unknown systems become known),
+  `Scan`'s roll (no `ScanSeq`, no chance in `scanner_tiers`), the
+  new-system branch of `MaybeTravelQuests` (`new_system_one_in` gone),
+  `makeContract`'s charting (it picks an unvisited system of its archetype,
+  outside every safe start, nearer the ship more likely, one whose chapter is
+  the template's `spawn_event` first). `placeTowardHome`, `home_bias`,
+  `home_radius`, the nearby-system keys and the location templates' `home`
+  block are gone. Boarding decks (`EncounterKind`) are still made in play:
+  they are a faction ship's deck, not a system, and the count test leaves
+  them out.
+- Every system is `Discovered` as the plan's stopgap, so step 1 plays with
+  the whole galaxy listed (and its posted quests all offered).
+- Arriving factions start at their first stage (`seedArrival`, shared by
+  the three seeding paths): an autonz seeded on a cramped site used to
+  arrive already a hub.
+- The lore budget's per-stamp log lines print only with `LP_LORE_LOG` set.
+- Saves: `CampaignVersion` 5; every older save is refused with the existing
+  "from an older version of the game ... start a new expedition" message
+  (the v2 and v3 migrations are deleted).
+- Re-pinned with `-update-golden`: `lore_golden_sites.json` (now pins the
+  galaxy's maps, positions and names) and `greyish_pace.golden` (rivals
+  still seeded the old way on the bigger map; step 3 re-pins it again).
+
+### Step 2: knowledge and scanning (built 2026-11-15)
+
+- `Location.Discovered` is now `Identified` (json `identified`). Seen is
+  not stored: every location is drawn (`Campaign.MapLocations`). A new
+  expedition identifies only its landfall system (the crew can see the
+  nearest star); an observer run identifies everything (a spectator).
+- Identifying: `Scan` (every system and the gate within the tier's range,
+  `IdentifyWithin`), arriving (`WorldManager.Travel`, the gate and the
+  Wreck Site included), accepting a quest, star charts (`RevealCharts`,
+  which may chart the gate), a spreading race's reach (`ChartRaceReach`, now
+  also every world the player holds).
+- **Quests follow knowledge**, which the plan did not say: the 1 to 2
+  quests each system is generated with would otherwise all be offered on day
+  one (about 120 on a medium galaxy). A system's own quests are offered
+  once it is identified; news (contracts and a travel roll's quests,
+  `Quest.Offered`) is offered at once and identifies its system on accept.
+- Scanner tuning (drafts, data): ranges 40 / 70 / 110 (were 25 / 50 / 100),
+  fuel 40 / 25 / 15 (were 200 / 100 / 50, which bought a 10% roll). A tier 1
+  scan from a landfall identifies about 3 to 6 systems; the research texts
+  are rewritten to match (drafts).
+- Blind jumps need no confirmation: an unidentified system lists as
+  "Unidentified system — fuel N", its info column says what is not known,
+  and Travel reads **Jump Blind** (drafts).
+- Star Map: unidentified systems (the gate too) are dim 3.5 px points with
+  no label or badges; framing is the identified systems plus the scanner's
+  reach round the ship (at least 40 units), at the fit's zoom; the range
+  circle shows while Scan is hovered or its report is open; the canvas
+  header reads "<shape> · N systems · M identified" (draft names in
+  `galaxy.shapes`). Fleet tags may still name a rival ship's unidentified
+  destination (not changed).
+- New Expedition has a Galaxy size row (`size_prev` / `size_next`, vmtest
+  targets `title:size_prev|next`), between Rival factions and Race.
+- No automatic win remains: the hive's and autonz' `race.win` is now
+  `race.milestone` (same six worlds and draft texts); `SpreadMilestone`
+  records a `race_milestone` Legends event once and the game posts the
+  alert. `Campaign.Won` is kept for the gate step.
+- The tutorial has no scan steps (the plan assumed some); its Star Map step
+  text that named Home is rewritten (draft).
+
+### Step 3: factions on the full galaxy (built 2026-11-15)
+
+- `arrivalSite` gives every rival the system of a landfall rolled from the
+  free ones (not the player's, never two on one) in all three seeding paths
+  (the count, the rival boxes, a spreading race's rivals); it falls back to
+  the old economy-weighted pick only with no landfall free. `seedArrival`
+  puts a planet-carried rival on it at its first stage, a ship faction's
+  first ship landed there.
+- **The grey mothership orbits its landfall system, not the rim point.** A
+  mothership's position is the site it orbits (ships return to it, build at
+  it and upgrade there by `ToID`), and the rim point is not a location. It
+  sits 8 units in from the point instead. `min_home_distance` is gone.
+- The observer expedition already starts at the Wreck Site on the player's
+  landfall; the tutorial's Training Ground was moved beside the landfall in
+  step 1.
+- **There was no pull toward Home in the rival colony** to remove: its ship
+  picks sites in range by its expedition table (`shipCandidates`,
+  `fleetView`), which never read Home. It now has the whole galaxy to pick
+  from. Seeking the gate is step 4.
+- Re-pinned on a medium galaxy: `TestFactionPaceRivalOne` (1 at day 40, 1 to
+  3 at day 100 with two on five seeds of six, 8 to 15 at day 300) and
+  `greyish_pace.golden`; the tables and what moved are in
+  `docs/developer/factions.md`, "On the pregenerated galaxy". Rivals hold
+  about the same by day 100 and far more by day 300 (Rival factions 1: 8 to
+  15 hives, was 6 to 9; Rival factions 4: 18 to 36 presences of 80 systems).
+- **The observer expedition does not cross the galaxy** (env-gated
+  `TestObserverCrossing`, `LP_CROSSING=1`): over 1000 days on six medium
+  galaxies it makes 15 to 23 jumps and lands no farther than 13 to 142 units
+  from its landfall (the far side is 180 to 288). It is not short of fuel:
+  its tank is capped at its table's `fleet_fuel` (80) and it ends with 58 to
+  165. Its table scores nearby unvisited sites and charges 0.1 a fuel unit,
+  so it explores locally and never heads anywhere. Before the galaxy it
+  could not cross either: without quests the opening cluster never grew.
+  Reaching Home was at least 3000 fuel (about 1000 travel days at 3 fuel a
+  day, and some 80 jumps at the old 18 to 50 unit spacing); a medium
+  crossing is about 250 units, less than the old starting fuel. First fuel
+  re-tune: `start_fuel` 400 to 200, so a crossing needs at least one stop to
+  refine. Fuel per unit, jump days per fuel and the leaving cost are left for
+  the gate step, when there is somewhere to go.
+- Soaks re-read: every threshold is about the landed site's level
+  (milestones, survival, conversion, ore reached, no raids), not the map, so
+  none was changed. The mirror level tests (`faction_raid_test.go`) moved to
+  seed 3: on the new seed 1 and 6 landfalls the rival colony lost crew to
+  hunger in forty days (1 to 3 of 4 alive). Fixed afterwards in the worker
+  AI, not the director: crew crowding a container swapped places in
+  `dropoff` forever and hunger never interrupted it (seed 6), and food a
+  worker carried was never stored, so the others starved beside full
+  bags (seed 1). See `docs/developer/ai.md`. Seeds 1, 3, 4 and 6 now pass
+  (`LP_RAID_SEED`).
+- vmtest: every script that pinned the old opening map was re-found on the
+  new galaxy (new seeds, sites, assertions; fuel 200); the new `galaxy`
+  script covers each size, three shapes, a scan and a blind jump. New
+  script helpers: `row:locList:start`, `row:locList:unidentified:<n>`, the
+  id `start` in debug commands, `debug travel <id>`, `debug unlock <tech>`.
+- Results at the end of step 3: `go build`, `go vet`, `go test ./...` pass;
+  `make soak` passes, all eight soaks (24 minutes); `make vmtest-all`
+  passes, 41 of 41 scripts.
+- Found while re-finding the vmtest scripts: a jump to a grey faction's
+  landfall always meets its mothership (it orbits that system), and two
+  landfalls can be 200 or more fuel apart (seed 777: the hive's is 207 from
+  the player's, a 69-day jump).
+
+### Step 4: the gate (built 2026-11-15)
+
+- **The controls' vault is a structure fixture, not a forced history
+  ending.** The controls world carries a `QuestFixture` (kind
+  `gate_controls`, structure `gate_vault`, 27x23) built with its level, the
+  way a quest's lair is: no lore budget can drop it and no history roll can
+  miss it. Its site is bound safe (never a threat world on top of the
+  vault). `gate_vault.basic` is `underground_dungeon`'s BSP dungeon two or
+  three levels down a stair shaft, always guarded: a brute (Vault Warden)
+  beside the dormant controls in the far room and three guards on the way,
+  every one set to hostility 10 (`set_ai_var`, a new structure-script
+  function), a door in each wall of its surface room, and a passage carved
+  from the stair to the controls.
+- **Two latent bugs found in `underground_dungeon.basic`** (which quest
+  lairs and the `ice_age` stamp use), fixed in the vault's copy and then in
+  the original (`TestUndergroundDungeonWalkable`): its shaft's stair columns
+  are chosen by a parity sum that divides with `/` (not whole in this
+  BASIC), so every level gets a down stair over a down stair and the game's
+  path check (a down and an up stair for every level changed) rejects the
+  way down; and its BSP corridors sometimes leave the far room cut off.
+  Lairs already built in a save keep their old shaft.
+- The vault goes 16 to 62 tiles from the landing on ground the landing
+  walks to on its own level (`vaultSite`), else a fixed offset clamped
+  inside the map. Over seeds 1-20 on every shape and size
+  (`LP_GATE_SWEEP=1 TestGateVaultCompletable`, 360 sites): the controls
+  stand 2 (168) or 3 (192) levels down, a walk reaches them from the vault's
+  entrance on every site, guards stand by them (four on 351, three on 9),
+  and the entrance is a walk from the landing on 355 (the other five land
+  on a plateau too small for anything without stairs built).
+- **The controls world is chosen differently.** "Farthest from every
+  landfall" picked systems alone in a gap (a ring's core across its void)
+  that no ship could reach: it is now picked among the systems linked to
+  most landfalls by hops of at most 40 (`linkedToLandfalls`), then as far
+  from them as before. Its archetype (a start archetype: a planet with
+  ground for the vault), map and the gate's position come from a stream of
+  their own, so every other system keeps its step 3 name, map and place.
+- The activate order is the existing repair order: the dormant controls
+  (`gate_controls_dormant`, in a new file `data/blueprints/structures/gate.json`)
+  are `Repairable` into `gate_controls`, setting the level flag `gate:on`
+  (and `gate:on:by`, the repairing settlement, a small addition to
+  `replaceRepairable`); a hidden `gate_controls` buildable costs nothing and
+  takes 120 work. The world manager turns the flag into `SwitchGateOn`
+  (`Galaxy.GateOn`, `GateOnBy`, `GateOnDay`), on for good: the gate and its
+  controls world identified, a `gate_switched_on` Legends line, an alert
+  when a rival did it. Identifying the gate (scan, chart, arrival) also
+  identifies the controls world and says the gate is dark with its controls
+  there.
+- **Leave the Galaxy** takes Scan's place on the Star Map while the ship is
+  beside the gate: offered only while the gate is lit and the hold covers
+  `gate.leave_fuel` (300), it ends the run as a win with a "Through the
+  Gate" end screen and a `gate_left` Legends line. The gate draws lit once
+  on.
+- **Rival colonies seek the gate and leave** (`objective: leave` and a
+  `gate` block in the colony's rival view; `gate.go`). The plan let the
+  expedition table explore and learn the gate in passing; it never does (it
+  explores locally), so a ship seeking the gate has a heading: before it
+  knows the gate, the deepest system (farthest from every landfall point on
+  the rim, all in sight to anyone) and then new ground farthest from where
+  it has been, a target kept until reached; it learns the gate landing
+  within `sense_range` (100) of it; then the shortest route of stops within
+  its tank's reach (74, past its everyday 40) to the controls world, which
+  it may land on whoever holds it. There it switches the gate on: live, the
+  world manager orders the controls repaired by its own settlement
+  (`orderGateRepairs`); off a loaded level, after `switch_days` (20) at a
+  cost of `switch_loss` (1) crew. Then it flies to the lit gate and is gone,
+  with a `faction_left_galaxy` Legends line and an alert only if the player
+  had seen it. Its camp's refining (`fleet_refuel_per_day`) went from 1 to 4
+  a day, the 1 being tuned for the old small map: at 1 a ship crawled a unit
+  a day and two seeds never arrived in 500 days.
+- Measured, a rival colony alone (`TestRivalColonyLeavesThroughTheGate`,
+  bound 500 days): small galaxies day 39 to 138 (mean 76), medium day 69 to
+  374 (mean 161); the earliest leave on the day after a 20-day stay when
+  their landfall is already within 100 of the gate.
+- **Fuel** (data; `LP_CROSSING=1 TestPlayerRouteToTheGate`): fuel per unit
+  1 and a day per 3 fuel (unchanged), starting fuel 200 (400 before step 3),
+  leaving 300 (new; Home was at least 3000). A ship run on a medium galaxy is
+  3 to 7 landings from the landfall system to the controls world by hops of
+  at most 60 (66 to 259 units), then 8 to 10 to the gate and 300 to leave:
+  384 to 577 fuel, so 184 to 377 must be refined on the way (one fuel
+  refiner makes 25 a day: 7 to 15 refiner-days), with the vault fought in
+  between. The starting fuel covers the trip to the controls and a scan; the
+  leaving reserve is a deliberate stay.
+- The gate site stays a plain location a later plan can aim a launch or a
+  signal at (open question 15); nothing is built for it.
+
+### Step 5: endings and the rest (built 2026-11-15)
+
+- Endings: no automatic win anywhere (the reach-Home win went in step 1,
+  the spread race's in step 2); the run ends as a win only through the
+  gate, as a loss when the player's people are gone. `raceEndScreen` keeps
+  its win branch for a later objective.
+- The tutorial's Star Map step names the gate (draft); it had no scan steps
+  to update.
+- Player guide: `star_map.md` (what you know, scanning, blind jumps, the
+  galaxy and its gate, leaving), `factions.md` and `rival_colonies.md` (the
+  rival colony seeks the gate and leaves), the hive's and autonz' pages
+  (milestone, not win), `greys.md`. Developer docs: `campaign.md`,
+  `factions.md` (the rival colony and the gate, the re-measured tables),
+  `ai.md`, `vmtest.md`, `tutorial.md`.
+
+### Sight: unseen systems and the galaxy haze (built 2026-11-15)
+
+This replaces the day-one decision in "What the player knows" (every system
+seen from the start). The owner asked to hide systems not yet found while
+still showing the galaxy's shape.
+
+- **Four states.** Unseen (not drawn, listed, selectable or a jump target),
+  Seen (the dim point), Identified, Visited. `Location.Seen` (json `seen`) is
+  saved and never lost; identifying sets it too, and `Campaign.IsSeen` counts
+  an identified location as seen. The Wreck Site, the Training Ground and
+  boarding decks are always on the map (`Location.GalaxyPoint` is false for
+  them). `Campaign.MapLocations` returns only what is seen, so the
+  destination list, map clicks, selection (`selectByID`, the Factions tab's
+  links) and jumps cover nothing else.
+- **What makes a system seen** (defaults are drafts in data):
+  - Sight round the ship: `sight_range` 60 units (a size may set its own:
+    small galaxies 40, the owner's call), plus `sight_bonus` 10 / 20 / 30 by
+    scanner level. Applied at the start from
+    the landfall point and on every arrival (`SeeAround`, in
+    `WorldManager.Travel`, the gate and Wreck Site included).
+  - A scan identifies, so everything in its range becomes seen.
+  - A spreading race: `ChartRaceReach` identifies what its reach covers (as
+    before) and sees within the sight range of each world it holds.
+  - Quests: offering one (`offerQuest`: the opening contract, contracts,
+    travel quests) sees its system; accepting identifies it, star charts
+    identify. A system's own generated quests are offered only once it is
+    identified, so a quest never names an unseen system.
+  - The gate and the controls world follow the same rules; an observer run
+    identifies, so sees, everything.
+  - Old saves (no location with `seen`) load with everything seen, as they
+    were played (`migrateSeen`).
+- **Seen at the start** (40 seeds per size, the opening contract's system
+  included): small 5 to 17 of 41 (mean 9, at sight 40; at 60 it was 6 to 26,
+  mean 16), medium 7 to 32 of 81 (mean 18), large 6 to 33 of 151 (mean 16).
+- **Haze.** `GalaxyBackdrop(seed, shape, radius)` replays the galaxy's
+  density function from the galaxy seed (the same stream `layoutGalaxy`
+  uses up to the density builder) and samples specks with a separate stream:
+  0.04 per square unit (about 1,500 / 3,200 / 6,100 by size), never from
+  system coordinates. Drawn as 1 px specks (1.5 px from zoom 4), alpha 40 to
+  120 by density, tinted blue (dense) to violet (thin) with a fixed per-speck
+  wander so the arms mix both (the owner picked it), under everything, panning and zooming with the map. Cached
+  per campaign in the panel.
+- **Map.** Framing fits what is seen plus the sight range round the ship (at
+  least 40). A faint ring shows the sight range; the scan ring still shows
+  while Scan is hovered. The header reads "<shape> · N systems · F found · M
+  identified" (draft).
+- **Fleets.** The simpler of the two options: a fleet is drawn only when one
+  end of its flight is seen (a parked or orbiting ship: the world it is at);
+  when its destination is unseen it shows its heading with no dashed line,
+  and its "BOUND FOR" tag reads DEEP SPACE. Badges were already only on
+  identified systems. The Factions tab names an unseen world "an unseen
+  world" (draft) and does not link it. Legends names places but never
+  positions, so it is unchanged. Rivals act on the whole galaxy and track no
+  knowledge.
+- vmtest: the sidecar's `campaign.seen` and `campaign.sight_range`;
+  `galaxy.jsonl` asserts the start counts and has zoomed-out frames
+  (`*_whole`) of small irregular, medium ring and large spiral (seed 5,
+  was barred spiral seed 4), two blind jumps and a scan.

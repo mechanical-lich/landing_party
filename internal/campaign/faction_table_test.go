@@ -108,7 +108,7 @@ func TestTwoGreyFactionsTwoMotherships(t *testing.T) {
 	d := LoadFactionData().Doctrine("greyish")
 	for _, slot := range []int{1, 2} {
 		f := c.AddFaction("greyish", slot, 0)
-		c.newMothership(f.Key, d, map[string]bool{})
+		parkMothership(c, f.Key, d, map[string]bool{})
 	}
 	a, b := c.Mothership("greyish"), c.Mothership("greyish.2")
 	if a == nil || b == nil || a == b || a.Presence.Faction == b.Presence.Faction {

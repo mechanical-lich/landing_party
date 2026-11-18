@@ -96,7 +96,7 @@ func TestTutorialHighlightRegionAndEntity(t *testing.T) {
 	isolateSettlements(t)
 	ms := tutorialSite(t, 2)
 	c := &campaign.Campaign{Name: "HL", CurrentLocationID: campaign.TutorialLocationID, Locations: map[string]*campaign.Location{
-		campaign.TutorialLocationID: {ID: campaign.TutorialLocationID, Tutorial: true, Discovered: true},
+		campaign.TutorialLocationID: {ID: campaign.TutorialLocationID, Tutorial: true, Identified: true},
 	}}
 	c.Tutorial = &campaign.TutorialProgress{StepID: "dig", NextLocationID: "x", Unlocked: []string{campaign.TutorialLocationID}}
 	wm := NewWorldManager(c)
@@ -163,7 +163,7 @@ func TestTutorialHighlightStandsDownUnderModals(t *testing.T) {
 	isolateSettlements(t)
 	s := tutorialSite(t, 2)
 	c := &campaign.Campaign{Name: "HL", CurrentLocationID: campaign.TutorialLocationID, Locations: map[string]*campaign.Location{
-		campaign.TutorialLocationID: {ID: campaign.TutorialLocationID, Tutorial: true, Discovered: true},
+		campaign.TutorialLocationID: {ID: campaign.TutorialLocationID, Tutorial: true, Identified: true},
 	}}
 	c.Tutorial = &campaign.TutorialProgress{StepID: "dig", NextLocationID: "x", Unlocked: []string{campaign.TutorialLocationID}}
 	wm := NewWorldManager(c)

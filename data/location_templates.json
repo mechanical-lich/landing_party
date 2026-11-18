@@ -75,10 +75,5 @@
       "tags": ["biomass", "hostile", "radioactive"],
       "summary": "A volcanic ocean world. Small islands rise from the sea, wreathed in lava and strange life."
     }
-  ],
-  "home": {
-    "maps": ["earth_like"],
-    "scenarios": ["earth_like"],
-    "summary": "Home. The long way back — and a colossal fuel burn to reach it."
-  }
+  ]
 }

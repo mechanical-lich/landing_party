@@ -74,6 +74,10 @@ Spawns an entity by blueprint ID at the given position.
 
 Spawns an entity and sets its `DescriptionComponent.Name`. Use for unique characters — quest targets, named guards, boss creatures.
 
+### `set_ai_var(x, y, z, name, value)`
+
+Sets a scripted-AI variable on the creature standing at `(x, y, z)` and returns 1 (0 when there is none). `gate_vault` sets `hostility` to 10 on its guards so every one defends the vault (`faction_humanoid.basic` otherwise rolls 1 to 10 on its first turn, and low rolls leave a party alone).
+
 ### `add_epithet(x, y, z)`
 
 Decorates the name of the entity at `(x, y, z)` with a random epithet from `data/names.json` — e.g. `"Grosk"` → `"Grosk the Destroyer, mauler of cities"`. A title epithet is always added; a suffix epithet is added about half the time.
@@ -145,7 +149,8 @@ Every structure script reads `occupants`. `"none"` builds the structure empty: n
 | `castle` | mutant brute + 4 "Castle Guard" grunts |
 | `circle_tower`, `circle_ruined_tower` | "Tower Guard" grunts on the floors + mutant brute on top |
 | `underground_bunker` | mutant brute + 2 "Bunker Sentry" grunts at the bottom |
-| `underground_dungeon` | mutant brute + 3 "Dungeon Guard" grunts |
+| `underground_dungeon` | mutant brute + 3 "Dungeon Guard" grunts (a passage always joins the stair to the brute's room; the shaft pairs every stairs_down with a stairs_up below it) |
+| `gate_vault` | the gate's dormant controls in the far room, a brute "Vault Warden" beside them and 3 "Vault Guard" grunts, all at hostility 10 (`set_ai_var`) |
 | `underground_hideout` | mutant brute + 4 "Hideout Guard" grunts |
 | `crashed_ufo` | four greys and a named Commander (quest target) |
 

@@ -95,30 +95,11 @@ func (c *Campaign) seedRivals(picks []RivalPick) {
 		}
 		f := c.AddFaction(dk, i+1, picks[i].Group)
 		rng := rand.New(rand.NewSource(c.Seed*7919 + 104729 + int64(i+1)*15485863))
-		var cands []*Location
-		for _, loc := range c.sortedLocations() {
-			if !taken[loc.ID] && c.FactionSiteOK(loc, true) {
-				cands = append(cands, loc)
-			}
-		}
-		loc := pickWeighted(rng, cands, func(l *Location) float64 { return economyWeight(d, l) })
+		loc := c.arrivalSite(rng, d, taken)
 		if loc == nil {
 			return
 		}
-		taken[loc.ID] = true
-		pop := max(d.SeedPopulation, 1)
-		if d.Mobility.Kind == MobilityFleet {
-			if cc := d.CrewCap(0); cc > 0 {
-				pop = min(pop, cc)
-			}
-			c.newShip(f.Key, d, loc, pop, true)
-			if d.Ships != nil && d.Ships.Mothership != nil && c.Mothership(f.Key) == nil {
-				c.newMothership(f.Key, d, taken)
-			}
-			continue
-		}
-		p := c.newPresence(f.Key, dk, d, loc, pop)
-		c.recordFaction(d.arrivalEvent(), loc, p, d, nil)
+		c.seedArrival(f.Key, dk, d, loc, taken)
 	}
 }
 

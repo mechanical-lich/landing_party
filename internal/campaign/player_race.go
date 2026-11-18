@@ -27,7 +27,7 @@ const (
 )
 
 // DoctrineRace is what a doctrine needs to be played (phase F): its blurb on
-// the title screen, the player's start, and the win and loss rules of a
+// the title screen, the player's start, and the milestone and loss of a
 // spreading race. All its text is draft.
 type DoctrineRace struct {
 	// Order places the race on the title screen's row (after the colony;
@@ -35,8 +35,10 @@ type DoctrineRace struct {
 	Order int        `json:"order,omitempty"`
 	Blurb string     `json:"blurb,omitempty"`
 	Start *RaceStart `json:"start,omitempty"`
-	Win   *RaceWin   `json:"win,omitempty"`
-	Loss  *RaceEnd   `json:"loss,omitempty"`
+	// Milestone is a spreading race's milestone (no longer a win: the run
+	// goes on, pregenerated_galaxy_plan.md).
+	Milestone *RaceWin `json:"milestone,omitempty"`
+	Loss      *RaceEnd `json:"loss,omitempty"`
 }
 
 // RaceStart is a spreading race's first presence, on the start system. A
@@ -61,8 +63,8 @@ func (d *Doctrine) ShipStart() *RaceStart {
 	return d.Race.Start
 }
 
-// RaceWin is a spreading race's win: presences (awake) on Sites systems at
-// once.
+// RaceWin is a spreading race's milestone: presences (awake) on Sites
+// systems at once, an alert (Title, Text) and a Legends entry.
 type RaceWin struct {
 	Sites int    `json:"sites"`
 	Title string `json:"title,omitempty"`
@@ -113,14 +115,14 @@ func PlayableDoctrines() []string {
 	return out
 }
 
-// AddPlayerBrood puts a spreading race's first presence on the start system:
+// AddPlayerBrood puts a spreading race's first presence on its landfall system:
 // faction PlayerFaction, the doctrine's race.start, Known. The start system
 // is the player's from day zero (Visited), as the expedition's first landing
 // is in an observer run. The player's faction is neutral to itself (a stray
 // Stance lookup).
 func (c *Campaign) AddPlayerBrood() (*FactionPresence, error) {
 	d := PlayerDoctrine(c)
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	if d == nil || d.Race == nil || d.Race.Start == nil || loc == nil {
 		return nil, fmt.Errorf("race: %q has no start, or no start system", PlayerDoctrineKey(c))
 	}
@@ -175,15 +177,11 @@ func (c *Campaign) HoldsSite(loc *Location) bool {
 
 // SpreadOutcome is a spreading race's end, checked once a day: lost when no
 // presence of the player's (a dormant node counts: it can still wake) and no
-// egg or signal of it in flight is left; won when awake presences stand on
-// race.win.sites systems at once. Neither: "".
+// egg or signal of it in flight is left; else "". There is no automatic win
+// (SpreadMilestone).
 func (c *Campaign) SpreadOutcome() string {
 	if !c.SpreadRun() || c.Won || c.Lost {
 		return ""
-	}
-	d := PlayerDoctrine(c)
-	if w := d.Race.Win; w != nil && w.Sites > 0 && len(c.PlayerSites()) >= w.Sites {
-		return "won"
 	}
 	for _, loc := range c.Locations {
 		if loc.Presence(PlayerFaction) != nil {
@@ -196,6 +194,30 @@ func (c *Campaign) SpreadOutcome() string {
 		}
 	}
 	return "lost"
+}
+
+// SpreadMilestone is checked once a day in a spreading race's run: the
+// first time awake presences stand on race.milestone.sites systems at once
+// it records a race_milestone Legends entry and returns the milestone for
+// the caller's alert; after that, and before it, nil. Play continues.
+func (c *Campaign) SpreadMilestone() *RaceWin {
+	if !c.SpreadRun() || c.MilestoneReached || c.Lost {
+		return nil
+	}
+	m := PlayerDoctrine(c).Race.Milestone
+	held := c.PlayerSites()
+	if m == nil || m.Sites <= 0 || len(held) < m.Sites {
+		return nil
+	}
+	c.MilestoneReached = true
+	var seat *Location
+	for _, l := range held {
+		if c.playerSeat(l) {
+			seat = l
+		}
+	}
+	c.RecordLive("race_milestone", seat, map[string]string{"count": fmt.Sprint(len(held))})
+	return m
 }
 
 // playerSeat reports whether loc is the race run's seat: the world holding
@@ -409,30 +431,11 @@ func (c *Campaign) seedRaceFactions(n int) {
 		d := fd.Doctrine(dkey)
 		key := fd.FactionKeyFor(dkey)
 		c.addFactionRow(key, dkey, 0, 0)
-		var cands []*Location
-		for _, loc := range c.sortedLocations() {
-			if !taken[loc.ID] && c.FactionSiteOK(loc, true) {
-				cands = append(cands, loc)
-			}
-		}
-		loc := pickWeighted(rng, cands, func(l *Location) float64 { return economyWeight(d, l) })
+		loc := c.arrivalSite(rng, d, taken)
 		if loc == nil {
 			return
 		}
-		taken[loc.ID] = true
-		pop := max(d.SeedPopulation, 1)
-		if d.Mobility.Kind == MobilityFleet {
-			if cc := d.CrewCap(0); cc > 0 {
-				pop = min(pop, cc)
-			}
-			c.newShip(key, d, loc, pop, true)
-			if d.Ships != nil && d.Ships.Mothership != nil && c.Mothership(key) == nil {
-				c.newMothership(key, d, taken)
-			}
-			continue
-		}
-		p := c.newPresence(key, dkey, d, loc, pop)
-		c.recordFaction(d.arrivalEvent(), loc, p, d, nil)
+		c.seedArrival(key, dkey, d, loc, taken)
 	}
 }
 
@@ -481,20 +484,27 @@ func (c *Campaign) InRaceReach(loc *Location) bool {
 	return false
 }
 
-// ChartRaceReach charts every site within the reach of a world the player
-// holds (the plan's open question 6: the range circle charts sites; their
-// presences stay unknown until held or scouted). It returns the newly
-// charted.
+// ChartRaceReach identifies every world the player holds and every site
+// within the reach of one (the plan's open question 6: the range circle
+// identifies sites; their presences stay unknown until held or scouted;
+// the gate too, as the gate). It returns the newly identified.
 func (c *Campaign) ChartRaceReach() []*Location {
 	if !c.SpreadRun() {
 		return nil
 	}
 	var out []*Location
 	for _, loc := range c.sortedLocations() {
-		if !loc.Discovered && loc.HasSite() && c.InRaceReach(loc) {
-			loc.Discovered = true
+		if loc.Identified || (!loc.HasSite() && loc.Kind != GateKind) {
+			continue
+		}
+		if c.HoldsSite(loc) || c.InRaceReach(loc) {
+			c.Identify(loc)
 			out = append(out, loc)
 		}
+	}
+	// Its worlds see what lies within the ship's sight range of them.
+	for _, l := range c.PlayerSites() {
+		c.SeeAround(l)
 	}
 	return out
 }

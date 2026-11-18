@@ -119,6 +119,9 @@ func (c *Campaign) stepShip(rng *rand.Rand, fd *FactionData, f *Fleet, day histo
 			c.dock(d, f, day, isLoaded)
 			return true
 		}
+		if c.leaveThroughGate(d, f) {
+			return false // gone through the gate
+		}
 		if isLoaded(f.ToID) {
 			return true // the world manager lands it live
 		}
@@ -158,6 +161,8 @@ func (c *Campaign) stepShip(rng *rand.Rand, fd *FactionData, f *Fleet, day histo
 	if d.Expedition != nil {
 		c.refuelShip(d.Expedition, f)
 	}
+	// A rival colony seeking the gate learns of it, and works its controls.
+	c.stepGateShip(d, f, loc, isLoaded)
 	// Research walks the doctrine's list: the first entry it does not know
 	// (a live colony's techs are merged in on reconcile, in any order, so
 	// the count is no index into the walk).

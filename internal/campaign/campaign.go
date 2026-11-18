@@ -14,10 +14,11 @@ import (
 // CampaignVersion is the current campaign-save schema version, stamped at
 // generation. Version 2 added the generated history and the star date; older
 // campaigns are refused on load rather than migrated (see game.LoadCampaign).
-// Version 3 added enemy faction presences; a version 2 save migrates with none
-// (MigrateCampaign). Version 4 moved the player's known techs onto the
-// player's own presence (Player); a version 3 save migrates them there.
-const CampaignVersion = 4
+// Version 3 added enemy faction presences, version 4 moved the player's known
+// techs onto the player's own presence (Player). Version 5 is the
+// pregenerated galaxy (Galaxy): every older save was charted as it went and
+// is refused (MigrateCampaign).
+const CampaignVersion = 5
 
 type Campaign struct {
 	// Version is the save-schema version (see CampaignVersion).
@@ -26,7 +27,14 @@ type Campaign struct {
 	Seed              int64                `json:"seed"`
 	CurrentLocationID string               `json:"current_location_id"`
 	Locations         map[string]*Location `json:"locations"`
-	Ship              *ShipState           `json:"ship"`
+	// Galaxy is the pregenerated galaxy's shape, landfalls and gate
+	// (galaxy.go); nil on a campaign built by hand.
+	Galaxy *Galaxy `json:"galaxy,omitempty"`
+	// Landfall is the index in Galaxy.Landfalls the expedition arrived at;
+	// StartID its landfall system, the first jump.
+	Landfall int        `json:"landfall"`
+	StartID  string     `json:"start_id,omitempty"`
+	Ship     *ShipState `json:"ship"`
 	// StarDate is the single campaign clock, in days since the campaign began.
 	// It counts world ticks (TickStarDate, TicksPerDay a day) wherever the
 	// player is, stops when the world clock stops, and jumps forward by each
@@ -41,19 +49,24 @@ type Campaign struct {
 	// (the procedural overworld is not re-derivable from a static file).
 	// Bound at session start via BindQuests.
 	QuestDefs []Quest `json:"quest_defs,omitempty"`
-	// GenSeq counts dynamic-generation events; combined with Seed it makes
-	// every expansion deterministic and reproducible across save/load.
+	// GenSeq numbers generated systems and quests; combined with Seed it
+	// makes every quest roll deterministic and reproducible across save/load.
 	GenSeq int `json:"gen_seq,omitempty"`
 	// TravelSeq counts jumps; it advances the per-travel quest roll every
 	// jump (even on a miss) so the 1d6 chance actually varies, while staying
 	// deterministic and persisted.
 	TravelSeq int `json:"travel_seq,omitempty"`
-	// ScanSeq counts ship-scanner sweeps; combined with Seed it makes each
-	// scan's roll/placement deterministic and reproducible across save/load.
-	ScanSeq int `json:"scan_seq,omitempty"`
-	// Won/Lost are terminal campaign states (reached Home / total wipe).
+	// Won/Lost are terminal campaign states (left through the gate, plan
+	// step 4 / total wipe).
 	Won  bool `json:"won,omitempty"`
 	Lost bool `json:"lost,omitempty"`
+	// News is alerts the campaign raises off any loaded level (the gate
+	// switched on by a rival, a rival leaving through it), posted and
+	// cleared by the world manager. Not saved.
+	News []string `json:"-"`
+	// MilestoneReached: a spreading race's run has held its milestone's
+	// worlds at once (SpreadMilestone, recorded once).
+	MilestoneReached bool `json:"milestone_reached,omitempty"`
 	// KilledTargets is the set of quest IDs whose tagged target entity has
 	// died (named bosses / bounty creatures). Persisted so completion
 	// survives freeze/thaw and save/load.
@@ -66,9 +79,6 @@ type Campaign struct {
 	// is never stepped by StepFactions. nil on a campaign built by hand;
 	// UnlockTech creates it.
 	Player *FactionPresence `json:"player,omitempty"`
-	// LegacyKnownTechs is a version 3 save's known techs, read only for
-	// MigrateCampaign, which moves them onto Player.
-	LegacyKnownTechs []string `json:"known_techs,omitempty"`
 
 	// KnownEntities is the set of blueprint IDs the player has hovered at
 	// least once. Populated regardless of whether the Encyclopedia is
@@ -204,42 +214,26 @@ func (c *Campaign) TravelRoutes() []TravelRoute {
 	return out
 }
 
-// HomeKind marks the single "Home" destination; travelling there wins the run.
-const HomeKind = "home"
-
 // AdriftKind marks the Wreck Site: the empty point in space where the damaged
 // life-raft came to rest and every expedition begins. It has no map or
 // scenario, never generates a level, and cannot be landed on, so the first act
 // of a campaign is choosing a destination. Travelling there again is refused.
 const AdriftKind = "adrift"
 
-// AdriftLocationID and StartLocationID are the fixed IDs of the Wreck Site and
-// the generated start system.
-const (
-	AdriftLocationID = "adrift"
-	StartLocationID  = "start"
-)
+// AdriftLocationID is the fixed ID of the Wreck Site.
+const AdriftLocationID = "adrift"
 
-// IsAdrift reports whether the ship sits at the Wreck Site, with nothing to
-// orbit or land on.
+// IsAdrift reports whether the ship sits in empty space with nothing to
+// orbit or land on: the Wreck Site, or the gate.
 func (c *Campaign) IsAdrift() bool {
 	loc := c.CurrentLocation()
-	return loc != nil && loc.Kind == AdriftKind
+	return loc != nil && (loc.Kind == AdriftKind || loc.Kind == GateKind)
 }
 
-// HasSite reports whether a location can hold a level: not Home, not the Wreck Site.
+// HasSite reports whether a location can hold a level: not the gate, not the
+// Wreck Site.
 func (l *Location) HasSite() bool {
-	return l != nil && l.Kind != HomeKind && l.Kind != AdriftKind
-}
-
-// HomeLocation returns the Home destination descriptor, or nil.
-func (c *Campaign) HomeLocation() *Location {
-	for _, loc := range c.Locations {
-		if loc.Kind == HomeKind {
-			return loc
-		}
-	}
-	return nil
+	return l != nil && l.Kind != GateKind && l.Kind != AdriftKind
 }
 
 // DefaultPlayerDoctrine is the player's doctrine when nothing chooses one:
@@ -407,14 +401,134 @@ func (c *Campaign) FuelCost(toID string) int {
 	return int(math.Round(math.Hypot(to.X-from.X, to.Y-from.Y)))
 }
 
-// DiscoveredLocations returns all locations the player can currently see on the
-// star map.
-func (c *Campaign) DiscoveredLocations() []*Location {
-	var out []*Location
+// MapLocations returns every location the Star Map draws: those the player
+// has seen (identified or not), the Wreck Site, the Training Ground and
+// boarding decks.
+func (c *Campaign) MapLocations() []*Location {
+	out := make([]*Location, 0, len(c.Locations))
 	for _, loc := range c.Locations {
-		if loc.Discovered {
+		if c.IsSeen(loc) {
 			out = append(out, loc)
 		}
 	}
 	return out
+}
+
+// IsSeen reports whether the player has seen loc: Seen, or identified (an
+// identified location is always seen).
+func (c *Campaign) IsSeen(loc *Location) bool {
+	return loc != nil && (loc.Seen || loc.Identified || !loc.GalaxyPoint())
+}
+
+// GalaxyPoint reports whether loc is one of the galaxy's systems or the gate
+// (what sight reveals), not the Wreck Site, the Training Ground or a
+// boarding deck (always on the map).
+func (l *Location) GalaxyPoint() bool {
+	return l != nil && (l.Kind == GateKind || (l.HasSite() && l.Kind != EncounterKind && !l.Tutorial))
+}
+
+// See makes loc seen; it reports whether that was news.
+func (c *Campaign) See(loc *Location) bool {
+	if loc == nil || c.IsSeen(loc) {
+		return false
+	}
+	loc.Seen = true
+	return true
+}
+
+// SightRange is how far round the ship systems become seen: generation's
+// sight_range (or the galaxy size's own) plus sight_bonus by scanner level.
+func (c *Campaign) SightRange() float64 {
+	cfg := genConfig()
+	r := cfg.SightRange
+	if c.Galaxy != nil {
+		if sz := cfg.Galaxy.size(c.Galaxy.Size); sz.ID == c.Galaxy.Size && sz.SightRange > 0 {
+			r = sz.SightRange
+		}
+	}
+	if lvl := c.ScannerLevel(); lvl > 0 && len(cfg.SightBonus) > 0 {
+		r += cfg.SightBonus[min(lvl, len(cfg.SightBonus))-1]
+	}
+	return r
+}
+
+// SeeWithin makes every system and the gate within r of (x, y) seen,
+// returning the newly seen.
+func (c *Campaign) SeeWithin(x, y, r float64) []*Location {
+	var out []*Location
+	for _, l := range c.sortedLocations() {
+		if !l.GalaxyPoint() {
+			continue
+		}
+		if math.Hypot(l.X-x, l.Y-y) <= r && c.See(l) {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// SeeAround makes everything within the ship's sight range of loc seen (on
+// arrival, and at the start from the landfall point).
+func (c *Campaign) SeeAround(loc *Location) []*Location {
+	if loc == nil {
+		return nil
+	}
+	return c.SeeWithin(loc.X, loc.Y, c.SightRange())
+}
+
+// SeenCount is how many of the galaxy's systems (and the gate) the player has
+// seen.
+func (c *Campaign) SeenCount() int {
+	n := 0
+	for _, l := range c.Locations {
+		if l.GalaxyPoint() && c.IsSeen(l) {
+			n++
+		}
+	}
+	return n
+}
+
+// KnownName is loc's name as the player knows it: "Unidentified system"
+// until it is identified.
+func (c *Campaign) KnownName(loc *Location) string {
+	if loc == nil {
+		return ""
+	}
+	if !loc.Identified {
+		return UnidentifiedName
+	}
+	return loc.Name
+}
+
+// UnidentifiedName is what the Star Map calls a system nobody has identified.
+const UnidentifiedName = "Unidentified system" // DRAFT
+
+// Identify makes loc identified; it reports whether that was news. The
+// gate identified shows what it is: dark, with its controls on the world
+// beside it, which is identified with it.
+func (c *Campaign) Identify(loc *Location) bool {
+	if loc == nil || loc.Identified {
+		return false
+	}
+	loc.Identified = true
+	loc.Seen = true
+	if loc.Kind == GateKind {
+		loc.Summary = c.GateSummary()
+		c.Identify(c.ControlsLocation())
+	}
+	return true
+}
+
+// IdentifiedCount is how many of the galaxy's systems (and the gate) the
+// player has identified, and how many there are.
+func (c *Campaign) IdentifiedCount() (known, total int) {
+	for _, l := range c.Locations {
+		if l.Kind == GateKind || (l.HasSite() && l.Kind != EncounterKind && !l.Tutorial) {
+			total++
+			if l.Identified {
+				known++
+			}
+		}
+	}
+	return known, total
 }

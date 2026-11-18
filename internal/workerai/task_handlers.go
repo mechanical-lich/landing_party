@@ -980,7 +980,7 @@ func handleBuildTask(level *world.Level, entity *ecs.Entity, wc *components.Work
 		if buildRequest.Progress >= buildRequest.Required {
 			sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 			if buildRequest.Replace {
-				replaceRepairable(level, buildRequest.X, buildRequest.Y, buildRequest.Z)
+				replaceRepairable(level, buildRequest.X, buildRequest.Y, buildRequest.Z, sc.Name)
 			}
 			if buildable.IsEntity {
 				newEntity, err := factory.Create(buildRequest.Type, buildRequest.X, buildRequest.Y, buildRequest.Z)
@@ -1110,8 +1110,9 @@ func stepOutOfFootprint(level *world.Level, entity *ecs.Entity, sx, sy, w, h, tx
 }
 
 // replaceRepairable removes the broken machine a repair replaces, setting
-// the level flag it names (Repairable.SetsFlag).
-func replaceRepairable(level *world.Level, x, y, z int) {
+// the level flag it names (Repairable.SetsFlag), and "<flag>:by" to the
+// settlement that repaired it (the gate's controls: who switched it on).
+func replaceRepairable(level *world.Level, x, y, z int, by string) {
 	for _, list := range [][]*ecs.Entity{level.Entities, level.StaticEntities} {
 		for _, e := range append([]*ecs.Entity(nil), list...) {
 			if e == nil || !e.HasComponent(components.Repairable) || !e.HasComponent(rlcomponents.Position) {
@@ -1123,6 +1124,7 @@ func replaceRepairable(level *world.Level, x, y, z int) {
 			}
 			if f := e.GetComponent(components.Repairable).(*components.RepairableComponent).SetsFlag; f != "" {
 				level.Flags[f] = 1.0
+				level.Flags[f+":by"] = by
 			}
 			level.RemoveEntity(e)
 		}

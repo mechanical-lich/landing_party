@@ -287,9 +287,10 @@ you. A shot uses up the aim. The aim stays set when you leave the world.
 The Spire is ready under the same rules as a rival's: great nest stage, a
 full enough nest, and the cooldown passed.
 
-### Winning and losing
+### Milestone and losing
 
-You win holding **six worlds** at once ("The Swarm Spreads"). You lose when
+Holding **six worlds** at once is a milestone ("The Swarm Spreads"): an
+alert and a Legends entry, and the run goes on. You lose when
 no nest and no egg in flight is left anywhere ("The Brood Is Gone"). If a
 world loses five or more of its brood in a day, Legends records it.
 

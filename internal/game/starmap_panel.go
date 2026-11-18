@@ -56,10 +56,13 @@ type starMapPanel struct {
 	shipEnts []*ecs.Entity
 	planEnts []*ecs.Entity
 
-	locateBtn   *minui.Button
-	travelBtn   *minui.Button
-	viewBtn     *minui.Button
-	scanBtn     *minui.Button
+	locateBtn *minui.Button
+	travelBtn *minui.Button
+	viewBtn   *minui.Button
+	scanBtn   *minui.Button
+	// leaveBtn leaves the galaxy through the lit gate; it takes Scan's place
+	// while the ship is at the gate (gate.go).
+	leaveBtn    *minui.Button
 	pauseBtn    *minui.Button
 	beamDownBtn *minui.Button
 	beamUpBtn   *minui.Button
@@ -83,6 +86,11 @@ type starMapPanel struct {
 	// refreshLocations.
 	scanLevel int
 	scanCost  int
+	// scanHover: the cursor is over Scan, so the canvas draws the range.
+	scanHover bool
+	// backdrop is the galaxy haze, built once per campaign.
+	backdrop    []campaign.BackdropStar
+	backdropFor *campaign.Campaign
 }
 
 func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
@@ -143,6 +151,11 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 	p.scanBtn.SetSize(120, 30)
 	p.scanBtn.OnClick = p.scan
 
+	p.leaveBtn = minui.NewButton("sm_leave", "Leave the Galaxy") // DRAFT
+	p.leaveBtn.SetPosition(880, btnY)
+	p.leaveBtn.SetSize(120, 30)
+	p.leaveBtn.OnClick = p.leave
+
 	p.pauseBtn = minui.NewButton("sm_pause", "")
 	p.pauseBtn.SetPosition(1008, btnY)
 	p.pauseBtn.SetSize(130, 30)
@@ -175,7 +188,7 @@ func newStarMapPanel(c *campaign.Campaign, wm *WorldManager) *starMapPanel {
 // ---- data ----
 
 func (p *starMapPanel) refreshLocations() {
-	// Remember the selected location by ID: DiscoveredLocations comes from a Go
+	// Remember the selected location by ID: MapLocations comes from a Go
 	// map (random order), so we sort for a stable list and restore selection by
 	// identity rather than index — otherwise a refresh (e.g. after a scan) would
 	// silently jump the selection to a different location.
@@ -184,7 +197,7 @@ func (p *starMapPanel) refreshLocations() {
 		prevID = p.locIDs[i]
 	}
 
-	locs := p.campaign.DiscoveredLocations()
+	locs := p.campaign.MapLocations()
 	sort.Slice(locs, func(a, b int) bool {
 		fa, fb := p.campaign.FuelCost(locs[a].ID), p.campaign.FuelCost(locs[b].ID)
 		if fa != fb {
@@ -229,7 +242,12 @@ func (p *starMapPanel) refreshLocations() {
 				scenarioName = " · " + s.Name
 			}
 		}
-		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s%s", loc.Name, loc.Kind, scenarioName, p.campaign.FuelCost(loc.ID), tag, factionListTag(p.campaign, loc)))
+		if !loc.Identified {
+			// Seen, not identified: where it is and what the jump costs.
+			labels = append(labels, fmt.Sprintf("%s — fuel %d%s", campaign.UnidentifiedName, p.campaign.FuelCost(loc.ID), tag))
+			continue
+		}
+		labels = append(labels, fmt.Sprintf("%s (%s%s) — fuel %d%s%s", loc.Name, kindLabel(loc), scenarioName, p.campaign.FuelCost(loc.ID), tag, factionListTag(p.campaign, loc)))
 	}
 	p.locList.SetItems(labels)
 
@@ -321,14 +339,17 @@ func (p *starMapPanel) locate() {
 // in on a selected location.
 const locateZoomFactor = 7.0
 
-// homeLocation returns the campaign's Home destination, or nil if absent.
-func (p *starMapPanel) homeLocation() *campaign.Location {
-	for _, l := range p.campaign.Locations {
-		if l.Kind == campaign.HomeKind {
-			return l
+// kindLabel is a location's kind as the Star Map lists it.
+func kindLabel(loc *campaign.Location) string {
+	if loc.Kind == campaign.GateKind {
+		return "the gate" // DRAFT
+	}
+	for _, f := range loc.Fixtures {
+		if f.Kind == campaign.GateControlsKind {
+			return loc.Kind + ", the gate's controls" // DRAFT
 		}
 	}
-	return nil
+	return loc.Kind
 }
 
 // clusterBoundaryPad is the screen-pixel margin added to the cluster boundary
@@ -336,7 +357,7 @@ func (p *starMapPanel) homeLocation() *campaign.Location {
 const clusterBoundaryPad = 48
 
 // clusterBounds returns the world-space centre and radius of a circle enclosing
-// all discovered non-Home sites (ok=false if there are none). Centred on the
+// all identified sites (ok=false if there are none). Centred on the
 // cluster — not the ship — so it hugs the sites wherever the ship is.
 func (p *starMapPanel) clusterBounds() (cx, cy, radius float64, ok bool) {
 	minX, minY := math.Inf(1), math.Inf(1)
@@ -344,7 +365,7 @@ func (p *starMapPanel) clusterBounds() (cx, cy, radius float64, ok bool) {
 	n := 0
 	for _, id := range p.locIDs {
 		loc := p.campaign.Locations[id]
-		if loc == nil || loc.Kind == campaign.HomeKind {
+		if loc == nil || !loc.Identified {
 			continue
 		}
 		minX, maxX = math.Min(minX, loc.X), math.Max(maxX, loc.X)
@@ -357,7 +378,7 @@ func (p *starMapPanel) clusterBounds() (cx, cy, radius float64, ok bool) {
 	cx, cy = (minX+maxX)/2, (minY+maxY)/2
 	for _, id := range p.locIDs {
 		loc := p.campaign.Locations[id]
-		if loc == nil || loc.Kind == campaign.HomeKind {
+		if loc == nil || !loc.Identified {
 			continue
 		}
 		if d := math.Hypot(loc.X-cx, loc.Y-cy); d > radius {
@@ -393,6 +414,8 @@ func (p *starMapPanel) refreshTravelLock() {
 		if prev != p.travelLock {
 			p.status = p.travelLock
 		}
+	} else if sel := p.selectedLocation(); sel != nil && !sel.Identified {
+		p.travelBtn.Text = "Jump Blind" // DRAFT
 	} else {
 		p.travelBtn.Text = "Travel Here"
 	}
@@ -470,22 +493,23 @@ func (p *starMapPanel) travel() {
 		p.status = "Travel failed: " + err.Error()
 		return
 	}
-	if p.campaign.Won {
-		p.pending = NewCampaignEndState(true, fmt.Sprintf("The colonists are home at last. (Star Date %d)", p.campaign.Day()))
-		return
+	if loc.Kind == campaign.GateKind && p.campaign.GateIsOn() {
+		p.status = "Holding by the lit gate. Leave the Galaxy takes the expedition through it." // DRAFT
+	} else if loc.Kind == campaign.GateKind {
+		p.status = "Holding by the gate. It is dark: its controls are on " + p.campaign.ControlsLocation().Name + "." // DRAFT
+	} else {
+		p.status = fmt.Sprintf("In orbit over %s. Beam crew down, then use To Site.", loc.Name)
 	}
-	p.status = fmt.Sprintf("In orbit over %s. Beam crew down, then use To Site.", loc.Name)
 	p.refreshLocations()
 	p.refreshCrew()
 }
 
-// scan runs one ship-scanner sweep from the current location: it spends fuel,
-// then may chart a new nearby world (chance and reach scale with the scanner's
-// research level).
+// scan runs one ship-scanner sweep from the current location: it spends fuel
+// and identifies every system in the scanner's range, with what holds them.
 func (p *starMapPanel) scan() {
 	level := p.campaign.ScannerLevel()
 	if level < 1 {
-		p.showScanResult("No ship scanner installed.", "Research Ship Scanner to sweep for new worlds.")
+		p.showScanResult("No ship scanner installed.", "Research Ship Scanner to identify the systems around you.") // DRAFT
 		return
 	}
 	cost := p.campaign.ScanFuelCost()
@@ -504,18 +528,49 @@ func (p *starMapPanel) scan() {
 		[]string{p.wm.shipSettlementName()},
 		map[string]int{"fuel": cost},
 	)
-	if found != nil {
-		audio.PlayGlobal("notify") // a discovery chime, heard regardless of view
-		p.showScanResult(
-			fmt.Sprintf("Detected: %s", found.Name),
-			fmt.Sprintf("A %s, %d fuel away.   (−%d fuel)", found.Kind, p.campaign.FuelCost(found.ID), cost),
-		)
+	if len(found) > 0 {
+		audio.PlayGlobal("notify")                                 // a discovery chime, heard regardless of view
+		line1 := fmt.Sprintf("Identified %d systems.", len(found)) // DRAFT
+		if len(found) == 1 {
+			line1 = "Identified 1 system." // DRAFT
+		}
+		for _, l := range found {
+			if l.Kind == campaign.GateKind {
+				line1 += "  One of them is the gate." // DRAFT
+			}
+		}
+		p.showScanResult(line1, fmt.Sprintf("Nearest: %s, %d fuel away.   (−%d fuel)", found[0].Name, p.campaign.FuelCost(found[0].ID), cost)) // DRAFT
 	} else {
-		p.showScanResult("No new worlds detected.", fmt.Sprintf("(−%d fuel)", cost))
+		p.showScanResult("Nothing new in range.", fmt.Sprintf("Every system within %.0f is already identified.   (−%d fuel)", campaign.ScanRange(level), cost)) // DRAFT
 	}
 	// Stay on the world we scanned from, not wherever the list re-sorts to.
 	p.refreshLocations()
 	p.selectByID(p.campaign.CurrentLocationID)
+}
+
+// atGate reports whether the ship is holding beside the gate.
+func (p *starMapPanel) atGate() bool {
+	cur := p.campaign.CurrentLocation()
+	return cur != nil && cur.Kind == campaign.GateKind && !shiplessRun()
+}
+
+// leave takes the expedition through the lit gate: the leaving fuel is
+// burned and the run ends as a win.
+func (p *starMapPanel) leave() {
+	ok, why := p.campaign.CanLeave(p.fuelAvailable())
+	if !ok {
+		p.status = why
+		return
+	}
+	storage.Deduct(
+		storage.ShipProvider{Level: p.wm.ShipLevel()},
+		[]string{p.wm.shipSettlementName()},
+		map[string]int{"fuel": campaign.LeaveFuel()},
+	)
+	p.campaign.LeaveGalaxy()
+	e := NewCampaignEndState(true, fmt.Sprintf("The %s colonists went through the gate on Star Date %d, and left the galaxy behind.", p.campaign.ColonyDisplayName(), p.campaign.Day())) // DRAFT
+	e.title = "Through the Gate"                                                                                                                                                         // DRAFT
+	p.pending = e
 }
 
 // showScanResult opens the scan-report modal with a headline and a detail line.
@@ -635,6 +690,19 @@ func (p *starMapPanel) Update() {
 		p.scanBtn.SetEnabled(p.fuelAvailable() >= p.scanCost)
 	}
 	p.scanBtn.Update()
+	if p.atGate() {
+		ok, why := p.campaign.CanLeave(p.fuelAvailable())
+		p.leaveBtn.SetEnabled(ok)
+		p.leaveBtn.Text = fmt.Sprintf("Leave (%d fuel)", campaign.LeaveFuel()) // DRAFT
+		if !ok && p.status == "" {
+			p.status = why
+		}
+		p.leaveBtn.Update()
+	}
+	mx, my := ebiten.CursorPosition()
+	bx, by := p.scanBtn.GetAbsolutePosition()
+	br := p.scanBtn.GetBounds()
+	p.scanHover = p.scanLevel > 0 && mx >= bx && mx < bx+br.Width && my >= by && my < by+br.Height
 	p.syncPauseBtn()
 	p.pauseBtn.Update()
 
@@ -656,31 +724,28 @@ func (p *starMapPanel) Transition() state.StateInterface {
 // ---- canvas ----
 
 func (p *starMapPanel) fitView() {
-	locs := p.campaign.DiscoveredLocations()
-	if len(locs) == 0 {
+	// Frame what is seen plus the ship's sight range round it; the haze
+	// beyond is a pan away.
+	minX, minY := math.Inf(1), math.Inf(1)
+	maxX, maxY := math.Inf(-1), math.Inf(-1)
+	add := func(x, y float64) {
+		minX, maxX = math.Min(minX, x), math.Max(maxX, x)
+		minY, maxY = math.Min(minY, y), math.Max(maxY, y)
+	}
+	for _, l := range p.campaign.MapLocations() {
+		add(l.X, l.Y)
+	}
+	cur := p.campaign.CurrentLocation()
+	if cur != nil {
+		r := math.Max(p.campaign.SightRange(), minFrameRadius)
+		add(cur.X-r, cur.Y-r)
+		add(cur.X+r, cur.Y+r)
+	}
+	if math.IsInf(minX, 1) {
 		p.camX, p.camY, p.zoom = 0, 0, 1
 		return
 	}
-	// Frame the working cluster, ignoring Home: it's a distant goal (its dashed
-	// line shows the direction) and including it drags the fit way out.
-	minX, minY := math.Inf(1), math.Inf(1)
-	maxX, maxY := math.Inf(-1), math.Inf(-1)
-	n := 0
-	for _, l := range locs {
-		if l.Kind == campaign.HomeKind {
-			continue
-		}
-		minX, maxX = math.Min(minX, l.X), math.Max(maxX, l.X)
-		minY, maxY = math.Min(minY, l.Y), math.Max(maxY, l.Y)
-		n++
-	}
-	if n == 0 { // only Home discovered — fall back to including it
-		for _, l := range locs {
-			minX, maxX = math.Min(minX, l.X), math.Max(maxX, l.X)
-			minY, maxY = math.Min(minY, l.Y), math.Max(maxY, l.Y)
-		}
-	}
-	if cur := p.campaign.CurrentLocation(); cur != nil {
+	if cur != nil {
 		p.camX, p.camY = cur.X, cur.Y
 	} else {
 		p.camX, p.camY = (minX+maxX)/2, (minY+maxY)/2
@@ -689,14 +754,45 @@ func (p *starMapPanel) fitView() {
 	zx := float64(p.canvasW-120) / spanX
 	zy := float64(p.canvasH-120) / spanY
 	p.fitZoom = math.Min(zx, zy)
-	// Zoom in past a pure fit so the central cluster reads large by default;
-	// outer locations are a short pan away.
 	p.zoom = clampZoom(p.fitZoom * defaultZoomFactor)
 }
 
-// defaultZoomFactor tightens the initial fit view (of the working cluster) so
-// the map opens closer on the central sites rather than showing the full extent.
-const defaultZoomFactor = 1.6
+// drawBackdrop draws the galaxy haze: 1px specks far dimmer than a seen
+// point, tinted blue to violet by density, panning and zooming with the map.
+func (p *starMapPanel) drawBackdrop(canvas *ebiten.Image) {
+	if p.backdropFor != p.campaign {
+		p.backdrop, p.backdropFor = p.campaign.Backdrop(), p.campaign
+	}
+	if len(p.backdrop) == 0 {
+		return
+	}
+	b := canvas.Bounds()
+	sz := float32(1)
+	if p.zoom >= 4 {
+		sz = 1.5
+	}
+	for _, st := range p.backdrop {
+		sx, sy := p.worldToScreen(st.X, st.Y)
+		if int(sx) < b.Min.X || int(sx) >= b.Max.X || int(sy) < b.Min.Y || int(sy) >= b.Max.Y {
+			continue
+		}
+		// Blue in the dense core and arms, violet in the thin outskirts.
+		// The hue also wanders per speck (a fixed hash of its position), so
+		// the arms mix blue and violet.
+		_, j := math.Modf(math.Abs(math.Sin(st.X*12.9898+st.Y*78.233)) * 43758.5453)
+		t := math.Max(0, math.Min(1, st.Bright*0.8+(j-0.5)*0.9))
+		a := 40 + 80*st.Bright
+		r, g, bl := 200-110*t, 80+60*t, 240+15*t
+		vector.DrawFilledRect(canvas, sx, sy, sz, sz, color.RGBA{uint8(r * a / 255), uint8(g * a / 255), uint8(bl * a / 255), uint8(a)}, false)
+	}
+}
+
+// minFrameRadius is the least reach round the ship the opening view frames
+// (when the sight range is smaller).
+const minFrameRadius = 40
+
+// defaultZoomFactor is the initial view's zoom past the fit.
+const defaultZoomFactor = 1.0
 
 const (
 	minZoom = 0.05
@@ -797,6 +893,8 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	sel := p.selectedLocation()
 	cur := p.campaign.CurrentLocation()
 
+	p.drawBackdrop(canvas)
+
 	// Trade routes: a dotted line between each pair of sites the ship has
 	// jumped between, darkening the more that route is travelled.
 	for _, route := range p.campaign.TravelRoutes() {
@@ -813,19 +911,13 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		drawDashedLine(canvas, ax, ay, bx, by, 2, 5, 1, color.RGBA{140, 175, 210, uint8(alpha)})
 	}
 
-	// Green boundary hugging all discovered non-Home sites; grows as more
-	// systems are charted.
+	// Green boundary hugging every listed site.
 	if bx, by, br, ok := p.clusterBounds(); ok {
 		scx, scy := p.worldToScreen(bx, by)
 		vector.StrokeCircle(canvas, scx, scy, float32(br)*float32(p.zoom)+clusterBoundaryPad, 2, color.RGBA{120, 220, 160, 220}, true)
 	}
 	if cur != nil {
 		cx, cy := p.worldToScreen(cur.X, cur.Y)
-		// Dashed line to Home — the goal of the run.
-		if home := p.homeLocation(); home != nil && home != cur {
-			hx, hy := p.worldToScreen(home.X, home.Y)
-			drawDashedLine(canvas, cx, cy, hx, hy, 9, 6, 1.5, color.RGBA{230, 200, 120, 170})
-		}
 		// Path line from current to the selected destination.
 		if sel != nil && sel != cur {
 			sx, sy := p.worldToScreen(sel.X, sel.Y)
@@ -833,6 +925,20 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	// The ship's sight range: a faint ring (what arriving here showed).
+	if cur != nil && !spreadRun() {
+		if r := p.campaign.SightRange(); r > 0 {
+			cx, cy := p.worldToScreen(cur.X, cur.Y)
+			vector.StrokeCircle(canvas, cx, cy, float32(r*p.zoom), 1, color.RGBA{42, 54, 70, 95}, true)
+		}
+	}
+	// The scanner's reach, while Scan is hovered or its report is open.
+	if cur != nil && (p.scanHover || p.scanOpen) {
+		if r := campaign.ScanRange(p.scanLevel); r > 0 {
+			cx, cy := p.worldToScreen(cur.X, cur.Y)
+			vector.StrokeCircle(canvas, cx, cy, float32(r*p.zoom), 1.5, color.RGBA{120, 200, 255, 200}, true)
+		}
+	}
 	for _, id := range p.locIDs {
 		loc := p.campaign.Locations[id]
 		if loc == nil {
@@ -841,13 +947,25 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		sx, sy := p.worldToScreen(loc.X, loc.Y)
 		r := siteRadius(loc)
 		drawSiteIcon(canvas, loc, sx, sy, r)
+		if loc.Kind == campaign.GateKind && loc.Identified && p.campaign.GateIsOn() {
+			// The lit gate.
+			vector.DrawFilledCircle(canvas, sx, sy, r*0.55, color.RGBA{255, 230, 150, 220}, true)
+		}
 		if loc == sel {
 			vector.StrokeCircle(canvas, sx, sy, r+3, 2, color.RGBA{255, 230, 120, 255}, true)
+		}
+		if !loc.Identified {
+			continue // a dim point: no name, no badges
 		}
 		mlge_text.Draw(canvas, loc.Name, 11, int(sx)+int(r)+4, int(sy)-7, color.RGBA{190, 205, 225, 255})
 		drawFactionBadges(canvas, p.campaign, loc, sx, sy, r)
 	}
 	p.drawFleets(canvas)
+	// The galaxy's header: its shape and how much of it is found and identified.
+	if name := p.campaign.ShapeName(); name != "" {
+		known, total := p.campaign.IdentifiedCount()
+		mlge_text.Draw(canvas, fmt.Sprintf("%s  ·  %d systems  ·  %d found  ·  %d identified", name, total, p.campaign.SeenCount(), known), 13, p.canvasX+14, p.canvasY+10, color.RGBA{150, 175, 210, 255}) // DRAFT
+	}
 
 	// Bottom control strip.
 	sh := config.Global().ScreenHeight
@@ -876,7 +994,11 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 		p.shipList.Draw(screen)
 		p.planList.Draw(screen)
 		p.travelBtn.Draw(screen)
-		p.scanBtn.Draw(screen)
+		if p.atGate() {
+			p.leaveBtn.Draw(screen)
+		} else {
+			p.scanBtn.Draw(screen)
+		}
 		p.beamDownBtn.Draw(screen)
 		p.beamUpBtn.Draw(screen)
 	}
@@ -890,9 +1012,17 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	// The column ends above the Scan / Pause row; text that would run onto it
 	// is cut with an ellipsis.
 	infoMaxY := sh - smButtonRowFromBottom - 4
-	if sel != nil {
+	if sel != nil && !sel.Identified {
+		mlge_text.Draw(screen, campaign.UnidentifiedName, 16, infoX, lblY, color.RGBA{220, 230, 255, 255})
+		mlge_text.Draw(screen, fmt.Sprintf("fuel %d / %d", p.campaign.FuelCost(sel.ID), p.fuelAvailable()), 13, infoX, lblY+24, dashBodyColor)
+		y := lblY + 46
+		if p.travelLock != "" {
+			y = drawWrappedClip(screen, p.travelLock, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{230, 160, 90, 255}) + 4
+		}
+		drawWrappedClip(screen, blindJumpWarning, 12, infoX, y, infoW, 16, infoMaxY, color.RGBA{150, 170, 195, 255})
+	} else if sel != nil {
 		mlge_text.Draw(screen, sel.Name, 16, infoX, lblY, color.RGBA{220, 230, 255, 255})
-		line := fmt.Sprintf("%s   ·   fuel %d / %d", sel.Kind, p.campaign.FuelCost(sel.ID), p.fuelAvailable())
+		line := fmt.Sprintf("%s   ·   fuel %d / %d", kindLabel(sel), p.campaign.FuelCost(sel.ID), p.fuelAvailable())
 		if f := p.campaign.Expedition(); observerRun() && f != nil {
 			// The expedition's jump there, from where it is, and its tanks.
 			from := p.campaign.Locations[f.LandedID]
@@ -942,6 +1072,9 @@ func (p *starMapPanel) Draw(screen *ebiten.Image) {
 	}
 }
 
+// blindJumpWarning is the info line for a system nobody has identified.
+const blindJumpWarning = "Nothing is known of this system: its type, its dangers, who holds it. A scan in range would tell you; jumping there blind, you learn on arrival." // DRAFT
+
 // smButtonRowFromBottom is how far above the screen bottom the Star Map's
 // button row (Locate, Travel, Beam, Scan, Pause) sits.
 const smButtonRowFromBottom = 64
@@ -949,6 +1082,7 @@ const smButtonRowFromBottom = 64
 // ---- procedural site icons ----
 
 const (
+	unidentifiedRadius  = 3.5  // a seen, unidentified system's dim point
 	siteSizeScale       = 32.0 // map avg-dimension pixels per icon-radius pixel
 	minSiteRadius       = 4
 	maxSiteRadius       = 22
@@ -962,6 +1096,9 @@ const (
 // H; Z is always small so it's ignored). Zero dimensions — an unvisited site
 // whose size isn't known yet — fall back to a default radius.
 func siteRadius(loc *campaign.Location) float32 {
+	if !loc.Identified {
+		return unidentifiedRadius
+	}
 	if loc.MapW <= 0 || loc.MapH <= 0 {
 		return defaultSiteRadius
 	}
@@ -1048,11 +1185,17 @@ func drawStationFootprint(canvas *ebiten.Image, fp []uint16, sx, sy, r float32) 
 
 // drawSiteIcon renders a location's procedural marker: a coloured disc for
 // planets/moons, a scatter of rocks for asteroid fields, and a "?" square for
-// stations. Home keeps its distinct gold disc.
+// stations. The gate is a dark ring.
 func drawSiteIcon(canvas *ebiten.Image, loc *campaign.Location, sx, sy, r float32) {
-	// Home is always its distinct gold marker (it's the goal, never "visited").
-	if loc.Kind == campaign.HomeKind {
-		vector.DrawFilledCircle(canvas, sx, sy, r, color.RGBA{255, 220, 120, 255}, true)
+	// Seen, not identified (the gate too): a dim point.
+	if !loc.Identified {
+		vector.DrawFilledCircle(canvas, sx, sy, r, color.RGBA{120, 130, 150, 200}, true)
+		return
+	}
+	// The gate: a ring of old machinery, dark until switched on (plan step 4).
+	if loc.Kind == campaign.GateKind {
+		vector.StrokeCircle(canvas, sx, sy, r, 3, color.RGBA{230, 200, 120, 255}, true)
+		vector.StrokeCircle(canvas, sx, sy, r*0.6, 1.5, color.RGBA{150, 130, 90, 255}, true)
 		return
 	}
 	// The Wreck Site: a dim cross in empty space, nothing to land on.
@@ -1271,9 +1414,11 @@ func (p *starMapPanel) drawFleets(canvas *ebiten.Image) {
 	now := p.campaign.StarTime()
 	for _, f := range shownFleets(p.campaign) {
 		d := fd.Doctrine(f.Presence.Doctrine)
-		if d == nil {
+		if d == nil || !fleetOnMap(p.campaign, f) {
 			continue
 		}
+		// Bound for a world not yet seen: its heading, no line to it.
+		toSeen := p.campaign.IsSeen(p.campaign.Locations[f.ToID])
 		col := factionColor(p.campaign, f.Presence.Faction, d)
 		fx, fy := f.Pos(now)
 		sx, sy := p.worldToScreen(fx, fy)
@@ -1294,12 +1439,16 @@ func (p *starMapPanel) drawFleets(canvas *ebiten.Image) {
 				// Waiting docked at its mothership.
 				drawFleetShip(canvas, marker, sx-6, sy-30, 1, 0, col)
 			default:
-				drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+				if toSeen {
+					drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+				}
 				drawFleetShip(canvas, marker, sx, sy, tx-sx, ty-sy, col)
 			}
 			continue
 		}
-		drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+		if toSeen {
+			drawDashedLine(canvas, sx, sy, tx, ty, 3, 4, 1, color.RGBA{col.R, col.G, col.B, 120})
+		}
 		// An egg: a tall oval with a dark rim.
 		var path vector.Path
 		path.MoveTo(sx, sy-5)
@@ -1311,6 +1460,20 @@ func (p *starMapPanel) drawFleets(canvas *ebiten.Image) {
 		vector.FillPath(canvas, &path, &vector.FillOptions{}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(col)})
 		vector.StrokePath(canvas, &path, &vector.StrokeOptions{Width: 1}, &vector.DrawPathOptions{AntiAlias: true, ColorScale: colorScaleOf(color.RGBA{col.R / 3, col.G / 3, col.B / 3, 255})})
 	}
+}
+
+// fleetOnMap reports whether the Star Map draws f: one end of its flight
+// seen (a ship parked or in orbit, the world it is at). An unseen position
+// is never drawn.
+func fleetOnMap(c *campaign.Campaign, f *campaign.Fleet) bool {
+	seen := func(id string) bool { return c.IsSeen(c.Locations[id]) }
+	switch {
+	case f.Landed():
+		return seen(f.LandedID)
+	case f.Mothership || f.FromID == f.ToID:
+		return seen(f.ToID)
+	}
+	return seen(f.FromID) || seen(f.ToID)
 }
 
 // drawFleetShip draws a ship by its doctrine's marker: a saucer or (the
@@ -1397,7 +1560,7 @@ func (p *starMapPanel) drawInboundTags(screen *ebiten.Image, loc *campaign.Locat
 			continue
 		}
 		dest := "DEEP SPACE"
-		if to := p.campaign.Locations[f.ToID]; to != nil {
+		if to := p.campaign.Locations[f.ToID]; to != nil && p.campaign.IsSeen(to) {
 			dest = strings.ToUpper(to.Name)
 		}
 		days := int(f.ArriveDay - p.campaign.StarDate)

@@ -192,6 +192,12 @@ type Fleet struct {
 	// (its stay over and no site worth it: a free one the fuel reaches, as
 	// before the table).
 	LastMove string `json:"last_move,omitempty"`
+	// GateWork counts the days a gate-seeking ship has worked at the gate's
+	// controls off any loaded level (gate.go).
+	GateWork int `json:"gate_work,omitempty"`
+	// ExploreTo is where a gate-seeking ship that does not know the gate is
+	// heading, kept until it lands there (gate.go).
+	ExploreTo string `json:"explore_to,omitempty"`
 }
 
 // FleetProjectile is a Fleet that is an egg in flight.
@@ -373,6 +379,11 @@ type Doctrine struct {
 	// rather than the player (rival_selection_plan.md, step 2: the colony's
 	// rival colony). The loader derives that view under <key>!rival.
 	Rival *DoctrineRival `json:"rival,omitempty"`
+	// Objective is what its ships set out to do ("leave": seek the gate and
+	// leave the galaxy, gate.go); Gate how. A rival view takes them from its
+	// rival block.
+	Objective string        `json:"objective,omitempty"`
+	Gate      *DoctrineGate `json:"gate,omitempty"`
 	// ViewOf is a derived view's base doctrine key ("" for a doctrine of
 	// its own); LegacyKey the key the view had before it was folded into
 	// its base ("mirror"): its seeding place and its faction key in a
@@ -847,6 +858,11 @@ type GenOptions struct {
 	Rivals []RivalPick
 	// PlayerGroup is the player's group (0: PlayerGroup, 1).
 	PlayerGroup int
+	// Size is the Galaxy size choice ("" the default; generation.json
+	// galaxy.sizes). Shape forces the galaxy's shape (tests and tools; ""
+	// rolls it, as the game always does).
+	Size  string
+	Shape string
 }
 
 // FactionCountRange is the stepper's default and maximum, from
@@ -857,7 +873,7 @@ func FactionCountRange() (def, max int) {
 }
 
 // FactionSiteOK reports whether a faction presence may be put on loc. Never
-// the Wreck Site, Home or anything without a site, never the Training Ground,
+// the Wreck Site, the gate or anything without a site, never the Training Ground,
 // and never a first-jump site the player has not reached yet: that landing is
 // the player's (the safe start, firstJump). seeding also refuses first-jump
 // sites already visited (there are none at generation; the rule is explicit).
@@ -909,40 +925,11 @@ func (c *Campaign) seedFactions(n int) {
 	rng := rand.New(rand.NewSource(c.Seed*7919 + 104729))
 	var bag []string
 	taken := map[string]bool{}
-	sites := func(d *Doctrine, r *rand.Rand) *Location {
-		var cands []*Location
-		for _, loc := range c.sortedLocations() {
-			if !taken[loc.ID] && c.FactionSiteOK(loc, true) {
-				cands = append(cands, loc)
-			}
-		}
-		loc := pickWeighted(r, cands, func(l *Location) float64 { return economyWeight(d, l) })
-		if loc != nil {
-			taken[loc.ID] = true
-		}
-		return loc
-	}
+	sites := func(d *Doctrine, r *rand.Rand) *Location { return c.arrivalSite(r, d, taken) }
 	place := func(dkey string, d *Doctrine, loc *Location) {
 		key := fd.FactionKeyFor(dkey) // a faction instance of the doctrine (rival_selection_plan.md)
 		c.addFactionRow(key, dkey, 0, 0)
-		pop := d.SeedPopulation
-		if pop < 1 {
-			pop = 1
-		}
-		if d.Mobility.Kind == MobilityFleet {
-			// A fleet faction starts as a ship landed on its site, and (the
-			// greyish) a mothership far from Home.
-			if cc := d.CrewCap(0); cc > 0 {
-				pop = min(pop, cc)
-			}
-			c.newShip(key, d, loc, pop, true)
-			if d.Ships != nil && d.Ships.Mothership != nil && c.Mothership(key) == nil {
-				c.newMothership(key, d, taken)
-			}
-			return
-		}
-		p := c.newPresence(key, dkey, d, loc, pop)
-		c.recordFaction(d.arrivalEvent(), loc, p, d, nil)
+		c.seedArrival(key, dkey, d, loc, taken)
 	}
 	for i := 0; i < n; i++ {
 		if len(bag) == 0 {
@@ -969,6 +956,60 @@ func (c *Campaign) seedFactions(n int) {
 			place(key, d, loc)
 		}
 	}
+}
+
+// arrivalSite is where a rival faction arrives (pregenerated_galaxy_plan.md,
+// "Rivals on a full galaxy"): the system of a landfall rolled from those
+// free (not the player's, not taken), so a run may begin beside a rival or
+// far from all of them. With no free landfall (or no galaxy), any eligible
+// site weighted toward the doctrine's economy, as before the galaxy. The
+// site is marked taken.
+func (c *Campaign) arrivalSite(r *rand.Rand, d *Doctrine, taken map[string]bool) *Location {
+	var cands []*Location
+	if c.Galaxy != nil {
+		for i, lf := range c.Galaxy.Landfalls {
+			loc := c.Locations[lf.System]
+			if i != c.Landfall && loc != nil && !taken[loc.ID] && c.FactionSiteOK(loc, true) {
+				cands = append(cands, loc)
+			}
+		}
+	}
+	var loc *Location
+	if len(cands) > 0 {
+		loc = cands[r.Intn(len(cands))]
+	} else {
+		for _, l := range c.sortedLocations() {
+			if !taken[l.ID] && c.FactionSiteOK(l, true) {
+				cands = append(cands, l)
+			}
+		}
+		loc = pickWeighted(r, cands, func(l *Location) float64 { return economyWeight(d, l) })
+	}
+	if loc != nil {
+		taken[loc.ID] = true
+	}
+	return loc
+}
+
+// seedArrival puts a faction arriving from outside the galaxy on loc: a
+// fleet faction as its first ship landed there (and, the greyish, its
+// mothership), any other as a presence of its seed population at its first
+// stage, whatever the site's capacity would make of it.
+func (c *Campaign) seedArrival(key, dkey string, d *Doctrine, loc *Location, taken map[string]bool) {
+	pop := max(d.SeedPopulation, 1)
+	if d.Mobility.Kind == MobilityFleet {
+		if cc := d.CrewCap(0); cc > 0 {
+			pop = min(pop, cc)
+		}
+		c.newShip(key, d, loc, pop, true)
+		if d.Ships != nil && d.Ships.Mothership != nil && c.Mothership(key) == nil {
+			c.newMothership(key, d, loc)
+		}
+		return
+	}
+	p := c.newPresence(key, dkey, d, loc, pop)
+	p.Stage = 0
+	c.recordFaction(d.arrivalEvent(), loc, p, d, nil)
 }
 
 // newPresence adds a fresh presence of doctrine key on loc.
@@ -1633,7 +1674,7 @@ func (c *Campaign) RevealPresencesWithin(x, y, r float64) []*FactionPresence {
 	c.revealFleetsWithin(x, y, r)
 	var out []*FactionPresence
 	for _, loc := range c.sortedLocations() {
-		if loc.Discovered && math.Hypot(loc.X-x, loc.Y-y) <= r {
+		if loc.Identified && math.Hypot(loc.X-x, loc.Y-y) <= r {
 			out = append(out, c.RevealPresences(loc)...)
 		}
 	}
@@ -1642,37 +1683,38 @@ func (c *Campaign) RevealPresencesWithin(x, y, r float64) []*FactionPresence {
 
 // ---- save migration ----
 
-// MigrateCampaign brings a loaded campaign up to CampaignVersion. Version 2
-// (before factions) gains an empty faction layer: no presences, no rival
-// count, the faction clock at the star date, and capacity tags from the quest
-// tag. Version 3 (techs on the campaign) gains the player's presence, running
-// the default doctrine, holding the save's known techs. Anything older is
-// refused.
+// MigrateCampaign brings a loaded campaign up to CampaignVersion. Every save
+// from before the pregenerated galaxy (version 5) charted its map as it went
+// and is refused: no migration (pregenerated_galaxy_plan.md, Saves).
 func MigrateCampaign(c *Campaign) error {
-	if c.Version < 2 {
+	if c.Version < CampaignVersion {
 		return fmt.Errorf("save version %d, need %d", c.Version, CampaignVersion)
-	}
-	if c.Version == 2 {
-		c.FactionDay = c.StarDate
-		for _, loc := range c.Locations {
-			if len(loc.Tags) == 0 && loc.QuestTag != "" {
-				loc.Tags = []string{loc.QuestTag}
-			}
-		}
-		c.Version = 3
-	}
-	if c.Version == 3 {
-		if c.Player == nil {
-			c.Player = NewPlayerPresence("")
-		}
-		c.Player.KnownTechs = append(c.Player.KnownTechs, c.LegacyKnownTechs...)
-		c.LegacyKnownTechs = nil
-		c.Version = 4
 	}
 	c.migrateTechAliases()
 	c.migrateDoctrineAliases()
+	c.migrateSeen()
 	c.EnsureFactionTable()
 	return nil
+}
+
+// migrateSeen keeps a save from before sight (every system was a point on
+// the Star Map then, and no location stored Seen) as the player had it:
+// everything seen. A save with sight always has some seen point (the
+// landfall's neighbours), so this is idempotent.
+func (c *Campaign) migrateSeen() {
+	if c.Galaxy == nil {
+		return
+	}
+	for _, l := range c.Locations {
+		if l.GalaxyPoint() && l.Seen {
+			return
+		}
+	}
+	for _, l := range c.Locations {
+		if l.GalaxyPoint() {
+			l.Seen = true
+		}
+	}
 }
 
 // migrateDoctrineAliases rewrites a legacy doctrine key on every presence,
@@ -1771,6 +1813,8 @@ type DoctrineRival struct {
 	SeedFrom       int               `json:"seed_from,omitempty"`
 	SeedPopulation int               `json:"seed_population,omitempty"`
 	LegacyKey      string            `json:"legacy_key,omitempty"`
+	Objective      string            `json:"objective,omitempty"`
+	Gate           *DoctrineGate     `json:"gate,omitempty"`
 }
 
 // RivalView is the key suffix of a doctrine's rival view.
@@ -1822,6 +1866,12 @@ func rivalViewOf(key string, d *Doctrine) *Doctrine {
 	}
 	if r.SeedPopulation > 0 {
 		v.SeedPopulation = r.SeedPopulation
+	}
+	if r.Objective != "" {
+		v.Objective = r.Objective
+	}
+	if r.Gate != nil {
+		v.Gate = r.Gate
 	}
 	return &v
 }

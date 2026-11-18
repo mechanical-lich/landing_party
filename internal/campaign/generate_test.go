@@ -2,7 +2,6 @@ package campaign
 
 import (
 	"math"
-	"strings"
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
@@ -39,111 +38,25 @@ func TestGenerateCampaignShape(t *testing.T) {
 	if c.CurrentLocationID == "" {
 		t.Fatal("no start location set")
 	}
-	if start := c.Locations[c.CurrentLocationID]; start == nil || start.Kind == HomeKind {
+	if start := c.StartLocation(); start == nil || !start.HasSite() {
 		t.Fatalf("start location invalid: %+v", start)
 	}
-	home := c.HomeLocation()
-	if home == nil {
-		t.Fatal("no Home location")
-	}
-	if !home.Discovered {
-		t.Fatal("Home should be visible from the start")
+	gate := c.GateLocation()
+	if gate == nil || gate.Kind != GateKind || gate.HasSite() {
+		t.Fatalf("gate %+v", gate)
 	}
 	if len(c.QuestDefs) == 0 {
 		t.Fatal("no quests generated")
 	}
-	// Start + Home + at least two nearby systems, all discovered.
+	// Only the landfall system identified; the Star Map draws what is seen.
 	discovered := 0
 	for _, l := range c.Locations {
-		if l.Discovered {
+		if l.Identified {
 			discovered++
 		}
 	}
-	if discovered < 4 {
-		t.Fatalf("expected >=4 discovered locations (start+home+nearby), got %d", discovered)
-	}
-}
-
-func TestBlendAngle(t *testing.T) {
-	near := func(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
-	sameDir := func(x, y float64) bool { return near(math.Cos(x), math.Cos(y)) && near(math.Sin(x), math.Sin(y)) }
-
-	if got := blendAngle(1.0, 2.0, 0); !near(got, 1.0) {
-		t.Errorf("t=0 should be a: %v", got)
-	}
-	if got := blendAngle(1.0, 2.0, 0.5); !near(got, 1.5) {
-		t.Errorf("t=0.5 midpoint: %v", got)
-	}
-	if got := blendAngle(1.0, 2.0, 1); !sameDir(got, 2.0) {
-		t.Errorf("t=1 should be b: %v", got)
-	}
-	// Shortest arc across the ±pi seam (should go the short way, not +2pi).
-	if got := blendAngle(3.0, -3.0, 1); !sameDir(got, -3.0) {
-		t.Errorf("seam: %v", got)
-	}
-	if got := blendAngle(0.2, -0.2, 1); !near(got, -0.2) {
-		t.Errorf("small arc: %v", got)
-	}
-}
-
-// Expansion should trend toward Home (most new systems in the home direction,
-// and the frontier moving closer) while still branching laterally so the player
-// has other directions to explore.
-func TestExpansionBranchesTowardHome(t *testing.T) {
-	useRepoData(t)
-	arc := func(d float64) float64 {
-		d = math.Mod(d, 2*math.Pi)
-		if d < -math.Pi {
-			d += 2 * math.Pi
-		} else if d > math.Pi {
-			d -= 2 * math.Pi
-		}
-		return d
-	}
-	minToHome := func(c *Campaign, hx, hy float64) float64 {
-		m := math.MaxFloat64
-		for _, l := range c.Locations {
-			if l.Kind == HomeKind {
-				continue
-			}
-			if d := math.Hypot(hx-l.X, hy-l.Y); d < m {
-				m = d
-			}
-		}
-		return m
-	}
-	for _, seed := range []int64{1, 4242} {
-		c := genCampaign(t, seed)
-		home := c.HomeLocation()
-		homeAng := math.Atan2(home.Y, home.X)
-		before := minToHome(c, home.X, home.Y)
-		existing := map[string]bool{}
-		for id := range c.Locations {
-			existing[id] = true
-		}
-		c.Expand(40)
-
-		fwd, lat := 0, 0
-		for id, l := range c.Locations {
-			if existing[id] || l.Kind == HomeKind {
-				continue
-			}
-			off := math.Abs(arc(math.Atan2(l.Y, l.X) - homeAng))
-			if off < math.Pi/4 {
-				fwd++
-			} else if off < 3*math.Pi/4 {
-				lat++
-			}
-		}
-		if fwd < 5 {
-			t.Errorf("seed %d: only %d systems trend toward home", seed, fwd)
-		}
-		if lat < 3 {
-			t.Errorf("seed %d: only %d lateral systems — not branching", seed, lat)
-		}
-		if after := minToHome(c, home.X, home.Y); after > before {
-			t.Errorf("seed %d: expansion moved the frontier away from home (%.0f -> %.0f)", seed, before, after)
-		}
+	if discovered != 2 || len(c.MapLocations()) < 3 {
+		t.Fatalf("expected the Wreck Site and the landfall identified of the whole galaxy, got %d of %d", discovered, len(c.MapLocations()))
 	}
 }
 
@@ -153,8 +66,8 @@ func TestScannerResearchLevels(t *testing.T) {
 	if c.ScannerLevel() != 0 {
 		t.Fatalf("fresh scanner level = %d, want 0", c.ScannerLevel())
 	}
-	if c.ScanFuelCost() != 200 {
-		t.Fatalf("base scan cost = %d, want 200", c.ScanFuelCost())
+	if c.ScanFuelCost() != 40 {
+		t.Fatalf("base scan cost = %d, want 40", c.ScanFuelCost())
 	}
 	c.UnlockTech("ship_scanner_1")
 	c.UnlockTech("ship_scanner_2")
@@ -163,62 +76,28 @@ func TestScannerResearchLevels(t *testing.T) {
 		t.Fatalf("scanner level = %d, want 3", c.ScannerLevel())
 	}
 	c.UnlockTech("scan_efficiency_1")
-	if c.ScanFuelCost() != 100 {
-		t.Fatalf("scan cost after efficiency_1 = %d, want 100", c.ScanFuelCost())
+	if c.ScanFuelCost() != 25 {
+		t.Fatalf("scan cost after efficiency_1 = %d, want 25", c.ScanFuelCost())
 	}
 	c.UnlockTech("scan_efficiency_2")
-	if c.ScanFuelCost() != 50 {
-		t.Fatalf("scan cost after efficiency_2 = %d, want 50", c.ScanFuelCost())
+	if c.ScanFuelCost() != 15 {
+		t.Fatalf("scan cost after efficiency_2 = %d, want 15", c.ScanFuelCost())
 	}
 }
 
-func TestScanReveals(t *testing.T) {
+// A scan runs from wherever the ship is (with a scanner) and creates nothing.
+func TestScanRuns(t *testing.T) {
 	useRepoData(t)
-	// Level 0 (no scanner) never scans (and doesn't "run").
-	if c0 := genCampaign(t, 7); func() bool { l, r := c0.Scan(0); return l != nil || r }() {
+	c := genCampaign(t, 7)
+	if l, r := c.Scan(0); l != nil || r {
 		t.Fatal("level 0 should not scan")
 	}
-
-	c := genCampaign(t, 7)
-	c.UnlockTech("ship_scanner_1")
-	c.UnlockTech("ship_scanner_2")
-	c.UnlockTech("ship_scanner_3") // level 3: 30% / range 100
-	cur := c.Locations[c.CurrentLocationID]
-
-	var revealed *Location
-	for i := 0; i < 100 && revealed == nil; i++ {
-		revealed, _ = c.Scan(3)
+	n := len(c.Locations)
+	if _, ran := c.Scan(3); !ran {
+		t.Fatal("scan did not run")
 	}
-	if revealed == nil {
-		t.Fatal("no reveal in 100 scans at 30%")
-	}
-	if !revealed.Discovered {
-		t.Error("revealed location should be discovered")
-	}
-	if d := math.Hypot(revealed.X-cur.X, revealed.Y-cur.Y); d > 100+1e-6 {
-		t.Errorf("revealed %.1f from current, exceeds range 100", d)
-	}
-}
-
-func TestScanDeterministic(t *testing.T) {
-	useRepoData(t)
-	run := func() (int, float64, float64) {
-		c := genCampaign(t, 55)
-		c.UnlockTech("ship_scanner_1")
-		n := 0
-		var lx, ly float64
-		for i := 0; i < 20; i++ {
-			if loc, _ := c.Scan(1); loc != nil {
-				n++
-				lx, ly = loc.X, loc.Y
-			}
-		}
-		return n, lx, ly
-	}
-	n1, x1, y1 := run()
-	n2, x2, y2 := run()
-	if n1 != n2 || x1 != x2 || y1 != y2 {
-		t.Fatalf("scan non-deterministic: (%d,%.2f,%.2f) vs (%d,%.2f,%.2f)", n1, x1, y1, n2, x2, y2)
+	if len(c.Locations) != n {
+		t.Fatal("a scan added a location")
 	}
 }
 
@@ -306,12 +185,6 @@ func TestFuelCostIsDistance(t *testing.T) {
 			continue
 		}
 		fc := c.FuelCost(id)
-		if loc.Kind == HomeKind {
-			if fc < 100 {
-				t.Fatalf("Home should be expensive, got %d", fc)
-			}
-			continue
-		}
 		if fc <= 0 {
 			t.Fatalf("nearby system %s has non-positive fuel cost %d (x=%.1f y=%.1f)", id, fc, loc.X, loc.Y)
 		}
@@ -333,7 +206,7 @@ func TestLocationBoundQuestRevealAndScope(t *testing.T) {
 		if c.Quests[d.ID].Status != QuestAvailable {
 			continue
 		}
-		if loc := c.Locations[d.Location]; loc != nil && !loc.Discovered {
+		if loc := c.Locations[d.Location]; loc != nil && !loc.Identified {
 			q = d
 			break
 		}
@@ -349,7 +222,7 @@ func TestLocationBoundQuestRevealAndScope(t *testing.T) {
 	if !c.AcceptQuest(q.ID) {
 		t.Fatal("AcceptQuest failed")
 	}
-	if !loc.Discovered {
+	if !loc.Identified {
 		t.Fatal("accepting a location-bound quest must reveal its location")
 	}
 
@@ -461,7 +334,7 @@ func TestTravelRollRateAndProgression(t *testing.T) {
 
 	hits := 0
 	for i := 0; i < 240; i++ {
-		if _, added := c.MaybeTravelQuests(); added > 0 {
+		if added := c.MaybeTravelQuests(); added > 0 {
 			hits++
 			if added < 1 || added > 4 {
 				t.Fatalf("added out of 1d4 range: %d", added)
@@ -482,13 +355,10 @@ func TestTravelRollDeterministic(t *testing.T) {
 	a := genCampaign(t, 88)
 	b := genCampaign(t, 88)
 	for i := 0; i < 50; i++ {
-		_, na := a.MaybeTravelQuests()
-		_, nb := b.MaybeTravelQuests()
+		na := a.MaybeTravelQuests()
+		nb := b.MaybeTravelQuests()
 		if na != nb {
 			t.Fatalf("jump %d: non-deterministic travel roll (%d vs %d)", i, na, nb)
 		}
-	}
-	if !strings.HasPrefix(a.CurrentLocationID, "start") {
-		t.Logf("start id = %s", a.CurrentLocationID)
 	}
 }

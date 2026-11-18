@@ -17,7 +17,12 @@ type WorkerComponent struct {
 	// cancel threshold the task is abandoned (with a message) so a worker whose
 	// storage is walled off doesn't stay pinned to it forever. Reset on progress.
 	ApproachFailTicks int
-	LastTaskAction    task.TaskAction
+	// DropOffTicks counts the ticks of the current drop-off. Workers crowding
+	// a container with one free side swap places forever, each step counting
+	// as progress; past a cap the drop-off is given up whatever the moves
+	// (workerai.HandleDropOffState). Reset when the worker is idle.
+	DropOffTicks   int
+	LastTaskAction task.TaskAction
 	// AvailableTasks is the blueprint-level cap on what this worker is ever
 	// capable of doing — the universe of toggles shown in the colonist
 	// modal, AND the upper bound enforced at task-pick time. Empty = no

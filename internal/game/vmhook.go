@@ -69,7 +69,7 @@ func vmState(cur state.StateInterface) map[string]any {
 	case *TitleState:
 		out["state"] = "title"
 		out["title_screen"] = titleScreenNames[s.screen]
-		out["title_fields"] = map[string]any{"name": s.nameInput.Text, "seed": s.seedInput.Text, "tutorial": s.tutorialToggle.IsOn(), "factions": s.factions}
+		out["title_fields"] = map[string]any{"name": s.nameInput.Text, "seed": s.seedInput.Text, "tutorial": s.tutorialToggle.IsOn(), "factions": s.factions, "size": s.sizeID()}
 		if s.rivalBoxes() {
 			var names []any
 			var groups []any
@@ -274,6 +274,22 @@ func vmWorldState(out map[string]any, wm *WorldManager) {
 		camp["tier"] = c.LocationTier(loc)
 	}
 	camp["known_events"] = c.KnownEventCount()
+	// The galaxy (pregenerated_galaxy_plan.md): its size and shape, how
+	// many of its systems are identified, the start system and the gate.
+	known, total := c.IdentifiedCount()
+	camp["identified"], camp["systems"] = known, total
+	camp["seen"] = c.SeenCount()
+	camp["sight_range"] = c.SightRange()
+	camp["start_id"] = c.StartID
+	if g := c.Galaxy; g != nil {
+		camp["galaxy_size"], camp["galaxy_shape"] = g.Size, g.Shape
+		camp["gate_identified"] = c.GateLocation() != nil && c.GateLocation().Identified
+		camp["gate_on"], camp["gate_on_by"] = g.GateOn, g.GateOnBy
+		camp["controls_id"] = g.ControlsID
+	}
+	if loc != nil {
+		camp["location_identified"] = loc.Identified
+	}
 	techs := append([]string(nil), c.KnownTechs()...)
 	sort.Strings(techs)
 	camp["known_techs"] = vmList(techs)
@@ -639,6 +655,10 @@ func vmTitleTarget(s *TitleState, name string) (guest.Rect, bool) {
 			el = s.factionsMinus
 		case "factions_plus":
 			el = s.factionsPlus
+		case "size_prev":
+			el = s.sizePrev
+		case "size_next":
+			el = s.sizeNext
 		case "race_prev":
 			el = s.racePrev
 		case "race_next":
@@ -704,6 +724,39 @@ func vmDashRow(d *DashboardState, rest string) (guest.Rect, bool) {
 	if p := d.starMapPanel(); p != nil && d.tabs[d.active].id == "starmap" {
 		switch list {
 		case "locList":
+			// row:locList:start is the landfall system's row;
+			// row:locList:unidentified:<n> the nth nearest system nobody has
+			// identified (the galaxy's ids move with the seed).
+			if key == "start" && d.campaign.Locations["start"] == nil {
+				key = d.campaign.StartID
+			}
+			if key == "controls" {
+				if ctl := d.campaign.ControlsLocation(); ctl != nil {
+					key = ctl.ID
+				}
+			}
+			if n, ok := strings.CutPrefix(key, "unidentified:"); ok {
+				i, err := strconv.Atoi(n)
+				for _, lid := range p.locIDs {
+					if l := d.campaign.Locations[lid]; l != nil && !l.Identified && l.HasSite() {
+						if err == nil && i == 0 {
+							key = lid
+							break
+						}
+						i--
+					}
+				}
+			}
+			if !strings.HasPrefix(key, "yours:") {
+				// Every system is listed, so most rows sit below the box:
+				// scroll the row into view.
+				for j, lid := range p.locIDs {
+					if lid == key {
+						p.locList.ScrollTo(j)
+						return minuitarget.ListRow(p.locList, j)
+					}
+				}
+			}
 			if n, ok := strings.CutPrefix(key, "yours:"); ok {
 				// row:locList:yours:<n>: the nth world the player holds
 				// (a spreading race's run).
@@ -891,7 +944,7 @@ func vmCandidates(cur state.StateInterface) []string {
 		"title:tutorial", "title:factions_minus", "title:factions_plus", "title:launch", "title:cancel", "title:load_confirm", "title:load_cancel",
 		"tab:starmap", "tab:crew", "tab:inventory", "tab:quests", "tab:encyclopedia",
 		"dash:returnSiteBtn", "dash:returnShipBtn", "dash:saveBtn", "dash:locList", "dash:locateBtn",
-		"dash:travelBtn", "dash:viewBtn", "dash:shipList", "dash:planList", "dash:beamDownBtn", "dash:beamUpBtn", "dash:scanBtn",
+		"dash:travelBtn", "dash:viewBtn", "dash:shipList", "dash:planList", "dash:beamDownBtn", "dash:beamUpBtn", "dash:scanBtn", "dash:leaveBtn",
 		"star:" + tutorial.AtTutorial, "star:" + tutorial.AtNext,
 		"gi:beam_down", "gi:beam_up", "ship:hold", "btn:dashboard",
 		"inspector:beam", "inspector:list", "inspector:amount", "inspector:all", "inspector:close",
@@ -941,6 +994,22 @@ func vmCandidates(cur state.StateInterface) []string {
 func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 	verb, rest, _ := strings.Cut(strings.TrimSpace(cmd), " ")
 	rest = strings.TrimSpace(rest)
+	// The location ids "start" and "controls" name the landfall system and
+	// the gate's controls world (the galaxy's ids move with the seed).
+	if wm := vmWorld(cur); wm != nil && wm.Campaign.Locations["start"] == nil {
+		f := strings.Fields(rest)
+		for i := range f {
+			switch f[i] {
+			case "start":
+				f[i] = wm.Campaign.StartID
+			case "controls":
+				if ctl := wm.Campaign.ControlsLocation(); ctl != nil {
+					f[i] = ctl.ID
+				}
+			}
+		}
+		rest = strings.Join(f, " ")
+	}
 	switch verb {
 	case "reveal":
 		// "reveal all" marks every history event known, as if every datapad
@@ -1395,6 +1464,91 @@ func vmDebug(cur state.StateInterface, cmd string) (string, error) {
 			}
 		}
 		return fmt.Sprintf("%d,%d,%d", p[0], p[1], p[2]), nil
+	case "fuel":
+		// "fuel <n>": n more fuel in the ship's hold (a script leaving through
+		// the gate without refining the reserve).
+		wm := vmWorld(cur)
+		n, err := strconv.Atoi(rest)
+		if wm == nil || err != nil || n <= 0 {
+			return "", fmt.Errorf("usage: fuel <n> (needs a campaign)")
+		}
+		wm.addToShipHold("fuel", n)
+		return fmt.Sprintf("fuel +%d", n), nil
+	case "gate":
+		// "gate": on the controls world's level, frame the gate's controls
+		// (dark or lit), down in their vault.
+		s, ok := cur.(*MainState)
+		if !ok || s.level == nil {
+			return "", fmt.Errorf("gate needs a site on screen")
+		}
+		var e *ecs.Entity
+		for _, list := range [][]*ecs.Entity{s.level.Entities, s.level.StaticEntities} {
+			for _, x := range list {
+				if x != nil && (x.Blueprint == campaign.GateControlsDormant || x.Blueprint == "gate_controls") {
+					e = x
+				}
+			}
+		}
+		if e == nil {
+			return "", fmt.Errorf("no gate controls on this level")
+		}
+		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+		x, y, z := pc.GetX(), pc.GetY(), pc.GetZ()
+		s.camera.CenterOn(x, y, z)
+		return fmt.Sprintf("%s %d,%d,%d", e.Blueprint, x, y, z), nil
+	case "travel":
+		// "travel <location id>": jump there for no fuel, as Travel Here
+		// does otherwise (the galaxy's sites a script needs lie beyond the
+		// starting fuel; pregenerated_galaxy_plan.md).
+		wm := vmWorld(cur)
+		id := strings.TrimSpace(rest)
+		if wm == nil || wm.Campaign.Locations[id] == nil {
+			return "", fmt.Errorf("usage: travel <location id> (needs a campaign)")
+		}
+		if err := wm.Travel(id); err != nil {
+			return "", err
+		}
+		if d, ok := cur.(*DashboardState); ok {
+			if p := d.starMapPanel(); p != nil {
+				p.refreshLocations()
+				p.refreshCrew()
+				p.selectByID(id)
+			}
+		}
+		return "in orbit over " + wm.Campaign.Locations[id].Name, nil
+	case "see":
+		// "see <id>": put a system on the Star Map (a script that clicks a
+		// named system's row beyond the ship's sight).
+		wm := vmWorld(cur)
+		if wm == nil || rest == "" {
+			return "", fmt.Errorf("usage: see <location id> (needs a campaign)")
+		}
+		id := strings.TrimSpace(rest)
+		loc := wm.Campaign.Locations[id]
+		if loc == nil {
+			return "", fmt.Errorf("see: no location %q", id)
+		}
+		wm.Campaign.See(loc)
+		if d, ok := cur.(*DashboardState); ok {
+			if p := d.starMapPanel(); p != nil {
+				p.refreshLocations()
+			}
+		}
+		return "seen " + id, nil
+	case "unlock":
+		// "unlock <tech>": the player knows the tech (a script scanning
+		// without waiting on the research).
+		wm := vmWorld(cur)
+		if wm == nil || rest == "" {
+			return "", fmt.Errorf("usage: unlock <tech> (needs a campaign)")
+		}
+		wm.Campaign.UnlockTech(strings.TrimSpace(rest))
+		if d, ok := cur.(*DashboardState); ok {
+			if p := d.starMapPanel(); p != nil {
+				p.refreshLocations()
+			}
+		}
+		return "unlocked " + rest, nil
 	case "cheat":
 		s, ok := cur.(*MainState)
 		if !ok || s.cheatModal == nil {

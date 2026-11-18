@@ -1,6 +1,7 @@
-{"name":"lore_autonz","seed":23,"config":{"rivalsByCount":true}}
+{"name":"lore_autonz","seed":22,"config":{"rivalsByCount":true}}
 # Autonz wires spreading from an old wreck whose dormant swarm woke.
-# New expedition (seed 23, tutorial off) -> jump straight to sys_74, whose
+# New expedition (seed 22, tutorial off) -> jump straight to sys_3 (an
+# earth-like world 58 fuel from the Wreck Site), whose
 # history ends in wreck_nanites_wake -> beam one colonist down -> land -> frame the camera on
 # the history's origin and look at what stands there.
 {"op":"wait","ticks":10}
@@ -8,16 +9,16 @@
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore lore_autonz"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"23"}
+{"op":"type","text":"22"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"click","target":"row:locList:sys_74"}
-{"op":"assert","path":"selected_location.id","eq":"sys_74"}
+{"op":"click","target":"row:locList:sys_3"}
+{"op":"assert","path":"selected_location.id","eq":"sys_3"}
 {"op":"assert","path":"selected_location.history_summary","eq":true}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_74"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_3"}
 {"op":"assert","path":"campaign.chapter","eq":"wreck_nanites_wake"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

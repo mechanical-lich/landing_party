@@ -102,11 +102,9 @@ func printPresences(w io.Writer, c *campaign.Campaign, fd *campaign.FactionData)
 			if d != nil {
 				stage, capn = d.StageName(p.Stage), d.CapacityAt(loc)
 			}
-			seen := "hidden"
-			if loc.Discovered {
-				// Its row on the opening Destinations list (nearest first).
-				seen = fmt.Sprintf("row %d", destRow(c, id))
-			}
+			// Its row on the opening Destinations list (nearest first; every
+			// system is listed, identified or not).
+			seen := fmt.Sprintf("row %d", destRow(c, id))
 			fmt.Fprintf(w, "    %-8s %-18s %-10s %-20s %-7s pop %3d/%-3d %-6s day %3d techs %s\n",
 				id, loc.Name, loc.Kind, loc.ScenarioID, seen, p.Population, capn, stage, p.ArrivedDay, strings.Join(p.KnownTechs, ","))
 			if d != nil && d.Broods() {
@@ -250,7 +248,7 @@ func parseInts(s string) []int64 {
 // destRow is a location's index on the Star Map Destinations list (fuel from
 // the current location, then ID), for vmtest scripts that click its row.
 func destRow(c *campaign.Campaign, id string) int {
-	locs := c.DiscoveredLocations()
+	locs := c.MapLocations()
 	sort.Slice(locs, func(a, b int) bool {
 		fa, fb := c.FuelCost(locs[a].ID), c.FuelCost(locs[b].ID)
 		if fa != fb {

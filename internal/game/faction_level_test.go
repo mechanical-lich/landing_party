@@ -273,7 +273,7 @@ func TestLiveHiveLaunchCooldown(t *testing.T) {
 	c.FactionCount = 1
 	c.Locations[campaign.AdriftLocationID] = &campaign.Location{ID: campaign.AdriftLocationID, Kind: campaign.AdriftKind}
 	for i, id := range []string{"t1", "t2"} {
-		c.Locations[id] = &campaign.Location{ID: id, Name: id, Kind: "planet", ScenarioID: "earth_like", X: 1010 + float64(i), Y: 1000 + 5*float64(i), Discovered: true}
+		c.Locations[id] = &campaign.Location{ID: id, Name: id, Kind: "planet", ScenarioID: "earth_like", X: 1010 + float64(i), Y: 1000 + 5*float64(i), Identified: true}
 	}
 	materialiseFactions(nil, loc, ms.level, ms.scenario)
 	loaded := func(id string) bool { return id == loc.ID }

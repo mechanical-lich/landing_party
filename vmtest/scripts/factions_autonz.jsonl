@@ -1,10 +1,11 @@
 {"name":"factions_autonz","seed":65,"config":{"rivalsByCount":true}}
 # New Expedition seed 65 with Rival factions 4 (the count that brings the
-# autonz in): an autonz node is seeded on Leaden Ridge (sys_5, 9 fuel from
-# the Wreck Site). 81 days pass (debug days): it converts its ground and
-# grows into a hub. (81, not 80, since observer mode v2: the mirror's ship
-# flies by the expedition table, the greys route around it, and on day 80 a
-# grey freighter crosses this jump.) Jump there: from orbit the presence is seen, drawn on the
+# autonz in): the autonz arrive at their landfall on the rim of the
+# pregenerated galaxy, Gaunt Cradle (sys_46), and set up a hub there. 81 days
+# pass (debug days): it converts its ground (about a third converted). Select
+# its row (an unidentified system until the ship is there) and jump there
+# (Travel Here; it lies inside the 200 starting fuel): from orbit the
+# presence is seen, drawn on the
 # Star Map as a blue chip with a pip beside the site, tagged AUTONZ HUB and
 # noted [autonz hub] in Destinations. Beam one colonist down and land: the
 # hub stamp (a round wired hall with a red-wired signal core), blue wire laid
@@ -25,10 +26,11 @@
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.faction_count","eq":4}
 {"op":"debug","cmd":"days 81"}
-{"op":"click","target":"row:locList:sys_5"}
+{"op":"debug","cmd":"see sys_46"}
+{"op":"click","target":"row:locList:sys_46"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_5"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_46"}
 {"op":"assert","path":"selected_location.known_factions","gte":1}
 {"op":"assert","path":"modal","eq":[]}
 {"op":"screenshot","name":"starmap"}

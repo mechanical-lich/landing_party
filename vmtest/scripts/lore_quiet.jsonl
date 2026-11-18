@@ -1,19 +1,23 @@
-{"name":"lore_quiet","seed":66,"config":{"rivalsByCount":true}}
-# A quiet site with a history structure on it: seed 66's start system is an
-# earth_like world whose civilization collapsed, leaving a castle. The castle
+{"name":"lore_quiet","seed":75,"config":{"rivalsByCount":true}}
+# A quiet site with a history structure on it: seed 75's landfall system
+# (sys_25, Wether Flats) is an earth_like world whose civilization collapsed,
+# leaving a castle. The castle
 # stands at the event's origin, empty (occupants none): no brute, no guards.
+# Re-find with: make history-dump HFIND=sys_25,quiet,civ_collapses,stamped:civ_collapses,stamped:native_civ_rises
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore Quiet"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"66"}
+{"op":"type","text":"75"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"click","target":"row:locList:start"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_25"}
+{"op":"assert","path":"campaign.tier","eq":"quiet"}
 {"op":"assert","path":"campaign.chapter","eq":""}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

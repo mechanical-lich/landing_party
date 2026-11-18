@@ -125,17 +125,22 @@ func (p *factionsPanel) rebuild() {
 			}
 			b := get(d, pr, loc)
 			b.pop += pr.Population
-			text := fmt.Sprintf("  %s  ·  %s  ·  pop %d", loc.Name, stageWordFor(d, pr), pr.Population)
+			// An unseen world is not named or linked: that would place it.
+			where, at := loc.Name, loc.ID
+			if !c.IsSeen(loc) {
+				where, at = unseenWorld, ""
+			}
+			text := fmt.Sprintf("  %s  ·  %s  ·  pop %d", where, stageWordFor(d, pr), pr.Population)
 			if pr.Dormant {
-				text = fmt.Sprintf("  %s  ·  signal, wakes day %d", loc.Name, int(pr.WakeDay))
+				text = fmt.Sprintf("  %s  ·  signal, wakes day %d", where, int(pr.WakeDay))
 			} else if pr.Conversion > 0 && d.Broods() {
 				text += fmt.Sprintf("  ·  %.0f%% resin", 100*pr.Conversion)
 			} else if pr.Conversion > 0 {
 				text += fmt.Sprintf("  ·  %.0f%% converted", 100*pr.Conversion)
 			}
-			b.sites = append(b.sites, factionRow{text: text, col: factionColor(c, pr.Faction, d), locID: loc.ID})
+			b.sites = append(b.sites, factionRow{text: text, col: factionColor(c, pr.Faction, d), locID: at})
 			if units := unitsLine(d, pr, loc); units != "" {
-				b.sites = append(b.sites, factionRow{text: "      " + units, col: factionColor(c, pr.Faction, d), locID: loc.ID, detail: true})
+				b.sites = append(b.sites, factionRow{text: "      " + units, col: factionColor(c, pr.Faction, d), locID: at, detail: true})
 			}
 		}
 	}
@@ -148,6 +153,9 @@ func (p *factionsPanel) rebuild() {
 		b.pop += f.Presence.Population
 		name := func(id string) string {
 			if l := c.Locations[id]; l != nil {
+				if !c.IsSeen(l) {
+					return unseenWorld
+				}
 				return l.Name
 			}
 			return id
@@ -179,6 +187,9 @@ func (p *factionsPanel) rebuild() {
 			if f.Presence.Fuel > 0 {
 				text += fmt.Sprintf("  ·  fuel %d", f.Presence.Fuel)
 			}
+		}
+		if l := c.Locations[at]; l != nil && !c.IsSeen(l) {
+			at = "" // not a link to a world the player has not seen
 		}
 		b.fleets = append(b.fleets, factionRow{text: text, col: factionColor(c, f.Presence.Faction, d), locID: at})
 		if f.Kind == campaign.FleetShip && !f.Mothership && d.ShipSettles() {
@@ -406,3 +417,6 @@ func greyShipLine(d *campaign.Doctrine, f *campaign.Fleet) string {
 	}
 	return line
 }
+
+// unseenWorld names a world the player has not seen in the Factions tab.
+const unseenWorld = "an unseen world" // DRAFT

@@ -16,6 +16,15 @@ import (
 	"github.com/mechanical-lich/mlge/ecs"
 )
 
+// raidSeed is the New Expedition seed the mirror level tests play on
+// (LP_RAID_SEED overrides, for finding another).
+func raidSeed() int64 {
+	if v, err := strconv.ParseInt(os.Getenv("LP_RAID_SEED"), 10, 64); err == nil {
+		return v
+	}
+	return 3
+}
+
 // stepLevel steps ms n ticks as the game's Update does.
 func stepLevel(ms *MainState, n int, each func(tick int)) {
 	for tick := 1; tick <= n; tick++ {
@@ -38,7 +47,7 @@ func stepLevel(ms *MainState, n int, each func(tick int)) {
 // colonist, and its workers take up the attack. A neutral one on the same
 // site never does.
 func TestHostileRivalRaidsThePlayer(t *testing.T) {
-	_, ms, loc := mirrorOnStart(t, 1, 4)
+	_, ms, loc := mirrorOnStart(t, raidSeed(), 4)
 	name := "mirror:" + loc.ID
 	// Beaming down onto its site made it hostile (contact); make it
 	// neutral again for the first half.
@@ -94,7 +103,7 @@ func TestMirrorFedFortyDays(t *testing.T) {
 		randSeed = v // tracing the starvation path over other draws
 	}
 	seedGlobalRand(t, randSeed)
-	_, ms, loc := mirrorOnStart(t, 1, 4)
+	_, ms, loc := mirrorOnStart(t, raidSeed(), 4)
 	name := "mirror:" + loc.ID
 	ms.campaign.SetStance("mirror", campaign.StanceNeutral, loc) // fed, not fighting
 	components.SetFactionHostile("mirror", false)
@@ -174,6 +183,23 @@ func mirrorFoodLine(ms *MainState, name string, tick int) string {
 		}
 	}
 	fmt.Fprintf(&b, "t%d d%.1f food %d loose %d |", tick, float64(tick)/750, food, loose)
+	if os.Getenv("LP_FLAKE_LOG") == "2" {
+		// The colony's containers: where, how full, and any filter.
+		for _, list := range [][]*ecs.Entity{ms.level.Entities, ms.level.StaticEntities} {
+			for _, e := range list {
+				if e == nil || !e.HasComponent(components.Storage) || !e.HasComponent(rlcomponents.Position) {
+					continue
+				}
+				sc := e.GetComponent(components.Storage).(*components.StorageComponent)
+				if sc.OwnedBy != name {
+					continue
+				}
+				pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
+				fmt.Fprintf(&b, " {%s %d,%d %d/%d %v}", e.Blueprint, pc.GetX(), pc.GetY(), len(sc.Items), sc.Capacity, sc.AllowedTags)
+			}
+		}
+		b.WriteString(" |")
+	}
 	for _, e := range settlementWorkers(ms.level, name) {
 		nc := e.GetComponent(components.Needs).(*components.NeedsComponent)
 		hc := e.GetComponent(rlcomponents.Health).(*rlcomponents.HealthComponent)
@@ -195,7 +221,17 @@ func mirrorFoodLine(ms *MainState, name string, tick int) string {
 			}
 		}
 		pc := e.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
-		fmt.Fprintf(&b, " h%d hp%d %s/%s c%d @%d,%d,%d;", nc.Hunger, hc.Health, st, act, carry, pc.GetX(), pc.GetY(), pc.GetZ())
+		fmt.Fprintf(&b, " h%d hp%d %s/%s c%d @%d,%d,%d", nc.Hunger, hc.Health, st, act, carry, pc.GetX(), pc.GetY(), pc.GetZ())
+		if os.Getenv("LP_FLAKE_LOG") == "2" && e.HasComponent(rlcomponents.AIMemory) {
+			// What it carries and where it is taking it.
+			am := e.GetComponent(rlcomponents.AIMemory).(*rlcomponents.AIMemoryComponent)
+			var bag []string
+			for _, it := range e.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).Bag {
+				bag = append(bag, it.Blueprint)
+			}
+			fmt.Fprintf(&b, " bag%v ->%d,%d,%d", bag, am.TargetX, am.TargetY, am.TargetZ)
+		}
+		b.WriteString(";")
 	}
 	if dir := ms.factionDirectors[name]; dir != nil && len(dir.Log) > 0 {
 		fmt.Fprintf(&b, " | %s", dir.Log[len(dir.Log)-1])

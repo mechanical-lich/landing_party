@@ -166,7 +166,7 @@ func autonzSoakOne(t *testing.T, seed int64, start string, ticks int) autonzRow 
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	fp := campaign.FactionPresence{
 		ID: "fpz", Faction: "autonz", Doctrine: "autonz", Population: autonzSoakPop,
 		Stockpile: map[string]int{"metal_ore": 20, "crystal": 4}, Seed: seed*131 + 9,
@@ -190,7 +190,7 @@ func autonzSoakOne(t *testing.T, seed int64, start string, ticks int) autonzRow 
 	}
 	loc.Factions = append(loc.Factions, fp)
 	c.SetStance("autonz", campaign.StanceNeutral, loc)
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	if err := wm.BeamDown(wm.ShipColonists()[0]); err != nil {

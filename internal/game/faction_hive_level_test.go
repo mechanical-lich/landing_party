@@ -281,13 +281,13 @@ func TestHiveFreezeThaw(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	loc.Factions = append(loc.Factions, campaign.FactionPresence{
 		ID: "fph", Faction: "hive", Doctrine: "hive", Population: 10, Stage: 1, Larvae: 2,
 		KnownTechs: []string{"hive_warrior_brood"}, Stockpile: map[string]int{"biomass": 30},
 		Seed: 5*31 + 7, LastShotDay: campaign.NeverFired,
 	})
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	if err := wm.BeamDown(wm.ShipColonists()[0]); err != nil {

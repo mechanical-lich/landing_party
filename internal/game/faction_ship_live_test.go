@@ -28,6 +28,7 @@ func eventsOf(c *campaign.Campaign, typ string) int {
 // level, the hold leaves with it, the settlement is gone, and the fleet is
 // in flight with everyone aboard.
 func TestShipLandsAndLiftsOffLive(t *testing.T) {
+	noGateSeeking(t)
 	useContentTables(t)
 	useRealCosts(t)
 	loadTutorialData(t)
@@ -37,7 +38,7 @@ func TestShipLandsAndLiftsOffLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	syncFactionHostility(c)
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	if err := wm.Travel(loc.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +122,7 @@ func TestShipCrewWipedLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	syncFactionHostility(c)
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	if err := wm.Travel(loc.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -170,6 +171,7 @@ func TestShipCrewWipedLive(t *testing.T) {
 // site) stays as it is: its crew and camp are not taken off and rebuilt on
 // top of themselves every day (review finding 10).
 func TestStuckShipStaysLive(t *testing.T) {
+	noGateSeeking(t)
 	useContentTables(t)
 	useRealCosts(t)
 	loadTutorialData(t)
@@ -179,7 +181,7 @@ func TestStuckShipStaysLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	syncFactionHostility(c)
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	if err := wm.Travel(loc.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -239,4 +241,15 @@ func TestStuckShipStaysLive(t *testing.T) {
 	if after := len(ms.level.Entities) + len(ms.level.StaticEntities); after > before+len(crew) {
 		t.Errorf("the camp was rebuilt on top of itself: %d entities, then %d", before, after)
 	}
+}
+
+// noGateSeeking switches the rival colony's leave objective off for a test
+// of a table-flown ship's ordinary landings and lift-offs (gate.go flies it
+// for the gate otherwise).
+func noGateSeeking(t *testing.T) {
+	t.Helper()
+	d := campaign.LoadFactionData().Doctrine(campaign.RivalColonyDoctrine)
+	obj := d.Objective
+	d.Objective = ""
+	t.Cleanup(func() { d.Objective = obj })
 }

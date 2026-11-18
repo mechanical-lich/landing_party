@@ -1,23 +1,26 @@
-{"name":"lore_xenos","seed":1512,"config":{"rivalsByCount":true}}
+{"name":"lore_xenos","seed":13,"config":{"rivalsByCount":true}}
 # A xeno hive growing out of an old wreck's hull.
-# New expedition (seed 1512, tutorial off) -> jump straight to sys_10, whose
-# history ends in wreck_eggs_hatch -> beam one colonist down -> land -> frame the camera on
+# New expedition (seed 13, tutorial off) -> a blind jump straight to sys_23
+# (a desert_planet, fuel 45 from the Wreck Site), whose history ends in
+# wreck_eggs_hatch -> beam one colonist down -> land -> frame the camera on
 # the history's origin and look at what stands there.
+# Re-find with: make history-dump HFIND=wreck_eggs_hatch
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Lore lore_xenos"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"1512"}
+{"op":"type","text":"13"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"click","target":"row:locList:sys_10"}
-{"op":"assert","path":"selected_location.id","eq":"sys_10"}
-{"op":"assert","path":"selected_location.history_summary","eq":true}
+{"op":"click","target":"row:locList:sys_23"}
+{"op":"assert","path":"selected_location.id","eq":"sys_23"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_10"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_23"}
+{"op":"click","target":"row:locList:sys_23"}
+{"op":"assert","path":"selected_location.history_summary","eq":true}
 {"op":"assert","path":"campaign.chapter","eq":"wreck_eggs_hatch"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

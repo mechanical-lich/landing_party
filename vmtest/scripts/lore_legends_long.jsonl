@@ -1,6 +1,7 @@
 {"name":"lore_legends_long","seed":746,"config":{"rivalsByCount":true}}
 # A long chronicle in the Legends tab: every history event of seed 746 made
-# known (debug reveal all), the tab opens on the newest events, the mouse
+# known (debug reveal all; every system of the galaxy, from orbit over the
+# landfall system sys_1), the tab opens on the newest events, the mouse
 # wheel scrolls back to the oldest.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
@@ -11,29 +12,31 @@
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"click","target":"row:locList:sys_58"}
+{"op":"click","target":"row:locList:start"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
 {"op":"wait","ticks":5}
 {"op":"debug","cmd":"reveal all"}
-{"op":"assert","path":"campaign.known_events","gte":40}
+{"op":"assert","path":"campaign.known_events","gte":400}
 {"op":"click","target":"tab:legends"}
 {"op":"assert","path":"dash_tab","eq":"legends"}
-{"op":"assert","path":"legends.#","gte":40}
+{"op":"assert","path":"legends.#","gte":400}
 # Opens on the newest events: the bottom, with the last one in view.
 {"op":"assert","path":"legends_at_bottom","eq":true}
 {"op":"assert","path":"legends_at_top","eq":false}
 {"op":"screenshot","name":"newest"}
+# The whole galaxy's chronicle runs to some 760 events (about 3000 lines):
+# each wheel step scrolls 3 lines, so four flicks of 400.
 {"op":"move","target":"legends:chronicle"}
-{"op":"scroll","dy":40}
+{"op":"scroll","dy":400}
 {"op":"wait","ticks":2}
-{"op":"scroll","dy":40}
+{"op":"scroll","dy":400}
 {"op":"wait","ticks":2}
-{"op":"scroll","dy":40}
+{"op":"scroll","dy":400}
 {"op":"wait","ticks":2}
-{"op":"scroll","dy":40}
+{"op":"scroll","dy":400}
 {"op":"wait","ticks":2}
 # The wheel goes back in time: the oldest event is in view at the top.
 {"op":"assert","path":"legends_at_top","eq":true}

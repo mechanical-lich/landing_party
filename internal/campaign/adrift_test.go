@@ -8,6 +8,7 @@ import (
 // Every campaign starts adrift at the Wreck Site: an origin point with no map
 // or scenario and nothing to land on. The generated start system is the nearest
 // and cheapest destination, well within the starting fuel.
+// (The galaxy: the Wreck Site is the landfall point outside the rim.)
 func TestGenerateStartsAdrift(t *testing.T) {
 	useRepoData(t)
 	cfg := genConfig()
@@ -17,25 +18,25 @@ func TestGenerateStartsAdrift(t *testing.T) {
 		if cur == nil || cur.Kind != AdriftKind || cur.ID != AdriftLocationID || !c.IsAdrift() {
 			t.Fatalf("seed %d: current = %+v, want the Wreck Site", seed, cur)
 		}
-		if cur.X != 0 || cur.Y != 0 || cur.MapID != "" || cur.ScenarioID != "" || !cur.Discovered || cur.HasSite() {
+		if lf := c.Galaxy.Landfalls[c.Landfall]; cur.X != lf.X || cur.Y != lf.Y || cur.MapID != "" || cur.ScenarioID != "" || !cur.Identified || cur.HasSite() {
 			t.Errorf("seed %d: wreck site = %+v", seed, cur)
 		}
-		start := c.Locations[StartLocationID]
-		if start == nil || !start.HasSite() || !start.Discovered {
+		start := c.Locations[c.StartID]
+		if start == nil || !start.HasSite() || !start.Identified {
 			t.Fatalf("seed %d: start = %+v", seed, start)
 		}
-		cost := c.FuelCost(StartLocationID)
-		if cost != int(math.Round(cfg.StartRadius)) {
-			t.Errorf("seed %d: first jump costs %d, want %v", seed, cost, cfg.StartRadius)
+		cost := c.FuelCost(c.StartID)
+		if cost > int(math.Round(cfg.StartRadius)) {
+			t.Errorf("seed %d: first jump costs %d, want at most %v", seed, cost, cfg.StartRadius)
 		}
 		if cost > cfg.StartFuel/10 {
 			t.Errorf("seed %d: first jump %d is more than a tenth of the %d fuel", seed, cost, cfg.StartFuel)
 		}
 		for id, loc := range c.Locations {
-			if id == AdriftLocationID || id == StartLocationID {
+			if id == AdriftLocationID || id == c.StartID {
 				continue
 			}
-			if loc.Discovered && c.FuelCost(id) <= cost {
+			if loc.Identified && c.FuelCost(id) < cost {
 				t.Errorf("seed %d: %s (fuel %d) is as near as the start (fuel %d)", seed, id, c.FuelCost(id), cost)
 			}
 		}
@@ -45,7 +46,7 @@ func TestGenerateStartsAdrift(t *testing.T) {
 			if q.Location == AdriftLocationID {
 				t.Errorf("seed %d: quest %s bound to the Wreck Site", seed, q.ID)
 			}
-			if q.Location == StartLocationID {
+			if q.Location == c.StartID {
 				startQuests++
 			}
 		}
@@ -64,7 +65,7 @@ func TestAdriftIsNeverATarget(t *testing.T) {
 		for i := 0; i < 60; i++ {
 			c.MaybeTravelQuests()
 		}
-		c.Expand(10)
+		c.RevealCharts(10)
 		for _, q := range c.QuestDefs {
 			if q.Location == AdriftLocationID {
 				t.Fatalf("seed %d: quest %s posted to the Wreck Site", seed, q.ID)
@@ -76,7 +77,7 @@ func TestAdriftIsNeverATarget(t *testing.T) {
 		if _, ran := c.Scan(3); !ran {
 			t.Fatalf("seed %d: scan from the Wreck Site did not run", seed)
 		}
-		if c.TutorialTravelLock(StartLocationID) != "" {
+		if c.TutorialTravelLock(c.StartID) != "" {
 			t.Fatalf("seed %d: lock reported with no tutorial", seed)
 		}
 	}

@@ -55,7 +55,7 @@ func TestTutorialWalkthrough(t *testing.T) {
 	builds, recipes := useRealCosts(t)
 	w := newTutorialWorld(t, 11)
 	c, wm, b := w.c, w.wm, w.b
-	startID := campaign.StartLocationID
+	startID := c.StartID
 	if w.stepID() != "choose_planet" {
 		t.Fatalf("starts at %s", w.stepID())
 	}
@@ -485,7 +485,7 @@ func TestTutorialSecondPlanetPad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			start := c.Locations[campaign.StartLocationID]
+			start := c.Locations[c.StartID]
 			start.MapID, start.ScenarioID = "earth_like", tc.scenario
 			campaign.AddTutorialLocation(c)
 			c.Tutorial.StepID = "land_again"

@@ -156,7 +156,7 @@ func TestAutonzLiveSignalNeedsCoreAndBodies(t *testing.T) {
 		t.Errorf("signal range %v / %v / %v", d.SignalRange(1, nil, 1), d.SignalRange(1, nil, 0), d.SignalRange(1, nil, -1))
 	}
 	// A site in range, the cooldown long past.
-	near := &campaign.Location{ID: "near", Name: "Near", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"ore"}, X: loc.X + 3, Y: loc.Y, Discovered: true, Visited: true}
+	near := &campaign.Location{ID: "near", Name: "Near", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"ore"}, X: loc.X + 3, Y: loc.Y, Identified: true, Visited: true}
 	c.Locations[near.ID] = near
 	p.Conversion = 0.7
 	applyPresenceConversion(ms.level, loc, d, p) // past the signal conversion on the level too

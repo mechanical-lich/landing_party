@@ -181,7 +181,7 @@ func (w *tutorialWorld) enterSite() {
 	w.t.Helper()
 	if w.c.IsAdrift() {
 		// Every expedition starts adrift; a site needs a jump first.
-		if err := w.wm.Travel(campaign.StartLocationID); err != nil {
+		if err := w.wm.Travel(w.wm.Campaign.StartID); err != nil {
 			w.t.Fatal(err)
 		}
 	}

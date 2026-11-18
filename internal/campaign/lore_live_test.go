@@ -58,25 +58,3 @@ func TestLoreContractTakenIsRecorded(t *testing.T) {
 	}
 	t.Fatal("no contract in the campaign")
 }
-
-// A ship scan that charts a site reads its story: the site's summary event
-// becomes known.
-func TestLoreScanRevealsTheSitesStory(t *testing.T) {
-	useRepoData(t)
-	c := genCampaign(t, 5)
-	for i := 0; i < 200; i++ {
-		before := c.KnownEventCount()
-		loc, ran := c.Scan(3)
-		if !ran {
-			t.Fatal("scan did not run")
-		}
-		if loc == nil {
-			continue
-		}
-		if ev := c.storyEvent(loc); ev == "" || !c.History.Known[ev] || c.KnownEventCount() != before+1 {
-			t.Errorf("scanned %s: story %q known %v", loc.ID, ev, c.History.Known[ev])
-		}
-		return
-	}
-	t.Fatal("200 scans charted nothing")
-}

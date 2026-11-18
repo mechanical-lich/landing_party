@@ -116,3 +116,42 @@ func TestIdleLog_PrintsOncePerStretchWithoutAssignableTask(t *testing.T) {
 	HandleWorkerIdleState(lvl, e)
 	assert.Equal(t, 2, count())
 }
+
+func foodItem(name string) *ecs.Entity {
+	e := &ecs.Entity{Blueprint: name}
+	e.AddComponent(&rlcomponents.FoodComponent{Amount: 10})
+	return e
+}
+
+// A worker keeps one food item; the rest goes to storage with its next
+// drop-off, where the others can eat it.
+func TestReturn_SurplusFoodIsStoredOneKept(t *testing.T) {
+	colony(t)
+	lvl := physicalLevel(t, 12, 3)
+	chest := physicalChest(lvl, 8, 1)
+	gear := &ecs.Entity{Blueprint: "sleeping_bag"}
+	e, _, mem := physicalWorker(lvl, 1, 1, foodItem("ration_pack"), gear, materialStack("metal_ore", 1), foodItem("protein_bar"), foodItem("protein_bar"))
+	mem.State = "idle"
+	runUntil(t, lvl, e, mem, 80, func() bool {
+		return chest.CountResource("protein_bar") == 2 && chest.CountResource("metal_ore") == 1 && mem.State == "idle"
+	})
+	assert.Equal(t, 1, bagCount(e, "ration_pack"), "its own ration stays with it")
+	assert.Equal(t, 0, bagCount(e, "protein_bar"))
+	assert.Equal(t, 1, bagCount(e, "sleeping_bag"))
+}
+
+// A drop-off that never delivers (here: pinned out of reach of its
+// container) is given up after maxDropOffTicks, the item kept in the bag.
+func TestDropOff_GivesUpAfterTheCap(t *testing.T) {
+	colony(t)
+	lvl := physicalLevel(t, 12, 3)
+	e, wc, mem := physicalWorker(lvl, 1, 1, materialStack("metal_ore", 1))
+	mem.State = "dropoff"
+	mem.TargetX, mem.TargetY = 10, 1
+	wc.DropOffTicks = maxDropOffTicks - 1
+	HandleDropOffState(lvl, e)
+	assert.Equal(t, "idle", mem.State)
+	assert.Equal(t, 0, wc.DropOffTicks)
+	assert.Equal(t, 1, bagCount(e, "metal_ore"))
+	assert.Equal(t, returnRetryTicks, wc.ReturnRetryTicks)
+}

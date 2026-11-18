@@ -46,7 +46,7 @@ func TestCampaignModes(t *testing.T) {
 // the hive doctrine.
 func TestPlayerBroodAndItsEggs(t *testing.T) {
 	c := hiveRunCampaign(t, 5)
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	p := loc.Presence(PlayerFaction)
 	if p == nil || p.Doctrine != "hive" || p.Population != 8 || p.Units["drone"] != 6 || p.Larvae != 3 ||
 		p.Stockpile["biomass"] != 30 || !p.Known || p.Stage != 1 || !loc.Visited {
@@ -80,7 +80,7 @@ func TestSpreadOutcome(t *testing.T) {
 	if got := c.SpreadOutcome(); got != "" {
 		t.Fatalf("outcome %q at the start", got)
 	}
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	brood := loc.Factions
 	loc.Factions = nil
 	c.Fleets = append(c.Fleets, Fleet{ID: "egg", Kind: FleetProjectile, Presence: FactionPresence{Faction: PlayerFaction, Doctrine: "hive"}})
@@ -96,7 +96,7 @@ func TestSpreadOutcome(t *testing.T) {
 		t.Errorf("outcome %q with a dormant presence", got)
 	}
 	loc.Factions = brood
-	want := PlayerDoctrine(c).Race.Win.Sites
+	want := PlayerDoctrine(c).Race.Milestone.Sites
 	n := 1
 	for _, l := range c.sortedLocations() {
 		if n >= want {
@@ -110,8 +110,14 @@ func TestSpreadOutcome(t *testing.T) {
 	if n < want {
 		t.Skip("not enough sites on this map")
 	}
-	if got := c.SpreadOutcome(); got != "won" {
-		t.Errorf("outcome %q holding %d worlds, want won", got, n)
+	if got := c.SpreadOutcome(); got != "" {
+		t.Errorf("outcome %q holding %d worlds: holding them is no win", got, n)
+	}
+	if m := c.SpreadMilestone(); m == nil || !c.MilestoneReached || !hasEventType(c, "race_milestone") {
+		t.Errorf("milestone %v reached %v holding %d worlds", m, c.MilestoneReached, n)
+	}
+	if c.SpreadMilestone() != nil {
+		t.Error("the milestone fired twice")
 	}
 }
 
@@ -121,7 +127,7 @@ func TestSpreadOutcome(t *testing.T) {
 func TestPlayerAimedLaunch(t *testing.T) {
 	c := hiveRunCampaign(t, 5)
 	fd := LoadFactionData()
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	p := loc.Presence(PlayerFaction)
 	d := fd.Doctrine("hive")
 	p.Population = 40
@@ -208,7 +214,7 @@ func TestRaceSeeding(t *testing.T) {
 // holds; a faction already hostile, or the player's own, never changes.
 func TestRaceContactOnLanding(t *testing.T) {
 	c := hiveRunCampaign(t, 5)
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	if c.Stance("mirror") != StanceNeutral {
 		t.Fatalf("mirror starts %q", c.Stance("mirror"))
 	}
@@ -226,7 +232,7 @@ func TestRaceContactOnLanding(t *testing.T) {
 // stage are charted and viewable; before that stage nothing is in reach.
 func TestRaceReachCharts(t *testing.T) {
 	c := hiveRunCampaign(t, 5)
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	p := loc.Presence(PlayerFaction)
 	d := LoadFactionData().Doctrine("hive")
 	var far *Location
@@ -239,7 +245,7 @@ func TestRaceReachCharts(t *testing.T) {
 	if far == nil {
 		t.Skip("no site within the launcher's range")
 	}
-	far.Discovered = false
+	far.Identified = false
 	if c.InRaceReach(far) || len(c.ChartRaceReach()) != 0 {
 		t.Fatal("a nest-stage brood already reaches the stars")
 	}
@@ -252,7 +258,7 @@ func TestRaceReachCharts(t *testing.T) {
 		t.Fatal("not in reach at the launcher stage")
 	}
 	c.ChartRaceReach()
-	if !far.Discovered {
+	if !far.Identified {
 		t.Error("the world in reach was not charted")
 	}
 }
@@ -271,7 +277,7 @@ func TestPlayerAimedSignal(t *testing.T) {
 	}
 	fd := LoadFactionData()
 	d := fd.Doctrine("autonz")
-	loc := c.Locations[StartLocationID]
+	loc := c.StartLocation()
 	p := loc.Presence(PlayerFaction)
 	p.Population, p.Units = 20, nil
 	for i, st := range d.Stages {

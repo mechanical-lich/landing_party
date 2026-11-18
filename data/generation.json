@@ -1,35 +1,52 @@
 {
-  "home_radius": 3000,
-
-  "start_fuel": 400,
+  "start_fuel": 200,
   "start_radius": 8,
   "start_colonists": 6,
   "roster_cap": 12,
 
-  "nearby_min": 5,
-  "nearby_max": 10,
-  "nearby_radius_min": 9,
-  "nearby_radius_max": 27,
+  "galaxy": {
+    "_note": "The pregenerated galaxy (docs/brainstorm/pregenerated_galaxy_plan.md). Sizes are the New Expedition Galaxy size row; shapes are rolled by weight, each a density function in internal/campaign/galaxy_shapes.go. Names are drafts.",
+    "default_size": "medium",
+    "sizes": [
+      {"id": "small",  "name_draft": "Small",  "systems": 40,  "radius": 110, "min_separation": 8, "sight_range": 40},
+      {"id": "medium", "name_draft": "Medium", "systems": 80,  "radius": 160, "min_separation": 8},
+      {"id": "large",  "name_draft": "Large",  "systems": 150, "radius": 220, "min_separation": 8}
+    ],
+    "shapes": [
+      {"id": "spiral",         "name_draft": "Spiral galaxy",        "weight": 1},
+      {"id": "barred_spiral",  "name_draft": "Barred spiral galaxy", "weight": 1},
+      {"id": "elliptical",     "name_draft": "Elliptical galaxy",    "weight": 1},
+      {"id": "lenticular",     "name_draft": "Lenticular galaxy",    "weight": 1},
+      {"id": "ring",           "name_draft": "Ring galaxy",          "weight": 1},
+      {"id": "irregular",      "name_draft": "Irregular galaxy",     "weight": 1}
+    ],
+    "landfall_spare": 4,
+    "landfall_min_distance": 40,
+    "rim_bins": 32,
+    "gate_hop_min": 7,
+    "gate_hop_max": 11
+  },
+  "gate": {
+    "_note": "The gate (pregenerated_galaxy_plan.md step 4): leave_fuel is the fuel leaving the galaxy through the lit gate burns.",
+    "leave_fuel": 300
+  },
   "datapad_quests_max": 10,
 
   "travel_quest_one_in": 6,
   "travel_quest_max": 4,
   "contract_one_in": 3,
-  "new_system_one_in": 3,
-
-  "expansion_gap_min": 18,
-  "expansion_gap_rand": 32,
-  "home_cap_frac": 0.9,
-  "home_bias": 0.35,
 
   "min_separation": 5,
 
   "scanner_tiers": [
-    { "chance": 0.10, "range": 25 },
-    { "chance": 0.20, "range": 50 },
-    { "chance": 0.30, "range": 100 }
+    { "range": 40 },
+    { "range": 70 },
+    { "range": 110 }
   ],
-  "scan_fuel_costs": [200, 100, 50],
+  "scan_fuel_costs": [40, 25, 15],
+
+  "sight_range": 60,
+  "sight_bonus": [10, 20, 30],
 
   "jump_fuel_per_day": 3,
 

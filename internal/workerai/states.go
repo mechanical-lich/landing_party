@@ -30,6 +30,7 @@ func HandleWorkerIdleState(level *world.Level, entity *ecs.Entity) {
 
 	sc := entity.GetComponent(components.Settlement).(*components.SettlementComponent)
 	wc := entity.GetComponent(components.Worker).(*components.WorkerComponent)
+	wc.DropOffTicks = 0
 
 	// Task was assigned directly (e.g. equip/unequip from UI)
 	if wc.CurrentTask != nil && !wc.CurrentTask.Completed {
@@ -114,16 +115,25 @@ const returnRetryTicks = 50
 
 // startReturningMaterials sends an idle worker to store one Material item from its
 // bag, so surplus and cancelled-task materials count as stock again. Each deposit
-// lands back in idle, which sends the next item. Gear stays with the worker.
+// lands back in idle, which sends the next item. Gear stays with the worker, and
+// so does one food item; any more food goes to storage, where the others can eat
+// it (a worker who hauled or picked up food kept it all, and the rest starved).
 func startReturningMaterials(level *world.Level, entity *ecs.Entity, wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent, settlementName string) bool {
 	if wc.ReturnRetryTicks > 0 || !entity.HasComponent(rlcomponents.Inventory) {
 		return false
 	}
 	pc := entity.GetComponent(rlcomponents.Position).(*rlcomponents.PositionComponent)
 	carrying := false
+	keptFood := false
 	for _, item := range entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent).Bag {
 		if !item.HasComponent(components.Material) {
-			continue
+			if !item.HasComponent(rlcomponents.Food) {
+				continue // gear
+			}
+			if !keptFood {
+				keptFood = true // its own ration
+				continue
+			}
 		}
 		carrying = true
 		dest := findClosestStorageWithRoomFor(level, settlementName, item, pc.GetX(), pc.GetY(), pc.GetZ())
@@ -256,6 +266,16 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		wc = entity.GetComponent(components.Worker).(*components.WorkerComponent)
 	}
 
+	// A drop-off that has not delivered in maxDropOffTicks is given up, the
+	// item kept in the bag: workers crowding a container with one free side
+	// swap places forever, every step counting as progress, and hold it.
+	if wc != nil {
+		wc.DropOffTicks++
+		if wc.DropOffTicks >= maxDropOffTicks {
+			AbandonDropOff(wc, aiMemory)
+			return
+		}
+	}
 	if !rlai.WithinRange(pc.GetX(), pc.GetY(), pc.GetZ(), aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ, 1, 1, 0) {
 		if moved, _ := MoveTowardsTarget(level, entity, aiMemory.TargetX, aiMemory.TargetY, aiMemory.TargetZ); moved {
 			if wc != nil {
@@ -269,13 +289,7 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 		if wc != nil {
 			wc.ApproachFailTicks++
 			if wc.ApproachFailTicks >= maxApproachFailTicks {
-				wc.ApproachFailTicks = 0
-				wc.DropOffItem = nil
-				wc.DropOffDestEntity = nil
-				wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
-				wc.ReturnRetryTicks = returnRetryTicks
-				aiMemory.TargetX, aiMemory.TargetY = -1, -1
-				aiMemory.State = "idle"
+				AbandonDropOff(wc, aiMemory)
 			}
 		}
 		return
@@ -296,7 +310,11 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 	// or a ground tile (DropOffDestEntity nil with DropOffX/Y/Z set).
 	if wc != nil && wc.DropOffItem != nil && (wc.DropOffDestEntity != nil ||
 		(wc.DropOffX != 0 || wc.DropOffY != 0 || wc.DropOffZ != 0)) {
+		dest := wc.DropOffDestEntity
 		depositDirectedDropOff(level, entity, wc)
+		if dest != nil && dest.HasComponent(components.Storage) {
+			depositSurplusFood(entity, dest.GetComponent(components.Storage).(*components.StorageComponent))
+		}
 		aiMemory.TargetX, aiMemory.TargetY = -1, -1
 		aiMemory.State = "idle"
 		return
@@ -333,7 +351,50 @@ func HandleDropOffState(level *world.Level, entity *ecs.Entity) {
 				})
 			}
 		}
+		depositSurplusFood(entity, storageC)
 	}
+	aiMemory.State = "idle"
+}
+
+// depositSurplusFood stores the food in the worker's bag beyond the one item it
+// keeps, into sc, at any drop-off there: a worker who hauled or picked up
+// food otherwise carried it from task to task while the rest of the colony
+// found none in storage and starved.
+func depositSurplusFood(entity *ecs.Entity, sc *components.StorageComponent) {
+	if !entity.HasComponent(rlcomponents.Inventory) {
+		return
+	}
+	inv := entity.GetComponent(rlcomponents.Inventory).(*rlcomponents.InventoryComponent)
+	kept := false
+	for _, item := range append([]*ecs.Entity(nil), inv.Bag...) {
+		if !item.HasComponent(rlcomponents.Food) {
+			continue
+		}
+		if !kept {
+			kept = true
+			continue
+		}
+		if sc.AddItem(item) {
+			inv.RemoveItem(item)
+		}
+	}
+}
+
+// maxDropOffTicks is how long a drop-off may take before it is given up (a
+// walk across a site is well under it).
+const maxDropOffTicks = 600
+
+// AbandonDropOff gives up the worker's drop-off, the item kept in its bag,
+// and makes it idle; returning materials waits returnRetryTicks, so the
+// next idle tick finds other work (or food) first.
+func AbandonDropOff(wc *components.WorkerComponent, aiMemory *rlcomponents.AIMemoryComponent) {
+	wc.ApproachFailTicks = 0
+	wc.DropOffTicks = 0
+	wc.DropOffItem = nil
+	wc.DropOffDestEntity = nil
+	wc.DropOffX, wc.DropOffY, wc.DropOffZ = 0, 0, 0
+	wc.ReturnRetryTicks = returnRetryTicks
+	aiMemory.TargetX, aiMemory.TargetY = -1, -1
 	aiMemory.State = "idle"
 }
 

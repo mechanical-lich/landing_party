@@ -1,12 +1,13 @@
 {"name":"factions_intercept","seed":55,"config":{"rivalsByCount":true}}
 # New Expedition seed 55 with Rival factions 3: the greyish mothership (fl2)
-# is parked in orbit of Verdant Hold (sys_14, 11 fuel from the Wreck Site).
-# Jump there: arriving under it is an interception. The Contact popup stops
+# is parked in orbit of the greys' landfall, Scorch Reach (sys_26, on the
+# rim, 83 fuel from the Wreck Site: a 28-day jump, so their scout has moved
+# on by arrival). Jump there: arriving under it is an interception. The Contact popup stops
 # the clock and offers Evade (8 fuel, a mothership's) and Board; no Parley,
 # the greys are hostile. Board: the mothership's deck is built as an
 # encounter location (a docking deck in open space, the hull beside it, ten
 # greys aboard and its hoard in a locker) and the ship goes into orbit of
-# it; the Star Map draws the mothership over Verdant Hold. Beam a colonist
+# it; the Star Map draws the mothership over Scorch Reach. Beam a colonist
 # aboard and look.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
@@ -21,10 +22,11 @@
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.ship_fleets.fl2.mothership","eq":true}
 {"op":"assert","path":"campaign.encounter","eq":null}
-{"op":"click","target":"row:locList:sys_14"}
+{"op":"debug","cmd":"see sys_26"}
+{"op":"click","target":"row:locList:sys_26"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_14"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_26"}
 {"op":"assert","path":"campaign.encounter.pending","eq":true}
 {"op":"assert","path":"campaign.encounter.at","eq":"orbit"}
 {"op":"assert","path":"modal","eq":["encounter"]}
@@ -36,7 +38,7 @@
 {"op":"assert","path":"campaign.location_id","eq":"enc1"}
 {"op":"click","target":"btn:dashboard"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":60}
-{"op":"click","target":"row:locList:sys_14"}
+{"op":"click","target":"row:locList:sys_26"}
 {"op":"wait","ticks":2}
 {"op":"screenshot","name":"mothership"}
 {"op":"click","target":"row:shipList:0"}

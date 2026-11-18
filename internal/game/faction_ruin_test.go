@@ -65,7 +65,7 @@ func TestRuinBuiltAfterAFrozenDeparture(t *testing.T) {
 	}
 	var site *campaign.Location
 	for _, l := range c.Locations {
-		if l.ID != campaign.StartLocationID && c.FactionSiteOK(l, false) && l.SaveFile == "" && (site == nil || l.ID < site.ID) {
+		if l.ID != c.StartID && c.FactionSiteOK(l, false) && l.SaveFile == "" && (site == nil || l.ID < site.ID) {
 			site = l
 		}
 	}

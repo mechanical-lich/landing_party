@@ -11,13 +11,13 @@
       "instance_names": ["the Ash Brood", "the Red Swarm", "the Hollow Nest"],
       "singular": "hive",
       "playable": true,
-      "_race": "Phase F (playable_races_plan.md): a hive run has no ship. The start is the hive soak's brood (a nest of eight: six drones, two scouts, three larvae, 30 biomass) on the start system; the run is won holding awake presences on win.sites systems at once and lost when no presence and no egg in flight is left. All text is draft.",
+      "_race": "Phase F (playable_races_plan.md): a hive run has no ship. The start is the hive soak's brood (a nest of eight: six drones, two scouts, three larvae, 30 biomass) on the start system; holding awake presences on milestone.sites systems at once is an alert and a Legends entry (the run goes on); it is lost when no presence and no egg in flight is left. All text is draft.",
       "race": {
-        "_text": "DRAFT: the blurb and the win and loss titles and texts are placeholders for the owner.",
+        "_text": "DRAFT: the blurb and the milestone and loss titles and texts are placeholders for the owner.",
         "order": 1,
         "blurb": "A brood on a strange world. Feed it, breed it, and launch your eggs at the stars.",
         "start": { "stage": 1, "units": { "drone": 6, "scout": 2 }, "larvae": 3, "stockpile": { "biomass": 30 } },
-        "win": { "sites": 6, "title": "The Swarm Spreads", "text": "Your brood holds six worlds." },
+        "milestone": { "sites": 6, "title": "The Swarm Spreads", "text": "Your brood holds six worlds." },
         "loss": { "title": "The Brood Is Gone", "text": "No nest, no egg in flight: the hive is extinct." }
       },
       "_morphs": "Until the player has learned the hive's shared identity (phase B+, LoreLinks), every player-facing name is the morph's, never the faction's. A site's morph comes from its scenario: morph_by_scenario, else default_morph. blueprint is the prefix of the morph's life-stage blueprints (<prefix>_egg, _hatchling, _stage2, _stage3, _egg_cracked).",
@@ -345,7 +345,7 @@
                    "ore": { "metal_ore": 0.25, "crystal": 0.1 },
                    "salvage": { "metal_ore": 0.2, "crystal": 0.05 },
                    "radioactive": { "crystal": 0.1 } },
-        "mothership": { "crew": 10, "min_home_distance": 60,
+        "mothership": { "crew": 10,
                         "ship_cost": { "metal_ore": 60, "crystal": 20 }, "max_ships": 3,
                         "_beam": "Phase E4 (the owner's call, 2026-11-12): the mothership keeps a stock apart from its hoard and beams it down to a camp on a loaded level, as the colonists beam from their ship: once a day the camp is topped up to the floor, from the stock, then the hoard. Tier 1 never beams, so the pace does not move.",
                         "beam": { "stock": { "metal_ore": 150, "crystal": 50, "plastic": 60 },
@@ -445,11 +445,11 @@
       "playable": true,
       "_race": "Phase F step 5 (playable_races_plan.md): an autonz run has no ship. The start is a node of six (four wire placers, two enforcers, 30 metal ore, 6 crystal: the autonz soak's node of four lost every unit on one seed of ten to a hostile start) on the start system; a dormant node founded by a signal counts as alive (it can still wake). Won holding awake presences on win.sites systems at once.",
       "race": {
-        "_text": "DRAFT: the blurb and the win and loss titles and texts are placeholders for the owner.",
+        "_text": "DRAFT: the blurb and the milestone and loss titles and texts are placeholders for the owner.",
         "order": 2,
         "blurb": "A node of machines on a strange world. Wire it, print more of yourself, and signal the stars.",
         "start": { "stage": 0, "units": { "wire_placer": 4, "enforcer": 2 }, "stockpile": { "metal_ore": 30, "crystal": 6 } },
-        "win": { "sites": 6, "title": "Assimilation", "text": "Six worlds hum with your wire." },
+        "milestone": { "sites": 6, "title": "Assimilation", "text": "Six worlds hum with your wire." },
         "loss": { "title": "Signal Lost", "text": "No node, no sleeper, no signal: the autonz are silent." }
       },
       "_autonz": "Phase E (docs/developer/factions.md, The autonz): planet-carried, converting. A presence converts its site (conversion: the share of its patch laid with blue wire), and the share is its economy: growth stops at ConvertCap (floor of the capacity plus the rest by the share of the cap converted), ore feeds the rate, research raises it and the signal range. From the hub stage it sends a signal (mobility signal) on its cooldown once it reaches the firing threshold of the site's full capacity or signal_conversion: a dormant presence of egg_pop on a site within range, asleep for wake_days, a single sleeper node on its level. A fully converted site stops growing and spends shot_pop on each signal. Hostile from first contact (diplomacy unset). Seeded from the fourth rival faction on (seed_from), so Rival factions 1 to 3 seed as before. One organism with the autonz_incursion scenario's swarm (home_scenarios, the same faction string).",
@@ -652,7 +652,10 @@
               },
               "seed_from": 2,
               "seed_population": 4,
-              "legacy_key": "mirror"
+              "legacy_key": "mirror",
+              "_objective": "Its ships seek the gate and leave the galaxy (pregenerated_galaxy_plan.md, the gate; campaign/gate.go): before they know where it is they move inward from the rim every explore_stay days; a ship landed within sense_range of the gate learns it for its faction; then it flies the shortest route of stops in reach to the controls world, switches the gate on there (live: its director orders the controls repaired; off a loaded level, after switch_days, losing switch_loss crew), and flies to the lit gate and leaves.",
+              "objective": "leave",
+              "gate": { "sense_range": 100, "switch_days": 20, "switch_loss": 1, "explore_stay": 12 }
       },
       "name": "Colony",
       "_instance_names": "DRAFT: the names a second, third... faction of this doctrine takes in one campaign (rival_selection_plan.md, Names); shown where the faction is named openly (an observer run's Factions tab).",
@@ -709,7 +712,7 @@
         "encounter": ["parley", "evade", "board"],
         "_fleet": "A rival ship flying by this table (the mirror's, expedition_from colony): fleet_fuel at launch and at most, fleet_refuel_per_day refined at its camp a landed day (plus any fuel in its stockpile), and it leaves before its stay_days hop only for a site in reach scoring fleet_move_margin better than staying (the jump's fuel counted), or when its crew is down to pack_up_at.",
         "fleet_fuel": 80,
-        "fleet_refuel_per_day": 1,
+        "fleet_refuel_per_day": 4,
         "fleet_move_margin": 1
       },
       "settlement": {

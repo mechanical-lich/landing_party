@@ -277,6 +277,26 @@ func registerSetupFuncs(interp *basic.MechBasic, ctx *setupContext) {
 		return nil, nil
 	})
 
+	// set_ai_var(x, y, z, name, value) — set a scripted-AI variable on the
+	// creature standing at the tile (the gate vault's guards: hostility 10,
+	// so every one defends the vault). Returns 1 when one was set.
+	reg("set_ai_var", func(args ...any) (any, error) {
+		if len(args) < 5 {
+			return float64(0), nil
+		}
+		x, y, z := int(toSetupFloat(args[0])), int(toSetupFloat(args[1])), int(toSetupFloat(args[2]))
+		e := level.GetSolidEntityAt(x, y, z)
+		if e == nil || !e.HasComponent(components.ScriptedAI) {
+			return float64(0), nil
+		}
+		ai := e.GetComponent(components.ScriptedAI).(*components.ScriptedAIComponent)
+		if ai.Vars == nil {
+			ai.Vars = map[string]any{}
+		}
+		ai.Vars[fmt.Sprint(args[3])] = args[4]
+		return float64(1), nil
+	})
+
 	// spawn_entity_named(blueprint, x, y, z, name) — spawn and set its display
 	// name. For guards / flavor NPCs a structure wants to customize.
 	reg("spawn_entity_named", func(args ...any) (any, error) {

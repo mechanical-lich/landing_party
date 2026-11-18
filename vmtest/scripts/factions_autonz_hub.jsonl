@@ -1,8 +1,10 @@
 {"name":"factions_autonz_hub","seed":65,"config":{"rivalsByCount":true}}
 # The autonz as a settlement (autonz_plan.md, phase E3): New Expedition seed
-# 65 with Rival factions 4, 120 days on (debug days): Leaden Ridge (sys_5)
-# holds an autonz hub that knows its relay and seeker patterns by Tier 1's
-# assimilation walk. Jump there, beam one down, set the autonz neutral (so
+# 65 with Rival factions 4, 120 days on (debug days): Gaunt Cradle (sys_46),
+# the autonz landfall on the rim of the pregenerated galaxy, holds an autonz
+# hub that knows its relay and seeker patterns by Tier 1's assimilation walk.
+# Jump there (Travel Here, inside the 200 starting fuel), beam one down,
+# set the autonz neutral (so
 # its enforcers stay off the landing party) and land: the hub materialises
 # with its Signal Core on the red core, the cogitator and a relay pylon on
 # the wire's edge, its prints by type (wire placers, enforcers, relay drones,
@@ -22,10 +24,11 @@
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.faction_count","eq":4}
 {"op":"debug","cmd":"days 120"}
-{"op":"click","target":"row:locList:sys_5"}
+{"op":"debug","cmd":"see sys_46"}
+{"op":"click","target":"row:locList:sys_46"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_5"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_46"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
 {"op":"wait","ticks":5}

@@ -14,7 +14,7 @@ func TestStationSitesGetTheirQuests(t *testing.T) {
 	stations, archives := 0, 0
 	for seed := int64(1); seed <= 60; seed++ {
 		c := genCampaign(t, seed)
-		c.Expand(30)
+
 		lib, err := history.DefaultLibrary()
 		if err != nil {
 			t.Fatal(err)

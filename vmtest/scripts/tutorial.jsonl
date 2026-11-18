@@ -11,17 +11,17 @@
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"wait","ticks":5}
-# 1 choose_planet: the Training Ground is preselected; the jump costs 6 of 400 fuel.
+# 1 choose_planet: the Training Ground is preselected; the jump costs 6 of 200 fuel.
 {"op":"assert","path":"tutorial.step","eq":"choose_planet"}
 {"op":"assert","path":"tutorial.count","eq":24}
 {"op":"assert","path":"selected_location.id","eq":"tutorial"}
 {"op":"assert","path":"selected_location.fuel_cost","eq":6}
-{"op":"assert","path":"fuel","eq":400}
+{"op":"assert","path":"fuel","eq":200}
 {"op":"screenshot","name":"s01_choose_planet"}
 {"op":"click","target":"dash:travelBtn"}
 # 2 beam_party
 {"op":"wait_until","path":"tutorial.step","eq":"beam_party","max_ticks":60}
-{"op":"assert","path":"fuel","eq":394}
+{"op":"assert","path":"fuel","eq":194}
 {"op":"screenshot","name":"s02_beam_party"}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}
@@ -199,17 +199,17 @@
 {"op":"click","target":"dash:beamUpBtn"}
 {"op":"click","target":"row:planList:0"}
 {"op":"click","target":"dash:beamUpBtn"}
-# 21 next_jump: the start system is preselected; 5 fuel.
+# 21 next_jump: the landfall system (sys_1) is preselected; 13 fuel.
 {"op":"wait_until","path":"tutorial.step","eq":"next_jump","max_ticks":120}
 {"op":"assert","path":"crew_on_site","eq":0}
 {"op":"assert","path":"crew_at.ship","eq":6}
-{"op":"assert","path":"selected_location.id","eq":"start"}
-{"op":"assert","path":"selected_location.fuel_cost","eq":5}
+{"op":"assert","path":"selected_location.id","eq":"sys_1"}
+{"op":"assert","path":"selected_location.fuel_cost","eq":13}
 {"op":"screenshot","name":"s21_next_jump"}
 {"op":"click","target":"dash:travelBtn"}
 # 22 land_again: the cargo survived the jump.
 {"op":"wait_until","path":"tutorial.step","eq":"land_again","max_ticks":120}
-{"op":"assert","path":"fuel","eq":389}
+{"op":"assert","path":"fuel","eq":181}
 {"op":"assert","path":"hold.metal_ore","eq":6}
 {"op":"screenshot","name":"s22_land_again"}
 {"op":"click","target":"row:shipList:0"}

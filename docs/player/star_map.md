@@ -1,11 +1,13 @@
 # The Ship & the Star Map
 
 Landing Party is a campaign of expeditions. Your colonists begin aboard a
-space life-raft. You do not start on a planet — you start **adrift** at the
-**Wreck Site**, the empty point in space where the damaged raft came to rest.
+space life-raft that has just arrived at the edge of a galaxy. You do not
+start on a planet — you start **adrift** at the **Wreck Site**, the empty
+point just outside the galaxy's rim where the damaged raft came to rest.
 There is nothing there to orbit or land on, so the first thing every
 expedition does is choose a destination on the Star Map and spend a little
-fuel to reach it. The nearest world is a short, cheap jump away.
+fuel to reach it. The nearest system, your landfall, is a short, cheap jump
+away, and it is always a safe first landing.
 
 While adrift, Beam Down, To Site and Beam Resources are unavailable and say
 so; the crew stays aboard and eats from the hold; Travel Here is the live
@@ -37,8 +39,13 @@ key.
 
 The Star Map shows:
 
+- **The galaxy** — every one of its systems is on the map from the first
+  day, as a point. Its header names the galaxy's shape (spiral, ring,
+  irregular and so on), how many systems it has and how many you have
+  identified. See [What you know](#what-you-know).
 - **Locations** — planets, moons, asteroid fields, stations. Each lists its
-  travel fuel cost. Some locations are hidden until discovered.
+  travel fuel cost. One you have not identified lists as an
+  **Unidentified system** with its fuel cost and nothing else.
 - **On Ship** — the colonists in the roster.
 - **On `<location>`** — the colonists currently on the loaded location.
 - **Fuel** — what's in the hold.
@@ -72,24 +79,57 @@ Make fuel by refining it: the **Refine Fuel Cell** recipe (basic workbench)
 turns biomass + ore into fuel. Refined fuel stays at the site by default — to
 spend it on travel, **beam it up** to the ship hold first (see below).
 
-## Scanning for new worlds
+## What you know
 
-Once you research a **Ship Scanner**, a **Scan** button appears on the star map.
-A scan sweeps space around your current location and *may* reveal a new world to
-travel to. Each scan **costs fuel and can come up empty** — it's a gamble you
-spend fuel on, so scan when you want somewhere new to go (or a direction to
-branch off toward).
+The whole galaxy exists from the start: nothing new appears during a run.
+What changes is what you know of it. The map always shows the galaxy's
+**shape** as a faint haze of distant stars, but the systems in it are hidden
+until you have seen them. Every system is in one of four states:
+
+| State | On the Star Map | How |
+|---|---|---|
+| **Unseen** | nothing: only the haze | |
+| **Seen** | a dim point, no name, only its fuel cost | coming within the ship's sight range of it, a scan, a contract or quest that names it, your race's worlds |
+| **Identified** | its name, type, danger tag, story and who holds it (once seen) | a scan in range, arriving there, a contract or star chart that names it |
+| **Visited** | as identified, and its level is yours | landing |
+
+Once seen, a system stays on the map.
+
+**Sight.** The ship sees every system within **60 units** of wherever it
+arrives (**40** in a small galaxy; the faint ring round the ship shows how
+far). Each Ship Scanner
+upgrade adds 10 to that. You can only jump to systems you have seen, so
+exploring means jumping to the edge of what you can see and looking again.
+
+At the start you can see what lies near your landfall, and you have
+identified only your landfall system. The header above the map counts the
+systems in the galaxy, how many you have found, and how many you have
+identified.
+
+### Scanning
+
+Once you research a **Ship Scanner**, the **Scan** button works. A scan
+**identifies every system within the scanner's range** of the ship, and shows
+who holds the worlds there. There is no chance roll: it costs fuel and always
+tells you everything in range. Hover over Scan to see its range drawn round
+the ship. A scan that covers the gate names it as the gate.
 
 Research improves it two ways:
 
 - **Scanner tier** (`Ship Scanner` → `Enhanced Scanner Array` → `Deep-Space
-  Scanner`) raises the odds and the reach — a better scanner finds worlds more
-  often and **farther away** (which then cost more fuel to actually reach).
+  Scanner`) reaches farther: 40, then 70, then 110 fuel from the ship.
 - **Scan efficiency** (`Scan Optimization`, `Scan Calibration`) cuts the fuel
-  each scan burns (200 → 100 → 50).
+  each scan burns (40 → 25 → 15).
 
 The button shows the current fuel cost and greys out if you can't afford it or
 have no scanner yet.
+
+### Jumping blind
+
+You may jump to a system you have not identified. The distance and the fuel
+are known; what is there is not until you arrive. The Travel button reads
+**Jump Blind** for such a system. Arriving identifies it. A scan is what buys
+off the risk.
 
 ## Beaming colonists
 
@@ -184,28 +224,48 @@ Open the **Quest Log** from the Star Map:
   tech, build a structure, clear out a hostile, survive N days, etc. Resource
   objectives count the campaign-wide ship hold, not just on-planet crates.
 - Completing a quest grants its **reward** (fuel and/or resources into the ship
-  hold) and can **reveal new locations** on the Star Map. Some quests unlock
-  follow-up quests.
+  hold) and some pay in **star charts**, identifying the nearest systems you
+  do not know yet. Some quests unlock follow-up quests.
+- A system's own quests are offered once you have identified it. Contracts
+  and the quests a jump turns up are news: they are offered at once, name
+  their system, and accepting one identifies it.
 
 Active quests and a completed count also show in the in-game **Goals** tab.
 Objectives are evaluated continuously while you play a location, so a quest
 completes within moments of you meeting it.
 
-## The journey home
+## The galaxy and the end of a run
 
-Every expedition is **procedurally generated** from its seed. You start
-stranded at a random system with a couple of nearby systems and **Home**
-visible far across the map — its fuel cost is enormous because it's so distant.
+Every expedition arrives in a **galaxy generated whole** from its seed, of the
+size chosen on New Expedition (**Small** about 40 systems, **Medium** about
+80, **Large** about 150). Its shape is rolled. Rival factions arrive from
+outside it too, each at its own point on the rim, so you may start beside one
+or far from all of them.
 
-There is no fixed length. Completing certain quests **charts new systems**
-(closer to Home), and **every jump has a chance to turn up fresh contracts**
-(for known systems or newly charted ones) — so simply keeping on the move
-keeps work and progress flowing. The loop:
+There is no fixed length and no automatic win: the run goes on as long as
+your people do. **Every jump has a chance to turn up fresh contracts** on
+systems already there, so keeping on the move keeps work flowing.
 
-1. Work the systems you can reach — quests pay **fuel** and resources.
-2. Hop outward; each system you reach is a new staging point, and the
-   remaining jump to Home shrinks as you close the distance.
-3. When you can finally afford the Home jump, **Travel** there to win.
+### The gate
+
+Somewhere deep in the galaxy is **the gate**, the way out. It is dark. A
+scan that covers it, a star chart or arriving beside it identifies it, and
+with it the world beside it that holds its **controls**: the Star Map names
+both.
+
+1. Land on the controls world. Its controls are in a **vault** some way
+   from the landing: a stair shaft two or three levels down to a buried
+   dungeon, guarded. Expect a fight.
+2. In the vault's far room, click the dark **Gate Controls** to order them
+   repaired, as you would any broken machine. Your people work them and the
+   gate lights, for good and for everyone.
+3. Beam your people back up, travel to the gate, and press **Leave the
+   Galaxy**. Leaving burns a large reserve of fuel (300): refine it first.
+   It ends the run as a win. Not taking it, the run goes on.
+
+Rival colonies want out too. They head for the gate once they know where it
+is, switch it on if you have not, and leave. If one switches it on first,
+you hear of it and Legends records it; the gate is then lit for you as well.
 
 Lose condition: a **total wipe** — no colonists left anywhere (none planetside,
 none in the ship roster, none on any established system). The only way to grow
@@ -213,8 +273,8 @@ the crew is to build a **Bio-Printer** and print new colonists from biomass
 (see [Crafting](crafting.md)), so protect your starting crew until you can
 afford one.
 
-This is the colony's journey. A greys run flies it too; a hive or autonz run
-has no ship and wins by holding six worlds (see
+This is the colony's run. A greys run flies it too; a hive or autonz run
+has no ship, and holding six worlds at once is a milestone (an alert and a
+Legends entry), not the end (see
 [Playing another race](factions.md#playing-another-race)).
 
-> Still planned: deeper authored lore on top of the generator.

@@ -60,6 +60,12 @@ type TitleState struct {
 	factionsMinus *minui.Button
 	factionsPlus  *minui.Button
 
+	// sizes is the Galaxy size row's choices (generation.json galaxy.sizes)
+	// and size the one chosen: GenOptions.Size.
+	sizes              []campaign.GalaxySize
+	size               int
+	sizePrev, sizeNext *minui.Button
+
 	// races is the playable doctrines (the colony first) and race the one
 	// chosen (phase F): GenOptions.Doctrine.
 	races    []string
@@ -237,26 +243,43 @@ func (ts *TitleState) buildNewSettlementScreen() {
 		}
 	}
 
+	// Galaxy size: a deliberate choice like Race; what is in it is rolled.
+	var def string
+	ts.sizes, def = campaign.GalaxySizes()
+	for i, s := range ts.sizes {
+		if s.ID == def {
+			ts.size = i
+		}
+	}
+	ts.sizePrev = minui.NewButton("size_prev", "<")
+	ts.sizePrev.SetPosition(cx-20, 432)
+	ts.sizePrev.SetSize(28, 28)
+	ts.sizePrev.OnClick = func() { ts.stepSize(-1) }
+	ts.sizeNext = minui.NewButton("size_next", ">")
+	ts.sizeNext.SetPosition(cx+132, 432)
+	ts.sizeNext.SetSize(28, 28)
+	ts.sizeNext.OnClick = func() { ts.stepSize(1) }
+
 	// Race: the playable doctrines, the colony first (phase F). An observer
 	// run is always the colony's expedition.
 	ts.races, ts.race = campaign.PlayableDoctrines(), 0
 	ts.racePrev = minui.NewButton("race_prev", "<")
-	ts.racePrev.SetPosition(cx-20, 432)
+	ts.racePrev.SetPosition(cx-20, 472)
 	ts.racePrev.SetSize(28, 28)
 	ts.racePrev.OnClick = func() { ts.stepRace(-1) }
 	ts.raceNext = minui.NewButton("race_next", ">")
-	ts.raceNext.SetPosition(cx+132, 432)
+	ts.raceNext.SetPosition(cx+132, 472)
 	ts.raceNext.SetSize(28, 28)
 	ts.raceNext.OnClick = func() { ts.stepRace(1) }
 
 	ts.buildRivalRows()
 
 	ts.generateBtn = minui.NewButton("generate", "Launch Expedition")
-	ts.generateBtn.SetPosition(cx-80, 484)
+	ts.generateBtn.SetPosition(cx-80, 524)
 	ts.generateBtn.SetSize(160, 36)
 	ts.generateBtn.OnClick = func() { ts.startNewSettlement() }
 	ts.cancelBtn = minui.NewButton("cancel", "Cancel")
-	ts.cancelBtn.SetPosition(cx-80, 528)
+	ts.cancelBtn.SetPosition(cx-80, 568)
 	ts.cancelBtn.SetSize(160, 36)
 	ts.cancelBtn.OnClick = func() { ts.screen = screenMain }
 }
@@ -275,7 +298,7 @@ func (ts *TitleState) startNewSettlement() {
 		seed = rand.Int63()
 	}
 
-	ms, err := StartNewExpeditionWith(name, seed, ts.tutorialToggle.IsOn() && !ts.raceIsNotColony(), ts.factions, ts.raceKey(), ts.rivalPicks(), ts.playerGroup)
+	ms, err := StartNewExpeditionSized(name, seed, ts.tutorialToggle.IsOn() && !ts.raceIsNotColony(), ts.factions, ts.raceKey(), ts.rivalPicks(), ts.playerGroup, ts.sizeID())
 	if err != nil {
 		ts.errMsg = "Generate failed: " + err.Error()
 		return
@@ -284,11 +307,11 @@ func (ts *TitleState) startNewSettlement() {
 	ts.done = true
 }
 
-// StartNewExpedition generates a fully procedural campaign (start system,
-// nearby systems, a far-off visible Home) and opens the Star Map — the
-// colonists begin aboard the ship in space. With tutorial set, the Training
-// Ground is added beside the start system and the hold carries only the
-// tutorial's metal; the ship still parks at the generated start. factions is
+// StartNewExpedition generates a galaxy and an expedition arrived at one of
+// its landfalls (campaign.GenerateCampaignOpts) and opens the Star Map — the
+// colonists begin aboard the ship in space at the rim. With tutorial set, the
+// Training Ground is added beside the landfall and the hold carries only the
+// tutorial's metal. factions is
 // the number of rival presences seeded.
 func StartNewExpedition(name string, seed int64, tutorial bool, factions int) (state.StateInterface, error) {
 	return StartNewExpeditionAs(name, seed, tutorial, factions, "")
@@ -305,6 +328,12 @@ func StartNewExpeditionAs(name string, seed int64, tutorial bool, factions int, 
 // (rival_selection_plan.md step 3: nil is the Rival factions count alone)
 // and the player's group.
 func StartNewExpeditionWith(name string, seed int64, tutorial bool, factions int, race string, rivals []campaign.RivalPick, playerGroup int) (state.StateInterface, error) {
+	return StartNewExpeditionSized(name, seed, tutorial, factions, race, rivals, playerGroup, "")
+}
+
+// StartNewExpeditionSized is StartNewExpeditionWith in a galaxy of size ("":
+// the default; the New Expedition Galaxy size row).
+func StartNewExpeditionSized(name string, seed int64, tutorial bool, factions int, race string, rivals []campaign.RivalPick, playerGroup int, size string) (state.StateInterface, error) {
 	// Observer mode at New Expedition makes the whole run an observer run:
 	// no player ship, the expedition a fleet (campaign/observer.go). An
 	// observer run is always the colony's.
@@ -314,12 +343,12 @@ func StartNewExpeditionWith(name string, seed int64, tutorial bool, factions int
 		race = ""
 	}
 	c, wm, err := newExpeditionOpts(name, seed, tutorial, campaign.GenOptions{Factions: factions, Observer: observer, Doctrine: race,
-		Rivals: rivals, PlayerGroup: playerGroup})
+		Rivals: rivals, PlayerGroup: playerGroup, Size: size})
 	if err != nil {
 		return nil, err
 	}
 	if c.SpreadRun() {
-		if ms, err := wm.ViewLocation(campaign.StartLocationID); err == nil {
+		if ms, err := wm.ViewLocation(c.StartID); err == nil {
 			return ms, nil
 		} else {
 			log.Printf("race start view: %v", err)
@@ -360,6 +389,10 @@ func newExpeditionOpts(name string, seed int64, tutorial bool, opts campaign.Gen
 	}
 	c.BindQuests()
 	if c.Observer {
+		// A spectator knows the whole galaxy.
+		for _, l := range c.Locations {
+			l.Identified = true
+		}
 		// An observer run: the crew, hold and fuel are the expedition
 		// fleet's, flown by the expedition table; the ship stays empty.
 		if hold == nil {
@@ -417,6 +450,8 @@ func (ts *TitleState) Update() state.StateInterface {
 		}
 		ts.factionsMinus.Update()
 		ts.factionsPlus.Update()
+		ts.sizePrev.Update()
+		ts.sizeNext.Update()
 		ts.updateRivalRows()
 		if ts.raceChoice() {
 			ts.racePrev.Update()
@@ -479,15 +514,24 @@ func (ts *TitleState) Draw(screen *ebiten.Image) {
 		val := strconv.Itoa(ts.factions)
 		vw, _ := mlge_text.Measure(val, 16)
 		mlge_text.Draw(screen, val, 16, cfg.ScreenWidth/2+120-int(vw)/2, 396, color.RGBA{220, 230, 255, 255})
+		mlge_text.Draw(screen, "Galaxy size:", 14, lx, 438, lblCol) // DRAFT
+		ts.sizePrev.Draw(screen)
+		ts.sizeNext.Draw(screen)
+		if len(ts.sizes) > 0 {
+			sz := ts.sizes[ts.size]
+			name := fmt.Sprintf("%s (%d)", sz.NameDraft, sz.Systems)
+			nw, _ := mlge_text.Measure(name, 16)
+			mlge_text.Draw(screen, name, 16, cfg.ScreenWidth/2+74-int(nw)/2, 436, color.RGBA{220, 230, 255, 255})
+		}
 		if ts.raceChoice() {
-			mlge_text.Draw(screen, "Race:", 14, lx, 438, lblCol) // DRAFT
+			mlge_text.Draw(screen, "Race:", 14, lx, 478, lblCol) // DRAFT
 			ts.racePrev.Draw(screen)
 			ts.raceNext.Draw(screen)
 			name := ts.raceName()
 			nw, _ := mlge_text.Measure(name, 16)
-			mlge_text.Draw(screen, name, 16, cfg.ScreenWidth/2+74-int(nw)/2, 436, color.RGBA{220, 230, 255, 255})
+			mlge_text.Draw(screen, name, 16, cfg.ScreenWidth/2+74-int(nw)/2, 476, color.RGBA{220, 230, 255, 255})
 			if b := ts.raceBlurb(); b != "" {
-				mlge_text.Draw(screen, b, 12, lx, 466, color.RGBA{150, 170, 195, 255})
+				mlge_text.Draw(screen, b, 12, lx, 506, color.RGBA{150, 170, 195, 255})
 			}
 		}
 		ts.generateBtn.Draw(screen)
@@ -511,6 +555,21 @@ func (ts *TitleState) Done() bool { return ts.done }
 // playable doctrine, and not an observer run (always the colony's).
 func (ts *TitleState) raceChoice() bool {
 	return len(ts.races) > 1 && !config.Global().ObserverMode
+}
+
+// stepSize moves the Galaxy size choice by d, wrapping.
+func (ts *TitleState) stepSize(d int) {
+	if n := len(ts.sizes); n > 0 {
+		ts.size = ((ts.size+d)%n + n) % n
+	}
+}
+
+// sizeID is the chosen Galaxy size's id ("" with none).
+func (ts *TitleState) sizeID() string {
+	if ts.size < 0 || ts.size >= len(ts.sizes) {
+		return ""
+	}
+	return ts.sizes[ts.size].ID
 }
 
 // stepRace moves the race choice by d, wrapping.

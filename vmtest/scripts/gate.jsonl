@@ -1,0 +1,73 @@
+{"name":"gate","seed":777,"config":{"rivalsByCount":true}}
+# The gate (pregenerated_galaxy_plan.md step 4). New Expedition seed 3, no
+# rivals, tutorial off. The ship jumps to the gate's controls world (debug
+# travel controls: it lies beyond the starting fuel), four colonists beam
+# down and land; the camera goes down the vault to the dark controls (debug
+# gate). A click on the controls orders them repaired: the party walks from
+# the landing down the vault, meets its guards, works the controls and the
+# gate comes on (by the player). Back on
+# the Star Map the gate is lit; the ship jumps there, the hold is topped up to
+# the leaving reserve (debug fuel), and Leave the Galaxy ends the run with its
+# own end screen. Frames: the controls world from orbit, the vault and its
+# guards, the controls ordered, the controls lit, the Star Map with the lit
+# gate, the ship beside the gate with Leave offered, the end screen.
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Gate Run"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"3"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:factions_minus"}
+{"op":"assert","path":"title_fields.factions","eq":0}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":240}
+{"op":"assert","path":"campaign.gate_on","eq":false}
+{"op":"debug","cmd":"travel controls"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"assert","path":"campaign.gate_identified","eq":false}
+{"op":"click","target":"row:locList:controls"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"controls_world"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"click","target":"row:shipList:0"}
+{"op":"click","target":"dash:beamDownBtn"}
+{"op":"assert","path":"crew_at.ship","eq":2}
+{"op":"click","target":"dash:returnSiteBtn"}
+{"op":"wait_until","path":"state","eq":"site","max_ticks":120}
+{"op":"debug","cmd":"gate"}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"vault"}
+{"op":"click","target":"entity:gate_controls_dormant"}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"controls_ordered"}
+{"op":"wait_until","path":"in_view.colonist","gte":1,"max_ticks":9000}
+{"op":"wait","ticks":200}
+{"op":"screenshot","name":"party_in_vault"}
+{"op":"wait_until","path":"campaign.gate_on","eq":true,"max_ticks":15000}
+{"op":"assert","path":"campaign.gate_on_by","eq":"player"}
+{"op":"debug","cmd":"gate"}
+{"op":"wait","ticks":30}
+{"op":"screenshot","name":"controls_lit"}
+{"op":"key","key":"O"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":30}
+{"op":"assert","path":"campaign.gate_identified","eq":true}
+{"op":"click","target":"row:locList:gate"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"gate_lit_starmap"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"gate"}
+{"op":"debug","cmd":"fuel 400"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"leave_offered"}
+{"op":"click","target":"dash:leaveBtn"}
+{"op":"wait_until","path":"state","eq":"end","max_ticks":60}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"end_screen"}

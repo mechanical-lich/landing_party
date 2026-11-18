@@ -230,12 +230,13 @@ reach.
 
 The Core never transmits unaimed. A signal founds a **sleeper** of yours on
 the target world; the Star Map lists it under Your worlds with its wake
-day. A sleeper keeps you in the game, but it does not count toward the win
+day. A sleeper keeps you in the game, but it does not count toward the milestone
 until it wakes.
 
-### Winning and losing
+### Milestone and losing
 
-You win holding **six awake worlds** at once ("Assimilation"). You lose
+Holding **six awake worlds** at once is a milestone ("Assimilation"): an
+alert and a Legends entry, and the run goes on. You lose
 when no node, no sleeper and no signal of yours is left anywhere ("Signal
 Lost").
 

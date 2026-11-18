@@ -238,7 +238,7 @@ func (c *Campaign) newBoarding(e *Encounter, f *Fleet, d *Doctrine) *Location {
 	loc := &Location{
 		ID: id, Name: name, Kind: EncounterKind, MapID: "boarding", ScenarioID: "boarding",
 		Seed: f.Presence.Seed*31 + int64(c.EncounterSeq), X: e.X + 2, Y: e.Y + 2,
-		Discovered: true, Visited: true,
+		Identified: true, Visited: true,
 		Boarding: &Boarding{FleetID: f.ID, Faction: f.Presence.Faction, Doctrine: f.Presence.Doctrine,
 			Class: class, Crew: max(f.Presence.Population, 1)},
 	}

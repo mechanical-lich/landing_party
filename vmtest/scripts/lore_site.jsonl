@@ -1,6 +1,8 @@
 {"name":"lore_site","seed":777,"config":{"rivalsByCount":true}}
-# New expedition (seed 777, tutorial off) -> the start system's Star Map summary
-# is its history's line -> travel -> beam one down -> land and look at the site.
+# New expedition (seed 777, tutorial off) -> the landfall system's (sys_55,
+# the only identified system of the galaxy) Star Map summary is its history's
+# line and its tag is its history's tier (hazard: unstable_ground) -> travel ->
+# beam one down -> land and look at the site.
 {"op":"wait","ticks":10}
 {"op":"click","target":"title:new"}
 {"op":"click","target":"title:name"}
@@ -13,14 +15,15 @@
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.known_events","eq":0}
 {"op":"click","target":"row:locList:start"}
-{"op":"assert","path":"selected_location.id","eq":"start"}
-# The summary line is the start system's history, not the archetype sentence.
+{"op":"assert","path":"selected_location.id","eq":"sys_55"}
+# The summary line is the landfall system's history, not the archetype sentence.
 {"op":"assert","path":"selected_location.history_summary","eq":true}
-{"op":"assert","path":"selected_location.tier","eq":"quiet"}
+{"op":"assert","path":"selected_location.tier","eq":"hazard"}
 {"op":"screenshot","name":"starmap_summary"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"start"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_55"}
+{"op":"assert","path":"campaign.tier","eq":"hazard"}
 {"op":"assert","path":"campaign.in_orbit","eq":true}
 {"op":"save_as","name":"orbit"}
 {"op":"click","target":"row:shipList:0"}

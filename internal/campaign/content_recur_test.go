@@ -10,10 +10,6 @@ func TestContentCivsRecur(t *testing.T) {
 	seen, twice := 0, 0
 	for seed := int64(1); seed <= 100; seed++ {
 		c := genCampaign(t, seed*7919)
-		c.Expand(4)
-		for i := 0; i < 12; i++ {
-			c.MaybeTravelQuests()
-		}
 		for _, id := range c.History.Pool {
 			n := 0
 			for _, sid := range c.History.Civs[id].Sites {

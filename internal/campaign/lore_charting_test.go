@@ -2,18 +2,16 @@ package campaign
 
 import (
 	"encoding/json"
-	"math/rand"
 	"path/filepath"
 	"testing"
 
 	"github.com/mechanical-lich/landing_party/internal/history"
 )
 
-// loreCampaign is a generated campaign grown by expansion and travel rolls.
+// loreCampaign is a generated campaign given some travel rolls.
 func loreCampaign(t *testing.T, seed int64) *Campaign {
 	t.Helper()
 	c := genCampaign(t, seed)
-	c.Expand(6)
 	for i := 0; i < 12; i++ {
 		c.MaybeTravelQuests()
 	}
@@ -71,8 +69,6 @@ func TestLoreSameSeedSameSitesAcrossSaveLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	loaded.BindQuests()
-	a.Expand(3)
-	loaded.Expand(3)
 	for i := 0; i < 6; i++ {
 		a.MaybeTravelQuests()
 		loaded.MaybeTravelQuests()
@@ -153,44 +149,56 @@ func TestLoreArchetypeSpawnEventHolds(t *testing.T) {
 	}
 	lib, _ := history.DefaultLibrary()
 	want := lib.Events[a.SpawnEvent].Scenario
+	hives := 0
 	for seed := int64(1); seed <= 30; seed++ {
 		c := genCampaign(t, seed)
-		loc := c.newLocation(rand.New(rand.NewSource(seed)), a, 50, 50, "", "")
-		if loc.ScenarioID != want {
-			t.Errorf("seed %d: hive site plays %s, want %s", seed, loc.ScenarioID, want)
+		for _, loc := range c.Systems() {
+			if loc.Archetype != a.ID {
+				continue
+			}
+			hives++
+			if loc.ScenarioID != want {
+				t.Errorf("seed %d: hive site %s plays %s, want %s", seed, loc.ID, loc.ScenarioID, want)
+			}
 		}
+	}
+	if hives == 0 {
+		t.Fatal("no hive worlds in 30 galaxies")
 	}
 }
 
-// The first jump is safe: across 300 seeds the start system is never a
-// threat, a hazard there is safe_start, and a quiet start is allowed by the
-// map's safe_tiers.
+// The first jump is safe: across 60 galaxies every landfall's safe start is
+// never a threat, a hazard there is safe_start, and a quiet start is allowed
+// by the map's safe_tiers.
 func TestLoreStartSystemIsSafe(t *testing.T) {
 	useRepoData(t)
 	lib, err := history.DefaultLibrary()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for seed := int64(1); seed <= 300; seed++ {
+	for seed := int64(1); seed <= 60; seed++ {
 		c := genCampaign(t, seed)
-		loc := c.Locations[StartLocationID]
-		site := c.SiteHistory(loc)
-		if site == nil {
-			t.Fatalf("seed %d: start has no history", seed)
-		}
-		switch site.Tier {
-		case history.TierThreat:
-			t.Errorf("seed %d: start is a threat (%s)", seed, loc.ScenarioID)
-		case history.TierQuiet:
-			if lib.Maps[loc.MapID].Present.SafeTiers[history.TierQuiet] <= 0 {
-				t.Errorf("seed %d: start is a quiet %s, which safe_tiers forbids", seed, loc.MapID)
+		for i := range c.Galaxy.Landfalls {
+			for _, loc := range c.LandfallSafe(i) {
+				site := c.SiteHistory(loc)
+				if site == nil {
+					t.Fatalf("seed %d: start has no history", seed)
+				}
+				switch site.Tier {
+				case history.TierThreat:
+					t.Errorf("seed %d: start is a threat (%s)", seed, loc.ScenarioID)
+				case history.TierQuiet:
+					if lib.Maps[loc.MapID].Present.SafeTiers[history.TierQuiet] <= 0 {
+						t.Errorf("seed %d: start is a quiet %s, which safe_tiers forbids", seed, loc.MapID)
+					}
+				case history.TierHazard:
+					if def := lib.Events[c.History.Event(site.Chapter).Type]; !def.SafeStart {
+						t.Errorf("seed %d: start plays hazard %s, not safe_start", seed, def.ID)
+					}
+				default:
+					t.Errorf("seed %d: start has tier %q", seed, site.Tier)
+				}
 			}
-		case history.TierHazard:
-			if def := lib.Events[c.History.Event(site.Chapter).Type]; !def.SafeStart {
-				t.Errorf("seed %d: start plays hazard %s, not safe_start", seed, def.ID)
-			}
-		default:
-			t.Errorf("seed %d: start has tier %q", seed, site.Tier)
 		}
 	}
 }

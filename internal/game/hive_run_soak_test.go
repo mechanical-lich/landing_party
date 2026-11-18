@@ -108,7 +108,7 @@ func raceRunSoakOne(t *testing.T, race string, seed int64, ticks, days int) hive
 	t.Helper()
 	deterministicTaskStops(t)
 	c, wm, ms := raceRun(t, race, seed, envInt("LP_SOAK_RACE_FACTIONS", 1))
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	name := playerSettlementName(loc.ID)
 	r := hiveRunRow{Seed: seed, Units: map[string]int{}, SpireTick: -1, LaunchTick: -1, LostTick: -1,
 		FirstLandDay: -1, LostDay: -1, WonDay: -1}

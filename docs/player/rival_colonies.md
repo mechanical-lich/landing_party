@@ -3,7 +3,8 @@
 A rival colony is another expedition like yours: colonists from a ship,
 building the same structures, researching the same tree and eating the same
 rations. It is run by another faction, not by you. It leaves you alone
-until you land on its world.
+until you land on its world, and what it wants is the way out of the
+galaxy.
 
 See [Factions](factions.md) for how factions in general spread, show on the
 Star Map and turn hostile.
@@ -17,12 +18,17 @@ colonists** and a kit of 30 metal ore, 15 crystal and 12 ration packs.
 
 - While landed, it builds a camp, grows its crew toward what the world can
   hold, mines and researches.
-- After at least 4 days it may move on, when another world in reach looks
-  better than where it is. It always leaves after **40 days**, and it packs
-  up early if it is down to its last colonist.
-- It flies to a free world (no other faction there) within 40 of where it
-  is, in the same units as the Star Map's fuel cost, at 4 a day. Its ship
-  carries 80 fuel and refuels slowly while landed.
+- **It wants to leave the galaxy.** Until it knows where the gate is, it
+  moves on every 12 days or so, deeper into the galaxy, then to ground it
+  has not seen. A ship landing within 100 of the gate learns where it is.
+- Then it flies straight for the world holding the gate's controls, hop by
+  hop as far as its fuel carries it (80 a tank, refined at 4 a day while
+  landed), lands there whoever holds it, and switches the gate on: in the
+  vault if you are watching (its people walk down and fight the guards),
+  otherwise after about 20 days, losing a colonist.
+- With the gate lit it flies to the gate and goes through: it is gone for
+  good. You hear when it switches the gate on, and when it leaves if you had
+  met it; Legends records both. See [The gate](star_map.md#the-gate).
 - Everyone goes with the ship, and so does everything in its storage.
 
 ## On the Star Map

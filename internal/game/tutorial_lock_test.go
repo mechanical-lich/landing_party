@@ -13,7 +13,7 @@ func TestStarMapTravelLock(t *testing.T) {
 	bgTravel(t, wm, "a")
 	c := wm.Campaign
 	for _, loc := range c.Locations {
-		loc.Discovered = true // the Star Map lists discovered locations only
+		loc.Identified = true // the Star Map lists discovered locations only
 	}
 	c.Tutorial = &campaign.TutorialProgress{NextLocationID: "c", Unlocked: []string{"b"}}
 	wm.StockShipLocker(50, map[string]int{})

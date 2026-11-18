@@ -2089,6 +2089,10 @@ func (s *MainState) addRepairTask(ent *ecs.Entity) {
 		Data:   task_requests.BuildRequest{X: x, Y: y, Z: z, Type: rc.Into, Required: b.BuildTime, Replace: true},
 		X:      x, Y: y, Z: z,
 	})
+	if len(b.Cost) == 0 {
+		message.PostMessage("Orders", fmt.Sprintf("Repair ordered: %s.", rlentity.GetName(ent)))
+		return
+	}
 	message.PostMessage("Orders", fmt.Sprintf("Repair ordered: %s (needs %s).", rlentity.GetName(ent), repairCostText(b.Cost)))
 }
 

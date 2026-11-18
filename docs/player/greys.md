@@ -32,7 +32,7 @@ The rhythm:
    the next ship class, the ship is upgraded. Then it sets out again.
 4. When the hoard covers a new scout, the mothership builds one.
 
-The mothership waits in orbit of a world far from Home.
+The mothership waits at the rim, at its faction's own arrival point.
 
 ### On the Star Map
 
@@ -216,7 +216,7 @@ without Armory Module.
 
 Pick **Greyish** in the Race row of New Expedition. Unlike the hive and the
 autonz, the greys have a ship: the run is the colony's campaign, with the
-Star Map, Travel, beaming, quests and the journey Home (see
+Star Map, Travel, beaming, quests and an open-ended run (see
 [The Ship & the Star Map](star_map.md)), but your crew are greys and your
 ship is a saucer. There is no tutorial.
 
@@ -285,7 +285,7 @@ the two. The Global Inventory's tabs are open from the start.
 There is no director in a grey run, so there is no Take Over: you give
 every order yourself.
 
-### Winning and losing
+### Losing
 
-As for the colony: reach Home to win; lose when no grey of yours is left
+As for the colony: the run goes on with no automatic win; lose when no grey of yours is left
 anywhere. Other grey factions are rivals and stay hostile to you.

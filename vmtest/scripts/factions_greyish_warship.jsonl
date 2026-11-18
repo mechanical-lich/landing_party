@@ -1,10 +1,19 @@
-{"name":"factions_greyish_warship","seed":55,"config":{"rivalsByCount":true}}
-# Phase E4: a landed grey warship at work. New Expedition seed 55 with Rival
-# factions 3 (as factions_greyish): the greyish scout fl1 is landed on Ember
-# Pit (sys_20). Before the jump, debug ship makes it a warship (its hold
+{"name":"factions_greyish_warship","seed":118,"config":{"rivalsByCount":true}}
+# Phase E4: a landed grey warship at work. New Expedition seed 118 with
+# Rival factions 3 (as factions_greyish, on another seed): the greyish scout
+# fl1 lands first on its landfall (sys_80, on the rim, under the mothership
+# fl2, so a jump there is an interception), lifts off and lands on day 20 on
+# Murk Basin (sys_5, a desert planet). Murk Basin has a close neighbour,
+# Quiet Canyon (sys_56, 37 fuel from the Wreck Site, 8 from Murk Basin):
+# jump there (day 13) and park, no ship met (the scout was still landed when
+# the jump began), then debug days 7 to day 20, the scout landed on Murk
+# Basin. Now,
+# before the short hop, debug ship makes it a warship (its hold
 # emptied, so the trip's digging does not send it home) of eight that
 # knows the armory module, field emitter, beam weapons, cloning and the
-# research array, so it lands with its modules (vat, console, armory, two
+# research array; it is edited where it stands, since a warship made at its
+# landfall picks another site. Hop to Murk Basin (3 days, day 23) and it is still
+# landed, early in its stay, so it lands with its modules (vat, console, armory, two
 # emitters), its array built on the ground, three workers, two technicians,
 # two soldiers with beam rifles and a heavy. Beam one colonist down, set the
 # greys neutral (the landing's contact turns them hostile; the emitters
@@ -16,13 +25,23 @@
 {"op":"click","target":"title:name"}
 {"op":"type","text":"Warship"}
 {"op":"click","target":"title:seed"}
-{"op":"type","text":"55"}
+{"op":"type","text":"118"}
 {"op":"click","target":"title:tutorial"}
 {"op":"click","target":"title:factions_plus"}
 {"op":"click","target":"title:factions_plus"}
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
-{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_20"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.doctrine","eq":"greyish"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_80"}
+{"op":"assert","path":"campaign.ship_fleets.fl2.to","eq":"sys_80"}
+{"op":"click","target":"row:locList:sys_56"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.location_id","eq":"sys_56"}
+{"op":"assert","path":"modal","eq":[]}
+{"op":"debug","cmd":"days 7"}
+{"op":"assert","path":"campaign.day","eq":20}
+{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_5"}
 {"op":"debug","cmd":"ship fl1 tier 2"}
 {"op":"debug","cmd":"ship fl1 tech grey_hull_plating"}
 {"op":"debug","cmd":"ship fl1 tech grey_beam_weapons"}
@@ -33,11 +52,11 @@
 {"op":"debug","cmd":"ship fl1 pop 8"}
 {"op":"assert","path":"campaign.ship_fleets.fl1.tier","eq":2}
 {"op":"debug","cmd":"ship fl1 hold 0"}
-{"op":"click","target":"row:locList:sys_20"}
+{"op":"click","target":"row:locList:sys_5"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_20"}
-{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_20"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_5"}
+{"op":"assert","path":"campaign.ship_fleets.fl1.landed","eq":"sys_5"}
 {"op":"assert","path":"campaign.ship_fleets.fl1.crew","eq":8}
 {"op":"click","target":"row:shipList:0"}
 {"op":"click","target":"dash:beamDownBtn"}

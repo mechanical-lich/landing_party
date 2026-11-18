@@ -150,87 +150,150 @@ the only consumer.
 ## Procedural campaign generation
 
 Campaigns are **fully procedural** — there is no static overworld/quest file
-and no static fallback. Generation (`internal/campaign/generate.go`) is driven
-by data templates + a tuning file:
+and no static fallback. The whole galaxy is made at the start
+(`docs/brainstorm/pregenerated_galaxy_plan.md`); nothing creates a system
+during play. Generation (`internal/campaign/galaxy.go`, `generate.go`) is
+driven by data templates + a tuning file:
 
 - **Templates:** `data/location_templates.json` (archetypes: kind, candidate
-  `map_id`/`scenario_id` pools, tags, name prefix/suffix pools, summary; plus a
-  `home` block) and `data/quest_templates.json` (parameterised objectives with
-  amount ranges, reward formulas, `requires_tag`, `spawn_systems`, and
-  `spawn_archetype` for self-locating "contract" quests). Templates with
-  `trigger: "target_killed"` support either a legacy entity list
-  (`target_blueprints` / `target_names`) or a **structure script**
-  (`fixture_structure`, `fixture_struct_w`, `fixture_struct_h`) — not both.
-  When a structure script is specified the script is the sole authority on what
-  spawns and who the target is; see [Structure Scripts](structure_scripts.md).
+  `map_id` pools, tags, summary, `start_ok`, an optional `spawn_event`) and
+  `data/quest_templates.json` (parameterised objectives with amount ranges,
+  reward formulas, `requires_tag`, `spawn_systems` (star charts) and
+  `spawn_archetype` for "contract" quests that point at a system of that
+  archetype). Templates with `trigger: "target_killed"` support either a
+  legacy entity list (`target_blueprints` / `target_names`) or a **structure
+  script** (`fixture_structure`, `fixture_struct_w`, `fixture_struct_h`) —
+  not both. When a structure script is specified the script is the sole
+  authority on what spawns and who the target is; see
+  [Structure Scripts](structure_scripts.md).
 - **Tuning:** `data/generation.json` → `campaign.GenConfig` (`genConfig()`,
-  loaded fresh each call so config/content edits apply without a restart;
-  defaults if the file/fields are absent). Holds `home_radius`,
-  `start_fuel`/`start_colonists`/`roster_cap`, nearby count/radius,
-  `travel_quest_one_in`/`_max`, `contract_one_in`, `new_system_one_in`,
-  `min_separation`, and expansion placement knobs (`expansion_gap_min`/`_rand`,
-  `home_cap_frac`, `home_bias`). `campaign.GenerationConfig()` exposes it.
-- **Placement invariants:** all coordinate rolls (nearby systems and
-  `placeTowardHome`) run through `placeSeparated`, which re-rolls until the spot
-  is at least `min_separation` from every existing location (falling back to the
-  last roll after a bounded number of tries, so generation never stalls). Each
-  location's name comes from `uniqueName`, which re-rolls (then appends a numeric
-  suffix) so no two systems share a name. Both keep the seed reproducible — the
-  retry count is a deterministic function of campaign state.
-- **`GenerateCampaign(name, seed)`** builds: the **Wreck Site**
-  (`Kind == AdriftKind`, ID `adrift`) at the origin, where the ship starts and
-  `CurrentLocationID` points; a far, **visible `Home`** (`Kind == HomeKind`)
-  at `home_radius` so its distance-priced fuel cost is huge; the **start**
-  system (ID `start`) `start_radius` out in a random direction, the nearest
-  and cheapest destination; `nearby_min..max` nearby systems at
-  `nearby_radius_min..max`; 1–2 quests per system from tag-compatible
-  templates; and one opening contract. Everything derives from `seed`.
-- **Level-less location kinds.** `HomeKind` and `AdriftKind` have no map or
-  scenario and never get a level; `Location.HasSite()` is false for both.
-  `WorldManager.Travel` to Home sets `Won`; to the Wreck Site it just clears
-  the current level (the Star Map refuses that jump anyway). While the current
-  location has no site, `Current()` is nil: `EnterStartingOrbit` parks nothing
-  (and still restores away planets), `EnterCurrent` returns an error naming
-  the adrift state, Beam Down / To Site / Beam Resources refuse with
-  `WorldManager.NoSiteReason()`, the dashboard shows "ADRIFT", the ship keeps
-  ticking and the total-wipe check counts the crew aboard. Quest, scan and
-  expansion rolls skip level-less locations (`HasSite`). Old saves whose
-  current location is a planet load unchanged; there is no migration.
+  re-read when the file changes; defaults if the file/fields are absent).
+  Holds `start_fuel`/`start_colonists`/`roster_cap`, `start_radius` (a
+  landfall point's distance outside the rim), `safe_start_radius`,
+  `travel_quest_one_in`/`_max`, `contract_one_in`, `min_separation` (for
+  locations placed beside the galaxy), the scanner tiers and costs, and the
+  `galaxy` block: `sizes` (id, draft name, systems, radius, the systems' own
+  `min_separation`), `default_size`, `shapes` (id, draft name, weight),
+  `landfall_spare`, `landfall_min_distance`, `rim_bins`, `gate_hop_min/max`.
+  `campaign.GenerationConfig()` exposes it.
+- **`GenerateGalaxy(seed, size)`** makes everything true of the galaxy
+  whoever arrives, from the galaxy stream alone, in order: (1) a shape rolled
+  by weight, each a density function over the unit disc
+  (`galaxy_shapes.go`: spiral, barred spiral, elliptical, lenticular, ring,
+  irregular, each rolling its own arms, bar, axis or clumps), sampled into
+  `systems` min-separated points; (2) the **rim** (the outermost system in
+  each of `rim_bins` angular slices round the centre of mass, among systems
+  with three others within 30) and up to `factions_max + 1 +
+  landfall_spare` **landfalls**, `landfall_min_distance` apart, each a point
+  `start_radius` outward from its rim system and owning the system nearest
+  it; (3) the **controls world**, rolled among the systems farthest from
+  every landfall, and the **gate** (`GateKind`, ID `gate`) a short hop
+  beside it; (4) archetypes (a start archetype for every system within a
+  landfall's safe radius), names (`uniqueName`), seeds and maps; (5) every
+  site's history in one loop (`bindHistory`: safe within any landfall's safe
+  radius, else the archetype's `spawn_event`, else free); (6) each system's
+  1–2 posted quests and its datapad quests. `Campaign.Galaxy` records the
+  size, shape, radius, centre, landfalls and the gate and controls IDs.
+- **`GenerateCampaignOpts(name, seed, opts)`** makes the galaxy
+  (`opts.Size`), then the expedition from streams of its own: a landfall
+  rolled for it (`Campaign.Landfall`, its system `Campaign.StartID`), the
+  **Wreck Site** (`Kind == AdriftKind`, ID `adrift`) on that landfall's point
+  where `CurrentLocationID` points, one opening contract, and the rivals.
+  The same seed and size give the same galaxy whatever the options
+  (`TestGalaxyIndependentOfExpedition`).
+- **Level-less location kinds.** `GateKind` and `AdriftKind` have no map or
+  scenario and never get a level; `Location.HasSite()` is false for both and
+  `IsAdrift()` true at either. `WorldManager.Travel` to either just clears
+  the current level (the Star Map refuses the jump back to the Wreck Site).
+  While the current location has no site, `Current()` is nil:
+  `EnterStartingOrbit` parks nothing (and still restores away planets),
+  `EnterCurrent` returns an error naming the adrift state, Beam Down / To
+  Site / Beam Resources refuse with `WorldManager.NoSiteReason()`, the
+  dashboard shows "ADRIFT", the ship keeps ticking and the total-wipe check
+  counts the crew aboard. The gate is inert until the gate step.
 - **Persistence:** generated quests live in `Campaign.QuestDefs` (serialized);
-  generated locations are in `Campaign.Locations`. `GenSeq`/`TravelSeq` count
-  generation/jump events. Loading a save **replays** the persisted data and
+  locations in `Campaign.Locations`. `GenSeq`/`TravelSeq` number systems and
+  quests and count jumps. Loading a save **replays** the persisted data and
   `BindQuests()` rebuilds runtime indices/evaluators — content is never
-  re-derived.
-- **Progressive expansion:** a quest reward with `spawn_systems > 0` calls
-  `Campaign.Expand(n)` on completion — seeded by `Seed + GenSeq`, it charts new
-  systems, appends their quests, bumps `GenSeq`, and re-binds. The overworld
-  grows as you play. Each new system **buds off an anchor** (`expansionAnchor` —
-  usually the player's current location so exploration grows around them,
-  sometimes a random discovered system so the network spreads) in a random
-  bearing pulled toward Home by `home_bias` (`blendAngle`). The result is a
-  branching network that trends home while still offering lateral directions to
-  explore, rather than a single corridor. Overshooting Home is clamped
-  (`home_cap_frac`).
-- **Travel roll:** every actual jump (`WorldManager.Travel` to a non-Home
-  system) calls `Campaign.MaybeTravelQuests` — a **1-in-6** chance to generate
-  **1d4** quests, each bound to a random discovered system or a freshly charted
-  one. `TravelSeq` (persisted, incremented every jump) feeds the RNG so the
-  roll varies per jump even on a miss while staying deterministic. This keeps
-  the run from stalling as long as the player keeps moving, independent of
-  `spawn_systems` quests.
-- **Ship scanner:** a **player-triggered**, fuel-costed reveal (the **Scan**
-  button on the star map), separate from the automatic quest/datapad reveals.
-  `Campaign.Scan(level)` rolls the scanner's chance and, on success, charts a new
-  world in a random direction within the scanner's range (`placeNear`), revealed
-  and stocked with datapad quests; the caller (star-map panel) spends the fuel
-  first (a miss still costs fuel). `ScanSeq` (persisted) seeds each roll so it
-  varies per scan and reproduces. Two research chains drive it: **power** —
-  `ship_scanner_1/2/3` set `ScannerLevel()` (0 = no scanner), indexing
-  `scanner_tiers` (chance + range); **cost** — `scan_efficiency_1/2` advance
-  `ScanFuelCost()` down the `scan_fuel_costs` array. Both are tunable in
-  `data/generation.json` (and, since `genConfig` is uncached, live-editable).
-- **Win:** `WorldManager.Travel` to the Home location sets `Campaign.Won`
-  (no level is generated/landed); `OverworldState` shows the victory screen.
+  re-derived. `CampaignVersion` is 5; older saves are refused.
+- **Star charts:** a quest reward with `spawn_systems > 0` calls
+  `Campaign.RevealCharts(n)`: the n nearest systems the player does not know
+  become known. Nothing is created.
+- **Travel roll:** every actual jump to a system calls
+  `Campaign.MaybeTravelQuests` — a **1-in-6** chance to post **1d4** quests on
+  existing unvisited systems, nearer the ship more likely (`questTarget`), a
+  third of them contracts (`makeContract`: a system of the template's
+  archetype outside every safe start, one whose chapter is the template's
+  `spawn_event` first). `TravelSeq` (persisted, incremented every jump)
+  feeds the RNG so the roll varies per jump even on a miss while staying
+  deterministic.
+- **Knowledge.** Unseen, then `Location.Seen` (a point on the map, saved,
+  never lost; `Campaign.IsSeen` also counts identified locations, and the
+  Wreck Site, Training Ground and boarding decks, which are not
+  `GalaxyPoint`s, are always seen), then `Location.Identified` (type, tags,
+  tier, summary, holders once revealed, the gate as the gate), then
+  `Visited` (landed). Seeing: `SeeAround` (within `SightRange()`:
+  `sight_range`, or the galaxy size's own `sight_range`, plus `sight_bonus`
+  by scanner level) at the start from the
+  landfall point and on every arrival in `WorldManager.Travel`; identifying
+  sees; `offerQuest` sees a news quest's system; `ChartRaceReach` sees within
+  sight of each world a spreading race holds. `MapLocations` returns only
+  seen locations, so the Star Map's list, clicks, selection and jumps cover
+  nothing unseen. Saves with no `seen` field anywhere load fully seen
+  (`migrateSeen`). A new expedition identifies only its landfall system (an observer
+  run everything). Identifying: `Campaign.Scan`, arriving
+  (`WorldManager.Travel`, so a blind jump learns on arrival), accepting a
+  quest (`revealQuestLocation`), star charts (`RevealCharts`), a spreading
+  race's reach (`ChartRaceReach`). Rivals track no knowledge: they act on
+  the whole galaxy by their own range rules. `Campaign.KnownName` and
+  `UnidentifiedName` are what the Star Map shows. A system's own quests
+  are offered (`AvailableQuests`) only once it is identified; news
+  (`Quest.Offered`: contracts and a travel roll's quests) is offered at once.
+- **Ship scanner:** a **player-triggered**, fuel-costed sweep (the **Scan**
+  button on the star map). `Campaign.Scan(level)` identifies every system
+  and the gate within the tier's range (`ScanRange`, `IdentifyWithin`), no
+  chance roll, and reveals what holds the worlds there; the caller
+  (star-map panel) spends the fuel. Two research chains drive it: **power**
+  — `ship_scanner_1/2/3` set `ScannerLevel()` (0 = no scanner), indexing
+  `scanner_tiers` (range 40/70/110); **cost** — `scan_efficiency_1/2`
+  advance `ScanFuelCost()` down `scan_fuel_costs` (40/25/15).
+- **The Star Map** (`starmap_panel.go`) lists and draws every seen location:
+  unidentified ones as dim points (`unidentifiedRadius`) with no label, listed
+  as "Unidentified system — fuel N", Travel reading **Jump Blind**. Under
+  them it draws the galaxy haze (`drawBackdrop`, specks from
+  `campaign.GalaxyBackdrop(seed, shape, radius)`, which replays the shape's
+  density function from the galaxy seed and never reads system positions).
+  It frames what is seen plus the sight range round the ship (at least
+  `minFrameRadius`), draws the sight range as a faint ring and the scan reach
+  while Scan is hovered or its report is open, the gate as a dark ring once
+  identified, and names the shape, the system count, the found count and the
+  identified count in the canvas header. A fleet is drawn only when one end
+  of its flight is seen (`fleetOnMap`), with no line to an unseen
+  destination (its tag reads DEEP SPACE); the Factions tab names an unseen
+  world "an unseen world" and does not link it.
+- **Spreading races** have a milestone, not a win: `race.milestone` (sites,
+  title, text) in a doctrine's race block; `Campaign.SpreadMilestone` fires
+  once (`MilestoneReached`), recording a `race_milestone` Legends event, and
+  the game posts its alert.
+- **The gate** (`gate.go`, `internal/game/gate.go`). The controls world
+  (`Galaxy.ControlsID`, picked among systems linked to most landfalls by hops
+  of at most 40, as far from them as the galaxy allows; a start archetype;
+  bound safe) holds a `gate_controls` structure fixture: the `gate_vault`
+  script, a guarded BSP dungeon two or three levels down with the dormant
+  controls (`gate_controls_dormant`, `Repairable` into `gate_controls`,
+  setting the level flag `gate:on` and `gate:on:by`) in its far room. The
+  vault is placed on ground the landing walks to (`vaultSite`). Repairing
+  the controls is the ordinary repair order (click them with orders on); the
+  world manager's `checkGate` turns the flag into `Campaign.SwitchGateOn`:
+  `Galaxy.GateOn`, `GateOnBy` (a faction key or `player`), `GateOnDay`, on
+  for good, the gate and controls world identified, a `gate_switched_on`
+  Legends line, an alert (`Campaign.News`, posted by `postNews`) when a rival
+  did it. Identifying the gate identifies the controls world and names it in
+  the gate's summary. Beside the lit gate the Star Map offers **Leave the
+  Galaxy** (Scan's place) when the hold covers `gate.leave_fuel` (300):
+  `LeaveGalaxy` sets `Won` and the run ends with its own end screen.
+- **Endings.** No automatic win: the run ends as a win only by leaving
+  through the gate, as a loss when the player's people are gone.
 - **Lose:** `MainState.checkTotalWipe` (each quest tick) ends the run if no
   colonists remain anywhere — none live on the level, none in the ship roster,
   none recorded on any frozen system (`Location.Colonists`, written on Freeze;

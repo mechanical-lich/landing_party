@@ -24,7 +24,7 @@ import (
 func (wm *WorldManager) ViewLocation(id string) (*MainState, error) {
 	c := wm.Campaign
 	loc := c.Locations[id]
-	if !loc.HasSite() || !loc.Discovered {
+	if !loc.HasSite() || (!loc.Identified && !observerMode()) {
 		return nil, fmt.Errorf("nothing to view there")
 	}
 	if id == wm.currentID && wm.Current() != nil {

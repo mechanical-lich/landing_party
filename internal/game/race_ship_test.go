@@ -166,7 +166,7 @@ func greyLocker(t *testing.T, level *world.Level, name string, x, y, z int) (*ec
 func greyInOrbit(t *testing.T) (*campaign.Campaign, *WorldManager) {
 	t.Helper()
 	c, wm := greyRun(t, 7, 0)
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatalf("travel: %v", err)
 	}
 	if wm.Current() == nil || wm.Current().level == nil {

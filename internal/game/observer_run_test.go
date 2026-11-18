@@ -164,7 +164,7 @@ func pickUnloadedSite(t *testing.T, c *campaign.Campaign, wm *WorldManager, want
 	t.Helper()
 	var ids []string
 	for id, loc := range c.Locations {
-		if loc.Discovered && loc.HasSite() && !wm.IsLoaded(id) && id != c.CurrentLocationID &&
+		if loc.Identified && loc.HasSite() && !wm.IsLoaded(id) && id != c.CurrentLocationID &&
 			(!want || len(loc.Factions) > 0) {
 			ids = append(ids, id)
 		}

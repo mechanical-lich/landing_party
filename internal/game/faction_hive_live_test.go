@@ -23,7 +23,7 @@ func hiveOnStart(t *testing.T, seed int64, p campaign.FactionPresence) (*WorldMa
 	if err != nil {
 		t.Fatal(err)
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	p.Faction, p.Doctrine = "hive", "hive"
 	if p.ID == "" {
 		p.ID = "fph"
@@ -33,7 +33,7 @@ func hiveOnStart(t *testing.T, seed int64, p campaign.FactionPresence) (*WorldMa
 		p.LastShotDay = campaign.NeverFired
 	}
 	loc.Factions = append(loc.Factions, p)
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatal(err)
 	}
 	if err := wm.BeamDown(wm.ShipColonists()[0]); err != nil {

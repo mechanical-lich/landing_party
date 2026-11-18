@@ -7,11 +7,11 @@ import (
 
 func lockCampaign() *Campaign {
 	c := &Campaign{Name: "Lock", CurrentLocationID: "start", Locations: map[string]*Location{
-		"start":    {ID: "start", Discovered: true},
-		"tutorial": {ID: "tutorial", Discovered: true, Tutorial: true},
-		"home":     {ID: "home", Kind: HomeKind, Discovered: true},
-		"sys_3":    {ID: "sys_3", Discovered: true},
-		"sys_9":    {ID: "sys_9", Discovered: false}, // a hidden contract destination
+		"start":    {ID: "start", Identified: true},
+		"tutorial": {ID: "tutorial", Identified: true, Tutorial: true},
+		"gate":     {ID: "gate", Kind: GateKind, Identified: true},
+		"sys_3":    {ID: "sys_3", Identified: true},
+		"sys_9":    {ID: "sys_9", Identified: false}, // a hidden contract destination
 	}}
 	c.Tutorial = &TutorialProgress{NextLocationID: "start", Unlocked: []string{"tutorial"}}
 	return c

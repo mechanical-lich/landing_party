@@ -82,11 +82,9 @@ func (d *Doctrine) ShipModules(tier int, techs []string) map[string]int {
 }
 
 // DoctrineMothership is a faction's mothership: its crew (the boarding
-// party's foes), how far from Home it parks, and what a new ship costs.
+// party's foes) and what a new ship costs.
 type DoctrineMothership struct {
 	Crew int `json:"crew"`
-	// MinHomeDistance: it parks at a site at least this far from Home.
-	MinHomeDistance float64 `json:"min_home_distance,omitempty"`
 	// ShipCost is the stock a new tier-0 ship costs; MaxShips the most
 	// ships (the mothership aside) it keeps.
 	ShipCost map[string]int `json:"ship_cost,omitempty"`
@@ -240,6 +238,7 @@ func (c *Campaign) LandShip(f *Fleet, day history.StarDate) *Location {
 	p.Beamed, p.BeamLastHold = 0, 0 // a new landing's camp starts with nothing beamed
 	if d != nil {
 		c.recordFaction("faction_landed", loc, p, d, nil)
+		c.learnGate(d, f, loc)
 	}
 	if c.HoldsSite(loc) {
 		c.RaceContact(p.Faction, loc) // landed on a world a race run holds
@@ -263,6 +262,9 @@ func (c *Campaign) ShipLeaving(f *Fleet, day history.StarDate) bool {
 		}
 		if c.fleetMove(d, t, f, day, nil) != "" {
 			return true
+		}
+		if c.seeksGateIn(d, f) {
+			return false // it leaves only toward the gate (gate.go)
 		}
 	}
 	stay := d.Mobility.StayDays
@@ -331,6 +333,9 @@ func fleetFuel(d *Doctrine, f *Fleet) int {
 // better than staying (the jump's fuel counted). to, when not nil, gets the
 // destination.
 func (c *Campaign) fleetMove(d *Doctrine, t *DoctrineExpedition, f *Fleet, day history.StarDate, to **Location) string {
+	if c.seeksGateIn(d, f) {
+		return c.gateMove(d, t, f, day, to)
+	}
 	p := &f.Presence
 	v := c.fleetView(d, f, day, nil)
 	dest := t.Destination(v, p.Seed)
@@ -397,6 +402,9 @@ func (c *Campaign) DepartShip(f *Fleet, day history.StarDate, loaded func(string
 				why = "launch" // off the Wreck Site
 			}
 		}
+		if to == nil && c.seeksGateIn(d, f) {
+			return nil // nowhere toward the gate yet: it stays
+		}
 		if to == nil {
 			why = "fallback"
 			v := c.fleetView(d, f, day, isLoaded)
@@ -459,51 +467,17 @@ func (c *Campaign) MakeFleetKnown(f *Fleet, loc *Location) {
 	}
 }
 
-// newMothership parks faction key's mothership in orbit of a site at least
-// the doctrine's min_home_distance from Home (else the farthest), not one
-// taken: its own random stream, so it moves no other seeding draw. Its crew
-// is the doctrine's; it holds the kit and the techs its ships share.
-func (c *Campaign) newMothership(key string, d *Doctrine, taken map[string]bool) *Fleet {
+// newMothership parks faction key's mothership in orbit of at, the site its
+// first ship landed on: the system of its landfall, where it arrived from
+// outside the galaxy (a mothership's position is the site it orbits, so it
+// sits on the landfall system, not the rim point beside it). Its crew is the
+// doctrine's; it holds the kit and the techs its ships share.
+func (c *Campaign) newMothership(key string, d *Doctrine, at *Location) *Fleet {
 	m := d.Ships.Mothership
-	var home *Location
-	for _, l := range c.Locations {
-		if l.Kind == HomeKind {
-			home = l
-		}
-	}
-	dist := func(l *Location) float64 {
-		if home == nil {
-			return 0
-		}
-		return math.Hypot(l.X-home.X, l.Y-home.Y)
-	}
-	var far, best []*Location
-	for _, l := range c.sortedLocations() {
-		if taken[l.ID] || !c.FactionSiteOK(l, true) {
-			continue
-		}
-		best = append(best, l)
-		if dist(l) >= m.MinHomeDistance {
-			far = append(far, l)
-		}
-	}
-	rng := rand.New(rand.NewSource(c.Seed*7907 + 31337))
-	var loc *Location
-	switch {
-	case len(far) > 0:
-		loc = far[rng.Intn(len(far))]
-	case len(best) > 0:
-		loc = best[0]
-		for _, l := range best {
-			if dist(l) > dist(loc) {
-				loc = l
-			}
-		}
-	default:
+	if at == nil {
 		return nil
 	}
-	taken[loc.ID] = true
-	f := c.newShip(key, d, loc, max(m.Crew, 1), false)
+	f := c.newShip(key, d, at, max(m.Crew, 1), false)
 	f.LandedID = "" // in orbit, never landed
 	f.Mothership = true
 	if m.Beam != nil && len(m.Beam.Stock) > 0 {

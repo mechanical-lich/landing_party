@@ -5,9 +5,12 @@ package campaign
 // MapID/ScenarioID/Seed or deserialized from SaveFile (a paused, previously
 // visited location).
 type Location struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Kind       string `json:"kind"` // planet, moon, asteroid_field, ...
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Kind string `json:"kind"` // planet, moon, asteroid_field, ...
+	// Archetype is the location template the system was made from
+	// (temperate, hive, ...): what a contract looks for.
+	Archetype  string `json:"archetype,omitempty"`
 	MapID      string `json:"map_id"`
 	ScenarioID string `json:"scenario_id"`
 	// History is the SiteHistory ID bound at charting (see Campaign.History);
@@ -19,7 +22,14 @@ type Location struct {
 	Tier string `json:"tier,omitempty"`
 	Seed int64  `json:"seed"`
 
-	Discovered bool `json:"discovered"`
+	// What the player knows of it (pregenerated_galaxy_plan.md): Seen, a
+	// point on the Star Map, once it has been within the ship's sight range
+	// (or a scan's, a spreading race's sight, a quest or chart naming it),
+	// never lost; Identified (its type, tags, tier, story and whether it is
+	// the gate) by a scan in range, arriving, a contract or chart naming it;
+	// Visited once landed. Unseen is neither drawn, listed nor reachable.
+	Seen       bool `json:"seen,omitempty"`
+	Identified bool `json:"identified"`
 	Visited    bool `json:"visited"`
 
 	// X, Y are the location's position on the star map. Fuel cost to travel is

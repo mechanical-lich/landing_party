@@ -30,6 +30,8 @@ type Faction struct {
 	// the first): the word that tells two of a kind apart while a hidden
 	// identity keeps the doctrine's name back ("Xenos 2").
 	Ordinal int `json:"ordinal,omitempty"`
+	// GateKnown: its ships have found where the gate is (gate.go).
+	GateKnown bool `json:"gate_known,omitempty"`
 }
 
 // PlayerGroup is the player's group; rivals start at 2, each its own.

@@ -261,6 +261,15 @@
         "category": "structures",
         "order": 14
     },
+    "gate_controls": {
+        "name": "Gate Controls (switch on)",
+        "type": "gate_controls",
+        "description": "DRAFT. Switches on the gate's controls, deep in their vault: the gate beside this world lights, for everyone, for good.",
+        "build_time": 120,
+        "is_entity": true,
+        "hidden": true,
+        "cost": {}
+    },
     "station_generator": {
         "name": "Main Generator (repair)",
         "type": "station_generator",

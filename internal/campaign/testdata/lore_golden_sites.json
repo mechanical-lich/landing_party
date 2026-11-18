@@ -5,120 +5,656 @@
    "Name": "Wreck Site",
    "Kind": "adrift",
    "Map": "",
-   "X": 0,
-   "Y": 0
+   "X": -15.335,
+   "Y": -101.561
   },
   {
-   "ID": "home",
-   "Name": "Home",
-   "Kind": "home",
-   "Map": "earth_like",
-   "X": -2374.384,
-   "Y": -1833.657
+   "ID": "gate",
+   "Name": "The Gate",
+   "Kind": "gate",
+   "Map": "",
+   "X": 46.569,
+   "Y": -67.96
   },
   {
-   "ID": "start",
-   "Name": "Veil Hold",
+   "ID": "sys_1",
+   "Name": "Drift Fields",
    "Kind": "planet",
-   "Map": "alien",
-   "X": -7.395,
-   "Y": 3.051
+   "Map": "ocean_planet",
+   "X": -38.046,
+   "Y": -109.371
   },
   {
    "ID": "sys_10",
-   "Name": "Verdant Shoals",
+   "Name": "Cinder Shelf",
    "Kind": "planet",
    "Map": "alien",
-   "X": 10.304,
-   "Y": -1.615
+   "X": 45.672,
+   "Y": -77.285
+  },
+  {
+   "ID": "sys_11",
+   "Name": "Blighted Hollow",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -36.274,
+   "Y": -34.933
+  },
+  {
+   "ID": "sys_12",
+   "Name": "Slag Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -68.124,
+   "Y": -73.787
+  },
+  {
+   "ID": "sys_13",
+   "Name": "Tallow Fold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -47.794,
+   "Y": -83.93
+  },
+  {
+   "ID": "sys_14",
+   "Name": "Storm Threshold",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 0.273,
+   "Y": 13.879
+  },
+  {
+   "ID": "sys_15",
+   "Name": "Umbral Flats",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 13.316,
+   "Y": 22.398
   },
   {
    "ID": "sys_16",
-   "Name": "Blighted Shelf",
-   "Kind": "station",
-   "Map": "abandoned_station",
-   "X": -7.321,
-   "Y": 24.006
+   "Name": "Storm Mire",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -9.62,
+   "Y": 24.529
+  },
+  {
+   "ID": "sys_17",
+   "Name": "Leaden Fields",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 3.051,
+   "Y": 59.396
+  },
+  {
+   "ID": "sys_18",
+   "Name": "Crimson Tangle",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -54.105,
+   "Y": -47.993
+  },
+  {
+   "ID": "sys_19",
+   "Name": "Lost Scar",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 14.976,
+   "Y": 48.638
+  },
+  {
+   "ID": "sys_2",
+   "Name": "Hollow Fold",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -31.3,
+   "Y": -82.092
   },
   {
    "ID": "sys_20",
-   "Name": "Umbral Basin",
+   "Name": "Veil Hold",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 92.955,
+   "Y": -92.426
+  },
+  {
+   "ID": "sys_21",
+   "Name": "Sable Tract",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -38.825,
+   "Y": 41.285
+  },
+  {
+   "ID": "sys_22",
+   "Name": "Rust Spire",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -72.462,
+   "Y": -45.719
+  },
+  {
+   "ID": "sys_23",
+   "Name": "Glass Wastes",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 30.752,
+   "Y": 36.292
+  },
+  {
+   "ID": "sys_24",
+   "Name": "Shroud Shelf",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 77.021,
+   "Y": -9.23
+  },
+  {
+   "ID": "sys_25",
+   "Name": "Frost Vale",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 51.016,
+   "Y": 44.922
+  },
+  {
+   "ID": "sys_26",
+   "Name": "Iron Flats",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 2.13,
+   "Y": -7.026
+  },
+  {
+   "ID": "sys_27",
+   "Name": "Glass Narrows",
    "Kind": "station",
    "Map": "abandoned_station",
-   "X": 16.982,
-   "Y": -12.835
+   "X": 37.952,
+   "Y": 62.663
+  },
+  {
+   "ID": "sys_28",
+   "Name": "Salt Shoals",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -25.681,
+   "Y": -57.444
+  },
+  {
+   "ID": "sys_29",
+   "Name": "Blighted Flats",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -34.601,
+   "Y": -57.668
+  },
+  {
+   "ID": "sys_3",
+   "Name": "Saffron Tract",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -19.019,
+   "Y": -144.568
   },
   {
    "ID": "sys_30",
-   "Name": "Cinder Cradle",
+   "Name": "Dust Scar",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 2.047,
+   "Y": 37.604
+  },
+  {
+   "ID": "sys_31",
+   "Name": "Dust Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 13.961,
+   "Y": 78.554
+  },
+  {
+   "ID": "sys_32",
+   "Name": "Glass Drift",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -59.149,
+   "Y": -92.85
+  },
+  {
+   "ID": "sys_33",
+   "Name": "Cinder Shoals",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -10.076,
+   "Y": -25.028
+  },
+  {
+   "ID": "sys_34",
+   "Name": "Umbral Hold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -13.808,
+   "Y": -32.527
+  },
+  {
+   "ID": "sys_35",
+   "Name": "Bone Tangle",
    "Kind": "planet",
    "Map": "alien",
-   "X": -9.783,
-   "Y": -17.683
+   "X": 16.634,
+   "Y": 58.247
+  },
+  {
+   "ID": "sys_36",
+   "Name": "Sable Spire",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -23.793,
+   "Y": -68.56
+  },
+  {
+   "ID": "sys_37",
+   "Name": "Sunken Strand",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -42.447,
+   "Y": -96.589
   },
   {
    "ID": "sys_38",
-   "Name": "Verdant Gulch",
+   "Name": "Ashen Narrows",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 5.074,
+   "Y": 82.472
+  },
+  {
+   "ID": "sys_39",
+   "Name": "Dust Ridge",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -0.485,
+   "Y": 47.259
+  },
+  {
+   "ID": "sys_4",
+   "Name": "Gleaming Sink",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -81.314,
+   "Y": -62.242
+  },
+  {
+   "ID": "sys_40",
+   "Name": "Scorch Gap",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 28.288,
+   "Y": -72.199
+  },
+  {
+   "ID": "sys_41",
+   "Name": "Ember Hold",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 3.664,
+   "Y": 25.488
+  },
+  {
+   "ID": "sys_42",
+   "Name": "Rust Verge",
    "Kind": "planet",
    "Map": "alien",
-   "X": -19.869,
-   "Y": 0.266
+   "X": -13.042,
+   "Y": -5.05
+  },
+  {
+   "ID": "sys_43",
+   "Name": "Quiet Scar",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 32.123,
+   "Y": 55.228
   },
   {
    "ID": "sys_44",
-   "Name": "Saffron Shelf",
+   "Name": "Salt Ridge",
    "Kind": "planet",
-   "Map": "desert_planet",
-   "X": 9.076,
-   "Y": 17.447
+   "Map": "alien",
+   "X": -85.257,
+   "Y": 0.542
+  },
+  {
+   "ID": "sys_45",
+   "Name": "Frost Fields",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 25.373,
+   "Y": 44.148
+  },
+  {
+   "ID": "sys_46",
+   "Name": "Crimson Expanse",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -14.654,
+   "Y": -93.59
+  },
+  {
+   "ID": "sys_47",
+   "Name": "Ashen Ridge",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 36.709,
+   "Y": 78.082
+  },
+  {
+   "ID": "sys_48",
+   "Name": "Gaunt Basin",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 30.858,
+   "Y": 67.102
+  },
+  {
+   "ID": "sys_49",
+   "Name": "Murk Wound",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -34.426,
+   "Y": -43.354
+  },
+  {
+   "ID": "sys_5",
+   "Name": "Far Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -50.044,
+   "Y": -61.892
+  },
+  {
+   "ID": "sys_50",
+   "Name": "Leaden Rift",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -34.454,
+   "Y": 79.713
   },
   {
    "ID": "sys_51",
-   "Name": "Iron Sink",
+   "Name": "Shroud Scar",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -72.259,
+   "Y": 10.226
+  },
+  {
+   "ID": "sys_52",
+   "Name": "Umbral Fields",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -45.085,
+   "Y": -54.114
+  },
+  {
+   "ID": "sys_53",
+   "Name": "Crimson Tract",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -35.38,
-   "Y": 4.633
+   "X": 37.876,
+   "Y": 48.776
+  },
+  {
+   "ID": "sys_54",
+   "Name": "Wether Mire",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 45.759,
+   "Y": 12.827
   },
   {
    "ID": "sys_55",
-   "Name": "Gleaming Run",
+   "Name": "Far Drift",
    "Kind": "planet",
-   "Map": "desert_planet",
-   "X": -32.439,
-   "Y": -1.517
+   "Map": "alien",
+   "X": 32.453,
+   "Y": -3.063
+  },
+  {
+   "ID": "sys_56",
+   "Name": "Dust Steppe",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 53.555,
+   "Y": 24.149
+  },
+  {
+   "ID": "sys_57",
+   "Name": "Crimson Wastes",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -25.231,
+   "Y": -40.816
+  },
+  {
+   "ID": "sys_58",
+   "Name": "Gaunt Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 4.497,
+   "Y": 4.694
+  },
+  {
+   "ID": "sys_59",
+   "Name": "Umbral Shelf",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -52.5,
+   "Y": -33.174
   },
   {
    "ID": "sys_6",
-   "Name": "Saffron Gulch",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": 4.492,
-   "Y": 14.83
+   "Name": "Iron Vale",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 21.456,
+   "Y": 13.585
+  },
+  {
+   "ID": "sys_60",
+   "Name": "Leaden Wastes",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 37.433,
+   "Y": 23.522
+  },
+  {
+   "ID": "sys_61",
+   "Name": "Glass Wound",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -84.88,
+   "Y": 101.593
+  },
+  {
+   "ID": "sys_62",
+   "Name": "Lost Basin",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 15.917,
+   "Y": 0.009
+  },
+  {
+   "ID": "sys_63",
+   "Name": "Leaden Hollow",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -28.227,
+   "Y": -8.206
   },
   {
    "ID": "sys_64",
-   "Name": "Shroud Strand",
+   "Name": "Gaunt Run",
    "Kind": "planet",
    "Map": "alien",
-   "X": 19.117,
-   "Y": -48.887
+   "X": -67.608,
+   "Y": -91.867
+  },
+  {
+   "ID": "sys_65",
+   "Name": "Leaden Steppe",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -4.731,
+   "Y": 102.185
+  },
+  {
+   "ID": "sys_66",
+   "Name": "Shroud Fields",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 41.813,
+   "Y": -45.245
+  },
+  {
+   "ID": "sys_67",
+   "Name": "Umbral Pit",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 86.728,
+   "Y": -66.139
+  },
+  {
+   "ID": "sys_68",
+   "Name": "Quiet Hollow",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -16.89,
+   "Y": 10.149
+  },
+  {
+   "ID": "sys_69",
+   "Name": "Sunken Threshold",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -81.624,
+   "Y": -118.542
+  },
+  {
+   "ID": "sys_7",
+   "Name": "Ashen Shoals",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 50.502,
+   "Y": 36.561
+  },
+  {
+   "ID": "sys_70",
+   "Name": "Verdant Expanse",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -9.867,
+   "Y": 41.904
+  },
+  {
+   "ID": "sys_71",
+   "Name": "Shroud Tangle",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 66.895,
+   "Y": 13.273
+  },
+  {
+   "ID": "sys_72",
+   "Name": "Leaden Pit",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 32.398,
+   "Y": 11.941
+  },
+  {
+   "ID": "sys_73",
+   "Name": "Quiet Fold",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -62.734,
+   "Y": -48.309
   },
   {
    "ID": "sys_74",
-   "Name": "Saffron Flats",
+   "Name": "Blighted Reach",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -44.599,
+   "Y": -42.9
+  },
+  {
+   "ID": "sys_75",
+   "Name": "Verdant Narrows",
    "Kind": "planet",
    "Map": "ocean_planet",
-   "X": -22.84,
-   "Y": -4.059
+   "X": 21.59,
+   "Y": 33.326
+  },
+  {
+   "ID": "sys_76",
+   "Name": "Saffron Basin",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 89.692,
+   "Y": 94.855
+  },
+  {
+   "ID": "sys_77",
+   "Name": "Far Verge",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -32.255,
+   "Y": 50.353
+  },
+  {
+   "ID": "sys_78",
+   "Name": "Sable Shelf",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -70.298,
+   "Y": -55.112
   },
   {
    "ID": "sys_79",
-   "Name": "Bone Expanse",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -7.963,
-   "Y": -41.736
+   "Name": "Murk Mire",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -142.167,
+   "Y": -70.517
+  },
+  {
+   "ID": "sys_8",
+   "Name": "Frost Wastes",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -11.842,
+   "Y": -13.715
+  },
+  {
+   "ID": "sys_80",
+   "Name": "Storm Wastes",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -9.502,
+   "Y": 13.43
+  },
+  {
+   "ID": "sys_9",
+   "Name": "Salt Strand",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 9.325,
+   "Y": -47.657
   }
  ],
  "1977": [
@@ -127,128 +663,656 @@
    "Name": "Wreck Site",
    "Kind": "adrift",
    "Map": "",
-   "X": 0,
-   "Y": 0
+   "X": 44.727,
+   "Y": -109.36
   },
   {
-   "ID": "home",
-   "Name": "Home",
-   "Kind": "home",
-   "Map": "earth_like",
-   "X": -2950.266,
-   "Y": -543.993
+   "ID": "gate",
+   "Name": "The Gate",
+   "Kind": "gate",
+   "Map": "",
+   "X": -139.031,
+   "Y": 62.394
   },
   {
-   "ID": "start",
-   "Name": "Ember Spire",
+   "ID": "sys_1",
+   "Name": "Gaunt Strand",
    "Kind": "planet",
-   "Map": "alien",
-   "X": 6.904,
-   "Y": 4.041
+   "Map": "earth_like",
+   "X": 42.366,
+   "Y": 22.819
   },
   {
    "ID": "sys_10",
-   "Name": "Shroud Rift",
+   "Name": "Shroud Mire",
    "Kind": "planet",
-   "Map": "ocean_planet",
-   "X": 13.45,
-   "Y": 2.122
+   "Map": "desert_planet",
+   "X": 115.503,
+   "Y": -88.287
   },
   {
-   "ID": "sys_110",
-   "Name": "Scorch Ridge",
+   "ID": "sys_11",
+   "Name": "Umbral Fold",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -8.799,
+   "Y": 149.964
+  },
+  {
+   "ID": "sys_12",
+   "Name": "Rust Cradle",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -127.34,
+   "Y": 72.866
+  },
+  {
+   "ID": "sys_13",
+   "Name": "Ember Mire",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -19.687,
+   "Y": -7.044
+  },
+  {
+   "ID": "sys_14",
+   "Name": "Murk Vale",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 21.32,
+   "Y": 29.417
+  },
+  {
+   "ID": "sys_15",
+   "Name": "Lost Shelf",
    "Kind": "planet",
    "Map": "frozen_planet",
-   "X": -34.873,
-   "Y": -17.205
+   "X": -22.612,
+   "Y": -18.201
+  },
+  {
+   "ID": "sys_16",
+   "Name": "Blighted Canyon",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -32.908,
+   "Y": -25.93
+  },
+  {
+   "ID": "sys_17",
+   "Name": "Blighted Basin",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -41.519,
+   "Y": -51.257
   },
   {
    "ID": "sys_18",
-   "Name": "Rust Pit",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -3.963,
-   "Y": -23.37
+   "Name": "Gaunt Gulch",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 8.745,
+   "Y": -12.227
+  },
+  {
+   "ID": "sys_19",
+   "Name": "Ember Tract",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -16.201,
+   "Y": 94.39
+  },
+  {
+   "ID": "sys_2",
+   "Name": "Saffron Rift",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -12.956,
+   "Y": -21.674
+  },
+  {
+   "ID": "sys_20",
+   "Name": "Crimson Pit",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 27.695,
+   "Y": 67.305
+  },
+  {
+   "ID": "sys_21",
+   "Name": "Sunken Verge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 37.53,
+   "Y": -94.824
+  },
+  {
+   "ID": "sys_22",
+   "Name": "Quiet Narrows",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 45.05,
+   "Y": 30.599
+  },
+  {
+   "ID": "sys_23",
+   "Name": "Gaunt Tangle",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -33.821,
+   "Y": -60.339
+  },
+  {
+   "ID": "sys_24",
+   "Name": "Ashen Flats",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -6.139,
+   "Y": -6.608
   },
   {
    "ID": "sys_25",
-   "Name": "Quiet Canyon",
+   "Name": "Crimson Cradle",
    "Kind": "planet",
-   "Map": "ocean_planet",
-   "X": -3.861,
-   "Y": -9.684
+   "Map": "frozen_planet",
+   "X": -84.879,
+   "Y": 96.738
+  },
+  {
+   "ID": "sys_26",
+   "Name": "Ashen Verge",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -41.933,
+   "Y": -33.306
+  },
+  {
+   "ID": "sys_27",
+   "Name": "Slag Shelf",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -32.234,
+   "Y": -51.466
+  },
+  {
+   "ID": "sys_28",
+   "Name": "Gleaming Ridge",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -10.034,
+   "Y": 5.783
+  },
+  {
+   "ID": "sys_29",
+   "Name": "Scorch Cradle",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -59.811,
+   "Y": 96.142
+  },
+  {
+   "ID": "sys_3",
+   "Name": "Gaunt Scar",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 47.853,
+   "Y": 43.233
   },
   {
    "ID": "sys_30",
-   "Name": "Verdant Gap",
+   "Name": "Gaunt Verge",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 43.752,
+   "Y": 53.19
+  },
+  {
+   "ID": "sys_31",
+   "Name": "Dust Run",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 124.833,
+   "Y": -74.953
+  },
+  {
+   "ID": "sys_32",
+   "Name": "Iron Wound",
    "Kind": "station",
    "Map": "abandoned_station",
-   "X": 11.602,
-   "Y": 23.873
+   "X": 84.02,
+   "Y": 43.069
+  },
+  {
+   "ID": "sys_33",
+   "Name": "Veil Shelf",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -20.461,
+   "Y": -27.575
   },
   {
    "ID": "sys_34",
-   "Name": "Pale Strand",
+   "Name": "Far Gulch",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -22.03,
+   "Y": 11.536
+  },
+  {
+   "ID": "sys_35",
+   "Name": "Ember Sink",
    "Kind": "asteroid_field",
    "Map": "asteroid",
-   "X": -2.138,
-   "Y": 18.451
+   "X": 137.928,
+   "Y": -63.528
+  },
+  {
+   "ID": "sys_36",
+   "Name": "Leaden Fold",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -53.148,
+   "Y": -37.114
+  },
+  {
+   "ID": "sys_37",
+   "Name": "Saffron Sink",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -72.211,
+   "Y": -141.709
+  },
+  {
+   "ID": "sys_38",
+   "Name": "Crimson Rift",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -113.993,
+   "Y": 77.431
+  },
+  {
+   "ID": "sys_39",
+   "Name": "Dust Fields",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 140.25,
+   "Y": -54.524
+  },
+  {
+   "ID": "sys_4",
+   "Name": "Drift Gulch",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -49.083,
+   "Y": -48.033
+  },
+  {
+   "ID": "sys_40",
+   "Name": "Cinder Gulch",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 10.034,
+   "Y": -2.899
+  },
+  {
+   "ID": "sys_41",
+   "Name": "Saffron Steppe",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 17.514,
+   "Y": 12.822
+  },
+  {
+   "ID": "sys_42",
+   "Name": "Glass Breach",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -41.654,
+   "Y": -21.805
+  },
+  {
+   "ID": "sys_43",
+   "Name": "Leaden Expanse",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 26.48,
+   "Y": 87.298
+  },
+  {
+   "ID": "sys_44",
+   "Name": "Tallow Tangle",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 22.546,
+   "Y": -63.544
+  },
+  {
+   "ID": "sys_45",
+   "Name": "Glass Strand",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 10.319,
+   "Y": -80.012
+  },
+  {
+   "ID": "sys_46",
+   "Name": "Drift Hollow",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 5.617,
+   "Y": 14.447
   },
   {
    "ID": "sys_47",
-   "Name": "Sunken Vale",
+   "Name": "Drift Strand",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 33.712,
+   "Y": 33.797
+  },
+  {
+   "ID": "sys_48",
+   "Name": "Quiet Rift",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -70.697,
+   "Y": 48.248
+  },
+  {
+   "ID": "sys_49",
+   "Name": "Tallow Mire",
    "Kind": "station",
    "Map": "abandoned_station",
-   "X": 4.974,
-   "Y": 13.429
+   "X": 37.105,
+   "Y": 46.231
+  },
+  {
+   "ID": "sys_5",
+   "Name": "Gaunt Reach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 26.865,
+   "Y": 14.603
+  },
+  {
+   "ID": "sys_50",
+   "Name": "Lost Reach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 50.639,
+   "Y": 60.773
+  },
+  {
+   "ID": "sys_51",
+   "Name": "Iron Narrows",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -4.202,
+   "Y": -16.553
+  },
+  {
+   "ID": "sys_52",
+   "Name": "Scorch Tangle",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 38.142,
+   "Y": 64.009
+  },
+  {
+   "ID": "sys_53",
+   "Name": "Salt Strand",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -38.756,
+   "Y": 98.133
+  },
+  {
+   "ID": "sys_54",
+   "Name": "Sunken Tract",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -106.124,
+   "Y": -35.57
+  },
+  {
+   "ID": "sys_55",
+   "Name": "Far Expanse",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -11.692,
+   "Y": -83.778
+  },
+  {
+   "ID": "sys_56",
+   "Name": "Murk Expanse",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -76.648,
+   "Y": 91.242
+  },
+  {
+   "ID": "sys_57",
+   "Name": "Gaunt Vale",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -138.784,
+   "Y": 73.098
+  },
+  {
+   "ID": "sys_58",
+   "Name": "Wether Spire",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 9.386,
+   "Y": 87.083
   },
   {
    "ID": "sys_59",
-   "Name": "Far Hollow",
+   "Name": "Blighted Mire",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -11.946,
+   "Y": -13.518
+  },
+  {
+   "ID": "sys_6",
+   "Name": "Frost Sink",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -127.418,
+   "Y": 85.123
+  },
+  {
+   "ID": "sys_60",
+   "Name": "Slag Scar",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -117.644,
+   "Y": 84.821
+  },
+  {
+   "ID": "sys_61",
+   "Name": "Shroud Gulch",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -1.458,
+   "Y": 9.879
+  },
+  {
+   "ID": "sys_62",
+   "Name": "Hollow Fields",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -31.693,
+   "Y": -106.141
+  },
+  {
+   "ID": "sys_63",
+   "Name": "Wether Scar",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -32.296,
-   "Y": -37.908
+   "X": -48.206,
+   "Y": -11.456
+  },
+  {
+   "ID": "sys_64",
+   "Name": "Quiet Fields",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 75.055,
+   "Y": -105.418
+  },
+  {
+   "ID": "sys_65",
+   "Name": "Iron Breach",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -92.081,
+   "Y": 82.091
+  },
+  {
+   "ID": "sys_66",
+   "Name": "Shroud Expanse",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 43.624,
+   "Y": 14.87
   },
   {
    "ID": "sys_67",
-   "Name": "Pale Cradle",
+   "Name": "Verdant Rift",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -26.041,
+   "Y": -73.469
+  },
+  {
+   "ID": "sys_68",
+   "Name": "Quiet Pit",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -57.373,
+   "Y": -1.268
+  },
+  {
+   "ID": "sys_69",
+   "Name": "Rust Sink",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -2.097,
+   "Y": -118.808
+  },
+  {
+   "ID": "sys_7",
+   "Name": "Leaden Flats",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -17.869,
-   "Y": 16.635
+   "X": -147.19,
+   "Y": 56.305
+  },
+  {
+   "ID": "sys_70",
+   "Name": "Tallow Narrows",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -49.345,
+   "Y": 102.121
+  },
+  {
+   "ID": "sys_71",
+   "Name": "Saffron Fold",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -32.543,
+   "Y": -34.095
+  },
+  {
+   "ID": "sys_72",
+   "Name": "Glass Hold",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 48.072,
+   "Y": 132.144
   },
   {
    "ID": "sys_73",
-   "Name": "Veil Hold",
+   "Name": "Far Mire",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -34.289,
+   "Y": -70.355
+  },
+  {
+   "ID": "sys_74",
+   "Name": "Shroud Sink",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 19.16,
-   "Y": -27.915
+   "X": -111.745,
+   "Y": 41.398
+  },
+  {
+   "ID": "sys_75",
+   "Name": "Sable Expanse",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 23.549,
+   "Y": -105.612
+  },
+  {
+   "ID": "sys_76",
+   "Name": "Blighted Breach",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 41.332,
+   "Y": -102.116
   },
   {
    "ID": "sys_77",
-   "Name": "Rust Breach",
+   "Name": "Iron Hold",
    "Kind": "planet",
    "Map": "alien",
-   "X": 9.562,
-   "Y": -46.076
+   "X": -19.278,
+   "Y": 105.53
   },
   {
-   "ID": "sys_88",
-   "Name": "Ashen Hollow",
-   "Kind": "planet",
-   "Map": "frozen_planet",
-   "X": -24.466,
-   "Y": 38.327
-  },
-  {
-   "ID": "sys_98",
-   "Name": "Crimson Rift",
+   "ID": "sys_78",
+   "Name": "Ember Steppe",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 19.763,
-   "Y": -34.021
+   "X": 55.152,
+   "Y": 15.737
+  },
+  {
+   "ID": "sys_79",
+   "Name": "Wether Cradle",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 54.274,
+   "Y": 50.07
+  },
+  {
+   "ID": "sys_8",
+   "Name": "Scorch Strand",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -61.077,
+   "Y": 107.715
+  },
+  {
+   "ID": "sys_80",
+   "Name": "Ashen Threshold",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 63.326,
+   "Y": -98.375
+  },
+  {
+   "ID": "sys_9",
+   "Name": "Hollow Shelf",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -4.589,
+   "Y": 90.593
   }
  ],
  "31337": [
@@ -257,120 +1321,656 @@
    "Name": "Wreck Site",
    "Kind": "adrift",
    "Map": "",
-   "X": 0,
-   "Y": 0
+   "X": -129.81,
+   "Y": 38.414
   },
   {
-   "ID": "home",
-   "Name": "Home",
-   "Kind": "home",
-   "Map": "earth_like",
-   "X": -1773.253,
-   "Y": -2419.828
+   "ID": "gate",
+   "Name": "The Gate",
+   "Kind": "gate",
+   "Map": "",
+   "X": 47.022,
+   "Y": 96.613
   },
   {
-   "ID": "start",
-   "Name": "Far Breach",
-   "Kind": "planet",
-   "Map": "earth_like",
-   "X": -6.616,
-   "Y": -4.496
+   "ID": "sys_1",
+   "Name": "Shroud Reach",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 82.597,
+   "Y": -61.966
+  },
+  {
+   "ID": "sys_10",
+   "Name": "Sunken Steppe",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -7.07,
+   "Y": -114.415
+  },
+  {
+   "ID": "sys_11",
+   "Name": "Hollow Shelf",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 42.131,
+   "Y": -114.781
   },
   {
    "ID": "sys_12",
-   "Name": "Drift Tangle",
+   "Name": "Tallow Fold",
    "Kind": "planet",
-   "Map": "frozen_planet",
-   "X": 10.429,
-   "Y": 13.153
+   "Map": "alien",
+   "X": -39.112,
+   "Y": 111.683
+  },
+  {
+   "ID": "sys_13",
+   "Name": "Leaden Spire",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -22.386,
+   "Y": -104.802
+  },
+  {
+   "ID": "sys_14",
+   "Name": "Veil Pit",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 104.593,
+   "Y": -52.34
+  },
+  {
+   "ID": "sys_15",
+   "Name": "Scorch Gap",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 110.275,
+   "Y": -8.898
   },
   {
    "ID": "sys_16",
-   "Name": "Rust Reach",
+   "Name": "Ashen Scar",
    "Kind": "planet",
    "Map": "alien",
-   "X": 7.627,
-   "Y": -5.473
+   "X": 109.422,
+   "Y": -36.634
+  },
+  {
+   "ID": "sys_17",
+   "Name": "Frost Hold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 37.179,
+   "Y": 101.338
+  },
+  {
+   "ID": "sys_18",
+   "Name": "Lost Fields",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 63.597,
+   "Y": 47.015
+  },
+  {
+   "ID": "sys_19",
+   "Name": "Blighted Expanse",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -25.507,
+   "Y": 2.054
+  },
+  {
+   "ID": "sys_2",
+   "Name": "Murk Basin",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -24.256,
+   "Y": 12.285
+  },
+  {
+   "ID": "sys_20",
+   "Name": "Murk Hollow",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -61.249,
+   "Y": 104.239
+  },
+  {
+   "ID": "sys_21",
+   "Name": "Frost Shelf",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -76.061,
+   "Y": -75.391
+  },
+  {
+   "ID": "sys_22",
+   "Name": "Bone Shelf",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -45.017,
+   "Y": 96.999
+  },
+  {
+   "ID": "sys_23",
+   "Name": "Sable Vale",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -119.276,
+   "Y": -1.047
+  },
+  {
+   "ID": "sys_24",
+   "Name": "Murk Fields",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -112.997,
+   "Y": -52.418
+  },
+  {
+   "ID": "sys_25",
+   "Name": "Glass Tangle",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 6.564,
+   "Y": -103.863
+  },
+  {
+   "ID": "sys_26",
+   "Name": "Saffron Verge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 29.597,
+   "Y": -104.286
   },
   {
    "ID": "sys_27",
-   "Name": "Storm Pit",
+   "Name": "Salt Hollow",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -96.25,
+   "Y": -18.036
+  },
+  {
+   "ID": "sys_28",
+   "Name": "Shroud Gulch",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -86.956,
+   "Y": -62.124
+  },
+  {
+   "ID": "sys_29",
+   "Name": "Umbral Basin",
    "Kind": "planet",
    "Map": "alien",
-   "X": 24.254,
-   "Y": 9.648
+   "X": 100.571,
+   "Y": -61.054
+  },
+  {
+   "ID": "sys_3",
+   "Name": "Verdant Verge",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -94.657,
+   "Y": 42.675
+  },
+  {
+   "ID": "sys_30",
+   "Name": "Salt Shelf",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 76.055,
+   "Y": -91.829
+  },
+  {
+   "ID": "sys_31",
+   "Name": "Scorch Wastes",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -89.424,
+   "Y": -72.487
+  },
+  {
+   "ID": "sys_32",
+   "Name": "Saffron Gap",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 59.703,
+   "Y": 120.385
+  },
+  {
+   "ID": "sys_33",
+   "Name": "Iron Sink",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -78.018,
+   "Y": -100.665
   },
   {
    "ID": "sys_34",
-   "Name": "Veil Wound",
+   "Name": "Glass Strand",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 9.888,
+   "Y": 118.288
+  },
+  {
+   "ID": "sys_35",
+   "Name": "Verdant Scar",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 68.337,
+   "Y": -69.751
+  },
+  {
+   "ID": "sys_36",
+   "Name": "Far Strand",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 56.975,
+   "Y": -110.84
+  },
+  {
+   "ID": "sys_37",
+   "Name": "Gaunt Run",
    "Kind": "moon",
    "Map": "moon",
-   "X": 9.123,
-   "Y": -25.26
+   "X": 106.999,
+   "Y": 40.297
+  },
+  {
+   "ID": "sys_38",
+   "Name": "Bone Cradle",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -10.697,
+   "Y": 21.132
+  },
+  {
+   "ID": "sys_39",
+   "Name": "Scorch Tract",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 89.285,
+   "Y": 80.344
+  },
+  {
+   "ID": "sys_4",
+   "Name": "Hollow Run",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -107.849,
+   "Y": 21.595
+  },
+  {
+   "ID": "sys_40",
+   "Name": "Quiet Tract",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 82.823,
+   "Y": 88.139
+  },
+  {
+   "ID": "sys_41",
+   "Name": "Glass Flats",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -35.162,
+   "Y": 86.028
+  },
+  {
+   "ID": "sys_42",
+   "Name": "Dust Scar",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 7.892,
+   "Y": 108.128
+  },
+  {
+   "ID": "sys_43",
+   "Name": "Shroud Shoals",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 89.569,
+   "Y": -76.682
+  },
+  {
+   "ID": "sys_44",
+   "Name": "Shroud Canyon",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -29.396,
+   "Y": 103.04
+  },
+  {
+   "ID": "sys_45",
+   "Name": "Tallow Tract",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 67.488,
+   "Y": 105.907
   },
   {
    "ID": "sys_46",
-   "Name": "Wether Fold",
+   "Name": "Lost Tangle",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -70.947,
+   "Y": 118.533
+  },
+  {
+   "ID": "sys_47",
+   "Name": "Storm Flats",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 71.531,
+   "Y": -134.774
+  },
+  {
+   "ID": "sys_48",
+   "Name": "Leaden Scar",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -10.62,
-   "Y": -0.89
+   "X": 67.907,
+   "Y": -96.861
+  },
+  {
+   "ID": "sys_49",
+   "Name": "Bone Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -148.976,
+   "Y": 7.193
+  },
+  {
+   "ID": "sys_5",
+   "Name": "Storm Hollow",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -115.127,
+   "Y": -9.769
+  },
+  {
+   "ID": "sys_50",
+   "Name": "Quiet Verge",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -95.877,
+   "Y": -56.143
+  },
+  {
+   "ID": "sys_51",
+   "Name": "Sunken Shoals",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 35.805,
+   "Y": 111.382
   },
   {
    "ID": "sys_52",
-   "Name": "Scorch Spire",
+   "Name": "Shroud Rift",
    "Kind": "planet",
-   "Map": "frozen_planet",
-   "X": -16,
-   "Y": 15.793
+   "Map": "ocean_planet",
+   "X": 30.815,
+   "Y": 9.273
+  },
+  {
+   "ID": "sys_53",
+   "Name": "Sable Pit",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 8.846,
+   "Y": -111.827
+  },
+  {
+   "ID": "sys_54",
+   "Name": "Dust Strand",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 69.248,
+   "Y": -87.293
+  },
+  {
+   "ID": "sys_55",
+   "Name": "Blighted Shelf",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -121.94,
+   "Y": 18.673
   },
   {
    "ID": "sys_56",
-   "Name": "Murk Steppe",
+   "Name": "Lost Sink",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 6.814,
+   "Y": -5.982
+  },
+  {
+   "ID": "sys_57",
+   "Name": "Sunken Breach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 108.41,
+   "Y": 63.916
+  },
+  {
+   "ID": "sys_58",
+   "Name": "Ember Fold",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 7.031,
-   "Y": 8.192
+   "X": 106.653,
+   "Y": -26.965
+  },
+  {
+   "ID": "sys_59",
+   "Name": "Tallow Basin",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -36.497,
+   "Y": -116.093
+  },
+  {
+   "ID": "sys_6",
+   "Name": "Gleaming Cradle",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -103.181,
+   "Y": -64.333
+  },
+  {
+   "ID": "sys_60",
+   "Name": "Gaunt Fold",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -13.5,
+   "Y": 5.049
+  },
+  {
+   "ID": "sys_61",
+   "Name": "Storm Spire",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -91.755,
+   "Y": 60.95
+  },
+  {
+   "ID": "sys_62",
+   "Name": "Tallow Flats",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -122.158,
+   "Y": 36.079
+  },
+  {
+   "ID": "sys_63",
+   "Name": "Leaden Canyon",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 107.017,
+   "Y": 6.314
+  },
+  {
+   "ID": "sys_64",
+   "Name": "Gaunt Gulch",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -103.909,
+   "Y": -15.493
+  },
+  {
+   "ID": "sys_65",
+   "Name": "Sunken Basin",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 24.626,
+   "Y": -15.454
+  },
+  {
+   "ID": "sys_66",
+   "Name": "Murk Canyon",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -112.77,
+   "Y": 34.646
   },
   {
    "ID": "sys_67",
-   "Name": "Gleaming Sink",
+   "Name": "Scorch Sink",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -6.827,
+   "Y": -105.758
+  },
+  {
+   "ID": "sys_68",
+   "Name": "Gaunt Breach",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 83.795,
+   "Y": -89.748
+  },
+  {
+   "ID": "sys_69",
+   "Name": "Ashen Breach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 76.363,
+   "Y": 74.501
+  },
+  {
+   "ID": "sys_7",
+   "Name": "Gleaming Wastes",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 119.088,
+   "Y": -5.931
+  },
+  {
+   "ID": "sys_70",
+   "Name": "Hollow Basin",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 87.033,
+   "Y": 102.77
+  },
+  {
+   "ID": "sys_71",
+   "Name": "Sunken Vale",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -28.349,
-   "Y": -23.993
+   "X": 89.328,
+   "Y": -53.528
+  },
+  {
+   "ID": "sys_72",
+   "Name": "Crimson Wastes",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 56.934,
+   "Y": 77.778
+  },
+  {
+   "ID": "sys_73",
+   "Name": "Sable Mire",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 60.201,
+   "Y": 86.177
+  },
+  {
+   "ID": "sys_74",
+   "Name": "Bone Gulch",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -56.801,
+   "Y": 83.972
   },
   {
    "ID": "sys_75",
-   "Name": "Veil Pit",
-   "Kind": "station",
-   "Map": "abandoned_station",
-   "X": -47.294,
-   "Y": 8.507
+   "Name": "Gaunt Shoals",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -101.63,
+   "Y": -73.171
+  },
+  {
+   "ID": "sys_76",
+   "Name": "Blighted Vale",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 10.285,
+   "Y": 20.925
+  },
+  {
+   "ID": "sys_77",
+   "Name": "Drift Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -107.038,
+   "Y": -35.592
+  },
+  {
+   "ID": "sys_78",
+   "Name": "Shroud Steppe",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -86.473,
+   "Y": -90.544
   },
   {
    "ID": "sys_79",
-   "Name": "Veil Shoals",
+   "Name": "Rust Strand",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 118.459,
+   "Y": 11.957
+  },
+  {
+   "ID": "sys_8",
+   "Name": "Crimson Fields",
    "Kind": "planet",
    "Map": "alien",
-   "X": -15.774,
-   "Y": 28.33
+   "X": 93.412,
+   "Y": 96.685
   },
   {
-   "ID": "sys_86",
-   "Name": "Scorch Reach",
+   "ID": "sys_80",
+   "Name": "Quiet Threshold",
    "Kind": "planet",
-   "Map": "earth_like",
-   "X": -30.811,
-   "Y": 0.161
+   "Map": "alien",
+   "X": 113.981,
+   "Y": 52.407
   },
   {
-   "ID": "sys_89",
-   "Name": "Murk Threshold",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -28.534,
-   "Y": -9.05
+   "ID": "sys_9",
+   "Name": "Wether Vale",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 114.928,
+   "Y": -21.438
   }
  ],
  "42": [
@@ -379,160 +1979,656 @@
    "Name": "Wreck Site",
    "Kind": "adrift",
    "Map": "",
-   "X": 0,
-   "Y": 0
+   "X": -60.504,
+   "Y": -63.733
   },
   {
-   "ID": "home",
-   "Name": "Home",
-   "Kind": "home",
-   "Map": "earth_like",
-   "X": -2094.878,
-   "Y": 2147.436
+   "ID": "gate",
+   "Name": "The Gate",
+   "Kind": "gate",
+   "Map": "",
+   "X": 18.989,
+   "Y": -79.857
   },
   {
-   "ID": "start",
-   "Name": "Slag Narrows",
+   "ID": "sys_1",
+   "Name": "Ember Flats",
    "Kind": "planet",
    "Map": "alien",
-   "X": 2.046,
-   "Y": 7.733
+   "X": -1.25,
+   "Y": 38.127
   },
   {
-   "ID": "sys_101",
-   "Name": "Hollow Threshold",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -19.831,
-   "Y": 44.784
+   "ID": "sys_10",
+   "Name": "Veil Spire",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -14.475,
+   "Y": -62.182
   },
   {
-   "ID": "sys_107",
-   "Name": "Veil Shelf",
-   "Kind": "planet",
-   "Map": "earth_like",
-   "X": -25.032,
-   "Y": 1.239
-  },
-  {
-   "ID": "sys_110",
-   "Name": "Storm Shoals",
-   "Kind": "planet",
-   "Map": "earth_like",
-   "X": -5.875,
-   "Y": 35.361
-  },
-  {
-   "ID": "sys_123",
-   "Name": "Cinder Sink",
+   "ID": "sys_11",
+   "Name": "Iron Shoals",
    "Kind": "planet",
    "Map": "alien",
-   "X": 4.339,
-   "Y": 24.279
+   "X": -19.273,
+   "Y": 78.089
+  },
+  {
+   "ID": "sys_12",
+   "Name": "Shroud Fields",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -8.16,
+   "Y": -102.469
   },
   {
    "ID": "sys_13",
-   "Name": "Bone Run",
-   "Kind": "planet",
-   "Map": "frozen_planet",
-   "X": -14.784,
-   "Y": 16.279
-  },
-  {
-   "ID": "sys_130",
-   "Name": "Pale Spire",
+   "Name": "Crimson Expanse",
    "Kind": "planet",
    "Map": "alien",
-   "X": -48.546,
-   "Y": 11.442
+   "X": 10.79,
+   "Y": 21.188
+  },
+  {
+   "ID": "sys_14",
+   "Name": "Sunken Fold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -46.839,
+   "Y": 62.087
+  },
+  {
+   "ID": "sys_15",
+   "Name": "Leaden Fold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -56.008,
+   "Y": -57.116
+  },
+  {
+   "ID": "sys_16",
+   "Name": "Verdant Ridge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -85.005,
+   "Y": 57.946
+  },
+  {
+   "ID": "sys_17",
+   "Name": "Blighted Fold",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -45.782,
+   "Y": -21.128
+  },
+  {
+   "ID": "sys_18",
+   "Name": "Saffron Expanse",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -38.604,
+   "Y": 61.494
+  },
+  {
+   "ID": "sys_19",
+   "Name": "Frost Gulch",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -13.972,
+   "Y": -116.423
+  },
+  {
+   "ID": "sys_2",
+   "Name": "Sunken Gap",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -6.904,
+   "Y": 30.877
+  },
+  {
+   "ID": "sys_20",
+   "Name": "Saffron Gap",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -41.509,
+   "Y": -9.815
   },
   {
    "ID": "sys_21",
-   "Name": "Iron Drift",
+   "Name": "Pale Tangle",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 17.651,
+   "Y": 38.216
+  },
+  {
+   "ID": "sys_22",
+   "Name": "Ember Cradle",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -0.235,
+   "Y": 51.362
+  },
+  {
+   "ID": "sys_23",
+   "Name": "Gaunt Cradle",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 21.551,
-   "Y": -8.805
+   "X": -41.371,
+   "Y": -88.667
+  },
+  {
+   "ID": "sys_24",
+   "Name": "Far Steppe",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -32.185,
+   "Y": 20.436
+  },
+  {
+   "ID": "sys_25",
+   "Name": "Quiet Spire",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -33.352,
+   "Y": 1.73
+  },
+  {
+   "ID": "sys_26",
+   "Name": "Quiet Strand",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -74.593,
+   "Y": 14.03
+  },
+  {
+   "ID": "sys_27",
+   "Name": "Sunken Narrows",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -51.415,
+   "Y": -133.962
+  },
+  {
+   "ID": "sys_28",
+   "Name": "Crimson Tangle",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -18.334,
+   "Y": 34.481
+  },
+  {
+   "ID": "sys_29",
+   "Name": "Verdant Drift",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 17.674,
+   "Y": 58.539
+  },
+  {
+   "ID": "sys_3",
+   "Name": "Blighted Cradle",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -33.125,
+   "Y": 49.643
   },
   {
    "ID": "sys_30",
-   "Name": "Veil Threshold",
+   "Name": "Verdant Rift",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -77.399,
+   "Y": 25.798
+  },
+  {
+   "ID": "sys_31",
+   "Name": "Sunken Shoals",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -46.081,
+   "Y": -45.635
+  },
+  {
+   "ID": "sys_32",
+   "Name": "Saffron Verge",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -59.672,
+   "Y": -110.313
+  },
+  {
+   "ID": "sys_33",
+   "Name": "Glass Rift",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -28.922,
+   "Y": 76.596
+  },
+  {
+   "ID": "sys_34",
+   "Name": "Ember Wastes",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": -10.21,
-   "Y": 3.433
+   "X": -28.591,
+   "Y": 62.238
+  },
+  {
+   "ID": "sys_35",
+   "Name": "Sunken Reach",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 26.202,
+   "Y": 68.378
+  },
+  {
+   "ID": "sys_36",
+   "Name": "Quiet Hold",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -13.777,
+   "Y": -4.929
   },
   {
    "ID": "sys_37",
-   "Name": "Bone Verge",
+   "Name": "Glass Expanse",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 21.876,
+   "Y": 46.445
+  },
+  {
+   "ID": "sys_38",
+   "Name": "Sunken Run",
    "Kind": "planet",
    "Map": "frozen_planet",
-   "X": 15.703,
-   "Y": -4.879
+   "X": -1.181,
+   "Y": 11.899
+  },
+  {
+   "ID": "sys_39",
+   "Name": "Salt Spire",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 26.004,
+   "Y": -73.622
+  },
+  {
+   "ID": "sys_4",
+   "Name": "Cinder Mire",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -35.723,
+   "Y": -51.38
+  },
+  {
+   "ID": "sys_40",
+   "Name": "Glass Breach",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 51.226,
+   "Y": 149.514
+  },
+  {
+   "ID": "sys_41",
+   "Name": "Scorch Tract",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -47.608,
+   "Y": 37.817
+  },
+  {
+   "ID": "sys_42",
+   "Name": "Slag Threshold",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -36.92,
+   "Y": -34.813
+  },
+  {
+   "ID": "sys_43",
+   "Name": "Ember Fold",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -3.589,
+   "Y": 67.529
+  },
+  {
+   "ID": "sys_44",
+   "Name": "Crimson Shoals",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -42.439,
+   "Y": 21.56
+  },
+  {
+   "ID": "sys_45",
+   "Name": "Cinder Wastes",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -115.23,
+   "Y": 5.028
+  },
+  {
+   "ID": "sys_46",
+   "Name": "Rust Gap",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -12.356,
+   "Y": 57.368
   },
   {
    "ID": "sys_47",
-   "Name": "Ashen Canyon",
-   "Kind": "station",
-   "Map": "abandoned_station",
-   "X": 21.849,
-   "Y": 12.672
+   "Name": "Rust Verge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": 20.116,
+   "Y": -118.329
+  },
+  {
+   "ID": "sys_48",
+   "Name": "Leaden Basin",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -48.927,
+   "Y": -3.97
+  },
+  {
+   "ID": "sys_49",
+   "Name": "Salt Run",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -21.638,
+   "Y": -1.099
+  },
+  {
+   "ID": "sys_5",
+   "Name": "Gaunt Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -58.428,
+   "Y": 52.077
+  },
+  {
+   "ID": "sys_50",
+   "Name": "Blighted Fields",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -4.746,
+   "Y": 77.065
+  },
+  {
+   "ID": "sys_51",
+   "Name": "Rust Run",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 5.902,
+   "Y": 71.204
   },
   {
    "ID": "sys_52",
-   "Name": "Leaden Wound",
+   "Name": "Ashen Cradle",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -36.267,
+   "Y": -123.868
+  },
+  {
+   "ID": "sys_53",
+   "Name": "Gleaming Ridge",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -79.109,
+   "Y": -45.661
+  },
+  {
+   "ID": "sys_54",
+   "Name": "Sunken Canyon",
    "Kind": "planet",
    "Map": "desert_planet",
-   "X": -1.064,
-   "Y": -11.736
+   "X": -38.784,
+   "Y": -25.036
+  },
+  {
+   "ID": "sys_55",
+   "Name": "Cinder Expanse",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -87.627,
+   "Y": 88.279
+  },
+  {
+   "ID": "sys_56",
+   "Name": "Glass Pit",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 49.113,
+   "Y": -100.154
   },
   {
    "ID": "sys_57",
-   "Name": "Ashen Drift",
+   "Name": "Leaden Reach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 40.816,
+   "Y": -19.578
+  },
+  {
+   "ID": "sys_58",
+   "Name": "Slag Rift",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -0.984,
+   "Y": -96.622
+  },
+  {
+   "ID": "sys_59",
+   "Name": "Ember Hold",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -27.506,
+   "Y": -109.072
+  },
+  {
+   "ID": "sys_6",
+   "Name": "Shroud Basin",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -49.015,
+   "Y": -110.243
+  },
+  {
+   "ID": "sys_60",
+   "Name": "Storm Cradle",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -68.113,
+   "Y": 0.57
+  },
+  {
+   "ID": "sys_61",
+   "Name": "Saffron Steppe",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -6.658,
+   "Y": -30.152
+  },
+  {
+   "ID": "sys_62",
+   "Name": "Quiet Hollow",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -28.012,
+   "Y": 36.883
+  },
+  {
+   "ID": "sys_63",
+   "Name": "Far Flats",
    "Kind": "planet",
    "Map": "desert_planet",
-   "X": -9.639,
-   "Y": -11.42
+   "X": -20.215,
+   "Y": 62.63
+  },
+  {
+   "ID": "sys_64",
+   "Name": "Drift Tract",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -44.37,
+   "Y": -58.494
+  },
+  {
+   "ID": "sys_65",
+   "Name": "Leaden Vale",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -18.227,
+   "Y": 44.975
   },
   {
    "ID": "sys_66",
-   "Name": "Frost Pit",
+   "Name": "Drift Drift",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -4.81,
+   "Y": -10.52
+  },
+  {
+   "ID": "sys_67",
+   "Name": "Ember Tangle",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -17.806,
+   "Y": -138.896
+  },
+  {
+   "ID": "sys_68",
+   "Name": "Sable Breach",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 114.307,
+   "Y": 32.968
+  },
+  {
+   "ID": "sys_69",
+   "Name": "Sunken Ridge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -5.305,
+   "Y": 118.845
+  },
+  {
+   "ID": "sys_7",
+   "Name": "Ember Canyon",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -71.31,
+   "Y": 52.204
+  },
+  {
+   "ID": "sys_70",
+   "Name": "Ashen Basin",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 136.756,
+   "Y": 6.29
+  },
+  {
+   "ID": "sys_71",
+   "Name": "Cinder Verge",
    "Kind": "asteroid_field",
    "Map": "asteroid",
-   "X": 15.876,
-   "Y": -15.48
+   "X": 13.728,
+   "Y": 51.483
   },
   {
    "ID": "sys_72",
-   "Name": "Ember Shelf",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -5.041,
-   "Y": 15.384
+   "Name": "Crimson Tract",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 27.633,
+   "Y": -106.878
+  },
+  {
+   "ID": "sys_73",
+   "Name": "Storm Sink",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -55.097,
+   "Y": 64.201
+  },
+  {
+   "ID": "sys_74",
+   "Name": "Drift Mire",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -30.625,
+   "Y": -27.017
+  },
+  {
+   "ID": "sys_75",
+   "Name": "Storm Basin",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 6.284,
+   "Y": 33.434
   },
   {
    "ID": "sys_76",
-   "Name": "Ember Hollow",
-   "Kind": "planet",
-   "Map": "alien",
-   "X": -25.34,
-   "Y": 6.49
+   "Name": "Drift Shoals",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 50.712,
+   "Y": -11.548
   },
   {
-   "ID": "sys_83",
-   "Name": "Scorch Rift",
+   "ID": "sys_77",
+   "Name": "Bone Strand",
    "Kind": "planet",
-   "Map": "alien",
-   "X": 29.622,
-   "Y": 31.045
+   "Map": "earth_like",
+   "X": 129.93,
+   "Y": -58.566
   },
   {
-   "ID": "sys_91",
-   "Name": "Gaunt Basin",
+   "ID": "sys_78",
+   "Name": "Far Verge",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -63.72,
+   "Y": 44.899
+  },
+  {
+   "ID": "sys_79",
+   "Name": "Wether Run",
    "Kind": "planet",
-   "Map": "ocean_planet",
-   "X": -20.413,
-   "Y": -34.002
+   "Map": "earth_like",
+   "X": 33.047,
+   "Y": 54.055
+  },
+  {
+   "ID": "sys_8",
+   "Name": "Bone Spire",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -35.556,
+   "Y": -16.218
+  },
+  {
+   "ID": "sys_80",
+   "Name": "Leaden Steppe",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -76.146,
+   "Y": -106.388
+  },
+  {
+   "ID": "sys_9",
+   "Name": "Ember Shelf",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -14.005,
+   "Y": 18.803
   }
  ],
  "7": [
@@ -541,168 +2637,656 @@
    "Name": "Wreck Site",
    "Kind": "adrift",
    "Map": "",
-   "X": 0,
-   "Y": 0
+   "X": -4.269,
+   "Y": -54.3
   },
   {
-   "ID": "home",
-   "Name": "Home",
-   "Kind": "home",
-   "Map": "earth_like",
-   "X": 2618.796,
-   "Y": -1463.525
+   "ID": "gate",
+   "Name": "The Gate",
+   "Kind": "gate",
+   "Map": "",
+   "X": -88.608,
+   "Y": 133.444
   },
   {
-   "ID": "start",
-   "Name": "Storm Cradle",
+   "ID": "sys_1",
+   "Name": "Tallow Expanse",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -57.04,
+   "Y": 74.29
+  },
+  {
+   "ID": "sys_10",
+   "Name": "Salt Verge",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 14.371,
+   "Y": -20.6
+  },
+  {
+   "ID": "sys_11",
+   "Name": "Hollow Hold",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 6.796,
-   "Y": -4.22
+   "X": 30.574,
+   "Y": -17.415
   },
   {
-   "ID": "sys_103",
-   "Name": "Wether Gap",
-   "Kind": "moon",
-   "Map": "moon",
-   "X": 30.008,
-   "Y": -30.605
-  },
-  {
-   "ID": "sys_110",
-   "Name": "Rust Ridge",
-   "Kind": "planet",
-   "Map": "alien",
-   "X": 4.696,
-   "Y": -9.529
-  },
-  {
-   "ID": "sys_113",
-   "Name": "Veil Flats",
-   "Kind": "planet",
-   "Map": "alien",
-   "X": 29.52,
-   "Y": -18.429
-  },
-  {
-   "ID": "sys_122",
-   "Name": "Murk Fold",
+   "ID": "sys_12",
+   "Name": "Far Tangle",
    "Kind": "planet",
    "Map": "earth_like",
-   "X": 9.56,
-   "Y": 27.123
+   "X": 60.626,
+   "Y": -3.112
   },
   {
-   "ID": "sys_128",
-   "Name": "Crimson Spire",
+   "ID": "sys_13",
+   "Name": "Bone Gap",
    "Kind": "planet",
-   "Map": "alien",
-   "X": 20.311,
-   "Y": 37.102
+   "Map": "frozen_planet",
+   "X": 14.761,
+   "Y": 49.75
+  },
+  {
+   "ID": "sys_14",
+   "Name": "Crimson Run",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 50.335,
+   "Y": 21.584
+  },
+  {
+   "ID": "sys_15",
+   "Name": "Slag Steppe",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 2.308,
+   "Y": -0.276
+  },
+  {
+   "ID": "sys_16",
+   "Name": "Frost Vale",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 30.364,
+   "Y": 16.379
   },
   {
    "ID": "sys_17",
-   "Name": "Umbral Narrows",
+   "Name": "Ashen Basin",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 20.268,
+   "Y": 65.398
+  },
+  {
+   "ID": "sys_18",
+   "Name": "Ember Sink",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -14.687,
+   "Y": 0.672
+  },
+  {
+   "ID": "sys_19",
+   "Name": "Leaden Spire",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 52.284,
+   "Y": -23.162
+  },
+  {
+   "ID": "sys_2",
+   "Name": "Far Run",
    "Kind": "planet",
    "Map": "ocean_planet",
-   "X": -14.765,
-   "Y": 5.093
+   "X": -52.106,
+   "Y": 133.495
+  },
+  {
+   "ID": "sys_20",
+   "Name": "Hollow Gulch",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -41.392,
+   "Y": -8.992
+  },
+  {
+   "ID": "sys_21",
+   "Name": "Scorch Hollow",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -18.788,
+   "Y": -84.989
+  },
+  {
+   "ID": "sys_22",
+   "Name": "Dust Scar",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 4.454,
+   "Y": 64.583
   },
   {
    "ID": "sys_23",
-   "Name": "Sunken Drift",
+   "Name": "Murk Verge",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -99.053,
+   "Y": -44.629
+  },
+  {
+   "ID": "sys_24",
+   "Name": "Sunken Breach",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -32.86,
+   "Y": 22.75
+  },
+  {
+   "ID": "sys_25",
+   "Name": "Storm Shelf",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": 10.736,
+   "Y": 15.502
+  },
+  {
+   "ID": "sys_26",
+   "Name": "Ember Vale",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 38.625,
+   "Y": 36.322
+  },
+  {
+   "ID": "sys_27",
+   "Name": "Scorch Gap",
    "Kind": "planet",
    "Map": "alien",
-   "X": -12.664,
-   "Y": -14.757
+   "X": -15.686,
+   "Y": 48.939
+  },
+  {
+   "ID": "sys_28",
+   "Name": "Far Verge",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 57.118,
+   "Y": 60.235
   },
   {
    "ID": "sys_29",
-   "Name": "Wether Hold",
+   "Name": "Saffron Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 24.991,
+   "Y": 83.551
+  },
+  {
+   "ID": "sys_3",
+   "Name": "Salt Shoals",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -56.231,
+   "Y": -10.558
+  },
+  {
+   "ID": "sys_30",
+   "Name": "Lost Breach",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 32.215,
+   "Y": 63.796
+  },
+  {
+   "ID": "sys_31",
+   "Name": "Gaunt Strand",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": -12.995,
+   "Y": -36.199
+  },
+  {
+   "ID": "sys_32",
+   "Name": "Bone Breach",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -49.497,
+   "Y": 39.214
+  },
+  {
+   "ID": "sys_33",
+   "Name": "Ember Shoals",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -90.208,
+   "Y": -1.214
+  },
+  {
+   "ID": "sys_34",
+   "Name": "Verdant Shelf",
    "Kind": "moon",
    "Map": "moon",
-   "X": -22.981,
-   "Y": -12.628
+   "X": -29.484,
+   "Y": -9.373
+  },
+  {
+   "ID": "sys_35",
+   "Name": "Gaunt Scar",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -91.835,
+   "Y": 114.753
+  },
+  {
+   "ID": "sys_36",
+   "Name": "Umbral Expanse",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -6.4,
+   "Y": -2.043
+  },
+  {
+   "ID": "sys_37",
+   "Name": "Gaunt Tangle",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 35.316,
+   "Y": 89.312
+  },
+  {
+   "ID": "sys_38",
+   "Name": "Blighted Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -5.591,
+   "Y": -19.344
+  },
+  {
+   "ID": "sys_39",
+   "Name": "Dust Reach",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -28.835,
+   "Y": 0.482
   },
   {
    "ID": "sys_4",
-   "Name": "Sable Spire",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": -8.274,
-   "Y": -23.298
+   "Name": "Dust Basin",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -70.779,
+   "Y": -39.126
+  },
+  {
+   "ID": "sys_40",
+   "Name": "Sable Pit",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 42.937,
+   "Y": -65.625
   },
   {
    "ID": "sys_41",
-   "Name": "Salt Shelf",
+   "Name": "Hollow Wastes",
    "Kind": "asteroid_field",
    "Map": "asteroid",
-   "X": 26.166,
-   "Y": -5.1
+   "X": 21.039,
+   "Y": 13.606
+  },
+  {
+   "ID": "sys_42",
+   "Name": "Drift Vale",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 64.185,
+   "Y": -17.294
+  },
+  {
+   "ID": "sys_43",
+   "Name": "Rust Pit",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -27.921,
+   "Y": -84.926
+  },
+  {
+   "ID": "sys_44",
+   "Name": "Cinder Ridge",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 47.441,
+   "Y": 6.969
+  },
+  {
+   "ID": "sys_45",
+   "Name": "Pale Mire",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -23.918,
+   "Y": -20.52
+  },
+  {
+   "ID": "sys_46",
+   "Name": "Murk Ridge",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": -8.792,
+   "Y": -28.362
+  },
+  {
+   "ID": "sys_47",
+   "Name": "Shroud Shelf",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -86.016,
+   "Y": -12.528
+  },
+  {
+   "ID": "sys_48",
+   "Name": "Saffron Tangle",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -25.542,
+   "Y": 12.324
+  },
+  {
+   "ID": "sys_49",
+   "Name": "Umbral Canyon",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 16.244,
+   "Y": 28.03
+  },
+  {
+   "ID": "sys_5",
+   "Name": "Ashen Vale",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 103.577,
+   "Y": 114.156
   },
   {
    "ID": "sys_50",
-   "Name": "Scorch Wastes",
+   "Name": "Veil Narrows",
    "Kind": "planet",
-   "Map": "frozen_planet",
-   "X": -11.183,
-   "Y": 21.363
+   "Map": "desert_planet",
+   "X": -30.887,
+   "Y": -73.722
+  },
+  {
+   "ID": "sys_51",
+   "Name": "Salt Wastes",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -50.926,
+   "Y": -54.601
+  },
+  {
+   "ID": "sys_52",
+   "Name": "Iron Fold",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -32.054,
+   "Y": -65.087
   },
   {
    "ID": "sys_53",
-   "Name": "Shroud Rift",
+   "Name": "Iron Rift",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -73.708,
+   "Y": -3.985
+  },
+  {
+   "ID": "sys_54",
+   "Name": "Umbral Ridge",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 70.978,
+   "Y": 39.965
+  },
+  {
+   "ID": "sys_55",
+   "Name": "Sunken Ridge",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -26.879,
+   "Y": -45.721
+  },
+  {
+   "ID": "sys_56",
+   "Name": "Verdant Tract",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 77.689,
+   "Y": 47.697
+  },
+  {
+   "ID": "sys_57",
+   "Name": "Ashen Sink",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -114.607,
+   "Y": -53.406
+  },
+  {
+   "ID": "sys_58",
+   "Name": "Glass Ridge",
    "Kind": "planet",
    "Map": "alien",
-   "X": 45.874,
-   "Y": 6.787
+   "X": 64.287,
+   "Y": 28.094
+  },
+  {
+   "ID": "sys_59",
+   "Name": "Rust Fields",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -18.414,
+   "Y": 16.431
+  },
+  {
+   "ID": "sys_6",
+   "Name": "Frost Steppe",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 12.684,
+   "Y": -76.39
+  },
+  {
+   "ID": "sys_60",
+   "Name": "Cinder Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -36.34,
+   "Y": -36.13
   },
   {
    "ID": "sys_61",
-   "Name": "Shroud Shelf",
+   "Name": "Blighted Wound",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": 55.078,
+   "Y": -82.973
+  },
+  {
+   "ID": "sys_62",
+   "Name": "Glass Gulch",
    "Kind": "moon",
    "Map": "moon",
-   "X": -34.912,
-   "Y": -59.927
+   "X": 29.945,
+   "Y": 26.164
+  },
+  {
+   "ID": "sys_63",
+   "Name": "Blighted Wastes",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -4.802,
+   "Y": -46.317
+  },
+  {
+   "ID": "sys_64",
+   "Name": "Frost Wound",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -9.873,
+   "Y": 17.335
+  },
+  {
+   "ID": "sys_65",
+   "Name": "Quiet Tract",
+   "Kind": "planet",
+   "Map": "frozen_planet",
+   "X": 20.889,
+   "Y": 1.456
+  },
+  {
+   "ID": "sys_66",
+   "Name": "Veil Pit",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 24.449,
+   "Y": 48.584
   },
   {
    "ID": "sys_67",
-   "Name": "Ashen Fold",
-   "Kind": "station",
-   "Map": "abandoned_station",
-   "X": 0.139,
-   "Y": 42.894
+   "Name": "Gleaming Drift",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -15.246,
+   "Y": 76.354
+  },
+  {
+   "ID": "sys_68",
+   "Name": "Quiet Tangle",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -41.991,
+   "Y": -29.415
+  },
+  {
+   "ID": "sys_69",
+   "Name": "Tallow Verge",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -44.88,
+   "Y": -78.383
+  },
+  {
+   "ID": "sys_7",
+   "Name": "Dust Steppe",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": 84.793,
+   "Y": 2.656
+  },
+  {
+   "ID": "sys_70",
+   "Name": "Verdant Mire",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 1.528,
+   "Y": 24.54
+  },
+  {
+   "ID": "sys_71",
+   "Name": "Crimson Basin",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 20.757,
+   "Y": -35.687
+  },
+  {
+   "ID": "sys_72",
+   "Name": "Glass Reach",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": 5.022,
+   "Y": -52.551
   },
   {
    "ID": "sys_73",
-   "Name": "Slag Strand",
-   "Kind": "moon",
-   "Map": "moon",
-   "X": 31.365,
-   "Y": 8.231
+   "Name": "Tallow Reach",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": -89.632,
+   "Y": 122.602
+  },
+  {
+   "ID": "sys_74",
+   "Name": "Wether Verge",
+   "Kind": "asteroid_field",
+   "Map": "asteroid",
+   "X": 11.187,
+   "Y": -1.714
+  },
+  {
+   "ID": "sys_75",
+   "Name": "Gaunt Run",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -122.357,
+   "Y": 1.813
+  },
+  {
+   "ID": "sys_76",
+   "Name": "Bone Shelf",
+   "Kind": "planet",
+   "Map": "earth_like",
+   "X": -122.89,
+   "Y": -41.578
+  },
+  {
+   "ID": "sys_77",
+   "Name": "Quiet Spire",
+   "Kind": "station",
+   "Map": "abandoned_station",
+   "X": -49.282,
+   "Y": -20.446
+  },
+  {
+   "ID": "sys_78",
+   "Name": "Blighted Expanse",
+   "Kind": "planet",
+   "Map": "desert_planet",
+   "X": -41.917,
+   "Y": 25.187
   },
   {
    "ID": "sys_79",
-   "Name": "Blighted Basin",
-   "Kind": "asteroid_field",
-   "Map": "asteroid",
-   "X": 2.376,
-   "Y": 49.313
+   "Name": "Blighted Hold",
+   "Kind": "moon",
+   "Map": "moon",
+   "X": -61.76,
+   "Y": 104.767
+  },
+  {
+   "ID": "sys_8",
+   "Name": "Shroud Canyon",
+   "Kind": "planet",
+   "Map": "ocean_planet",
+   "X": -60.678,
+   "Y": -21.746
+  },
+  {
+   "ID": "sys_80",
+   "Name": "Rust Verge",
+   "Kind": "planet",
+   "Map": "alien",
+   "X": 65.146,
+   "Y": 50.305
   },
   {
    "ID": "sys_9",
-   "Name": "Scorch Narrows",
+   "Name": "Blighted Tract",
    "Kind": "planet",
-   "Map": "earth_like",
-   "X": 21.931,
-   "Y": -11.201
-  },
-  {
-   "ID": "sys_92",
-   "Name": "Storm Pit",
-   "Kind": "planet",
-   "Map": "earth_like",
-   "X": 8.142,
-   "Y": -16.199
+   "Map": "desert_planet",
+   "X": 12.369,
+   "Y": 39.175
   }
  ]
 }

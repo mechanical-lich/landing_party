@@ -1,7 +1,8 @@
 {"name":"factions_mirror","seed":19,"config":{"rivalsByCount":true}}
 # New Expedition seed 19 with Rival factions 2: one hive and one rival colony
-# (the colony doctrine run by a rival, faction key mirror), whose ship is seeded landed on Slag Hollow (sys_55,
-# 10 fuel from the Wreck Site). Jump there: from orbit the ship is seen,
+# (the colony doctrine run by a rival, faction key mirror), whose ship lands
+# first on its landfall Rust Flats (sys_57, a planet, 28 fuel from the Wreck
+# Site: a 10-day jump, inside the ship's 40-day stay). Jump there: from orbit the ship is seen,
 # drawn on the Star Map as a dart beside the site, the site tagged RIVAL
 # COLONY · NEUTRAL. Beam one colonist down and land: the colony's camp is
 # built onto the level (a bunker room with its airlock, a locker holding its
@@ -19,12 +20,12 @@
 {"op":"click","target":"title:launch"}
 {"op":"wait_until","path":"state","eq":"dashboard","max_ticks":120}
 {"op":"assert","path":"campaign.faction_count","eq":2}
-{"op":"assert","path":"campaign.ships.fl1","eq":"sys_55"}
+{"op":"assert","path":"campaign.ships.fl1","eq":"sys_57"}
 {"op":"assert","path":"campaign.diplomacy.mirror","eq":"neutral"}
-{"op":"click","target":"row:locList:sys_55"}
+{"op":"click","target":"row:locList:sys_57"}
 {"op":"click","target":"dash:travelBtn"}
 {"op":"wait","ticks":5}
-{"op":"assert","path":"campaign.location_id","eq":"sys_55"}
+{"op":"assert","path":"campaign.location_id","eq":"sys_57"}
 {"op":"assert","path":"campaign.known_fleets","gte":1}
 {"op":"screenshot","name":"starmap"}
 {"op":"click","target":"row:shipList:0"}

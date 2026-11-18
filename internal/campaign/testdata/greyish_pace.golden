@@ -1,96 +1,99 @@
 seed 1
   d40 landings 2
-    mothership crew 10 hoard crystal 9, metal_ore 15 techs 0
-    freighter flying crew 3 hold 0 techs 0
-  d100 landings 6
-    mothership crew 10 hoard crystal 4, metal_ore 2 techs 1
-    freighter landed crew 5 hold 6 techs 1
-    scout landed crew 3 hold 2 techs 1
-  d200 landings 12
-    mothership crew 10 hoard crystal 11, metal_ore 62 techs 2
-    freighter returning crew 5 hold 30 techs 2
-    freighter flying crew 5 hold 29 techs 3
-  d300 landings 15
-    mothership crew 10 hoard crystal 10, metal_ore 105 techs 3
-    freighter docked crew 5 hold 0 techs 3
-    freighter docked crew 5 hold 0 techs 3
-    scout docked crew 3 hold 0 techs 3
+    mothership crew 10 hoard crystal 12, metal_ore 36 techs 0
+    scout landed crew 3 hold 6 techs 1
+  d100 landings 3
+    mothership crew 10 hoard crystal 13, metal_ore 41 techs 1
+    freighter flying crew 5 hold 0 techs 1
+  d200 landings 10
+    mothership crew 10 hoard crystal 30, metal_ore 39 techs 2
+    freighter landed crew 5 hold 8 techs 2
+    freighter landed crew 3 hold 2 techs 2
+  d300 landings 19
+    mothership crew 10 hoard crystal 18, metal_ore 30 techs 3
+    freighter landed crew 5 hold 20 techs 3
+    warship landed crew 7 hold 23 techs 3
+    freighter landed crew 5 hold 8 techs 3
 seed 2
+  d40 landings 2
+    mothership crew 10 hoard crystal 14, metal_ore 34 techs 0
+    scout returning crew 3 hold 31 techs 0
+  d100 landings 4
+    mothership crew 10 hoard crystal 30, metal_ore 56 techs 1
+    freighter flying crew 5 hold 0 techs 1
+  d200 landings 12
+    mothership crew 10 hoard crystal 19, metal_ore 34 techs 2
+    freighter flying crew 5 hold 0 techs 2
+    freighter landed crew 5 hold 18 techs 2
+    scout landed crew 3 hold 8 techs 2
+  d300 landings 23
+    mothership crew 10 hoard crystal 9, metal_ore 63 techs 3
+    freighter landed crew 5 hold 14 techs 3
+    warship landed crew 5 hold 0 techs 3
+    warship flying crew 8 hold 0 techs 3
+seed 3
+  d40 landings 2
+    mothership crew 10 hoard crystal 12, metal_ore 36 techs 0
+    scout landed crew 3 hold 1 techs 0
+  d100 landings 4
+    mothership crew 10 hoard crystal 3, metal_ore 21 techs 1
+    freighter landed crew 3 hold 1 techs 1
+  d200 landings 7
+    mothership crew 10 hoard crystal 19, metal_ore 97 techs 2
+    freighter landed crew 5 hold 17 techs 2
+  d300 landings 16
+    mothership crew 10 hoard crystal 6, metal_ore 107 techs 3
+    freighter landed crew 5 hold 0 techs 3
+    scout landed crew 3 hold 11 techs 3
+    freighter landed crew 4 hold 8 techs 3
+seed 4
+  d40 landings 2
+    mothership crew 10 hoard crystal 12, metal_ore 36 techs 0
+    scout landed crew 3 hold 10 techs 1
+  d100 landings 4
+    mothership crew 10 hoard crystal 17, metal_ore 37 techs 1
+    freighter returning crew 5 hold 30 techs 1
+  d200 landings 11
+    mothership crew 10 hoard crystal 25, metal_ore 50 techs 2
+    freighter flying crew 5 hold 0 techs 2
+    scout landed crew 3 hold 16 techs 2
+    scout flying crew 3 hold 13 techs 2
+  d300 landings 22
+    mothership crew 10 hoard crystal 30, metal_ore 106 techs 3
+    freighter returning crew 5 hold 30 techs 3
+    warship landed crew 8 hold 25 techs 3
+    scout landed crew 3 hold 12 techs 3
+seed 5
+  d40 landings 2
+    mothership crew 10 hoard crystal 12, metal_ore 36 techs 0
+    scout landed crew 3 hold 15 techs 1
+  d100 landings 4
+    mothership crew 10 hoard crystal 11, metal_ore 43 techs 1
+    freighter landed crew 5 hold 25 techs 1
+  d200 landings 10
+    mothership crew 10 hoard crystal 10, metal_ore 85 techs 2
+    freighter landed crew 5 hold 9 techs 2
+    scout landed crew 3 hold 7 techs 2
+  d300 landings 20
+    mothership crew 10 hoard crystal 9, metal_ore 109 techs 3
+    freighter landed crew 5 hold 0 techs 3
+    freighter returning crew 5 hold 31 techs 3
+    freighter landed crew 5 hold 16 techs 3
+seed 6
   d40 landings 2
     mothership crew 10 hoard crystal 14, metal_ore 34 techs 0
     scout returning crew 3 hold 31 techs 0
   d100 landings 6
     mothership crew 10 hoard crystal 6 techs 1
-    freighter landed crew 5 hold 1 techs 1
-    scout landed crew 3 hold 1 techs 1
-  d200 landings 12
-    mothership crew 10 hoard crystal 19, metal_ore 54 techs 2
-    freighter returning crew 5 hold 30 techs 2
-    freighter landed crew 5 hold 15 techs 2
-  d300 landings 17
-    mothership crew 10 hoard crystal 16, metal_ore 3 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    warship docked crew 5 hold 0 techs 2
-seed 3
-  d40 landings 2
-    mothership crew 10 hoard crystal 14, metal_ore 34 techs 0
-    scout landed crew 3 hold 21 techs 0
-  d100 landings 4
-    mothership crew 10 hoard crystal 12, metal_ore 43 techs 1
-    freighter landed crew 5 hold 10 techs 1
-  d200 landings 9
-    mothership crew 10 hoard crystal 13, metal_ore 89 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    freighter docked crew 5 hold 0 techs 2
-  d300 landings 9
-    mothership crew 10 hoard crystal 13, metal_ore 89 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    freighter docked crew 5 hold 0 techs 2
-seed 4
-  d40 landings 2
-    mothership crew 10 hoard crystal 16, metal_ore 32 techs 0
-    scout returning crew 3 hold 30 techs 0
-  d100 landings 5
-    mothership crew 10 hoard crystal 14, metal_ore 40 techs 1
-    freighter landed crew 5 hold 5 techs 1
-  d200 landings 7
-    mothership crew 10 hoard crystal 6, metal_ore 58 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    scout docked crew 3 hold 0 techs 2
-  d300 landings 7
-    mothership crew 10 hoard crystal 6, metal_ore 58 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    scout docked crew 3 hold 0 techs 2
-seed 5
-  d40 landings 2
-    mothership crew 10 hoard crystal 14, metal_ore 34 techs 0
-    scout landed crew 3 hold 26 techs 0
-  d100 landings 4
-    mothership crew 10 hoard crystal 6, metal_ore 47 techs 1
-    freighter flying crew 5 hold 0 techs 1
-  d200 landings 9
-    mothership crew 10 hoard crystal 10, metal_ore 83 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    scout landed crew 3 hold 28 techs 2
-  d300 landings 10
-    mothership crew 10 hoard crystal 2, metal_ore 96 techs 2
-    freighter docked crew 5 hold 0 techs 2
-    freighter docked crew 3 hold 0 techs 2
-seed 6
-  d40 landings 2
-    mothership crew 10 hoard crystal 7, metal_ore 16 techs 0
-    freighter flying crew 3 hold 0 techs 0
-  d100 landings 5
-    mothership crew 10 hoard crystal 29, metal_ore 54 techs 1
     freighter landed crew 5 hold 18 techs 1
-  d200 landings 15
-    mothership crew 10 hoard crystal 18, metal_ore 36 techs 2
-    freighter returning crew 5 hold 30 techs 2
-    freighter landed crew 5 hold 28 techs 3
-    freighter landed crew 3 hold 9 techs 2
-  d300 landings 29
-    mothership crew 10 hoard crystal 34, metal_ore 134 techs 3
-    warship landed crew 8 hold 0 techs 3
-    warship docked crew 5 hold 0 techs 3
-    warship docked crew 8 hold 0 techs 3
+    scout landed crew 3 hold 5 techs 1
+  d200 landings 16
+    mothership crew 10 hoard crystal 26, metal_ore 63 techs 2
+    freighter landed crew 5 hold 15 techs 2
+    freighter landed crew 5 hold 15 techs 2
+    freighter landed crew 5 hold 21 techs 2
+  d300 landings 32
+    mothership crew 10 hoard crystal 34, metal_ore 161 techs 3
+    warship landed crew 5 hold 3 techs 3
+    warship landed crew 8 hold 5 techs 3
+    warship returning crew 8 hold 32 techs 3

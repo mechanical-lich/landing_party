@@ -27,7 +27,7 @@ func greyLanded(t *testing.T, seed int64, pop, tier int, techs []string, days in
 	}
 	syncFactionHostility(c)
 	t.Cleanup(components.ResetFactionHostility)
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	c.FactionSeq++
 	c.FleetSeq++
 	c.Fleets = append(c.Fleets, campaign.Fleet{

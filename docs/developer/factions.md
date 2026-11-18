@@ -199,6 +199,56 @@ pins the day-40 and day-100 counts for Rival factions 1 so the pace cannot
 drift silently; retune it on purpose. Re-measured after Phase B (fleets,
 husks, reconcile): the same table, since B changes no Tier 1 number.
 
+### On the pregenerated galaxy (2026-11-15)
+
+Re-measured on a **medium galaxy** (80 systems), seeds 1–6, no player, with
+every rival arriving at a rolled landfall on the rim
+(`make history-dump HFACTIONS=0,1,2,3,4 HFSEEDS=1-6 HFDAYS=300
+HFCOLS=0,40,100,200,300`). Presences / total population, min–max (eggs and
+ships in flight are not counted):
+
+| Rival factions | Day 0 | Day 40 | Day 100 | Day 200 | Day 300 |
+|---|---|---|---|---|---|
+| 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 1 | 1 / 3 | 1 / 22–24 | 2 / 26–46 | 4–6 / 51–91 | 8–15 / 101–230 |
+| 2 | 1 / 3 | 1 / 22–24 | 2 / 28–48 | 4–7 / 76–132 | 6–18 / 97–257 |
+| 3 | 1 / 3 | 1 / 22–24 | 2–3 / 27–46 | 5–7 / 71–121 | 9–18 / 126–290 |
+| 4 | 2 / 6 | 2 / 25–30 | 3–4 / 40–61 | 11–14 / 93–153 | 18–36 / 199–425 |
+
+What moved and why:
+
+- **Day 40 and day 100 barely move.** A brood still takes 26 to 50 days to
+  its first shot, and day 100 is still one or two hives. Rival factions 1
+  now has two on every seed (it had one or two): every landfall system has at
+  least three systems within 30, where the old opening map's start could be
+  cramped.
+- **Day 200 and 300 grow past the old ceiling.** The old opening map
+  filled at 6 to 10 presences because nothing beyond it existed; the galaxy
+  has 80 systems and a hive keeps finding room. Rival factions 1 reaches 8
+  to 15 hives by day 300 (was 6 to 9), Rival factions 4 (with the autonz) 18
+  to 36, close to half the galaxy. That is the plan's risk "rivals with a
+  whole galaxy do not overrun it" coming true at four rivals; the levers are
+  the launcher range and cooldown data. Not retuned here (a balance question
+  for the owner).
+- Days to a hive's first shot: 26 to 127, averages 35 to 70 (were 20 to 37,
+  about 75 on a crowded site).
+- Day 0 for Rival factions 2 and 3 shows one presence: the second and third
+  rivals are ships (the mirror, the greys), landed at their own landfalls.
+
+Re-measured with the gate (plan step 4: rival colonies seek it and leave,
+their camps refining 4 fuel a day): Rival factions 1 is unchanged, and
+Rival factions 2 to 4 hold within two presences of the table above at every
+column (day 300: 6–17, 9–18, 18–34). The rival colony's ship, not counted
+there, is what moves: it is usually gone through the gate before day 300.
+
+`TestFactionPaceRivalOne` now pins Rival factions 1 on a medium galaxy: one
+presence at day 40, one to three at day 100 with two on at least five seeds
+of six, 8 to 15 at day 300. `TestGreyishPaceRivalThree`'s golden
+(`testdata/greyish_pace.golden`) is re-pinned: the greys land 16 to 32
+times by day 300 (were 7 to 29) and four seeds of six have a warship by
+then (two before): a scout leaving its landfall finds free ore-bearing
+sites in every direction instead of a handful of opening systems.
+
 ## The daily step
 
 `Campaign.StepFactions(loaded)` steps every day from `faction_day` to the
@@ -993,7 +1043,7 @@ screen's races are ordered by `race.order` (the hive 1, the autonz 2).
 
 **The greys, a ship race** (step 6). Greyish is `playable` but a `fleet`
 doctrine, so its run is a **ship run**, not a race run: the ordinary ship,
-Travel, Beam, quests and the reach-Home win. What differs:
+Travel, Beam and quests (and no automatic win). What differs:
 
 - **Faction.** Any race's player presence takes the key `player`
   (`NewPlayerPresence`; the colony keeps `colony`), so rival greys stay
@@ -1278,7 +1328,7 @@ block (none for the mirror):
 | `tiers` | in order: `name`, `crew` (the crew cap; growth stops there, on the level the grow rung prints to it), `cost` (what the mothership spends to raise a ship to it) |
 | `hold_target` | a landed ship whose hold reaches this many units lifts off for the mothership |
 | `yield` | a landed ship's abstract digging per crew member a day, by site tag (`base`: every site), fractions carried in `yield_frac` |
-| `mothership` | `crew`, `min_home_distance`, `ship_cost` (a new tier-0 ship), `max_ships` |
+| `mothership` | `crew`, `ship_cost` (a new tier-0 ship), `max_ships` |
 
 **The rhythm** (Tier 1, `stepShip`): a landed ship off a loaded site grows
 to its site's capacity under its crew cap, digs into its hold, researches
@@ -1334,7 +1384,7 @@ and 6 crystal, aggression 6, and:
 
 - **Ships**: tiers scout (crew 3), freighter (5; 40 metal, 15 crystal),
   warship (8; 90 metal, 40 crystal); `hold_target` 30; yields by tag;
-  a mothership of crew 10 at least 60 from Home, a new ship for 60 metal and
+  a mothership of crew 10 over its landfall system, a new ship for 60 metal and
   20 crystal, three at most. Each tier lists its `modules` (below). The
   mothership keeps a beam stock apart from its hoard (`mothership.beam`):
   once a day a grey camp on a loaded level is topped up to the beam floor
@@ -1406,7 +1456,7 @@ The greyish soak (`make soak-greyish`, `TestGreyishSoak`): ten scouts and
 five warships landing live on the nearest ore world, a 30-day stay each.
 
 **Seeding** puts the scout landed on its site and the mothership in orbit
-of a site at least `min_home_distance` from Home (else the farthest), from
+of its landfall system (the one its first ship landed on), from
 a random stream of its own (`newMothership`), at the top tier.
 
 **The mothership destroyed** (the plan's open question). Taking it
@@ -1703,26 +1753,68 @@ dormant presence `AUTONZ SIGNAL · WAKES IN N DAYS` (`Campaign.SignalNote`);
 the Destinations row notes `[autonz hub]` / `[autonz signal]`. A scan sweep
 reveals dormant presences in its range like any other.
 
+## The rival colony and the gate
+
+A rival colony's doctrine view carries `objective: leave` and a `gate`
+block (`sense_range` 100, `switch_days` 20, `switch_loss` 1,
+`explore_stay` 12; `campaign/gate.go`): its ships seek the gate and leave
+the galaxy, ship by ship. In a campaign with a gate (one built by hand has
+none, and its rival colony flies by its table as before), `fleetMove` is
+`gateMove` for such a ship:
+
+- **Before it knows the gate** it moves on after `explore_stay` days: to the
+  deepest system (farthest from every landfall point; the rim and every star
+  are in sight to anyone), then new ground farthest from everywhere it has
+  landed, a target kept (`Fleet.ExploreTo`) until reached. Landing within
+  `sense_range` of the gate teaches its faction (`Faction.GateKnown`, a
+  `faction_found_gate` line); a lit gate is known to everyone.
+- **Knowing it**, it flies the shortest route (`routeHop`, Dijkstra over
+  stops) to the controls world while the gate is off, the gate once it is on,
+  each hop within its tank less the reserve (74, past its everyday
+  `base_range` 40) and only when the tank covers it; stops are free sites,
+  and the controls world whoever holds it.
+- **On the controls world** with the gate off it stays: off a loaded level
+  it works the controls (`Fleet.GateWork`) and after `switch_days` switches
+  the gate on, losing `switch_loss` crew (never its last); on a loaded level
+  the world manager orders the controls repaired by its own settlement
+  (`orderGateRepairs`) and its workers walk down and do it.
+- **At the lit gate** it is gone (`leaveThroughGate`): a
+  `faction_left_galaxy` line, an alert only if the player had seen it.
+
+Its camp refines `fleet_refuel_per_day` 4 fuel a day (1 before the gate:
+too slow for a whole galaxy). Alone in a galaxy it leaves on day 39 to 138
+on a small one (mean 76) and 69 to 374 on a medium one (mean 161), measured
+by `TestRivalColonyLeavesThroughTheGate`.
+
 ## Where a presence may be
 
 `Campaign.FactionSiteOK(loc, seeding)`: a site (`HasSite`), not the Wreck
 Site, not the Training Ground, and not a first-jump site
 (`firstJump`: within `safe_start_radius` of the Wreck Site, whose history
 `BindSiteSafe` keeps safe) unless the player has already visited it. Seeding
-refuses first-jump sites outright, so the start system is always clean. Home
-has no site.
+refuses first-jump sites outright, so the start system is always clean. The
+gate has no site. Every other landfall's safe start is open to the rivals:
+it is where they arrive.
 
 ## Seeding and the stepper
 
 New Expedition's **Rival factions** stepper (0 to `factions_max`, starting at
 `factions_default`, both in `data/generation.json`) is
 `GenOptions{Factions}` to `GenerateCampaignOpts`. `GenerateCampaign` is the
-same with 0. After the opening map is charted, `seedFactions` draws doctrines
+same with 0. After the galaxy is made, `seedFactions` draws doctrines
 from the seedable ones without replacement, refilling the bag when it runs
-out (so a one-doctrine file still seeds `n` presences), and puts each on a
-different eligible site, weighted toward its economy. Its random stream is
-its own: the map, names, histories and quests of a seed are the same at
-every count. Hidden sites (an opening contract's) can be seeded.
+out (so a one-doctrine file still seeds `n` presences). Every faction
+arrives from outside the galaxy (`arrivalSite`): each takes the system of a
+landfall rolled from those free (never the player's, never two on one), so
+a run may begin beside a rival or far from all of them; with no landfall
+free it falls back to an eligible site weighted toward its economy.
+`seedArrival` puts a planet-carried rival on it at its first stage, or a
+ship faction's first ship landed there, and a grey mothership in orbit of
+the same system (a mothership's position is the site it orbits, so it is
+the landfall system rather than the rim point beside it). The rival boxes
+(`seedRivals`) and a spreading race's rivals (`seedRaceFactions`) seed the
+same way. Their random streams are their own: the galaxy of a seed is the
+same at every count.
 
 ## What the player sees
 

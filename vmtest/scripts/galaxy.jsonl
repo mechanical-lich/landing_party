@@ -1,0 +1,156 @@
+{"name":"galaxy","seed":777,"config":{"rivalsByCount":true}}
+# The pregenerated galaxy (pregenerated_galaxy_plan.md steps 1-2 and sight):
+# a new run's Star Map at each size and three shapes (seed 1 small irregular,
+# seed 2 medium ring, seed 5 large spiral), each with only its landfall system
+# identified, the few systems within sight of the landfall dim points, and
+# the rest of the galaxy only the faint haze of its shape. On the medium run
+# two blind jumps each see what lies within sight of where they arrive, and a
+# scan identifies the systems in range (its circle drawn while Scan is
+# hovered).
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Small"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"1"}
+{"op":"click","target":"title:tutorial"}
+{"op":"assert","path":"title_fields.size","eq":"medium"}
+{"op":"click","target":"title:size_prev"}
+{"op":"assert","path":"title_fields.size","eq":"small"}
+{"op":"screenshot","name":"title_small"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":240}
+{"op":"assert","path":"campaign.galaxy_size","eq":"small"}
+{"op":"assert","path":"campaign.galaxy_shape","eq":"irregular"}
+{"op":"assert","path":"campaign.systems","eq":41}
+{"op":"assert","path":"campaign.identified","eq":1}
+{"op":"assert","path":"campaign.seen","eq":9}
+{"op":"assert","path":"campaign.gate_identified","eq":false}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"small_irregular"}
+# Zoomed out: the haze reads as the galaxy's shape.
+{"op":"move","at":[576,335]}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"small_irregular_whole"}
+{"op":"relaunch"}
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Medium"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"2"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":240}
+{"op":"assert","path":"campaign.galaxy_size","eq":"medium"}
+{"op":"assert","path":"campaign.galaxy_shape","eq":"ring"}
+{"op":"assert","path":"campaign.systems","eq":81}
+{"op":"assert","path":"campaign.identified","eq":1}
+{"op":"assert","path":"campaign.seen","eq":13}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"medium_ring"}
+# Zoomed out: the haze reads as the galaxy's shape.
+{"op":"move","at":[576,335]}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"medium_ring_whole"}
+# A blind jump: the nearest unidentified system, Travel reads Jump Blind.
+{"op":"click","target":"row:locList:unidentified:0"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"blind_selected"}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"assert","path":"campaign.location_identified","eq":true}
+{"op":"assert","path":"campaign.identified","eq":2}
+{"op":"assert","path":"campaign.seen","gte":14}
+{"op":"screenshot","name":"blind_arrived"}
+# A second blind jump: more of the ring comes into sight.
+{"op":"click","target":"row:locList:unidentified:0"}
+{"op":"wait","ticks":2}
+{"op":"click","target":"dash:travelBtn"}
+{"op":"wait","ticks":5}
+{"op":"assert","path":"campaign.in_orbit","eq":true}
+{"op":"assert","path":"campaign.identified","eq":3}
+{"op":"screenshot","name":"second_jump"}
+# A scan: the scanner researched (debug), Scan hovered draws its range, a
+# click identifies every system in range.
+{"op":"debug","cmd":"unlock ship_scanner_1"}
+{"op":"wait","ticks":2}
+{"op":"move","target":"dash:scanBtn"}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"scan_hover"}
+{"op":"click","target":"dash:scanBtn"}
+{"op":"wait","ticks":3}
+{"op":"assert","path":"campaign.identified","gte":4}
+{"op":"screenshot","name":"scan_report"}
+{"op":"relaunch"}
+{"op":"wait","ticks":10}
+{"op":"click","target":"title:new"}
+{"op":"click","target":"title:name"}
+{"op":"type","text":"Large"}
+{"op":"click","target":"title:seed"}
+{"op":"type","text":"5"}
+{"op":"click","target":"title:tutorial"}
+{"op":"click","target":"title:size_next"}
+{"op":"assert","path":"title_fields.size","eq":"large"}
+{"op":"click","target":"title:launch"}
+{"op":"wait_until","path":"state","eq":"dashboard","max_ticks":300}
+{"op":"assert","path":"campaign.galaxy_size","eq":"large"}
+{"op":"assert","path":"campaign.galaxy_shape","eq":"spiral"}
+{"op":"assert","path":"campaign.systems","eq":151}
+{"op":"assert","path":"campaign.identified","eq":1}
+{"op":"assert","path":"campaign.seen","eq":9}
+{"op":"wait","ticks":5}
+{"op":"screenshot","name":"large_spiral"}
+# Zoomed out: the haze reads as the galaxy's shape.
+{"op":"move","at":[576,335]}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"scroll","dx":0,"dy":-1}
+{"op":"wait","ticks":1}
+{"op":"wait","ticks":2}
+{"op":"screenshot","name":"large_spiral_whole"}

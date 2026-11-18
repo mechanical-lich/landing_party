@@ -120,10 +120,12 @@ west face, twelve rations on the ground, and tags `tut_pad`, `tut_outcrop` and
 `tut_rations`.
 
 `campaign.AddTutorialLocation` adds the location 5-7 units from the Wreck Site
-(where every expedition starts adrift) on the side away from Home, drawing from
-its own RNG so the generated galaxy and `GenSeq` are unchanged. It is nearer than
-the generated start system (`start_radius` 8), which becomes the tutorial's second
-destination (`NextLocationID`); the ship stays adrift until the player jumps.
+(where every expedition starts adrift, at its landfall outside the rim) on the
+side away from the galaxy's centre, drawing from its own RNG so the generated
+galaxy and `GenSeq` are unchanged. It is nearer than every system (its radius
+shrinks when the landfall system is nearer than 8), so the landfall system
+(`Campaign.StartID`) becomes the tutorial's second destination
+(`NextLocationID`); the ship stays adrift until the player jumps.
 
 ## Adding or changing a step
 

@@ -179,10 +179,10 @@ A short description of the race sits under its name.
 
 | Race | Run | Page |
 |---|---|---|
-| Colony (the default, listed first) | The ship, the Star Map and the journey Home, as the rest of this guide describes | [Getting Started](README.md#getting-started) |
+| Colony (the default, listed first) | The ship and the Star Map, as the rest of this guide describes | [Getting Started](README.md#getting-started) |
 | Hive | No ship. Spread a brood across six worlds. | [Playing the hive](xenos_and_troids.md#playing-the-hive) (a spoiler for the xenos and troids) |
 | Autonz | No ship. Wire six worlds and signal between them. | [Autonz: playing the autonz](autonz.md#playing-the-autonz) |
-| Greyish | A saucer that grows, a grey crew, the journey Home. | [Greys: playing the greys](greys.md#playing-the-greys) |
+| Greyish | A saucer that grows, a grey crew, the colony's open-ended run. | [Greys: playing the greys](greys.md#playing-the-greys) |
 
 The guided first landing is only for the colony; the tutorial toggle is
 hidden for the other races.
@@ -210,15 +210,21 @@ to have them side with each other.
 More rival factions spread faster: each one shortens the time between the
 xenos' egg shots and the autonz' signals.
 
-Each rival starts on its own world, away from the Wreck Site. A grey rival
-also starts with a mothership in orbit of a world far from Home.
+Each rival arrives from outside the galaxy at its own point on the rim, never yours. A grey rival
+also starts with a mothership in orbit of the world its first ship landed on.
+
+A **rival colony** wants to leave the galaxy. Its ship heads deep into the
+galaxy until it finds the gate, flies to the world holding the gate's
+controls, switches the gate on there (you may meet it in the vault) and goes
+through. You hear when it switches the gate on, and when it leaves if you
+had met it. See [The gate](star_map.md#the-gate).
 
 ---
 
 ## Playing another race
 
 The hive and the autonz have **no ship**. You hold worlds instead of
-flying between them, and you win by holding six at once.
+flying between them; holding six at once is a milestone.
 
 - **View** on the Star Map opens one of your worlds, or a world within
   your reach, as a ship in orbit would see it. On a world you hold you can
@@ -234,16 +240,17 @@ flying between them, and you win by holding six at once.
 - The Star Map tags your worlds `[yours]` and lists them under **Your
   worlds** with their stage and population, and anything of yours in
   flight. The dashboard header shows `Your worlds: 3 / 6`.
-- A world at its launching stage charts every world within its reach once
-  a day ("New world in reach: Ember Pit").
+- A world at its launching stage identifies every world within its reach
+  once a day ("New world in reach: Ember Pit").
 - There are no quests, no incidents, no beaming and no tutorial.
-- You **win** holding six worlds at once, and **lose** when nothing of
-  yours is left anywhere: no world and nothing in flight.
+- Holding six worlds at once is a **milestone** (an alert and a Legends
+  entry; the run goes on). You **lose** when nothing of yours is left
+  anywhere: no world and nothing in flight.
 - The rival colony is hostile to you once its ship lands on a world you
   hold, or once one of your people comes within 8 tiles of one of its
   colonists. An alert says so: "Your brood have been seen on Ember Pit.
   They are hostile now." ("Your units" for the autonz).
 
 The greys fly a ship like the colony does: the same Star Map, quests,
-beaming and journey Home, with a grey crew and a saucer that grows. See
+beaming and open-ended run, with a grey crew and a saucer that grows. See
 [Greys: playing the greys](greys.md#playing-the-greys).

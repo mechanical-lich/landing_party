@@ -137,7 +137,7 @@ func TestAutonzFullyConvertedSpendsPopulation(t *testing.T) {
 		t.Fatalf("a fully converted presence grew or shrank to %d with nothing to signal", got)
 	}
 	// A site in range: one signal, its cost paid, no growth after.
-	c.Locations["n"] = &Location{ID: "n", Name: "n", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"ore"}, X: a.X + 5, Y: a.Y, Discovered: true}
+	c.Locations["n"] = &Location{ID: "n", Name: "n", Kind: "planet", ScenarioID: "earth_like", Tags: []string{"ore"}, X: a.X + 5, Y: a.Y, Identified: true}
 	c.StarDate = 20
 	c.StepFactions(nil)
 	if got := a.Presence("autonz").Population; got != 9-d.Mobility.ShotPop {

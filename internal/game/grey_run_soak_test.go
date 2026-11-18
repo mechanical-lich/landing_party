@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mechanical-lich/landing_party/internal/campaign"
 	"github.com/mechanical-lich/landing_party/internal/components"
 	"github.com/mechanical-lich/ml-rogue-lib/pkg/rlcomponents"
 )
@@ -81,7 +80,7 @@ func greyRunSoakOne(t *testing.T, seed int64, ticks int) greyRunRow {
 	deterministicTaskStops(t)
 	c, wm := greyRun(t, seed, envInt("LP_SOAK_GREY_RUN_FACTIONS", 1))
 	r := greyRunRow{Seed: seed, FirstLoss: -1, WipedTick: -1}
-	if err := wm.Travel(campaign.StartLocationID); err != nil {
+	if err := wm.Travel(c.StartID); err != nil {
 		t.Fatalf("seed %d: travel: %v", seed, err)
 	}
 	ms := wm.Current()
@@ -91,7 +90,7 @@ func greyRunSoakOne(t *testing.T, seed int64, ticks int) greyRunRow {
 			t.Fatalf("seed %d: beam down: %v", seed, err)
 		}
 	}
-	loc := c.Locations[campaign.StartLocationID]
+	loc := c.Locations[c.StartID]
 	r.Site = loc.MapID + "/" + loc.ScenarioID
 	colony := wm.currentColonyName()
 	crew := func() int { return countLevelColonists(ms.level, colony) }

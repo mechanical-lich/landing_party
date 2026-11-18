@@ -90,7 +90,9 @@ func TestLoreLabBuildsWhatTheGameBuilds(t *testing.T) {
 	for _, n := range labPads {
 		labN += n
 	}
-	if gameN != want || labN != want {
-		t.Errorf("lore datapads: game %d, lab %d, fixtures %d", gameN, labN, want)
+	// A structure may place a lore datapad of its own (spawn_lore_datapad
+	// with an event and no clue), on top of the site's fixtures.
+	if gameN != labN || gameN < want {
+		t.Errorf("lore datapads: game %d, lab %d, fixtures %d (%v)", gameN, labN, want, gamePads)
 	}
 }
