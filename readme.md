@@ -1,4 +1,57 @@
 # Landing Party
+
+> ## Legacy branch: a time capsule
+>
+> This branch preserves Landing Party as it stood on **2026-11-19** (`dev` at
+> `43cccb1`), just before the project changed direction. It is not developed
+> further. Work continues on `dev`.
+>
+> **Why it exists.** The game was about to shift from an indirect-control RTS
+> toward a simulation: a galaxy that is no longer wholly dead, with major
+> factions competing across it and minor peoples living in between. This
+> branch keeps the game as it was before that shift, to play, to refer back
+> to, and to build other ideas from.
+>
+> **The story in this version**
+>
+> - You are a damaged ship's AI leading a party of colonist "blanks", as
+>   described below.
+> - **The galaxy is dead.** Peoples lived here, rose as far as the stars, and
+>   are gone. Each galaxy's past is generated: its peoples, their wars and
+>   how each world ended. What is left is ruins, graves, wrecks and datapads,
+>   and the things that outlived their makers.
+> - **Everyone alive here came from outside.** Each expedition, yours and
+>   every rival's, arrives at its own point on the galaxy's rim.
+> - **There is one gate, and it leads out.** It is switched off. Its controls
+>   are locked in a guarded vault on the world beside it. Switch them on, fly
+>   to the gate with enough fuel, and leave: that is the only way to win.
+>   Otherwise a run goes on until your people are gone.
+> - **The rivals:** xenos and troids (which are more than they seem), the
+>   autonz machines, the greys with their saucers and mothership, and rival
+>   colonies like your own, which look for the gate and leave through it.
+>   The hive, the autonz and the greys can also be played.
+>
+> **What is in it**
+>
+> - A whole galaxy generated at the start (40, 80 or 150 systems in one of
+>   six shapes), hidden until seen, identified by scanning.
+> - Four rival factions as data-driven doctrines, each run by its own
+>   director; several factions of one race; groups that decide who fights
+>   whom; rival choices on New Expedition.
+> - Playable hive, autonz and grey runs beside the colony.
+> - Generated history, Legends, the Encyclopedia, quests and contracts.
+> - Save version 5.
+>
+> **What was planned and never built here** (the plans are in
+> [docs/brainstorm](docs/brainstorm)): campaign objectives per race, new
+> biomes, worlds and wildlife from existing art, and revealing the hive's
+> hidden identity in play.
+>
+> Start with the [Player Guide](docs/player/README.md); the
+> [Developer Guide](docs/developer/README.md) and
+> [docs/developer/factions.md](docs/developer/factions.md) describe how it
+> works.
+
 You are a damaged ship's AI.  Lead a group of alien colonist "blanks" aboard a space life-raft.  Blanks are backup bodies for your usual inhabitants, however, due to damage the bioprinter is unable to restore their personalities from backup. 
 Every expedition begins adrift at the Wreck Site, an empty point in space with
 nothing to land on, so the first act is choosing a destination. From the **Star Map**
